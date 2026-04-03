@@ -5,9 +5,9 @@ const btn = document.getElementById("btnSubmit");
 const feedback = document.getElementById("feedback");
 const accordion = document.getElementById("accordionSemanas");
 
-const dias = ["Martes","Jueves","Viernes","Sabado","Domingo"];
+// Lista de días completa
+const dias = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
 
-// Generar opciones de 8 a 21
 function generarOpcionesHoras() {
   let options = '<option value="No disponible">No disponible</option>';
   for (let h = 8; h <= 21; h++) {
@@ -19,7 +19,7 @@ function generarOpcionesHoras() {
 
 function generarSemanas() {
   const horasHtml = generarOpcionesHoras();
-  for (let s = 1; s <= 4; s++) {
+  for (let s = 1; s <= 5; s++) {
     const item = document.createElement("div");
     item.className = "accordion-item";
     item.innerHTML = `
@@ -32,7 +32,7 @@ function generarSemanas() {
         <div class="accordion-body">
           <div class="table-responsive">
             <table class="table table-sm align-middle">
-              <thead>
+              <thead class="table-light">
                 <tr>
                   <th>Día</th>
                   <th>Desde</th>
@@ -70,7 +70,7 @@ form.addEventListener("submit", (e) => {
   const params = new URLSearchParams();
   params.append("nombre", formData.get("nombre"));
 
-  for (let s = 1; s <= 4; s++) {
+  for (let s = 1; s <= 5; s++) {
     dias.forEach(dia => {
       params.append(`S${s}_${dia}_In`, formData.get(`S${s}_${dia}_In`));
       params.append(`S${s}_${dia}_Out`, formData.get(`S${s}_${dia}_Out`));
@@ -86,13 +86,14 @@ form.addEventListener("submit", (e) => {
   .then(data => {
     if (data.status === "success") {
       feedback.className = "alert alert-success text-center fw-bold";
-      feedback.textContent = "✅ Disponibilidad guardada";
+      feedback.textContent = "✅ Disponibilidad guardada correctamente";
       form.reset();
+      window.scrollTo(0, 0);
     } else { throw new Error(data.message); }
   })
   .catch(err => {
     feedback.className = "alert alert-danger text-center";
-    feedback.textContent = "❌ Error al enviar";
+    feedback.textContent = "❌ Error al enviar. Inténtalo de nuevo.";
   })
   .finally(() => {
     btn.disabled = false;
