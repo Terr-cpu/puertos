@@ -96,15 +96,16 @@
                             <div class="list-group list-group-flush border rounded">
                                 ${t.equipo.map(v => `
                                     <div class="list-group-item d-flex justify-content-between align-items-center bg-white border-0 border-bottom">
-                                        <div>
-                                            <span class="fw-bold fs-5 text-dark">${v.nombre}</span><br>
-                                            <small class="text-muted">${v.dias >= 99 ? 'Sin registros' : v.dias + ' días de descanso'}</small>
-                                        </div>
-                                        ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
+    <div>
+        <span class="fw-bold fs-5 text-dark">${v.nombre}</span><br>
+        <small class="text-muted">
+            🕒 Descanso: <b>${v.dias >= 99 ? 'Nuevo' : v.dias + ' días'}</b> | 
+            📅 Disponibilidad: <b>${v.escasez} días/sem</b>
+        </small>
+    </div>
+    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
+</div>
+                        
                         <div class="col-md-5 mt-3 mt-md-0 border-start ps-md-4">
                             <p class="small fw-bold text-muted mb-2 text-uppercase">Banquillo (Otros disponibles)</p>
                             <div>
