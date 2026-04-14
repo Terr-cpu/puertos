@@ -33,13 +33,6 @@
 
     <div id="resultados"></div>
 </div>
-<div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom px-0">
-    <span class="fw-bold fs-5">
-        ${v.nombre} 
-        ${v.repetido ? '<small class="text-muted" style="font-size:0.6em">(Repite semana)</small>' : ''}
-    </span>
-    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
-</div>
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; 
 
@@ -99,9 +92,12 @@
                             <div class="list-group">
                                 ${t.equipo.map(v => `
                                     <div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom px-0">
-                                        <span class="fw-bold fs-5">${v.nombre}</span>
-                                        ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
-                                    </div>
+    <span class="fw-bold fs-5">
+        ${v.nombre} 
+        ${v.repetido ? '<small class="text-muted" style="font-size:0.6em">(Repite semana)</small>' : ''}
+    </span>
+    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
+</div>
                                 `).join('')}
                             </div>
                         </div>
