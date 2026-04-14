@@ -1,43 +1,33 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planificador Inteligente de Turnos</title>
+    <title>Planificador Mensual Inteligente</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f7f6; padding-top: 30px; }
-        .turno-manana { border-left: 8px solid #007bff !important; background-color: #f0f7ff; }
-        .turno-tarde { border-left: 8px solid #fd7e14 !important; background-color: #fffaf5; }
-        .badge-llave { background-color: #212529; color: #fff; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.75rem; }
-        .card-turno { border: none; border-radius: 15px; margin-bottom: 25px; transition: transform 0.2s; }
-        .card-turno:hover { transform: translateY(-3px); }
-        .titulares-list .list-group-item { border: none; border-bottom: 1px solid #eee; background: transparent; }
+        body { background-color: #f0f2f5; padding: 20px; }
+        .turno-manana { border-left: 10px solid #007bff; background-color: #f8fbff; }
+        .turno-tarde { border-left: 10px solid #fd7e14; background-color: #fffdfa; }
+        .badge-llave { background-color: #212529; color: white; padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; }
+        .card-turno { border-radius: 15px; border: none; transition: 0.3s; }
+        .list-group-item { border: none; border-bottom: 1px solid #eee; background: transparent; font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="card shadow-sm p-4 mb-5 border-0" style="border-radius: 15px;">
-        <h2 class="text-center fw-bold mb-4">🗓️ Generador de Turnos Efectivos</h2>
+<div class="container" style="max-width: 900px;">
+    <div class="card shadow p-4 mb-4 border-0" style="border-radius: 20px;">
+        <h2 class="text-center fw-bold mb-4 text-primary">📅 Planificador Mensual</h2>
         <div class="row g-3">
-            <div class="col-md-4">
-                <label class="form-label fw-bold">Seleccionar Semana</label>
-                <select id="selectSemana" class="form-select border-primary">
-                    <option value="1">Semana 1</option><option value="2">Semana 2</option>
-                    <option value="3">Semana 3</option><option value="4">Semana 4</option><option value="5">Semana 5</option>
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label fw-bold">Día de la Semana</label>
-                <select id="selectDia" class="form-select border-primary">
-                    <option value="Lunes">Lunes</option><option value="Martes">Martes</option>
-                    <option value="Miercoles">Miércoles</option><option value="Jueves">Jueves</option>
-                    <option value="Viernes">Viernes</option><option value="Sabado">Sábado</option><option value="Domingo">Domingo</option>
+            <div class="col-md-8">
+                <label class="form-label fw-bold">Días con turnos programados:</label>
+                <select id="selectCalendario" class="form-select form-select-lg border-primary">
+                    <option value="">Cargando calendario...</option>
                 </select>
             </div>
             <div class="col-md-4 d-flex align-items-end">
-                <button onclick="buscar()" class="btn btn-primary w-100 fw-bold py-2">🔍 BUSCAR TURNOS</button>
+                <button onclick="buscarTurnos()" class="btn btn-primary btn-lg w-100 fw-bold">🔍 VER DISPONIBILIDAD</button>
             </div>
         </div>
     </div>
@@ -46,43 +36,58 @@
 </div>
 
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; // <--- PEGA TU URL DE APPS SCRIPT AQUÍ
-    let datosTurnos = [];
+    const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; // <--- PEGA TU URL DE IMPLEMENTACIÓN AQUÍ
+    let turnosCache = [];
 
-    async function buscar() {
-        const sem = document.getElementById('selectSemana').value;
-        const dia = document.getElementById('selectDia').value;
+    // 1. Cargar el calendario al abrir la web
+    window.onload = async () => {
+        const select = document.getElementById('selectCalendario');
+        try {
+            const res = await fetch(`${API_URL}?action=getCalendario`);
+            const dias = await res.json();
+            select.innerHTML = '<option value="">-- Selecciona un día --</option>';
+            dias.forEach(d => {
+                select.innerHTML += `<option value="${d.diaNombre}" data-semana="${d.semana}">${d.fecha} - ${d.diaNombre} (Semana ${d.semana})</option>`;
+            });
+        } catch (e) { select.innerHTML = '<option>Error al cargar calendario</option>'; }
+    };
+
+    async function buscarTurnos() {
+        const select = document.getElementById('selectCalendario');
+        const option = select.options[select.selectedIndex];
+        if (!option.value) return alert("Selecciona un día");
+
+        const dia = option.value;
+        const sem = option.getAttribute('data-semana');
         const cont = document.getElementById('resultados');
-        cont.innerHTML = '<div class="col-12 text-center">Buscando equipos efectivos...</div>';
+        
+        cont.innerHTML = '<div class="text-center w-100 py-5"><div class="spinner-border text-primary"></div><p>Buscando equipos efectivos...</p></div>';
 
         try {
             const res = await fetch(`${API_URL}?action=getSmartCuadrante&semana=${sem}&dia=${dia}`);
-            datosTurnos = await res.json();
+            turnosCache = await res.json();
             cont.innerHTML = "";
 
-            if (datosTurnos.length === 0) {
-                cont.innerHTML = '<div class="alert alert-info w-100 text-center">No hay suficientes voluntarios libres para este día (mín. 3).</div>';
+            if (turnosCache.length === 0) {
+                cont.innerHTML = '<div class="alert alert-info text-center w-100">No hay voluntarios suficientes (mín. 3) para este día.</div>';
                 return;
             }
 
-            datosTurnos.forEach((t, index) => {
-                const horaH = parseInt(t.rango.split(':')[0]);
-                const esTarde = horaH >= 14;
-                
-                // Generamos la tarjeta
+            turnosCache.forEach((t, index) => {
+                const esTarde = parseInt(t.rango.split(':')[0]) >= 14;
                 cont.innerHTML += `
                 <div class="col-12 mb-4">
-                    <div class="card shadow-sm border-0 ${esTarde ? 'turno-tarde' : 'turno-manana'}" style="border-radius:15px">
+                    <div class="card card-turno ${esTarde ? 'turno-tarde' : 'turno-manana'} shadow-sm">
                         <div class="card-body p-4">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
                                     <h3 class="fw-bold mb-0">🕒 ${t.rango}</h3>
                                     <span class="badge ${esTarde ? 'bg-warning text-dark' : 'bg-primary'}">${esTarde ? 'TARDE' : 'MAÑANA'}</span>
                                 </div>
-                                <button onclick="confirmarTurno('${t.rango}', ${index})" class="btn btn-success fw-bold">CONFIRMAR EQUIPO</button>
+                                <button onclick="confirmarTurno('${t.rango}', ${index})" class="btn btn-success fw-bold px-4">CONFIRMAR EQUIPO</button>
                             </div>
 
-                            ${t.necesitaLlave ? '<div class="alert alert-danger py-2 fw-bold text-center">⚠️ ATENCIÓN: Nadie en este equipo tiene LLAVE</div>' : ''}
+                            ${t.necesitaLlave ? '<div class="alert alert-danger py-2 fw-bold text-center">⚠️ ATENCIÓN: Nadie tiene LLAVE en este equipo</div>' : ''}
 
                             <div class="row">
                                 <div class="col-md-7">
@@ -91,15 +96,15 @@
                                         ${t.equipo.map(v => `
                                             <div class="list-group-item d-flex justify-content-between align-items-center">
                                                 <span class="fw-bold">${v.nombre}</span>
-                                                ${v.llave ? '<span class="badge bg-dark text-white px-3 py-2" style="font-size:0.7rem">🔑 TIENE LLAVE</span>' : ''}
+                                                ${v.llave ? '<span class="badge-llave">🔑 TIENE LLAVE</span>' : ''}
                                             </div>
                                         `).join('')}
                                     </div>
                                 </div>
-                                <div class="col-md-5 mt-3 mt-md-0">
-                                    <p class="small fw-bold text-muted mb-2">SUSTITUTOS / YA TRABAJARON:</p>
-                                    <div class="d-flex flex-wrap gap-1">
-                                        ${t.sustitutos.slice(0, 10).map(s => `<span class="badge bg-white text-dark border">${s}</span>`).join('')}
+                                <div class="col-md-5 mt-4 mt-md-0">
+                                    <p class="small fw-bold text-muted mb-2">OTROS DISPONIBLES:</p>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        ${t.sustitutos.map(s => `<span class="badge bg-white text-dark border p-2">${s}</span>`).join('')}
                                     </div>
                                 </div>
                             </div>
@@ -107,15 +112,17 @@
                     </div>
                 </div>`;
             });
-        } catch (e) { alert("Error al conectar con Google"); }
+        } catch (e) { cont.innerHTML = "Error al conectar con el servidor."; }
     }
 
     async function confirmarTurno(rango, index) {
-        const sem = document.getElementById('selectSemana').value;
-        const dia = document.getElementById('selectDia').value;
-        const nombres = datosTurnos[index].equipo.map(v => v.nombre);
+        const select = document.getElementById('selectCalendario');
+        const option = select.options[select.selectedIndex];
+        const sem = option.getAttribute('data-semana');
+        const dia = option.value;
+        const nombres = turnosCache[index].equipo.map(v => v.nombre);
 
-        if (!confirm(`¿Confirmar turno ${rango}? Estos hermanos se marcarán como "Ocupados" para el resto de la semana.`)) return;
+        if (!confirm(`¿Confirmar turno ${rango}? Estos hermanos quedarán bloqueados para el resto de la semana.`)) return;
 
         try {
             await fetch(`${API_URL}?action=confirmarTurnos`, {
@@ -123,8 +130,8 @@
                 mode: 'no-cors',
                 body: JSON.stringify({ semana: sem, dia: dia, asignados: nombres })
             });
-            alert("¡Turno bloqueado con éxito!");
-            buscar(); // Refresca para ver los cambios
+            alert("Turno guardado con éxito.");
+            buscarTurnos(); // Refrescar para mover a los hermanos a "Ya cumplió"
         } catch (e) { alert("Error al guardar"); }
     }
 </script>
