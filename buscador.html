@@ -45,7 +45,9 @@
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; // MISMA URL QUE EL FORMULARIO
 
+    // Función auxiliar para convertir "HH:MM" a minutos para cálculos
     function horaAMinutos(h) {
+        if (!h) return 0;
         const [hh, mm] = h.split(':').map(Number);
         return hh * 60 + mm;
     }
@@ -54,42 +56,93 @@
         const sem = document.getElementById('selectSemana').value;
         const dia = document.getElementById('selectDia').value;
         const cont = document.getElementById('resultados');
-        cont.innerHTML = '<div class="text-center w-100">Cargando...</div>';
+        
+        // Mensaje de carga animado
+        cont.innerHTML = `
+            <div class="col-12 text-center py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <div class="mt-2 text-muted">Generando Cuadrante Inteligente...</div>
+            </div>`;
 
         try {
-            const res = await fetch(`${API_URL}?action=getDispo&semana=${sem}&dia=${dia}`);
-            let data = await res.json();
-            cont.innerHTML = "";
+            // Llamada a la nueva acción "getSmartCuadrante" que creamos en el Code.gs
+            const res = await fetch(`${API_URL}?action=getSmartCuadrante&semana=${sem}&dia=${dia}`);
+            const turnos = await res.json();
+            
+            cont.innerHTML = ""; // Limpiar contenedor
 
-            if (data.length === 0) {
-                cont.innerHTML = '<div class="alert alert-warning text-center w-100">Nadie disponible.</div>';
+            if (!turnos || turnos.length === 0) {
+                cont.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-warning text-center shadow-sm">
+                            No hay voluntarios disponibles para generar turnos el <strong>${dia}</strong> de la <strong>Semana ${sem}</strong>.
+                        </div>
+                    </div>`;
                 return;
             }
 
-            // Ordenar por hora de inicio
-            data.sort((a, b) => horaAMinutos(a.horario.split(' ')[0]) - horaAMinutos(b.horario.split(' ')[0]));
+            // Generar las tarjetas para cada turno de 2 horas
+            turnos.forEach(t => {
+                // Si el turno no tiene a nadie con llave, preparamos una alerta
+                const alertaLlave = t.necesitaLlave ? 
+                    `<div class="alert alert-danger py-2 mb-3 small fw-bold">
+                        ⚠️ ATENCIÓN: Este turno no tiene a nadie con LLAVE.
+                    </div>` : '';
 
-            data.forEach(p => {
-                const horaIn = p.horario.split(' ')[0];
-                const esTarde = horaAMinutos(horaIn) >= 840; // 14:00
-                const badgeColor = p.totalDispo <= 3 ? 'bg-success' : 'bg-secondary';
+                // Determinar si el turno es de mañana o tarde para el color (Corte a las 14:00)
+                const horaInicio = t.rango.split(' ')[0];
+                const esTarde = horaAMinutos(horaInicio) >= 840;
+                const claseColor = esTarde ? 'turno-tarde' : 'turno-manana';
 
                 cont.innerHTML += `
-                    <div class="col-md-6 col-lg-4">
-                        <div class="card result-card ${esTarde?'turno-tarde':'turno-manana'} p-3 shadow-sm h-100">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h5 class="mb-0 fw-bold">${p.nombre}</h5>
-                                <span class="badge ${badgeColor}">${p.totalDispo} turnos/mes</span>
+                    <div class="col-12 mb-4">
+                        <div class="card result-card ${claseColor} shadow-sm">
+                            <div class="card-header border-0 bg-transparent d-flex justify-content-between align-items-center pt-3">
+                                <h5 class="mb-0 fw-bold text-dark">🕒 Turno: ${t.rango}</h5>
+                                <span class="badge ${esTarde ? 'bg-warning text-dark' : 'bg-primary'}">${esTarde ? 'TARDE' : 'MAÑANA'}</span>
                             </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fs-5">🕒 ${p.horario}</span>
-                                <small class="fw-bold text-muted">${esTarde?'TARDE':'MAÑANA'}</small>
+                            <div class="card-body">
+                                ${alertaLlave}
+                                <div class="row">
+                                    <div class="col-md-7">
+                                        <p class="text-muted small fw-bold mb-2">EQUIPO ASIGNADO (Máx. 4):</p>
+                                        <div class="list-group shadow-sm">
+                                            ${t.equipo.map(v => `
+                                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <span>${v.nombre}</span>
+                                                    ${v.llave ? '<span class="badge bg-dark">🔑 TIENE LLAVE</span>' : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 mt-3 mt-md-0 border-start">
+                                        <p class="text-muted small fw-bold mb-2">POSIBLES SUSTITUTOS:</p>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            ${t.sustitutos.length > 0 ? 
+                                                t.sustitutos.map(s => `<span class="badge bg-white text-dark border p-2">${s}</span>`).join('') : 
+                                                '<span class="text-muted small italic">No hay más voluntarios disponibles</span>'}
+                                        </div>
+                                        <p class="mt-3 small text-muted">
+                                            * Los sustitutos son voluntarios que podrían cubrir este horario pero no fueron asignados para evitar saturación semanal.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>`;
             });
-        } catch (e) { cont.innerHTML = '<div class="alert alert-danger w-100">Error de conexión.</div>'; }
+
+        } catch (error) {
+            console.error(error);
+            cont.innerHTML = `
+                <div class="col-12">
+                    <div class="alert alert-danger text-center">
+                        Error al conectar con el sistema. Verifica la URL de Apps Script y que tengas conexión.
+                    </div>
+                </div>`;
+        }
     }
+    
 </script>
 </body>
 </html>
