@@ -46,75 +46,81 @@
 
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; // REEMPLAZA ESTO
-    let turnosGlobales = [];
 
     async function buscar() {
         const sem = document.getElementById('selectSemana').value;
         const dia = document.getElementById('selectDia').value;
         const cont = document.getElementById('resultados');
-        cont.innerHTML = "Cargando...";
+        cont.innerHTML = '<div class="text-center w-100">Analizando disponibilidad...</div>';
 
         try {
             const res = await fetch(`${API_URL}?action=getSmartCuadrante&semana=${sem}&dia=${dia}`);
-            turnosGlobales = await res.json();
+            const turnos = await res.json();
             cont.innerHTML = "";
 
-            if (turnosGlobales.length === 0) {
-                cont.innerHTML = '<div class="alert alert-warning">No hay voluntarios suficientes.</div>';
-                document.getElementById('btnConfirmar').classList.add('d-none');
-                return;
-            }
-
-            document.getElementById('btnConfirmar').classList.remove('d-none');
-
-            turnosGlobales.forEach(t => {
+            turnos.forEach((t, index) => {
                 const esTarde = parseInt(t.rango.split(':')[0]) >= 14;
+                const alertaLlave = t.necesitaLlave ? `<div class="alert alert-danger p-2 mb-2 small fw-bold">⚠️ ATENCIÓN: TURNO SIN RESPONSABLE DE LLAVE</div>` : '';
+
                 cont.innerHTML += `
-                    <div class="col-12 card result-card ${esTarde?'turno-tarde':'turno-manana'} p-3 shadow-sm">
-                        <div class="d-flex justify-content-between">
-                            <h5 class="fw-bold">🕒 Turno: ${t.rango}</h5>
-                            ${t.necesitaLlave ? '<span class="badge bg-danger">⚠️ SIN LLAVE</span>' : ''}
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <strong>Titulares:</strong>
-                                <ul class="list-group list-group-flush">
-                                    ${t.equipo.map(v => `<li class="list-group-item">${v.nombre} ${v.llave?'🔑':''}</li>`).join('')}
-                                </ul>
+                    <div class="col-12 mb-4">
+                        <div class="card shadow-sm border-0">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0 fw-bold">🕒 Turno: ${t.rango}</h5>
+                                <button onclick="confirmarTurnoIndividual('${t.rango}', ${index})" class="btn btn-sm btn-success fw-bold">✅ Confirmar este turno</button>
                             </div>
-                            <div class="col-md-6 border-start">
-                                <small class="text-muted">Sustitutos/Ya asignados:</small><br>
-                                ${t.sustitutos.map(s => `<span class="badge bg-light text-dark border me-1">${s}</span>`).join('')}
+                            <div class="card-body">
+                                ${alertaLlave}
+                                <div class="row">
+                                    <div class="col-md-7">
+                                        <p class="small fw-bold text-muted mb-2">TITULARES:</p>
+                                        <div class="list-group">
+                                            ${t.equipo.map(v => `
+                                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                                    <span>${v.nombre}</span>
+                                                    ${v.llave ? '<span class="badge bg-dark text-white p-2">🔑 TIENE LLAVE</span>' : ''}
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5 border-start">
+                                        <p class="small fw-bold text-muted mb-2">SUSTITUTOS / OCUPADOS:</p>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            ${t.sustitutos.map(s => `<span class="badge bg-white text-dark border">${s}</span>`).join('')}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>`;
             });
-        } catch (e) { alert("Error al conectar"); }
+            // Guardamos los datos para poder confirmarlos luego
+            window.datosTurnos = turnos;
+        } catch (e) { cont.innerHTML = "Error al cargar."; }
     }
 
-    async function confirmarYGuardar() {
-        if (!confirm("¿Confirmar estos turnos? Se guardarán en el historial.")) return;
+    async function confirmarTurnoIndividual(rango, index) {
+        const turno = window.datosTurnos[index];
+        const nombres = turno.equipo.map(v => v.nombre);
+        
+        if (!confirm(`¿Confirmar el turno ${rango} con ${nombres.length} voluntarios?`)) return;
 
         const sem = document.getElementById('selectSemana').value;
         const dia = document.getElementById('selectDia').value;
-        const nombres = [];
-        turnosGlobales.forEach(t => t.equipo.forEach(v => nombres.push(v.nombre)));
-
-        const btn = document.getElementById('btnConfirmar');
-        btn.disabled = true;
-        btn.innerText = "Guardando...";
 
         try {
             await fetch(`${API_URL}?action=confirmarTurnos`, {
                 method: 'POST',
-                mode: 'no-cors', // Importante para Apps Script
-                body: JSON.stringify({ semana: sem, dia: dia, asignados: nombres })
+                mode: 'no-cors',
+                body: JSON.stringify({
+                    semana: sem,
+                    dia: dia,
+                    asignados: nombres
+                })
             });
-            alert("¡Guardado! Ahora el sistema recordará que estos voluntarios ya han trabajado esta semana.");
-            buscar();
-        } catch (e) { alert("Error al guardar"); }
-        btn.disabled = false;
-        btn.innerText = "✅ CONFIRMAR Y BLOQUEAR VOLUNTARIOS";
+            alert("Turno guardado y voluntarios bloqueados.");
+            buscar(); // Recargar para que los bloqueados aparezcan como "Ocupados"
+        } catch (e) { alert("Error al guardar."); }
     }
 </script>
 </body>
