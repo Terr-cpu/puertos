@@ -3,77 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Control de Turnos</title>
+    <title>Gestión de Turnos Pro</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f4f7f6; padding: 20px; font-family: sans-serif; }
-        .turno-manana { border-left: 10px solid #007bff !important; background-color: #ffffff; }
-        .turno-tarde { border-left: 10px solid #fd7e14 !important; background-color: #ffffff; }
-        .card-turno { border-radius: 15px; border: none; margin-bottom: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .badge-llave { background-color: #212529; color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.7rem; font-weight: bold; }
-        .sustitutos-badge { background-color: #f8f9fa; border: 1px solid #e9ecef; color: #6c757d; font-size: 0.75rem; margin: 2px; display: inline-block; padding: 3px 8px; border-radius: 4px; }
-        .alert-critica { background-color: #fff2f2; border: 1px solid #ffc1c1; color: #b02a37; border-radius: 10px; padding: 10px; font-weight: bold; text-align: center; }
+        body { background-color: #f0f2f5; padding: 20px; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        .turno-manana { border-left: 10px solid #0d6efd !important; }
+        .turno-tarde { border-left: 10px solid #fd7e14 !important; }
+        .card-turno { border-radius: 15px; border: none; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); background: white; }
+        .badge-llave { background-color: #212529; color: white; padding: 5px 10px; border-radius: 6px; font-size: 0.7rem; }
+        .sustituto-item { background: #f8f9fa; border: 1px solid #eee; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; margin: 2px; display: inline-block; color: #666; }
+        .alert-danger-custom { background-color: #fff5f5; border: 1px solid #feb2b2; color: #c53030; border-radius: 10px; padding: 10px; text-align: center; font-weight: bold; margin-bottom: 15px; }
     </style>
 </head>
 <body>
 
-<div class="container" style="max-width: 1000px;">
-    <div class="card shadow-sm p-4 mb-4 border-0" style="border-radius: 20px;">
-        <h2 class="text-center fw-bold text-primary mb-4">🗓️ Planificador Inteligente</h2>
+<div class="container" style="max-width: 950px;">
+    <div class="card p-4 mb-4 border-0 shadow-sm" style="border-radius: 20px;">
+        <h2 class="text-center fw-bold text-primary mb-4">🗓️ Planificador de Turnos</h2>
         <div class="row g-2">
-            <div class="col-md-8"><button onclick="proyectarMes()" class="btn btn-primary btn-lg w-100 fw-bold">🚀 PROYECTAR TODO EL MES</button></div>
+            <div class="col-md-8"><button onclick="proyectarMes()" class="btn btn-primary btn-lg w-100 fw-bold shadow">🚀 PROYECTAR MES COMPLETO</button></div>
             <div class="col-md-4"><button onclick="toggleManual()" class="btn btn-outline-secondary btn-lg w-100">Búsqueda Manual</button></div>
         </div>
+        
         <div id="manual-search" class="row g-2 mt-3 d-none">
             <div class="col-5"><select id="sem" class="form-select"><option value="1">Semana 1</option><option value="2">Semana 2</option><option value="3">Semana 3</option><option value="4">Semana 4</option><option value="5">Semana 5</option></select></div>
             <div class="col-5"><select id="dia" class="form-select"><option value="Lunes">Lunes</option><option value="Martes">Martes</option><option value="Miercoles">Miércoles</option><option value="Jueves">Jueves</option><option value="Viernes">Viernes</option><option value="Sabado">Sábado</option><option value="Domingo">Domingo</option></select></div>
-            <div class="col-2"><button onclick="buscarDia()" class="btn btn-dark w-100">IR</button></div>
+            <div class="col-2"><button onclick="buscarManual()" class="btn btn-dark w-100">IR</button></div>
         </div>
     </div>
 
     <div id="resultados"></div>
 </div>
+
 <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; 
+    const API_URL = "TU_URL_DE_IMPLEMENTACION_AQUI"; // REEMPLAZA ESTO
 
     function toggleManual() { document.getElementById('manual-search').classList.toggle('d-none'); }
 
     async function proyectarMes() {
         const resCont = document.getElementById('resultados');
-        resCont.innerHTML = '<div class="text-center py-5"><h4>Optimizando reparto y llaves...</h4></div>';
+        resCont.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"></div><h4 class="mt-3">Calculando rotaciones y descansos...</h4></div>';
         try {
             const res = await fetch(`${API_URL}?action=getCuadranteMensual`);
             const data = await res.json();
+            if(data.error) throw new Error(data.error);
             resCont.innerHTML = "";
             data.forEach(dia => {
                 resCont.innerHTML += `<h3 class="fw-bold mt-5 mb-3 text-dark">📅 ${dia.fechaLabel}</h3>`;
-                renderTurnos(dia.turnos, dia.semana, dia.dia, resCont);
+                renderizarTurnos(dia.turnos, dia.semana, dia.dia, resCont);
             });
-        } catch (e) { alert("Error de conexión."); }
+        } catch (e) { resCont.innerHTML = `<div class="alert alert-danger">Error de conexión: ${e.message}</div>`; }
     }
 
-    async function buscarDia() {
+    async function buscarManual() {
         const s = document.getElementById('sem').value;
         const d = document.getElementById('dia').value;
         const resCont = document.getElementById('resultados');
-        resCont.innerHTML = '<div class="text-center py-5">Cargando...</div>';
+        resCont.innerHTML = '<div class="text-center py-5">Buscando...</div>';
         try {
             const res = await fetch(`${API_URL}?action=getSmartCuadrante&semana=${s}&dia=${d}`);
             const turnos = await res.json();
-            resCont.innerHTML = `<h3 class="fw-bold mt-4">Resultados: ${d} (Sem 1)</h3>`;
-            renderTurnos(turnos, s, d, resCont);
-        } catch (e) { alert("Error."); }
+            resCont.innerHTML = `<h3 class="fw-bold mt-4">Resultados: ${d} (Semana ${s})</h3>`;
+            renderizarTurnos(turnos, s, d, resCont);
+        } catch (e) { resCont.innerHTML = `<div class="alert alert-danger">Error de conexión.</div>`; }
     }
 
-    function renderTurnos(turnos, sem, dia, container) {
+    function renderizarTurnos(turnos, sem, dia, contenedor) {
         if (!turnos || turnos.length === 0) {
-            container.innerHTML += '<div class="alert alert-light border text-center text-muted">No hay voluntarios suficientes para este día.</div>';
+            contenedor.innerHTML += '<div class="alert alert-light border text-center text-muted">No hay voluntarios suficientes para este día.</div>';
             return;
         }
 
         turnos.forEach(t => {
-            const esTarde = parseInt(t.rango.split(':')[0]) >= 14;
-            container.innerHTML += `
+            const horaH = parseInt(t.rango.split(':')[0]);
+            const esTarde = horaH >= 14;
+            contenedor.innerHTML += `
             <div class="card card-turno ${esTarde ? 'turno-tarde' : 'turno-manana'}">
                 <div class="card-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -81,31 +85,30 @@
                             <h4 class="fw-bold mb-0">🕒 ${t.rango}</h4>
                             <span class="badge ${esTarde ? 'bg-warning text-dark' : 'bg-primary'}">${esTarde ? 'TARDE' : 'MAÑANA'}</span>
                         </div>
-                        <button class="btn btn-success fw-bold px-4" onclick="confirmar('${sem}', '${dia}', '${t.equipo.map(e=>e.nombre).join(',')}')">CONFIRMAR</button>
+                        <button class="btn btn-success fw-bold px-4 shadow-sm" onclick="confirmarTurno('${sem}', '${dia}', '${t.equipo.map(e=>e.nombre).join(',')}')">CONFIRMAR</button>
                     </div>
 
-                    ${t.necesitaLlave ? '<div class="alert-critica mb-3">⚠️ ATENCIÓN: Nadie en este equipo tiene llave.</div>' : ''}
+                    ${t.necesitaLlave ? '<div class="alert-danger-custom small">⚠️ Turno sin responsable de llave</div>' : ''}
 
                     <div class="row">
                         <div class="col-md-7">
-                            <p class="small fw-bold text-muted mb-2">EQUIPO TITULAR:</p>
-                            <div class="list-group">
+                            <p class="small fw-bold text-muted mb-2 text-uppercase">Equipo Asignado</p>
+                            <div class="list-group list-group-flush border rounded">
                                 ${t.equipo.map(v => `
-                                    <div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom px-0">
-    <div>
-        <span class="fw-bold fs-5">${v.nombre}</span>
-        <br>
-        <small class="text-muted">Descanso: ${v.dias >= 99 ? 'Nuevo' : v.dias + ' días'}</small>
-    </div>
-    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
-</div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center bg-white border-0 border-bottom">
+                                        <div>
+                                            <span class="fw-bold fs-5 text-dark">${v.nombre}</span><br>
+                                            <small class="text-muted">${v.dias >= 99 ? 'Sin registros' : v.dias + ' días de descanso'}</small>
+                                        </div>
+                                        ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
+                                    </div>
                                 `).join('')}
                             </div>
                         </div>
                         <div class="col-md-5 mt-3 mt-md-0 border-start ps-md-4">
-                            <p class="small fw-bold text-muted mb-2">DISPONIBLES (Banquillo):</p>
-                            <div class="d-flex flex-wrap">
-                                ${t.sustitutos.map(s => `<span class="sustitutos-badge">${s}</span>`).join('')}
+                            <p class="small fw-bold text-muted mb-2 text-uppercase">Banquillo (Otros disponibles)</p>
+                            <div>
+                                ${t.sustitutos.map(s => `<span class="sustituto-item">${s}</span>`).join('')}
                             </div>
                         </div>
                     </div>
@@ -114,15 +117,15 @@
         });
     }
 
-    async function confirmar(s, d, nombres) {
-        if (!confirm("¿Confirmar este equipo?")) return;
+    async function confirmarTurno(s, d, nombres) {
+        if (!confirm("¿Guardar este equipo en el historial?")) return;
         try {
             await fetch(`${API_URL}?action=confirmarTurnos`, {
                 method: 'POST',
                 mode: 'no-cors',
                 body: JSON.stringify({ semana: s, dia: d, asignados: nombres.split(',') })
             });
-            alert("Turno guardado correctamente.");
+            alert("¡Turno guardado! Se ha actualizado el historial.");
         } catch (e) { alert("Error al guardar."); }
     }
 </script>
