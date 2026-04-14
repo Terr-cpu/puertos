@@ -24,13 +24,6 @@
             <div class="col-md-8"><button onclick="proyectarMes()" class="btn btn-primary btn-lg w-100 fw-bold">🚀 PROYECTAR TODO EL MES</button></div>
             <div class="col-md-4"><button onclick="toggleManual()" class="btn btn-outline-secondary btn-lg w-100">Búsqueda Manual</button></div>
         </div>
-        <div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom px-0">
-    <span class="fw-bold fs-5">
-        ${v.nombre} 
-        ${v.repetido ? '<small class="text-muted" style="font-size:0.6em">(Repite semana)</small>' : ''}
-    </span>
-    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
-</div>
         <div id="manual-search" class="row g-2 mt-3 d-none">
             <div class="col-5"><select id="sem" class="form-select"><option value="1">Semana 1</option><option value="2">Semana 2</option><option value="3">Semana 3</option><option value="4">Semana 4</option><option value="5">Semana 5</option></select></div>
             <div class="col-5"><select id="dia" class="form-select"><option value="Lunes">Lunes</option><option value="Martes">Martes</option><option value="Miercoles">Miércoles</option><option value="Jueves">Jueves</option><option value="Viernes">Viernes</option><option value="Sabado">Sábado</option><option value="Domingo">Domingo</option></select></div>
@@ -40,7 +33,13 @@
 
     <div id="resultados"></div>
 </div>
-
+<div class="list-group-item d-flex justify-content-between align-items-center border-0 border-bottom px-0">
+    <span class="fw-bold fs-5">
+        ${v.nombre} 
+        ${v.repetido ? '<small class="text-muted" style="font-size:0.6em">(Repite semana)</small>' : ''}
+    </span>
+    ${v.llave ? '<span class="badge-llave">🔑 LLAVE</span>' : ''}
+</div>
 <script>
     const API_URL = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec"; 
 
