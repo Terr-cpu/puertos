@@ -128,11 +128,22 @@
                                 `).join('')}
                             </div>
                         </div>
-                        <div class="col-md-5 mt-3 mt-md-0 border-start ps-md-4">
-                            <p class="small fw-bold text-muted mb-2 text-uppercase">Banquillo (Otros disponibles)</p>
-                            <div class="d-flex flex-wrap">
-                                ${t.sustitutos.map(s => `<span class="sustituto-item">${s}</span>`).join('')}
-                            </div>
+                       <div class="col-md-5 mt-3 mt-md-0 border-start ps-md-4">
+    <p class="small fw-bold text-muted mb-2 text-uppercase">Banquillo (Otros disponibles)</p>
+    <div class="d-flex flex-wrap">
+        ${(t.sustitutos || []).map(s => `
+            <div class="sustituto-item shadow-sm mb-1 p-2 border rounded bg-light w-100">
+                <div class="d-flex justify-content-between">
+                    <span class="fw-bold">${s.llave ? '🔑 ' : ''}${s.nombre}</span>
+                </div>
+                <div style="font-size: 0.7rem;" class="text-muted mt-1">
+                    Descanso: <b>${s.dias >= 99 ? 'Nuevo' : s.dias + 'd'}</b> | 
+                    Dispo: <b>${s.dispo}d/sem</b>
+                </div>
+            </div>
+        `).join('')}
+    </div>
+</div>
                         </div>
                     </div>
                 </div>
