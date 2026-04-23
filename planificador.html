@@ -438,8 +438,26 @@ async function proyectarMes() {
   const cont = document.getElementById('resultados');
   cont.innerHTML = `<div class="spinner-wrap"><div class="spinner-ring"></div><p>Calculando cuadrante mensual...</p></div>`;
   try {
-    const res  = await fetch(`${API_URL}?action=getCuadranteMensual`);
-    const data = await res.json();
+    const res = await fetch(`${API_URL}?action=getCuadranteMensual`, {
+      redirect: 'follow',
+      headers: { 'Accept': 'application/json' }
+    });
+
+    // Leer como texto primero para poder depurar
+    const texto = await res.text();
+
+    // Limpiar posibles caracteres basura al inicio
+    const textoLimpio = texto.trim().replace(/^[^\[{]+/, '');
+
+    let data;
+    try {
+      data = JSON.parse(textoLimpio);
+    } catch(parseErr) {
+      // Mostrar los primeros 300 caracteres para diagnosticar
+      console.error('Respuesta raw:', texto.substring(0, 300));
+      throw new Error(`Respuesta inesperada del servidor. Primeros caracteres: "${texto.substring(0, 80)}"`);
+    }
+
     if (data.error) throw new Error(data.error);
     cont.innerHTML = "";
     if (!data.length) {
