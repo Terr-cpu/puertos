@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disponibilidad · Puerto de Sevilla</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:  #0f1f38;
+  --ocean: #1a3a5c;
+  --gold:  #c9a84c;
+  --dawn:  #f5f0e8;
+  --mist:  #eef2f7;
+  --ink:   #1c2b3a;
+  --slate: #5c7a96;
+  --green: #1e7d5a;
+  --red:   #c0392b;
+  --white: #ffffff;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--dawn);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+/* ── HEADER ── */
+.site-header {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--ocean) 100%);
+  padding: 2.5rem 1.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.site-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E');
+}
+.site-header h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
+  color: var(--white);
+  position: relative;
+}
+.site-header p {
+  color: rgba(255,255,255,0.55);
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: relative;
+}
+.gold-line { width: 48px; height: 3px; background: var(--gold); margin: 1rem auto 0; border-radius: 2px; position: relative; }
+
+/* ── FORM WRAPPER ── */
+.form-wrap {
+  max-width: 780px;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+/* ── NOMBRE ── */
+.nombre-card {
+  background: var(--white);
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 14px rgba(15,31,56,0.07);
+  border: 1px solid #e4eaf3;
+  margin-bottom: 1.5rem;
+}
+.nombre-card label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 0.6rem;
+}
+.nombre-card input {
+  width: 100%;
+  border: 2px solid #dde3ec;
+  border-radius: 9px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  transition: border-color 0.2s;
+  background: var(--white);
+}
+.nombre-card input:focus {
+  outline: none;
+  border-color: var(--navy);
+}
+.nombre-card input.invalid { border-color: var(--red); }
+
+/* ── SEMANA ACCORDION ── */
+.semana-block {
+  background: var(--white);
+  border-radius: 14px;
+  box-shadow: 0 2px 14px rgba(15,31,56,0.07);
+  border: 1px solid #e4eaf3;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+.semana-toggle {
+  width: 100%;
+  background: var(--white);
+  border: none;
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--navy);
+  transition: background 0.15s;
+}
+.semana-toggle:hover { background: var(--mist); }
+.semana-toggle .chevron {
+  transition: transform 0.25s ease;
+  font-size: 0.75rem;
+  color: var(--slate);
+}
+.semana-toggle.open .chevron { transform: rotate(180deg); }
+.semana-toggle .s-badge {
+  font-size: 0.7rem;
+  background: var(--mist);
+  color: var(--slate);
+  padding: 0.15rem 0.55rem;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+.semana-toggle.has-data .s-badge {
+  background: #e0f2ec;
+  color: var(--green);
+}
+.semana-body {
+  display: none;
+  border-top: 1px solid #edf0f5;
+}
+.semana-body.open { display: block; }
+
+/* ── TABLA DE DÍAS ── */
+.dias-grid {
+  padding: 0.75rem 1.25rem 1rem;
+}
+.dia-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f3f8;
+}
+.dia-row:last-child { border-bottom: none; }
+.dia-nombre {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+.dia-row select {
+  border: 1.5px solid #dde3ec;
+  border-radius: 7px;
+  padding: 0.42rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--ink);
+  background: var(--white);
+  font-family: 'DM Sans', sans-serif;
+  width: 100%;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.dia-row select:focus { outline: none; border-color: var(--navy); }
+.dia-row select.error { border-color: var(--red); background: #fff5f5; }
+.dia-row select.set   { border-color: var(--green); background: #f0fbf6; }
+.dia-header-row {
+  display: grid;
+  grid-template-columns: 100px 1fr 1fr;
+  gap: 0.6rem;
+  padding: 0.3rem 0 0.5rem;
+}
+.dia-header-row span {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slate);
+}
+.dia-header-row span:first-child { text-align: left; }
+.dia-header-row span:not(:first-child) { text-align: center; }
+
+/* ── BOTONES ── */
+.btn-submit {
+  width: 100%;
+  background: var(--navy);
+  color: var(--white);
+  border: none;
+  padding: 1rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1.5rem;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-submit:hover { background: var(--ocean); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(15,31,56,0.25); }
+.btn-submit:disabled { background: #9aa8b8; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ── FEEDBACK ── */
+.feedback {
+  display: none;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+  font-weight: 600;
+  text-align: center;
+  font-size: 0.9rem;
+}
+.feedback.ok  { display: block; background: #e0f2ec; color: #0f4d31; border: 1.5px solid #aadec7; }
+.feedback.err { display: block; background: #fde8e8; color: #7a1010; border: 1.5px solid #f5b3b3; }
+
+/* ── INFO CARD ── */
+.info-card {
+  background: #eef6ff;
+  border: 1px solid #c3daf5;
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  font-size: 0.82rem;
+  color: #1a4a7a;
+  margin-bottom: 1.5rem;
+  line-height: 1.6;
+}
+.info-card strong { display: block; margin-bottom: 0.25rem; font-size: 0.85rem; }
+
+@media (max-width: 480px) {
+  .dia-row, .dia-header-row { grid-template-columns: 80px 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>📋 Registro de Disponibilidad</h1>
+  <p>Puerto de Sevilla · Voluntarios</p>
+  <div class="gold-line"></div>
+</header>
+
+<div class="form-wrap">
+
+  <div class="info-card">
+    <strong>ℹ️ Cómo registrar tu disponibilidad</strong>
+    Indica para cada día la hora de inicio y fin de tu disponibilidad. Si un día no puedes, deja ambas opciones en <em>No disponible</em>. La hora de salida debe ser posterior a la de entrada.
+  </div>
+
+  <form id="dispoForm" novalidate>
+
+    <div class="nombre-card">
+      <label for="nombre">Nombre completo</label>
+      <input type="text" id="nombre" name="nombre" placeholder="Escribe tu nombre completo..." autocomplete="name" required>
+    </div>
+
+    <div id="semanas-container"></div>
+
+    <button type="submit" class="btn-submit" id="btnSubmit">ENVIAR DISPONIBILIDAD</button>
+    <div class="feedback" id="feedback"></div>
+
+  </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const APP_URL  = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
+const DIAS     = ["Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado", "Domingo"];
+const DIAS_ES  = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+function generarOpcionesHoras(incluirNoDisponible = true) {
+  let html = incluirNoDisponible ? '<option value="No disponible">— No disponible —</option>' : '';
+  for (let h = 8; h <= 22; h++) {
+    const val = `${h < 10 ? '0' + h : h}:00`;
+    html += `<option value="${val}">${val}</option>`;
+  }
+  return html;
+}
+
+function generarSemanas() {
+  const cont = document.getElementById('semanas-container');
+  for (let s = 1; s <= 5; s++) {
+    const block = document.createElement('div');
+    block.className = 'semana-block';
+    block.id = `semana-block-${s}`;
+
+    const diasRows = DIAS.map((dia, i) => `
+      <div class="dia-row" id="row-S${s}_${dia}">
+        <span class="dia-nombre">${DIAS_ES[i]}</span>
+        <select name="S${s}_${dia}_In" id="S${s}_${dia}_In" onchange="validarFila(${s},'${dia}')">
+          ${generarOpcionesHoras()}
+        </select>
+        <select name="S${s}_${dia}_Out" id="S${s}_${dia}_Out" onchange="validarFila(${s},'${dia}')">
+          ${generarOpcionesHoras()}
+        </select>
+      </div>`).join('');
+
+    block.innerHTML = `
+      <button type="button" class="semana-toggle ${s === 1 ? 'open' : ''}" onclick="toggleSemana(${s})">
+        <span>📆 Semana ${s}</span>
+        <span>
+          <span class="s-badge" id="badge-s${s}">sin datos</span>
+          <span class="chevron ${s === 1 ? 'open' : ''}">▼</span>
+        </span>
+      </button>
+      <div class="semana-body ${s === 1 ? 'open' : ''}">
+        <div class="dias-grid">
+          <div class="dia-header-row">
+            <span>Día</span><span>Desde</span><span>Hasta</span>
+          </div>
+          ${diasRows}
+        </div>
+      </div>`;
+    cont.appendChild(block);
+  }
+}
+
+function toggleSemana(s) {
+  const body   = document.querySelector(`#semana-block-${s} .semana-body`);
+  const toggle = document.querySelector(`#semana-block-${s} .semana-toggle`);
+  const chev   = toggle.querySelector('.chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  toggle.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+// Validar que salida > entrada y marcar visualmente
+function validarFila(s, dia) {
+  const inEl  = document.getElementById(`S${s}_${dia}_In`);
+  const outEl = document.getElementById(`S${s}_${dia}_Out`);
+  const hIn   = inEl.value === "No disponible" ? null : parseInt(inEl.value.split(':')[0]);
+  const hOut  = outEl.value === "No disponible" ? null : parseInt(outEl.value.split(':')[0]);
+
+  inEl.classList.remove('error', 'set');
+  outEl.classList.remove('error', 'set');
+
+  if (hIn !== null && hOut !== null) {
+    if (hOut <= hIn) {
+      inEl.classList.add('error');
+      outEl.classList.add('error');
+    } else {
+      inEl.classList.add('set');
+      outEl.classList.add('set');
+    }
+  }
+
+  actualizarBadge(s);
+}
+
+function actualizarBadge(s) {
+  const badge = document.getElementById(`badge-s${s}`);
+  const toggle = document.querySelector(`#semana-block-${s} .semana-toggle`);
+  let count = 0;
+  DIAS.forEach(dia => {
+    const inEl  = document.getElementById(`S${s}_${dia}_In`);
+    const outEl = document.getElementById(`S${s}_${dia}_Out`);
+    if (inEl && outEl && inEl.value !== "No disponible" && outEl.value !== "No disponible") {
+      const hIn  = parseInt(inEl.value);
+      const hOut = parseInt(outEl.value);
+      if (hOut > hIn) count++;
+    }
+  });
+  badge.textContent = count > 0 ? `${count} día${count !== 1 ? 's' : ''}` : 'sin datos';
+  toggle.classList.toggle('has-data', count > 0);
+}
+
+// Validar formulario completo antes de enviar
+function validarFormulario() {
+  const nombre = document.getElementById('nombre');
+  let ok = true;
+
+  nombre.classList.remove('invalid');
+  if (!nombre.value.trim()) {
+    nombre.classList.add('invalid');
+    nombre.focus();
+    ok = false;
+  }
+
+  let errorFila = false;
+  for (let s = 1; s <= 5; s++) {
+    DIAS.forEach(dia => {
+      const inEl  = document.getElementById(`S${s}_${dia}_In`);
+      const outEl = document.getElementById(`S${s}_${dia}_Out`);
+      if (!inEl || !outEl) return;
+      const hIn  = inEl.value === "No disponible" ? null : parseInt(inEl.value);
+      const hOut = outEl.value === "No disponible" ? null : parseInt(outEl.value);
+      if (hIn !== null && hOut !== null && hOut <= hIn) {
+        errorFila = true;
+        inEl.classList.add('error');
+        outEl.classList.add('error');
+      }
+    });
+  }
+
+  if (errorFila) {
+    mostrarFeedback('❌ Hay errores de horario: la hora de salida debe ser posterior a la de entrada.', 'err');
+    ok = false;
+  }
+
+  return ok;
+}
+
+function mostrarFeedback(msg, tipo) {
+  const fb = document.getElementById('feedback');
+  fb.className = `feedback ${tipo}`;
+  fb.textContent = msg;
+  fb.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// Submit
+document.getElementById('dispoForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validarFormulario()) return;
+
+  const btn = document.getElementById('btnSubmit');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  const params = new URLSearchParams();
+  params.append('nombre', document.getElementById('nombre').value.trim());
+
+  for (let s = 1; s <= 5; s++) {
+    DIAS.forEach(dia => {
+      params.append(`S${s}_${dia}_In`,  document.getElementById(`S${s}_${dia}_In`).value);
+      params.append(`S${s}_${dia}_Out`, document.getElementById(`S${s}_${dia}_Out`).value);
+    });
+  }
+
+  try {
+    const res  = await fetch(APP_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString()
+    });
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      mostrarFeedback('✅ Disponibilidad guardada correctamente. ¡Gracias!', 'ok');
+      document.getElementById('dispoForm').reset();
+      for (let s = 1; s <= 5; s++) actualizarBadge(s);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      throw new Error(data.message || 'Error desconocido');
+    }
+  } catch (err) {
+    mostrarFeedback(`❌ Error al enviar: ${err.message}. Inténtalo de nuevo.`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'ENVIAR DISPONIBILIDAD';
+  }
+});
+
+generarSemanas();
+</script>
+</body>
+</html>
