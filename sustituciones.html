@@ -364,6 +364,9 @@ async function registrarBaja() {
         if(item){ item.classList.add('selected'); c.disabled=true; }
       });
       btn.textContent='✓ Baja registrada'; btn.classList.add('btn-green');
+      // Recargar oferta para reflejar las nuevas bajas
+      ofertaActual = [];
+      cargarOferta();
     } else {
       throw new Error(res.message||'Error desconocido');
     }
@@ -398,32 +401,51 @@ function renderOferta() {
   }
 
   wrap.innerHTML = ofertaActual.map(function(t){
-    var h      = t.rango ? parseInt(t.rango.split(':')[0]) : 0;
-    var tarde  = h >= 14;
+    var esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
+    var h      = !esDia && t.rango ? parseInt(t.rango.split(':')[0]) : 0;
+    var tarde  = !esDia && h >= 14;
     var pct    = Math.round((t.equipoActual / 4) * 100);
     var clsPct = t.equipoActual === 0 ? 'urgente' : (t.equipoActual >= 3 ? 'completo' : '');
+
     var alertaLlave = !t.tieneLlave
-      ? '<div class="alerta-llave">🔑 Este turno necesita un voluntario con llave.</div>' : '';
+      ? '<div class="alerta-llave">🔑 ' +
+          (esDia ? 'Se necesita al menos un voluntario con llave para abrir y cerrar.'
+                 : 'Este turno necesita un voluntario con llave.') +
+        '</div>'
+      : '';
 
-    // Verificar si el voluntario ya está en este turno
-    var yaApuntado = nombre &&
-      t.equipoNombres.some(function(n){ return n === nombre.toUpperCase().trim(); });
+    var nUp = nombre ? nombre.toUpperCase().trim() : '';
+    var yaApuntado = nUp && t.equipoNombres.some(function(n){ return n === nUp; });
 
-    return '<div class="oferta-card">' +
+    var badgeRango = esDia
+      ? '<span class="turno-badge" style="background:#f0e6ff;color:#5b21b6;">DÍA SIN TURNO</span>'
+      : '<span class="turno-badge '+(tarde?'badge-tarde':'badge-manana')+'">'+(tarde?'TARDE':'MAÑANA')+'</span>';
+
+    var rangoLabel = esDia
+      ? '<div class="oferta-rango" style="color:#5b21b6;">📅 Día sin cuadrante asignado</div>'
+      : '<div class="oferta-rango">🕒 '+t.rango+'</div>';
+
+    var contadorLabel = esDia
+      ? 'Interesados: <strong>'+t.equipoActual+'</strong> · Mínimo necesario: <strong>3</strong>'
+      : 'Voluntarios: <strong>'+t.equipoActual+' / 4</strong> · Faltan: <strong>'+t.necesitan+'</strong>';
+
+    var cardStyle = esDia ? 'border-color:#c4b5fd;background:#faf7ff;' : '';
+
+    return '<div class="oferta-card" style="'+cardStyle+'">' +
       '<div class="oferta-header">' +
         '<div>' +
           '<div class="oferta-fecha">'+t.dia+' · '+t.fecha+'</div>' +
-          '<div class="oferta-rango">🕒 '+t.rango+'</div>' +
+          rangoLabel +
         '</div>' +
-        '<span class="turno-badge '+(tarde?'badge-tarde':'badge-manana')+'">'+(tarde?'TARDE':'MAÑANA')+'</span>' +
+        badgeRango +
       '</div>' +
-      '<div class="personas-count">Voluntarios actuales: <strong>'+t.equipoActual+' / 4</strong> · Necesitan: <strong>'+t.necesitan+'</strong></div>' +
-      '<div class="progress-bar"><div class="progress-fill '+clsPct+'" style="width:'+pct+'%"></div></div>' +
+      '<div class="personas-count">'+contadorLabel+'</div>' +
+      '<div class="progress-bar"><div class="progress-fill '+clsPct+'" style="width:'+pct+'%;'+(esDia?'background:#7c3aed;':'')+'"></div></div>' +
       alertaLlave +
       (yaApuntado
-        ? '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado en este turno.</div>'
+        ? '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado.</div>'
         : '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarseRefuerzo(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\')">' +
-            '✋ Apuntarme' +
+            (esDia ? '✋ Apuntarme para este día' : '✋ Apuntarme') +
           '</button>'
       ) +
     '</div>';
