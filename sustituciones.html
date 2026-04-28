@@ -431,6 +431,37 @@ function renderOferta() {
 
     var cardStyle = esDia ? 'border-color:#c4b5fd;background:#faf7ff;' : '';
 
+    // Para días sin turno: mostrar selector de horario al apuntarse
+    var botonOApuntado;
+    if (yaApuntado) {
+      botonOApuntado = '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado.</div>';
+    } else if (esDia) {
+      // Selector de horario para días sin cuadrante
+      var keyId = 'horario-'+t.key.replace(/[|]/g,'-');
+      botonOApuntado =
+        '<div style="margin-top:.7rem;">' +
+          '<div style="font-size:.75rem;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">Tu disponibilidad ese día</div>' +
+          '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">' +
+            '<select id="'+keyId+'-in" style="border:1.5px solid #dde3ec;border-radius:7px;padding:.38rem .6rem;font-size:.82rem;background:#fff;color:var(--ink);">' +
+              generarOpcionesHorasHTML() +
+            '</select>' +
+            '<span style="font-size:.8rem;color:var(--slate);">a</span>' +
+            '<select id="'+keyId+'-out" style="border:1.5px solid #dde3ec;border-radius:7px;padding:.38rem .6rem;font-size:.82rem;background:#fff;color:var(--ink);">' +
+              generarOpcionesHorasHTML(true) +
+            '</select>' +
+            '<button class="btn btn-green btn-sm" onclick="apuntarseRefuerzoDia(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\''+keyId+'\')">' +
+              '✋ Apuntarme' +
+            '</button>' +
+          '</div>' +
+          '<div style="font-size:.7rem;color:var(--slate);margin-top:.3rem;">Indica el horario en que puedes estar disponible ese día.</div>' +
+        '</div>';
+    } else {
+      botonOApuntado =
+        '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarseRefuerzo(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\')">' +
+          '✋ Apuntarme' +
+        '</button>';
+    }
+
     return '<div class="oferta-card" style="'+cardStyle+'">' +
       '<div class="oferta-header">' +
         '<div>' +
@@ -442,14 +473,20 @@ function renderOferta() {
       '<div class="personas-count">'+contadorLabel+'</div>' +
       '<div class="progress-bar"><div class="progress-fill '+clsPct+'" style="width:'+pct+'%;'+(esDia?'background:#7c3aed;':'')+'"></div></div>' +
       alertaLlave +
-      (yaApuntado
-        ? '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado.</div>'
-        : '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarseRefuerzo(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\')">' +
-            (esDia ? '✋ Apuntarme para este día' : '✋ Apuntarme') +
-          '</button>'
-      ) +
+      botonOApuntado +
     '</div>';
   }).join('');
+}
+
+function generarOpcionesHorasHTML(esHastaOpc) {
+  var html = '';
+  for (var h = 8; h <= 22; h++) {
+    var val = (h < 10 ? '0'+h : ''+h) + ':00';
+    // Por defecto: desde=08:00, hasta=20:00
+    var sel = (!esHastaOpc && h===8) || (esHastaOpc && h===20) ? ' selected' : '';
+    html += '<option value="'+val+'"'+sel+'>'+val+'</option>';
+  }
+  return html;
 }
 
 // Redibujar oferta cuando cambia el nombre del refuerzo
@@ -472,7 +509,47 @@ async function apuntarseRefuerzo(key, fecha) {
     var res = await postJSON({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha });
     if (res.status==='success') {
       toast(res.message,'ok');
-      // Recargar oferta para reflejar el nuevo estado
+      await cargarOferta();
+    } else {
+      toast(res.message||'Error al apuntarse.','err');
+    }
+  } catch(e) {
+    toast('Error: '+e.message,'err');
+  }
+}
+
+async function apuntarseRefuerzoDia(key, fecha, keyId) {
+  var nombre = document.getElementById('nombre-refuerzo').value ||
+               document.getElementById('input-refuerzo').value.trim();
+  if (!nombre) {
+    toast('Escribe y selecciona tu nombre antes de apuntarte.','err');
+    document.getElementById('input-refuerzo').focus();
+    return;
+  }
+
+  var horIn  = document.getElementById(keyId+'-in').value;
+  var horOut = document.getElementById(keyId+'-out').value;
+  var hIn    = parseInt(horIn);
+  var hOut   = parseInt(horOut);
+
+  if (hOut <= hIn) {
+    toast('La hora de salida debe ser posterior a la de entrada.','err');
+    return;
+  }
+
+  var horario = horIn + ' a ' + horOut;
+
+  try {
+    var res = await postJSON({
+      accion:    'registrarRefuerzo',
+      nombre:    nombre,
+      key:       key,
+      fecha:     fecha,
+      horario:   horario,   // horario disponible ese día
+      esDia:     true
+    });
+    if (res.status==='success') {
+      toast(res.message,'ok');
       await cargarOferta();
     } else {
       toast(res.message||'Error al apuntarse.','err');
