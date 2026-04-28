@@ -436,25 +436,51 @@ function renderOferta() {
     if (yaApuntado) {
       botonOApuntado = '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado.</div>';
     } else if (esDia) {
-      // Selector de horario para días sin cuadrante
-      var keyId = 'horario-'+t.key.replace(/[|]/g,'-');
-      botonOApuntado =
-        '<div style="margin-top:.7rem;">' +
-          '<div style="font-size:.75rem;font-weight:700;color:var(--slate);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem;">Tu disponibilidad ese día</div>' +
-          '<div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;">' +
-            '<select id="'+keyId+'-in" style="border:1.5px solid #dde3ec;border-radius:7px;padding:.38rem .6rem;font-size:.82rem;background:#fff;color:var(--ink);">' +
-              generarOpcionesHorasHTML() +
-            '</select>' +
-            '<span style="font-size:.8rem;color:var(--slate);">a</span>' +
-            '<select id="'+keyId+'-out" style="border:1.5px solid #dde3ec;border-radius:7px;padding:.38rem .6rem;font-size:.82rem;background:#fff;color:var(--ink);">' +
-              generarOpcionesHorasHTML(true) +
-            '</select>' +
-            '<button class="btn btn-green btn-sm" onclick="apuntarseRefuerzoDia(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\''+keyId+'\')">' +
-              '✋ Apuntarme' +
+      // Mostrar franjas calculadas como opciones para apuntarse
+      var franjas = t.franjasCalculadas || [];
+      if (franjas.length === 0) {
+        // Sin franjas calculadas: mostrar apuntados actuales y mensaje
+        var apuntadosHtml = '';
+        if (t.apuntadosDetalle && t.apuntadosDetalle.length > 0) {
+          apuntadosHtml = '<div style="margin:.4rem 0;font-size:.78rem;color:var(--slate);">Apuntados: ' +
+            t.apuntadosDetalle.map(function(a){
+              return '<strong>'+a.nombre+'</strong>'+(a.horario?' ('+a.horario+')':'');
+            }).join(', ') + '</div>';
+        }
+        botonOApuntado =
+          '<div style="margin-top:.7rem;">' +
+            apuntadosHtml +
+            '<div style="font-size:.78rem;color:var(--slate);margin-bottom:.5rem;">No hay franjas calculadas. Si hay voluntarios suficientes se generará un cuadrante.</div>' +
+            '<button class="btn btn-green btn-sm" onclick="apuntarseRefuerzoFranja(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\'\')">' +
+              '✋ Apuntarme (disponibilidad general)' +
             '</button>' +
-          '</div>' +
-          '<div style="font-size:.7rem;color:var(--slate);margin-top:.3rem;">Indica el horario en que puedes estar disponible ese día.</div>' +
-        '</div>';
+          '</div>';
+      } else {
+        // Mostrar cada franja como chip seleccionable
+        var apuntadosHtml2 = '';
+        if (t.apuntadosDetalle && t.apuntadosDetalle.length > 0) {
+          apuntadosHtml2 = '<div style="margin:.4rem 0 .6rem;font-size:.78rem;color:var(--slate);">Ya apuntados: ' +
+            t.apuntadosDetalle.map(function(a){
+              return '<strong>'+a.nombre+'</strong>'+(a.horario?' ('+a.horario+')':'');
+            }).join(', ') + '</div>';
+        }
+        var franjaBtns = franjas.map(function(fr){
+          var hFr = parseInt(fr.split(':')[0]);
+          var esTardeFr = hFr >= 14;
+          return '<button class="btn btn-sm" '+
+            'style="background:'+(esTardeFr?'#fff3e0':'#e8f1fc')+';color:'+(esTardeFr?'#7a4500':'#1a3a6c')+';border:1.5px solid '+(esTardeFr?'#ffd59e':'#b3ceef')+';margin:.2rem;" '+
+            'onclick="apuntarseRefuerzoFranja(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\''+escHtml(fr)+'\')">' +
+            '🕒 '+fr+' — '+(esTardeFr?'Tarde':'Mañana')+
+            '</button>';
+        }).join('');
+        botonOApuntado =
+          '<div style="margin-top:.7rem;">' +
+            apuntadosHtml2 +
+            '<div style="font-size:.75rem;font-weight:700;color:var(--slate);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem;">Franjas que podrían cubrirse — elige una:</div>' +
+            '<div style="display:flex;flex-wrap:wrap;gap:.3rem;">' + franjaBtns + '</div>' +
+            '<div style="font-size:.7rem;color:var(--slate);margin-top:.4rem;">Al apuntarte indicas disponibilidad para esa franja horaria.</div>' +
+          '</div>';
+      }
     } else {
       botonOApuntado =
         '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarseRefuerzo(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\')">' +
@@ -518,7 +544,7 @@ async function apuntarseRefuerzo(key, fecha) {
   }
 }
 
-async function apuntarseRefuerzoDia(key, fecha, keyId) {
+async function apuntarseRefuerzoFranja(key, fecha, franja) {
   var nombre = document.getElementById('nombre-refuerzo').value ||
                document.getElementById('input-refuerzo').value.trim();
   if (!nombre) {
@@ -526,37 +552,18 @@ async function apuntarseRefuerzoDia(key, fecha, keyId) {
     document.getElementById('input-refuerzo').focus();
     return;
   }
-
-  var horIn  = document.getElementById(keyId+'-in').value;
-  var horOut = document.getElementById(keyId+'-out').value;
-  var hIn    = parseInt(horIn);
-  var hOut   = parseInt(horOut);
-
-  if (hOut <= hIn) {
-    toast('La hora de salida debe ser posterior a la de entrada.','err');
-    return;
-  }
-
-  var horario = horIn + ' a ' + horOut;
-
   try {
     var res = await postJSON({
-      accion:    'registrarRefuerzo',
-      nombre:    nombre,
-      key:       key,
-      fecha:     fecha,
-      horario:   horario,   // horario disponible ese día
-      esDia:     true
+      accion: 'registrarRefuerzo', nombre: nombre,
+      key: key, fecha: fecha, franja: franja, esDia: true
     });
-    if (res.status==='success') {
-      toast(res.message,'ok');
+    if (res.status === 'success') {
+      toast(res.message, 'ok');
       await cargarOferta();
     } else {
-      toast(res.message||'Error al apuntarse.','err');
+      toast(res.message || 'Error al apuntarse.', 'err');
     }
-  } catch(e) {
-    toast('Error: '+e.message,'err');
-  }
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
 }
 
 // ─── HELPERS ─────────────────────────────────
