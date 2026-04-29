@@ -6,601 +6,635 @@
 <title>Sustituciones · Puerto de Sevilla</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root {
-  --navy:  #0f1f38;
-  --ocean: #1a3a5c;
-  --gold:  #c9a84c;
-  --dawn:  #f5f0e8;
-  --mist:  #eef2f7;
-  --ink:   #1c2b3a;
-  --slate: #5c7a96;
-  --green: #1e7d5a;
-  --red:   #c0392b;
-  --amber: #e07b00;
-  --white: #ffffff;
+:root{
+  --navy:#0f1f38;--ocean:#1a3a5c;--gold:#c9a84c;--dawn:#f5f0e8;
+  --mist:#eef2f7;--ink:#1c2b3a;--slate:#5c7a96;--green:#1e7d5a;
+  --red:#c0392b;--amber:#e07b00;--white:#ffffff;--purple:#6d28d9;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html{scroll-behavior:smooth;}
-body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);min-height:100vh;padding-bottom:3rem;}
+body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);min-height:100vh;padding-bottom:4rem;}
 
 /* HEADER */
-.site-header{background:linear-gradient(135deg,var(--navy),var(--ocean));padding:2rem 1.5rem 1.8rem;text-align:center;position:relative;overflow:hidden;}
-.site-header::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");}
-.site-header h1{font-family:'DM Serif Display',serif;font-size:clamp(1.4rem,4vw,2rem);color:#fff;position:relative;}
-.site-header p{color:rgba(255,255,255,.5);font-size:.8rem;margin-top:.3rem;letter-spacing:.08em;text-transform:uppercase;position:relative;}
+.hdr{background:linear-gradient(135deg,var(--navy),var(--ocean));padding:2rem 1.5rem 1.8rem;text-align:center;position:relative;overflow:hidden;}
+.hdr::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");}
+.hdr h1{font-family:'DM Serif Display',serif;font-size:clamp(1.4rem,4vw,2rem);color:#fff;position:relative;}
+.hdr p{color:rgba(255,255,255,.5);font-size:.8rem;margin-top:.3rem;letter-spacing:.08em;text-transform:uppercase;position:relative;}
 .gold-line{width:48px;height:3px;background:var(--gold);margin:.9rem auto 0;border-radius:2px;position:relative;}
 
 /* TABS */
 .tabs{display:flex;background:var(--white);border-bottom:2px solid #dde3ec;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.06);}
-.tab-btn{flex:1;padding:.9rem .5rem;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--slate);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;letter-spacing:.03em;}
+.tab-btn{flex:1;padding:.9rem .5rem;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--slate);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;}
 .tab-btn.active{color:var(--navy);border-bottom-color:var(--navy);}
 .tab-btn:hover:not(.active){background:var(--mist);}
 
-/* CONTENT */
+/* LAYOUT */
 .main{max-width:820px;margin:0 auto;padding:1.5rem 1rem 3rem;}
-.section{display:none;}
-.section.active{display:block;}
-
-/* CARDS */
+.sec{display:none;}.sec.active{display:block;}
 .card{background:var(--white);border-radius:14px;box-shadow:0 2px 16px rgba(15,31,56,.07);border:1px solid #e4eaf3;padding:1.4rem;margin-bottom:1.2rem;}
-.card-title{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:.9rem;}
+.lbl{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:.75rem;display:block;}
 
 /* AUTOCOMPLETE */
-.autocomplete-wrap{position:relative;}
-.autocomplete-wrap input{width:100%;border:2px solid #dde3ec;border-radius:9px;padding:.75rem 1rem;font-size:.95rem;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);transition:border-color .2s;}
-.autocomplete-wrap input:focus{outline:none;border-color:var(--navy);}
-.suggestions{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid #dde3ec;border-top:none;border-radius:0 0 10px 10px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;}
-.suggestions.open{display:block;}
-.sug-item{padding:.6rem 1rem;font-size:.88rem;cursor:pointer;transition:background .15s;}
-.sug-item:hover,.sug-item.highlighted{background:var(--mist);}
-.sug-item mark{background:transparent;color:var(--navy);font-weight:700;}
+.ac-wrap{position:relative;}
+.ac-wrap input{width:100%;border:2px solid #dde3ec;border-radius:9px;padding:.75rem 1rem;font-size:.95rem;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);transition:border-color .2s;outline:none;}
+.ac-wrap input:focus{border-color:var(--navy);}
+.ac-wrap input.ok{border-color:var(--green);background:#f0fbf6;}
+.sugs{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid #dde3ec;border-top:none;border-radius:0 0 10px 10px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;}
+.sugs.open{display:block;}
+.sug{padding:.6rem 1rem;font-size:.88rem;cursor:pointer;transition:background .15s;}
+.sug:hover,.sug.hi{background:var(--mist);}
+.sug mark{background:transparent;color:var(--navy);font-weight:700;}
 
 /* BOTONES */
-.btn{display:inline-flex;align-items:center;gap:.4rem;border:none;border-radius:8px;padding:.6rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.04em;}
+.btn{display:inline-flex;align-items:center;gap:.4rem;border:none;border-radius:8px;padding:.65rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.03em;}
+.btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
 .btn-navy{background:var(--navy);color:#fff;}
-.btn-navy:hover{background:var(--ocean);transform:translateY(-1px);box-shadow:0 4px 14px rgba(15,31,56,.25);}
-.btn-navy:disabled{background:#9aa8b8;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-navy:hover:not(:disabled){background:var(--ocean);transform:translateY(-1px);box-shadow:0 4px 14px rgba(15,31,56,.25);}
 .btn-green{background:var(--green);color:#fff;}
-.btn-green:hover{background:#165c42;transform:translateY(-1px);box-shadow:0 4px 12px rgba(30,125,90,.3);}
-.btn-green:disabled{background:#9db5b0;cursor:not-allowed;transform:none;box-shadow:none;}
+.btn-green:hover:not(:disabled){background:#165c42;transform:translateY(-1px);box-shadow:0 4px 12px rgba(30,125,90,.3);}
 .btn-red{background:var(--red);color:#fff;}
-.btn-red:hover{background:#962d22;}
+.btn-red:hover:not(:disabled){background:#962d22;transform:translateY(-1px);}
 .btn-sm{padding:.4rem .9rem;font-size:.78rem;}
+.btn-w{width:100%;justify-content:center;margin-top:.75rem;}
 
-/* TURNO ITEM */
-.turno-item{border:1.5px solid #e4eaf3;border-radius:10px;padding:.9rem 1rem;margin-bottom:.6rem;display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap;transition:border-color .2s;}
-.turno-item:hover{border-color:#c5cfe0;}
-.turno-item.selected{border-color:var(--red);background:#fff8f8;}
-.turno-hora{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--navy);}
-.turno-meta{font-size:.75rem;color:var(--slate);margin-top:.15rem;}
-.turno-badge{font-size:.65rem;font-weight:700;padding:.18rem .55rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;}
-.badge-manana{background:#e8f1fc;color:#1a6fc4;}
-.badge-tarde{background:#fff3e0;color:var(--amber);}
-.badge-baja{background:#fde8e8;color:var(--red);}
+/* TURNO ITEM EN BAJA */
+.ti{border:2px solid #e4eaf3;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem;transition:all .2s;cursor:pointer;user-select:none;}
+.ti:hover{border-color:#c5cfe0;background:#fafbff;}
+.ti.sel{border-color:var(--red);background:#fff5f5;}
+.ti.baja-ya{border-color:#c5cfe0;background:#f8f9fa;opacity:.7;cursor:default;}
+.ti.confirmado{border-color:var(--green);background:#f0fbf6;}
+.ti-inner{display:flex;align-items:center;gap:.75rem;}
+.ti-check{width:22px;height:22px;border-radius:5px;border:2px solid #c5cfe0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:.85rem;}
+.ti.sel .ti-check{background:var(--red);border-color:var(--red);color:#fff;}
+.ti.baja-ya .ti-check{background:var(--slate);border-color:var(--slate);color:#fff;}
+.ti.confirmado .ti-check{background:var(--green);border-color:var(--green);color:#fff;}
+.ti-hora{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--navy);}
+.ti-meta{font-size:.75rem;color:var(--slate);margin-top:.1rem;}
+.badge{font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;display:inline-block;}
+.b-man{background:#e8f1fc;color:#1a6fc4;}
+.b-tar{background:#fff3e0;color:var(--amber);}
+.b-baj{background:#fde8e8;color:var(--red);}
+.b-ok{background:#e0f2ec;color:var(--green);}
+
+/* RESUMEN SELECCIÓN */
+.resumen{background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:.8rem 1rem;margin:.75rem 0;font-size:.83rem;color:#7a5c00;display:none;}
+.resumen.visible{display:block;}
+.resumen strong{display:block;margin-bottom:.4rem;font-size:.85rem;}
+.resumen-item{padding:.2rem 0;border-bottom:1px solid #fff0a0;}
+.resumen-item:last-child{border:none;}
 
 /* OFERTA */
-.oferta-card{background:var(--white);border-radius:12px;border:1.5px solid #e4eaf3;padding:1rem 1.1rem;margin-bottom:.8rem;box-shadow:0 1px 8px rgba(15,31,56,.05);}
-.oferta-header{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-bottom:.6rem;}
-.oferta-fecha{font-size:.72rem;color:var(--slate);font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
-.oferta-rango{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--navy);}
-.progress-bar{height:6px;background:#e4eaf3;border-radius:3px;margin:.5rem 0;}
-.progress-fill{height:100%;border-radius:3px;background:var(--navy);transition:width .4s ease;}
-.progress-fill.completo{background:var(--green);}
-.progress-fill.urgente{background:var(--red);}
-.alerta-llave{background:#fff8e1;border:1.5px solid #ffe082;border-radius:8px;padding:.55rem .8rem;font-size:.78rem;color:#7a5c00;margin:.5rem 0;display:flex;align-items:center;gap:.4rem;}
-.personas-count{font-size:.8rem;color:var(--slate);margin-bottom:.5rem;}
-.personas-count strong{color:var(--ink);}
+.oc{background:var(--white);border-radius:12px;border:1.5px solid #e4eaf3;padding:1rem 1.1rem;margin-bottom:.8rem;box-shadow:0 1px 8px rgba(15,31,56,.05);}
+.oc.dia-card{border-color:#c4b5fd;background:#faf7ff;}
+.oc-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.6rem;}
+.oc-fecha{font-size:.7rem;color:var(--slate);font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
+.oc-rango{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--navy);}
+.oc-rango.dia{color:var(--purple);}
+.prog{height:6px;background:#e4eaf3;border-radius:3px;margin:.5rem 0;}
+.prog-fill{height:100%;border-radius:3px;background:var(--navy);transition:width .4s;}
+.prog-fill.full{background:var(--green);}
+.prog-fill.low{background:var(--red);}
+.prog-fill.dia{background:var(--purple);}
+.al-llave{background:#fff8e1;border:1.5px solid #ffe082;border-radius:8px;padding:.5rem .75rem;font-size:.75rem;color:#7a5c00;margin:.4rem 0;display:flex;align-items:center;gap:.35rem;}
+.cnt{font-size:.8rem;color:var(--slate);margin:.3rem 0;}
+.cnt strong{color:var(--ink);}
+.ya-apuntado{background:#e0f2ec;border-radius:8px;padding:.45rem .75rem;font-size:.8rem;color:var(--green);font-weight:600;margin-top:.4rem;}
+.franjas-wrap{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem;}
+.franja-btn{background:#e8f1fc;color:#1a3a6c;border:1.5px solid #b3ceef;border-radius:6px;padding:.35rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
+.franja-btn.tar{background:#fff3e0;color:#7a4500;border-color:#ffd59e;}
+.franja-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12);}
+.franja-lbl{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);margin-bottom:.35rem;}
 
-/* FEEDBACK */
-.feedback{border-radius:10px;padding:.8rem 1rem;margin-top:.8rem;font-size:.85rem;font-weight:600;display:none;}
-.feedback.ok{display:block;background:#e0f2ec;color:#0f4d31;border:1.5px solid #aadec7;}
-.feedback.err{display:block;background:#fde8e8;color:#7a1010;border:1.5px solid #f5b3b3;}
-.feedback.info{display:block;background:#e8f1fc;color:#1a3a6c;border:1.5px solid #b3ceef;}
-
-/* SPINNER */
-.spinner{width:36px;height:36px;border:3px solid #dde3ec;border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:2rem auto;}
+/* SPINNER / LOADING */
+.spin-wrap{text-align:center;padding:3rem 0;}
+.spin{width:40px;height:40px;border:3px solid #dde3ec;border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.loading-wrap{text-align:center;padding:2rem;color:var(--slate);font-size:.88rem;}
-
-/* EMPTY */
-.empty-state{text-align:center;padding:3rem 1rem;color:var(--slate);}
-.empty-state .icon{font-size:2.5rem;margin-bottom:.75rem;}
-.empty-state p{font-size:.88rem;}
-
-/* CHECKBOX personalizado */
-.check-label{display:flex;align-items:center;gap:.6rem;cursor:pointer;padding:.3rem 0;}
-.check-label input[type=checkbox]{width:18px;height:18px;accent-color:var(--red);cursor:pointer;flex-shrink:0;}
+.empty{text-align:center;padding:3rem 1rem;color:var(--slate);}
+.empty .ico{font-size:2.5rem;margin-bottom:.75rem;}
 
 /* TOAST */
-.toast-wrap{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;}
-.toast{background:var(--navy);color:#fff;padding:.7rem 1.1rem;border-radius:9px;font-size:.83rem;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:slideIn .3s ease;max-width:300px;}
+.toasts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;}
+.toast{background:var(--navy);color:#fff;padding:.7rem 1.1rem;border-radius:9px;font-size:.83rem;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:tin .3s ease;max-width:300px;pointer-events:auto;}
 .toast.ok{border-left:4px solid #2ecc71;}
 .toast.err{border-left:4px solid #e74c3c;}
-@keyframes slideIn{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+.toast.inf{border-left:4px solid var(--gold);}
+@keyframes tin{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
 
-.divider{height:1px;background:#edf0f5;margin:1.2rem 0;}
+/* PASO A PASO */
+.steps{display:flex;gap:.5rem;margin-bottom:1.2rem;}
+.step{flex:1;padding:.5rem .4rem;text-align:center;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--slate);border-bottom:3px solid #dde3ec;transition:all .2s;}
+.step.active{color:var(--navy);border-color:var(--navy);}
+.step.done{color:var(--green);border-color:var(--green);}
 </style>
 </head>
 <body>
 
-<header class="site-header">
+<header class="hdr">
   <h1>🔄 Sustituciones</h1>
   <p>Puerto de Sevilla · Gestión de cambios</p>
   <div class="gold-line"></div>
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="mostrarTab('bajas')">📤 Comunicar baja</button>
-  <button class="tab-btn" onclick="mostrarTab('oferta')">📋 Turnos disponibles</button>
+  <button class="tab-btn active" onclick="tab('bajas')">📤 Comunicar baja</button>
+  <button class="tab-btn" onclick="tab('oferta')">📋 Turnos disponibles</button>
 </div>
 
 <div class="main">
 
-  <!-- ══════════════════════════════════════════ -->
-  <!--  TAB 1: COMUNICAR BAJA                    -->
-  <!-- ══════════════════════════════════════════ -->
-  <div id="tab-bajas" class="section active">
+  <!-- ══ TAB 1: BAJA ══ -->
+  <div id="tab-bajas" class="sec active">
 
-    <div class="card">
-      <div class="card-title">¿Quién no puede asistir?</div>
-      <div class="autocomplete-wrap">
-        <input type="text" id="input-baja" placeholder="Escribe tu nombre..."
-               autocomplete="off" oninput="filtrarSugerencias(this,'sug-baja','nombre-baja')"
-               onkeydown="navegarSugerencias(event,'sug-baja','nombre-baja')">
-        <input type="hidden" id="nombre-baja">
-        <div class="suggestions" id="sug-baja"></div>
-      </div>
-      <button class="btn btn-navy" style="margin-top:.9rem;width:100%;"
-              onclick="buscarTurnos()" id="btn-buscar">
-        🔍 Ver mis turnos
-      </button>
-      <div class="feedback" id="fb-buscar"></div>
+    <!-- Pasos -->
+    <div class="steps">
+      <div class="step active" id="step1">1 · Tu nombre</div>
+      <div class="step" id="step2">2 · Tus turnos</div>
+      <div class="step" id="step3">3 · Confirmar</div>
     </div>
 
-    <div id="turnos-voluntario" style="display:none;">
-      <div class="card">
-        <div class="card-title">Selecciona los turnos en los que no puedes asistir</div>
-        <div id="lista-turnos"></div>
-        <div class="divider"></div>
-        <button class="btn btn-red" style="width:100%;" onclick="registrarBaja()" id="btn-baja" disabled>
-          📤 Registrar baja
-        </button>
-        <div class="feedback" id="fb-baja"></div>
+    <!-- Paso 1: nombre -->
+    <div class="card" id="card-nombre">
+      <span class="lbl">¿Quién eres?</span>
+      <div class="ac-wrap">
+        <input type="text" id="inp-baja" placeholder="Empieza a escribir tu nombre..."
+               autocomplete="off"
+               oninput="sugerir(this,'sg-baja','hid-baja')"
+               onkeydown="navSug(event,'sg-baja','hid-baja')">
+        <input type="hidden" id="hid-baja">
+        <div class="sugs" id="sg-baja"></div>
       </div>
+      <button class="btn btn-navy btn-w" id="btn-buscar" onclick="buscarTurnos()" disabled>
+        🔍 Ver mis turnos asignados
+      </button>
+    </div>
+
+    <!-- Paso 2: turnos -->
+    <div class="card" id="card-turnos" style="display:none;">
+      <span class="lbl">Selecciona los turnos en los que no puedes asistir</span>
+      <div id="lista-turnos"></div>
+
+      <!-- Resumen dinámico -->
+      <div class="resumen" id="resumen">
+        <strong>📋 Darás de baja en estos turnos:</strong>
+        <div id="resumen-items"></div>
+      </div>
+
+      <button class="btn btn-red btn-w" id="btn-baja" disabled onclick="registrarBaja()">
+        📤 Registrar mi baja
+      </button>
+      <div id="fb-baja" style="margin-top:.6rem;font-size:.83rem;display:none;"></div>
     </div>
 
   </div>
 
-  <!-- ══════════════════════════════════════════ -->
-  <!--  TAB 2: TURNOS DISPONIBLES / REFUERZOS    -->
-  <!-- ══════════════════════════════════════════ -->
-  <div id="tab-oferta" class="section">
+  <!-- ══ TAB 2: OFERTA ══ -->
+  <div id="tab-oferta" class="sec">
 
+    <!-- Nombre del voluntario para refuerzo -->
     <div class="card">
-      <div class="card-title">¿Quién quiere apuntarse?</div>
-      <div class="autocomplete-wrap">
-        <input type="text" id="input-refuerzo" placeholder="Escribe tu nombre..."
-               autocomplete="off" oninput="filtrarSugerencias(this,'sug-refuerzo','nombre-refuerzo')"
-               onkeydown="navegarSugerencias(event,'sug-refuerzo','nombre-refuerzo')">
-        <input type="hidden" id="nombre-refuerzo">
-        <div class="suggestions" id="sug-refuerzo"></div>
+      <span class="lbl">¿Quién eres? (para apuntarte)</span>
+      <div class="ac-wrap">
+        <input type="text" id="inp-ref" placeholder="Empieza a escribir tu nombre..."
+               autocomplete="off"
+               oninput="sugerir(this,'sg-ref','hid-ref'); if(ofertaActual.length) renderOferta();"
+               onkeydown="navSug(event,'sg-ref','hid-ref')">
+        <input type="hidden" id="hid-ref">
+        <div class="sugs" id="sg-ref"></div>
       </div>
+      <p style="font-size:.75rem;color:var(--slate);margin-top:.5rem;">
+        Selecciona tu nombre para ver si ya estás apuntado en algún turno y poder apuntarte a nuevos.
+      </p>
     </div>
 
     <div id="oferta-wrap">
-      <div class="loading-wrap"><div class="spinner"></div>Cargando turnos disponibles...</div>
+      <div class="spin-wrap"><div class="spin"></div><p style="color:var(--slate);font-size:.85rem;">Cargando turnos disponibles...</p></div>
     </div>
 
   </div>
 
 </div>
 
-<div class="toast-wrap" id="toast-wrap"></div>
+<div class="toasts" id="toasts"></div>
 
 <script>
 const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
 
-var voluntarios = [];       // lista completa de nombres
-var turnosActuales = [];    // turnos del voluntario en baja
-var ofertaActual  = [];     // turnos disponibles para refuerzo
+var voluntarios   = [];
+var turnosActuales = [];
+var ofertaActual  = [];
 
-// ─── TABS ───────────────────────────────────
-function mostrarTab(tab) {
-  document.querySelectorAll('.tab-btn').forEach(function(b,i){
-    b.classList.toggle('active', (i===0&&tab==='bajas')||(i===1&&tab==='oferta'));
+// ══ TABS ═══════════════════════════════════
+function tab(t) {
+  ['bajas','oferta'].forEach(function(id, i) {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', (i===0&&t==='bajas')||(i===1&&t==='oferta'));
   });
-  document.getElementById('tab-bajas').classList.toggle('active', tab==='bajas');
-  document.getElementById('tab-oferta').classList.toggle('active', tab==='oferta');
-  if (tab==='oferta' && ofertaActual.length===0) cargarOferta();
+  if (t==='oferta' && !ofertaActual.length) cargarOferta();
 }
 
-// ─── INIT ────────────────────────────────────
-window.addEventListener('DOMContentLoaded', function(){
-  fetch(API+"?action=getVoluntarios")
-    .then(function(r){ return r.text(); })
-    .then(function(t){
-      var txt = t.trim().replace(/^[^\[{]+/,'');
-      voluntarios = JSON.parse(txt);
-    })
-    .catch(function(){ voluntarios = []; });
+// ══ INIT ════════════════════════════════════
+window.addEventListener('DOMContentLoaded', function() {
+  // Cargar lista de voluntarios para autocompletado
+  apiGet('getVoluntarios').then(function(data) {
+    voluntarios = Array.isArray(data) ? data : [];
+  }).catch(function() { voluntarios = []; });
+
+  // Habilitar botón buscar cuando hay nombre seleccionado
+  document.getElementById('inp-baja').addEventListener('input', function() {
+    document.getElementById('btn-buscar').disabled = this.value.trim().length < 2;
+  });
 });
 
-// ─── AUTOCOMPLETADO ──────────────────────────
-function filtrarSugerencias(input, sugId, hiddenId) {
-  var q    = input.value.trim().toLowerCase();
-  var sug  = document.getElementById(sugId);
-  var hid  = document.getElementById(hiddenId);
+// ══ AUTOCOMPLETADO ══════════════════════════
+function sugerir(inp, sgId, hidId) {
+  var q   = inp.value.trim().toLowerCase();
+  var sg  = document.getElementById(sgId);
+  var hid = document.getElementById(hidId);
   hid.value = '';
+  inp.classList.remove('ok');
 
-  if (q.length < 2) { sug.classList.remove('open'); sug.innerHTML=''; return; }
+  if (q.length < 2) { sg.classList.remove('open'); sg.innerHTML=''; return; }
 
-  var matches = voluntarios.filter(function(v){
+  var matches = voluntarios.filter(function(v) {
     return v.toLowerCase().indexOf(q) !== -1;
   }).slice(0, 8);
 
-  if (!matches.length) { sug.classList.remove('open'); sug.innerHTML=''; return; }
+  if (!matches.length) { sg.classList.remove('open'); sg.innerHTML=''; return; }
 
-  sug.innerHTML = matches.map(function(v){
-    var re  = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
-    var hl  = v.replace(re,'<mark>$1</mark>');
-    return '<div class="sug-item" onclick="seleccionarSugerencia(\''+escHtml(v)+'\',\''+input.id+'\',\''+sugId+'\',\''+hiddenId+'\')">' + hl + '</div>';
+  var re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  sg.innerHTML = matches.map(function(v) {
+    return '<div class="sug" onclick="elegir(\''+esc(v)+'\',\''+inp.id+'\',\''+sgId+'\',\''+hidId+'\')">'
+      + v.replace(re,'<mark>$1</mark>') + '</div>';
   }).join('');
-  sug.classList.add('open');
+  sg.classList.add('open');
 }
 
-function seleccionarSugerencia(nombre, inputId, sugId, hiddenId) {
-  document.getElementById(inputId).value  = nombre;
-  document.getElementById(hiddenId).value = nombre;
-  document.getElementById(sugId).classList.remove('open');
-  document.getElementById(sugId).innerHTML = '';
+function elegir(nom, inpId, sgId, hidId) {
+  document.getElementById(inpId).value  = nom;
+  document.getElementById(inpId).classList.add('ok');
+  document.getElementById(hidId).value  = nom;
+  document.getElementById(sgId).classList.remove('open');
+  document.getElementById(sgId).innerHTML = '';
+  // Habilitar botón buscar si estamos en tab bajas
+  var btnBuscar = document.getElementById('btn-buscar');
+  if (btnBuscar) btnBuscar.disabled = false;
 }
 
-function navegarSugerencias(e, sugId, hiddenId) {
-  var sug   = document.getElementById(sugId);
-  var items = sug.querySelectorAll('.sug-item');
-  var cur   = sug.querySelector('.highlighted');
-  if (e.key==='Escape'){ sug.classList.remove('open'); return; }
-  if (e.key==='ArrowDown'){
+function navSug(e, sgId, hidId) {
+  var sg    = document.getElementById(sgId);
+  var items = sg.querySelectorAll('.sug');
+  var cur   = sg.querySelector('.hi');
+  if (e.key==='Escape') { sg.classList.remove('open'); return; }
+  if (e.key==='ArrowDown') {
     e.preventDefault();
-    var next = cur ? cur.nextElementSibling : items[0];
-    if(cur) cur.classList.remove('highlighted');
-    if(next){ next.classList.add('highlighted'); next.scrollIntoView({block:'nearest'}); }
-  } else if(e.key==='ArrowUp'){
+    var nx = cur ? cur.nextElementSibling : items[0];
+    if (cur) cur.classList.remove('hi');
+    if (nx)  { nx.classList.add('hi'); nx.scrollIntoView({block:'nearest'}); }
+  } else if (e.key==='ArrowUp') {
     e.preventDefault();
-    var prev = cur ? cur.previousElementSibling : items[items.length-1];
-    if(cur) cur.classList.remove('highlighted');
-    if(prev){ prev.classList.add('highlighted'); prev.scrollIntoView({block:'nearest'}); }
-  } else if(e.key==='Enter'){
+    var pv = cur ? cur.previousElementSibling : items[items.length-1];
+    if (cur) cur.classList.remove('hi');
+    if (pv)  { pv.classList.add('hi'); pv.scrollIntoView({block:'nearest'}); }
+  } else if (e.key==='Enter') {
     e.preventDefault();
-    if(cur) cur.click();
+    if (cur) cur.click();
   }
 }
 
-function escHtml(s){ return s.replace(/'/g,"\\'"); }
-
-// Cerrar sugerencias al hacer click fuera
-document.addEventListener('click', function(e){
-  if (!e.target.closest('.autocomplete-wrap')) {
-    document.querySelectorAll('.suggestions').forEach(function(s){ s.classList.remove('open'); });
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.ac-wrap')) {
+    document.querySelectorAll('.sugs').forEach(function(s) { s.classList.remove('open'); });
   }
 });
 
-// ─── TAB 1: BUSCAR TURNOS ────────────────────
+// ══ TAB 1: BUSCAR TURNOS ════════════════════
 async function buscarTurnos() {
-  var nombre = document.getElementById('nombre-baja').value ||
-               document.getElementById('input-baja').value.trim();
-  if (!nombre) { mostrarFb('fb-buscar','Escribe y selecciona tu nombre de la lista.','err'); return; }
+  var nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
+  if (!nombre) { toast('Selecciona tu nombre de la lista.','err'); return; }
 
   var btn = document.getElementById('btn-buscar');
-  btn.disabled = true; btn.textContent = 'Buscando...';
-  ocultarFb('fb-buscar');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:.4rem;"></div> Buscando...';
 
   try {
-    var res  = await fetchJSON(API+"?action=getTurnosVoluntario&nombre="+encodeURIComponent(nombre));
+    var res = await apiGet('getTurnosVoluntario&nombre='+encodeURIComponent(nombre));
     turnosActuales = res.turnos || [];
 
     if (!turnosActuales.length) {
-      mostrarFb('fb-buscar','No se encontraron turnos confirmados para este nombre.','err');
-      document.getElementById('turnos-voluntario').style.display='none';
+      toast('No se encontraron turnos confirmados para "'+nombre+'".','err');
     } else {
-      renderTurnosVoluntario(turnosActuales);
-      document.getElementById('turnos-voluntario').style.display='block';
-      ocultarFb('fb-buscar');
+      renderTurnos(turnosActuales, nombre);
+      document.getElementById('card-turnos').style.display = 'block';
+      setStep(2);
+      document.getElementById('card-turnos').scrollIntoView({behavior:'smooth',block:'start'});
     }
   } catch(e) {
-    mostrarFb('fb-buscar','Error al buscar turnos: '+e.message,'err');
+    toast('Error al buscar turnos. Inténtalo de nuevo.','err');
   } finally {
-    btn.disabled=false; btn.textContent='🔍 Ver mis turnos';
+    btn.disabled = false;
+    btn.innerHTML = '🔍 Ver mis turnos asignados';
   }
 }
 
-function renderTurnosVoluntario(turnos) {
+function renderTurnos(turnos, nombre) {
   var lista = document.getElementById('lista-turnos');
-  if (!turnos.length) { lista.innerHTML='<p style="color:var(--slate);font-size:.85rem;">Sin turnos disponibles.</p>'; return; }
+  var activos = turnos.filter(function(t) { return !t.yaBaja; }).length;
 
-  lista.innerHTML = turnos.map(function(t,i){
-    var h     = t.rango ? parseInt(t.rango.split(':')[0]) : 0;
-    var tarde = h >= 14;
-    var badge = tarde ? '<span class="turno-badge badge-tarde">TARDE</span>' : '<span class="turno-badge badge-manana">MAÑANA</span>';
-    var baja  = t.yaBaja ? '<span class="turno-badge badge-baja">BAJA YA REGISTRADA</span>' : '';
-    return '<div class="turno-item" id="ti-'+i+'">' +
-      '<label class="check-label" style="flex:1;">' +
-        '<input type="checkbox" value="'+i+'" '+(t.yaBaja?'disabled':'')+' onchange="actualizarBtnBaja()">' +
-        '<div>' +
-          '<div class="turno-hora">🕒 '+t.rango+'</div>' +
-          '<div class="turno-meta">'+t.dia+' '+t.fecha+' '+badge+' '+baja+'</div>' +
+  lista.innerHTML =
+    '<div style="background:var(--mist);border-radius:8px;padding:.65rem .9rem;margin-bottom:.9rem;font-size:.83rem;">' +
+      '👤 <strong>'+nombre+'</strong> · '+turnos.length+' turno(s) · ' +
+      '<span style="color:var(--green);font-weight:700;">'+activos+' activo(s)</span>' +
+    '</div>' +
+    turnos.map(function(t, i) {
+      var h  = t.rango ? parseInt(t.rango) : 0;
+      var tar = h >= 14;
+      var bCls = tar ? 'b-tar' : 'b-man';
+      var bTxt = tar ? 'TARDE' : 'MAÑANA';
+      var tiCls = t.yaBaja ? 'baja-ya' : '';
+      var chk   = t.yaBaja ? '✓' : '';
+      var bajaTxt = t.yaBaja ? ' <span class="badge b-baj">✓ BAJA REGISTRADA</span>' : '';
+
+      return '<div class="ti '+tiCls+'" id="ti-'+i+'" '+(t.yaBaja?'':'onclick="toggleTurno('+i+')"')+'>' +
+        '<div class="ti-inner">' +
+          '<div class="ti-check" id="chk-'+i+'">'+chk+'</div>' +
+          '<div>' +
+            '<div class="ti-hora">🕒 '+t.rango+'</div>' +
+            '<div class="ti-meta"><span class="badge '+bCls+'">'+bTxt+'</span> '+t.dia+' · '+t.fecha+bajaTxt+'</div>' +
+          '</div>' +
         '</div>' +
-      '</label>' +
-    '</div>';
-  }).join('');
+      '</div>';
+    }).join('');
 }
 
-function actualizarBtnBaja() {
-  var checks = document.querySelectorAll('#lista-turnos input[type=checkbox]:checked');
-  document.getElementById('btn-baja').disabled = checks.length === 0;
+function toggleTurno(i) {
+  var ti  = document.getElementById('ti-'+i);
+  var chk = document.getElementById('chk-'+i);
+  var sel = ti.classList.toggle('sel');
+  chk.textContent = sel ? '✓' : '';
+  actualizarResumen();
 }
 
-async function registrarBaja() {
-  var nombre = document.getElementById('nombre-baja').value ||
-               document.getElementById('input-baja').value.trim();
-  var checks = document.querySelectorAll('#lista-turnos input[type=checkbox]:checked');
-  if (!checks.length) return;
-
-  var seleccionados = Array.from(checks).map(function(c){
-    return turnosActuales[parseInt(c.value)];
+function actualizarResumen() {
+  var selIds  = [];
+  turnosActuales.forEach(function(t, i) {
+    var ti = document.getElementById('ti-'+i);
+    if (ti && ti.classList.contains('sel')) selIds.push(i);
   });
 
-  var btn = document.getElementById('btn-baja');
-  btn.disabled=true; btn.textContent='Registrando...';
+  var btnBaja = document.getElementById('btn-baja');
+  var resumen = document.getElementById('resumen');
+  var items   = document.getElementById('resumen-items');
 
+  btnBaja.disabled = selIds.length === 0;
+
+  if (selIds.length === 0) {
+    resumen.classList.remove('visible');
+    return;
+  }
+
+  resumen.classList.add('visible');
+  items.innerHTML = selIds.map(function(i) {
+    var t = turnosActuales[i];
+    return '<div class="resumen-item">🕒 <strong>'+t.rango+'</strong> · '+t.dia+' '+t.fecha+'</div>';
+  }).join('');
+
+  setStep(2);
+  btnBaja.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function setStep(n) {
+  [1,2,3].forEach(function(i) {
+    var el = document.getElementById('step'+i);
+    el.className = 'step' + (i < n ? ' done' : (i === n ? ' active' : ''));
+  });
+}
+
+// ══ REGISTRAR BAJA ══════════════════════════
+async function registrarBaja() {
+  var nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
+  var selIds = [];
+  turnosActuales.forEach(function(t, i) {
+    var ti = document.getElementById('ti-'+i);
+    if (ti && ti.classList.contains('sel')) selIds.push(i);
+  });
+  if (!selIds.length || !nombre) return;
+
+  var seleccionados = selIds.map(function(i) { return turnosActuales[i]; });
+
+  var btn = document.getElementById('btn-baja');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spin" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:.4rem;"></div> Registrando...';
+
+  // Feedback optimista inmediato
+  selIds.forEach(function(i) {
+    var ti  = document.getElementById('ti-'+i);
+    var chk = document.getElementById('chk-'+i);
+    if (ti) { ti.className = 'ti confirmado'; ti.onclick = null; }
+    if (chk) chk.textContent = '✓';
+  });
+
+  var fb = document.getElementById('fb-baja');
+  fb.style.display = 'block';
+  fb.style.background = '#e0f2ec';
+  fb.style.color = '#0f4d31';
+  fb.style.border = '1.5px solid #aadec7';
+  fb.style.borderRadius = '8px';
+  fb.style.padding = '.65rem .9rem';
+  fb.innerHTML = '✅ Baja registrada correctamente para ' + seleccionados.length + ' turno(s). ¡Gracias por avisar!';
+
+  btn.innerHTML = '✓ Baja registrada';
+  btn.className = 'btn btn-green btn-w';
+  setStep(3);
+  document.getElementById('resumen').classList.remove('visible');
+
+  // Enviar al servidor en background
   try {
-    var res = await postJSON({ accion:'registrarBaja', nombre:nombre, turnos:seleccionados });
-    if (res.status==='success') {
-      mostrarFb('fb-baja',res.message+' Gracias por avisar con tiempo.','ok');
-      toast(res.message,'ok');
-      // Marcar visualmente los turnos como baja registrada
-      checks.forEach(function(c){
-        var item = document.getElementById('ti-'+c.value);
-        if(item){ item.classList.add('selected'); c.disabled=true; }
-      });
-      btn.textContent='✓ Baja registrada'; btn.classList.add('btn-green');
-      // Recargar oferta para reflejar las nuevas bajas
-      ofertaActual = [];
-      cargarOferta();
-    } else {
-      throw new Error(res.message||'Error desconocido');
-    }
+    await apiPost({ accion:'registrarBaja', nombre:nombre, turnos:seleccionados });
+    ofertaActual = [];
+    // Si el tab de oferta está visible, refrescar
+    if (document.getElementById('tab-oferta').classList.contains('active')) cargarOferta();
   } catch(e) {
-    mostrarFb('fb-baja','Error: '+e.message,'err');
-    btn.disabled=false; btn.textContent='📤 Registrar baja';
+    // El feedback optimista ya fue dado; loguear error silenciosamente
+    console.warn('Error al enviar baja al servidor:', e);
   }
 }
 
-// ─── TAB 2: OFERTA DE TURNOS ─────────────────
+// ══ TAB 2: OFERTA ═══════════════════════════
 async function cargarOferta() {
   var wrap = document.getElementById('oferta-wrap');
-  wrap.innerHTML = '<div class="loading-wrap"><div class="spinner"></div>Cargando turnos disponibles...</div>';
+  wrap.innerHTML = '<div class="spin-wrap"><div class="spin"></div><p style="color:var(--slate);font-size:.85rem;">Cargando turnos disponibles...</p></div>';
   try {
-    var res = await fetchJSON(API+"?action=getOfertaTurnos");
+    var res = await apiGet('getOfertaTurnos');
     ofertaActual = res.turnos || [];
     renderOferta();
   } catch(e) {
-    wrap.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Error al cargar: '+e.message+'</p></div>';
+    wrap.innerHTML = '<div class="empty"><div class="ico">⚠️</div><p>Error al cargar: '+e.message+'</p></div>';
   }
 }
 
 function renderOferta() {
   var wrap   = document.getElementById('oferta-wrap');
-  var nombre = document.getElementById('nombre-refuerzo').value ||
-               document.getElementById('input-refuerzo').value.trim();
+  var nUpRef = (document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim()).toUpperCase().trim();
 
   if (!ofertaActual.length) {
-    wrap.innerHTML = '<div class="empty-state"><div class="icon">✅</div>' +
-      '<p>No hay turnos que necesiten voluntarios en este momento.</p></div>';
+    wrap.innerHTML = '<div class="empty"><div class="ico">✅</div><p>No hay turnos que necesiten voluntarios en este momento.</p></div>';
     return;
   }
 
-  wrap.innerHTML = ofertaActual.map(function(t){
-    var esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
-    var h      = !esDia && t.rango ? parseInt(t.rango.split(':')[0]) : 0;
-    var tarde  = !esDia && h >= 14;
-    var pct    = Math.round((t.equipoActual / 4) * 100);
-    var clsPct = t.equipoActual === 0 ? 'urgente' : (t.equipoActual >= 3 ? 'completo' : '');
-
-    var alertaLlave = !t.tieneLlave
-      ? '<div class="alerta-llave">🔑 ' +
-          (esDia ? 'Se necesita al menos un voluntario con llave para abrir y cerrar.'
-                 : 'Este turno necesita un voluntario con llave.') +
-        '</div>'
-      : '';
-
-    var nUp = nombre ? nombre.toUpperCase().trim() : '';
-    var yaApuntado = nUp && t.equipoNombres.some(function(n){ return n === nUp; });
-
-    var badgeRango = esDia
-      ? '<span class="turno-badge" style="background:#f0e6ff;color:#5b21b6;">DÍA SIN TURNO</span>'
-      : '<span class="turno-badge '+(tarde?'badge-tarde':'badge-manana')+'">'+(tarde?'TARDE':'MAÑANA')+'</span>';
-
-    var rangoLabel = esDia
-      ? '<div class="oferta-rango" style="color:#5b21b6;">📅 Día sin cuadrante asignado</div>'
-      : '<div class="oferta-rango">🕒 '+t.rango+'</div>';
-
-    var contadorLabel = esDia
-      ? 'Interesados: <strong>'+t.equipoActual+'</strong> · Mínimo necesario: <strong>3</strong>'
-      : 'Voluntarios: <strong>'+t.equipoActual+' / 4</strong> · Faltan: <strong>'+t.necesitan+'</strong>';
-
-    var cardStyle = esDia ? 'border-color:#c4b5fd;background:#faf7ff;' : '';
-
-    // Para días sin turno: mostrar selector de horario al apuntarse
-    var botonOApuntado;
-    if (yaApuntado) {
-      botonOApuntado = '<div class="feedback info" style="display:block;margin-top:.5rem;">✓ Ya estás apuntado.</div>';
-    } else if (esDia) {
-      // Mostrar franjas calculadas como opciones para apuntarse
-      var franjas = t.franjasCalculadas || [];
-      if (franjas.length === 0) {
-        // Sin franjas calculadas: mostrar apuntados actuales y mensaje
-        var apuntadosHtml = '';
-        if (t.apuntadosDetalle && t.apuntadosDetalle.length > 0) {
-          apuntadosHtml = '<div style="margin:.4rem 0;font-size:.78rem;color:var(--slate);">Apuntados: ' +
-            t.apuntadosDetalle.map(function(a){
-              return '<strong>'+a.nombre+'</strong>'+(a.horario?' ('+a.horario+')':'');
-            }).join(', ') + '</div>';
-        }
-        botonOApuntado =
-          '<div style="margin-top:.7rem;">' +
-            apuntadosHtml +
-            '<div style="font-size:.78rem;color:var(--slate);margin-bottom:.5rem;">No hay franjas calculadas. Si hay voluntarios suficientes se generará un cuadrante.</div>' +
-            '<button class="btn btn-green btn-sm" onclick="apuntarseRefuerzoFranja(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\'\')">' +
-              '✋ Apuntarme (disponibilidad general)' +
-            '</button>' +
-          '</div>';
-      } else {
-        // Mostrar cada franja como chip seleccionable
-        var apuntadosHtml2 = '';
-        if (t.apuntadosDetalle && t.apuntadosDetalle.length > 0) {
-          apuntadosHtml2 = '<div style="margin:.4rem 0 .6rem;font-size:.78rem;color:var(--slate);">Ya apuntados: ' +
-            t.apuntadosDetalle.map(function(a){
-              return '<strong>'+a.nombre+'</strong>'+(a.horario?' ('+a.horario+')':'');
-            }).join(', ') + '</div>';
-        }
-        var franjaBtns = franjas.map(function(fr){
-          var hFr = parseInt(fr.split(':')[0]);
-          var esTardeFr = hFr >= 14;
-          return '<button class="btn btn-sm" '+
-            'style="background:'+(esTardeFr?'#fff3e0':'#e8f1fc')+';color:'+(esTardeFr?'#7a4500':'#1a3a6c')+';border:1.5px solid '+(esTardeFr?'#ffd59e':'#b3ceef')+';margin:.2rem;" '+
-            'onclick="apuntarseRefuerzoFranja(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\',\''+escHtml(fr)+'\')">' +
-            '🕒 '+fr+' — '+(esTardeFr?'Tarde':'Mañana')+
-            '</button>';
-        }).join('');
-        botonOApuntado =
-          '<div style="margin-top:.7rem;">' +
-            apuntadosHtml2 +
-            '<div style="font-size:.75rem;font-weight:700;color:var(--slate);letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4rem;">Franjas que podrían cubrirse — elige una:</div>' +
-            '<div style="display:flex;flex-wrap:wrap;gap:.3rem;">' + franjaBtns + '</div>' +
-            '<div style="font-size:.7rem;color:var(--slate);margin-top:.4rem;">Al apuntarte indicas disponibilidad para esa franja horaria.</div>' +
-          '</div>';
-      }
-    } else {
-      botonOApuntado =
-        '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarseRefuerzo(\''+escHtml(t.key)+'\',\''+escHtml(t.fecha)+'\')">' +
-          '✋ Apuntarme' +
-        '</button>';
-    }
-
-    return '<div class="oferta-card" style="'+cardStyle+'">' +
-      '<div class="oferta-header">' +
-        '<div>' +
-          '<div class="oferta-fecha">'+t.dia+' · '+t.fecha+'</div>' +
-          rangoLabel +
-        '</div>' +
-        badgeRango +
-      '</div>' +
-      '<div class="personas-count">'+contadorLabel+'</div>' +
-      '<div class="progress-bar"><div class="progress-fill '+clsPct+'" style="width:'+pct+'%;'+(esDia?'background:#7c3aed;':'')+'"></div></div>' +
-      alertaLlave +
-      botonOApuntado +
-    '</div>';
-  }).join('');
-}
-
-function generarOpcionesHorasHTML(esHastaOpc) {
   var html = '';
-  for (var h = 8; h <= 22; h++) {
-    var val = (h < 10 ? '0'+h : ''+h) + ':00';
-    // Por defecto: desde=08:00, hasta=20:00
-    var sel = (!esHastaOpc && h===8) || (esHastaOpc && h===20) ? ' selected' : '';
-    html += '<option value="'+val+'"'+sel+'>'+val+'</option>';
-  }
-  return html;
-}
-
-// Redibujar oferta cuando cambia el nombre del refuerzo
-document.addEventListener('DOMContentLoaded', function(){
-  document.getElementById('input-refuerzo').addEventListener('input', function(){
-    if (ofertaActual.length) renderOferta();
+  // Agrupar por fecha para mejor legibilidad
+  var porFecha = {};
+  ofertaActual.forEach(function(t) {
+    var k = t.fecha + '|' + t.dia;
+    if (!porFecha[k]) porFecha[k] = [];
+    porFecha[k].push(t);
   });
-});
 
-async function apuntarseRefuerzo(key, fecha) {
-  var nombre = document.getElementById('nombre-refuerzo').value ||
-               document.getElementById('input-refuerzo').value.trim();
-  if (!nombre) {
-    toast('Escribe y selecciona tu nombre antes de apuntarte.','err');
-    document.getElementById('input-refuerzo').focus();
-    return;
-  }
+  Object.keys(porFecha).sort().forEach(function(fk) {
+    var turnos = porFecha[fk];
+    var partes = fk.split('|');
+    html += '<div style="margin-bottom:.3rem;margin-top:1.2rem;padding-bottom:.3rem;border-bottom:2px solid var(--navy);">' +
+      '<strong style="font-family:\'DM Serif Display\',serif;font-size:1.05rem;color:var(--navy);">📅 '+partes[1]+' '+partes[0]+'</strong>' +
+    '</div>';
 
-  try {
-    var res = await postJSON({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha });
-    if (res.status==='success') {
-      toast(res.message,'ok');
-      await cargarOferta();
-    } else {
-      toast(res.message||'Error al apuntarse.','err');
-    }
-  } catch(e) {
-    toast('Error: '+e.message,'err');
-  }
-}
-
-async function apuntarseRefuerzoFranja(key, fecha, franja) {
-  var nombre = document.getElementById('nombre-refuerzo').value ||
-               document.getElementById('input-refuerzo').value.trim();
-  if (!nombre) {
-    toast('Escribe y selecciona tu nombre antes de apuntarte.','err');
-    document.getElementById('input-refuerzo').focus();
-    return;
-  }
-  try {
-    var res = await postJSON({
-      accion: 'registrarRefuerzo', nombre: nombre,
-      key: key, fecha: fecha, franja: franja, esDia: true
+    turnos.forEach(function(t) {
+      html += renderOfertaCard(t, nUpRef);
     });
-    if (res.status === 'success') {
-      toast(res.message, 'ok');
-      await cargarOferta();
-    } else {
-      toast(res.message || 'Error al apuntarse.', 'err');
-    }
-  } catch(e) { toast('Error: ' + e.message, 'err'); }
+  });
+
+  wrap.innerHTML = html;
 }
 
-// ─── HELPERS ─────────────────────────────────
-async function fetchJSON(url) {
-  var res  = await fetch(url, { redirect:'follow' });
-  var text = await res.text();
-  var clean = text.trim().replace(/^[^\[{]+/,'');
+function renderOfertaCard(t, nUpRef) {
+  var esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
+  var h      = !esDia && t.rango ? parseInt(t.rango) : 0;
+  var tar    = !esDia && h >= 14;
+  var pct    = Math.min(100, Math.round(t.equipoActual / 4 * 100));
+  var pCls   = esDia ? 'dia' : (t.equipoActual === 0 ? 'low' : (t.equipoActual >= 3 ? 'full' : ''));
+
+  var yaApuntado = nUpRef && t.equipoNombres.some(function(n) { return n === nUpRef; });
+
+  var badgeTxt = esDia ? 'DÍA SIN TURNO' : (tar ? 'TARDE' : 'MAÑANA');
+  var badgeSty = esDia
+    ? 'background:#f0e6ff;color:var(--purple);'
+    : (tar ? 'background:#fff3e0;color:var(--amber);' : 'background:#e8f1fc;color:#1a6fc4;');
+
+  var rangoTxt = esDia
+    ? '<div class="oc-rango dia">📅 Día sin cuadrante asignado</div>'
+    : '<div class="oc-rango">🕒 '+t.rango+'</div>';
+
+  var cntTxt = esDia
+    ? 'Interesados: <strong>'+t.equipoActual+'</strong> · Mínimo necesario: <strong>3</strong>'
+    : 'Voluntarios: <strong>'+t.equipoActual+' / 4</strong> · Faltan: <strong>'+t.necesitan+'</strong>';
+
+  var alertaLlave = !t.tieneLlave
+    ? '<div class="al-llave">🔑 '+(esDia?'Necesario al menos un portador de llave.':'Este turno necesita un portador de llave.')+'</div>'
+    : '';
+
+  var accion = '';
+  if (yaApuntado) {
+    accion = '<div class="ya-apuntado">✓ Ya estás apuntado en este turno.</div>';
+  } else if (esDia) {
+    var franjas = t.franjasCalculadas || [];
+    if (franjas.length > 0) {
+      accion = '<div style="margin-top:.6rem;">' +
+        '<div class="franja-lbl">Elige la franja en que puedes estar:</div>' +
+        '<div class="franjas-wrap">' +
+        franjas.map(function(fr) {
+          var hf  = parseInt(fr);
+          var trf = hf >= 14;
+          return '<button class="franja-btn'+(trf?' tar':'')+'" onclick="apuntarFranja(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\',\''+esc(fr)+'\')">' +
+            '🕒 '+fr+'</button>';
+        }).join('') +
+        '</div></div>';
+    } else {
+      accion = '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarFranja(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\',\'\')">✋ Apuntarme</button>';
+    }
+  } else {
+    accion = '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntar(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\')">✋ Apuntarme a este turno</button>';
+  }
+
+  return '<div class="oc'+(esDia?' dia-card':'')+'">' +
+    '<div class="oc-hdr">' +
+      '<div>'+rangoTxt+'</div>' +
+      '<span class="badge" style="'+badgeSty+'font-size:.62rem;font-weight:700;padding:.2rem .55rem;border-radius:4px;white-space:nowrap;">'+badgeTxt+'</span>' +
+    '</div>' +
+    '<div class="cnt">'+cntTxt+'</div>' +
+    '<div class="prog"><div class="prog-fill '+pCls+'" style="width:'+pct+'%"></div></div>' +
+    alertaLlave + accion +
+  '</div>';
+}
+
+async function apuntar(key, fecha) {
+  var nombre = nombreRefuerzo();
+  if (!nombre) return;
+  await enviarRefuerzo({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha });
+}
+
+async function apuntarFranja(key, fecha, franja) {
+  var nombre = nombreRefuerzo();
+  if (!nombre) return;
+  await enviarRefuerzo({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha, franja:franja, esDia:true });
+}
+
+function nombreRefuerzo() {
+  var n = document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim();
+  if (!n) {
+    toast('Escribe y selecciona tu nombre antes de apuntarte.','err');
+    document.getElementById('inp-ref').focus();
+    return null;
+  }
+  return n;
+}
+
+async function enviarRefuerzo(data) {
+  // Feedback optimista inmediato
+  toast('Apuntándote...','inf');
+  try {
+    await apiPost(data);
+    toast('✓ Te has apuntado correctamente.','ok');
+    ofertaActual = [];
+    await cargarOferta();
+  } catch(e) {
+    toast('Error al apuntarse. Inténtalo de nuevo.','err');
+  }
+}
+
+// ══ API HELPERS ═════════════════════════════
+async function apiGet(action) {
+  var res   = await fetch(API+'?action='+action, { redirect:'follow' });
+  var text  = await res.text();
+  var clean = text.trim().replace(/^[^\[{]+/, '');
   return JSON.parse(clean);
 }
 
-async function postJSON(data) {
-  var res = await fetch(API, {
-    method:'POST', mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify(data)
+async function apiPost(data) {
+  // Apps Script no permite leer respuesta en no-cors, así que mostramos feedback optimista
+  // y enviamos en background
+  await fetch(API, {
+    method: 'POST',
+    mode:   'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(data)
   });
-  // no-cors no nos deja leer la respuesta; asumimos éxito y recargamos
-  return { status:'success', message:'Operación registrada.' };
+  return { status: 'success' };
 }
 
-function mostrarFb(id, msg, tipo) {
-  var el = document.getElementById(id);
-  el.textContent = msg; el.className = 'feedback '+tipo;
-}
-function ocultarFb(id) {
-  var el = document.getElementById(id);
-  el.className='feedback'; el.textContent='';
-}
-
+// ══ TOAST ════════════════════════════════════
 function toast(msg, tipo) {
-  var wrap = document.getElementById('toast-wrap');
+  var wrap = document.getElementById('toasts');
   var el   = document.createElement('div');
-  el.className = 'toast '+(tipo||'ok');
+  el.className = 'toast ' + (tipo||'ok');
   el.textContent = msg;
   wrap.appendChild(el);
-  setTimeout(function(){ el.remove(); }, 4000);
+  setTimeout(function() {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity .3s';
+    setTimeout(function() { el.remove(); }, 300);
+  }, 3500);
 }
+
+function esc(s) { return (s+'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 </script>
 </body>
 </html>
