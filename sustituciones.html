@@ -588,15 +588,30 @@ function nombreRefuerzo() {
 }
 
 async function enviarRefuerzo(data) {
-  // Feedback optimista inmediato
-  toast('Apuntándote...','inf');
+  // Mostrar feedback inmediato
+  toast('Apuntándote...', 'inf');
+
+  // Marcar visualmente como apuntado de forma optimista
+  var nUp = (data.nombre || '').toUpperCase().trim();
+  ofertaActual.forEach(function(t) {
+    if (t.key === data.key && t.equipoNombres.indexOf(nUp) === -1) {
+      t.equipoNombres.push(nUp);
+      t.equipoActual = t.equipoNombres.length;
+      t.necesitan    = Math.max(0, 4 - t.equipoActual);
+    }
+  });
+  renderOferta(); // Re-render inmediato con estado optimista
+
   try {
     await apiPost(data);
-    toast('✓ Te has apuntado correctamente.','ok');
-    ofertaActual = [];
-    await cargarOferta();
+    toast('✓ Apuntado correctamente. ¡Gracias!', 'ok');
+    // Recargar en background para sincronizar estado real
+    setTimeout(function() { ofertaActual = []; cargarOferta(); }, 2000);
   } catch(e) {
-    toast('Error al apuntarse. Inténtalo de nuevo.','err');
+    toast('Error al apuntarse. Inténtalo de nuevo.', 'err');
+    // Revertir el optimismo
+    ofertaActual = [];
+    cargarOferta();
   }
 }
 
