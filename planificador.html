@@ -459,6 +459,16 @@ body {
 .no-llave-body { padding: 0.75rem 1.1rem; }
 .no-llave-body p { font-size: 0.78rem; color: #9a6500; margin-bottom: 0.6rem; }
 
+/* ── CANDIDATOS SIN FRANJA ───────────────────────────── */
+.cands-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
+.cand-chip {
+  display: inline-flex; align-items: center;
+  background: #f0f4fb; border: 1px solid #dde3ec;
+  border-radius: 20px; padding: 0.28rem 0.65rem;
+  font-size: 0.75rem; font-weight: 500; color: var(--label2);
+}
+.cand-meta { font-size: 0.65rem; color: var(--label3); margin-left: 0.2rem; }
+
 /* ── TOAST ────────────────────────────────────────────── */
 .toast-stack {
   position: fixed;
@@ -616,12 +626,19 @@ function renderDia(d) {
   }
 
   if (turnos.length === 0) {
+    const candidatosHtml = (diag.candidatos && diag.candidatos.length)
+      ? '<div class="cands-wrap">' + diag.candidatos.map(c =>
+          '<span class="cand-chip">' + (c.llave ? '🔑 ' : '') + c.nombre +
+          '<span class="cand-meta"> · 🕐 ' + c.horario + '</span></span>'
+        ).join('') + '</div>'
+      : '';
     sec.insertAdjacentHTML('beforeend', `
       <div class="no-turnos">
         <h6>⚠️ Sin cuadrante disponible</h6>
-        <p>No hay franjas con ≥3 voluntarios disponibles.</p>
-        ${diag.bloqueados?.length ? `<div class="blocked-list">🔒 ${diag.bloqueados.join(' · ')}</div>` : ''}
-        <div class="blocked-list">Disponibles: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
+        <p>Los voluntarios disponibles no coinciden en una franja de 2h con ≥3 personas.</p>
+        ${diag.bloqueados?.length ? `<div class="blocked-list" style="margin-bottom:0.5rem">🔒 Bloqueados: ${diag.bloqueados.join(' · ')}</div>` : ''}
+        ${candidatosHtml}
+        <div class="blocked-list" style="margin-top:0.5rem">Total disponibles: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
       </div>
     `);
     return sec;
@@ -675,7 +692,7 @@ function renderTurno(t, d) {
     ? `<div class="sust-wrap">${t.sustitutos.map(s => `
         <span class="sust-chip">
           ${s.llave ? '🔑 ' : ''}${s.nombre}
-          <span class="sust-chip-meta">${s.dias >= 99 ? 'Nuevo' : s.dias+'d'} · ${s.dispo}d</span>
+          <span class="sust-chip-meta">${s.dias >= 99 ? 'Nuevo' : s.dias+'d'}${s.horario ? ' · 🕐 '+s.horario : ''}</span>
         </span>`).join('')}</div>`
     : '<span style="font-size:0.78rem;color:var(--label4);">—</span>';
 
