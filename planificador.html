@@ -459,6 +459,43 @@ body {
 .no-llave-body { padding: 0.75rem 1.1rem; }
 .no-llave-body p { font-size: 0.78rem; color: #9a6500; margin-bottom: 0.6rem; }
 
+/* ── PANEL DISPONIBILIDAD COMPLETA ───────────────────── */
+.dispo-panel {
+  background: var(--surface);
+  border-radius: var(--r-md);
+  border: 1px solid var(--sep);
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+.dispo-toggle {
+  width: 100%; background: none; border: none;
+  padding: 0.7rem 1rem;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: inherit; font-size: 0.78rem; font-weight: 600;
+  color: var(--label3); cursor: pointer; text-align: left;
+  transition: background 0.15s;
+}
+.dispo-toggle:hover { background: var(--surface2); }
+.dispo-toggle-arrow { transition: transform 0.2s ease; font-size: 0.7rem; }
+.dispo-toggle.open .dispo-toggle-arrow { transform: rotate(180deg); }
+.dispo-body {
+  display: none;
+  padding: 0 0.75rem 0.75rem;
+  flex-wrap: wrap; gap: 0.3rem;
+}
+.dispo-body.visible { display: flex; }
+.dispo-chip {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.3rem 0.65rem; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 500;
+  border: 1px solid transparent;
+}
+.dispo-ok       { background: var(--green-soft); color: #1a7a3a; border-color: #b8edc8; }
+.dispo-reducido { background: #fff8e1; color: #7a5c00; border-color: #ffe082; }
+.dispo-reservado{ background: var(--blue-soft); color: #005ab5; border-color: #b8d4f8; }
+.dispo-bloqueado{ background: var(--surface2); color: var(--label4); border-color: var(--sep); }
+.dispo-chip-hora{ font-size: 0.62rem; opacity: 0.75; }
+
 /* ── CANDIDATOS SIN FRANJA ───────────────────────────── */
 .cands-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
 .cand-chip {
@@ -645,7 +682,38 @@ function renderDia(d) {
   }
 
   turnos.forEach(t => sec.appendChild(renderTurno(t, d)));
+
+  // Panel colapsable con todos los voluntarios disponibles del día
+  if (diag.todos && diag.todos.length > 0) {
+    sec.appendChild(renderDispoPanel(diag.todos, d));
+  }
+
   return sec;
+}
+
+// ── PANEL DISPONIBILIDAD COMPLETA DEL DÍA ─────────────────
+function renderDispoPanel(todos, d) {
+  const wrap = document.createElement('div');
+  wrap.className = 'dispo-panel';
+
+  const estadoLabel = { ok: '✅', reducido: '⚡', reservado: '📌', bloqueado: '🔒' };
+  const counts = todos.reduce((acc, v) => { acc[v.estado] = (acc[v.estado]||0)+1; return acc; }, {});
+  const resumen = Object.entries(counts).map(([k,n]) => `${estadoLabel[k]||''} ${n} ${k}`).join(' · ');
+
+  const panelId = `dispo-${d.semana}-${d.dia}`;
+  wrap.innerHTML = `
+    <button class="dispo-toggle" onclick="toggleDispo('${panelId}', this)">
+      <span>👥 Todos los disponibles del día (${todos.length}) — ${resumen}</span>
+      <span class="dispo-toggle-arrow">▼</span>
+    </button>
+    <div class="dispo-body" id="${panelId}">
+      ${todos.map(v => `
+        <span class="dispo-chip dispo-${v.estado}">
+          ${v.llave ? '🔑 ' : ''}${v.nombre}
+          <span class="dispo-chip-hora">🕐 ${v.horario}</span>
+        </span>`).join('')}
+    </div>`;
+  return wrap;
 }
 
 // ── RENDERIZAR TURNO ──────────────────────────────────────
@@ -747,6 +815,13 @@ async function confirmarTurno(semana, dia, nombresStr, rango, fechaRaw, btnId) {
     btn.disabled = false; btn.textContent = '✓ Confirmar';
     toast('Error al guardar: ' + e.message, 'err');
   }
+}
+
+// ── TOGGLE DISPONIBILIDAD ────────────────────────────────
+function toggleDispo(id, btn) {
+  const body = document.getElementById(id);
+  const open = body.classList.toggle('visible');
+  btn.classList.toggle('open', open);
 }
 
 // ── TOAST ─────────────────────────────────────────────────
