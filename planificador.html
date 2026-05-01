@@ -666,7 +666,7 @@ function renderTurno(t, d) {
       <div class="v-info">
         <div class="v-name">${v.nombre}</div>
         <div class="v-sub">Descanso: <strong>${v.dias >= 99 ? 'Nuevo' : v.dias + ' d'}</strong> · ${v.dispo} días/mes</div>
-        ${v.horario ? `<div class="v-horario">🕐 ${v.horario}</div>` : ''}
+        ${v.horario ? `<div class="v-horario">🕐 Disponible: ${v.horario}</div>` : ''}
       </div>
       ${v.llave ? '<span class="badge-key">🔑 Llave</span>' : ''}
     </div>`).join('');
