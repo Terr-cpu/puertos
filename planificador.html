@@ -3,487 +3,443 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Puerto de Sevilla · Gestión de Turnos</title>
+<title>Puerto de Sevilla · Turnos</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
-/* ══════════════════════════════════════════════════════════
-   TOKENS
-══════════════════════════════════════════════════════════ */
 :root {
-  --bg:         #f0f2f5;
-  --surface:    #ffffff;
-  --surface2:   #f5f7fa;
-  --navy:       #0a1628;
-  --ocean:      #0d2a4a;
-  --blue:       #0071e3;
-  --blue-soft:  #ddeeff;
-  --amber:      #e07b00;
-  --amber-soft: #fff3e0;
-  --gold:       #c9a84c;
-  --gold-soft:  #fff8e7;
-  --green:      #1a9648;
-  --green-soft: #e6f7ed;
-  --red:        #d93025;
-  --red-soft:   #fce8e6;
-  --label1:     #1a1a2e;
-  --label2:     #44475a;
-  --label3:     #8a8fa8;
-  --label4:     #c8ccd8;
-  --sep:        rgba(0,0,0,0.08);
-  --shadow-sm:  0 1px 4px rgba(0,0,0,0.07);
-  --shadow-md:  0 4px 20px rgba(0,0,0,0.09);
-  --shadow-lg:  0 12px 40px rgba(0,0,0,0.13);
-  --r-sm: 8px; --r-md: 12px; --r-lg: 18px; --r-xl: 26px;
+  --bg:#f0f2f5; --surface:#fff; --surface2:#f5f7fa;
+  --navy:#0a1628; --blue:#0071e3; --blue-soft:#ddeeff;
+  --amber:#e07b00; --amber-soft:#fff3e0;
+  --gold:#c9a84c; --green:#1a9648; --green-soft:#e6f7ed;
+  --red:#d93025; --red-soft:#fce8e6;
+  --label1:#1a1a2e; --label2:#44475a; --label3:#8a8fa8; --label4:#c8ccd8;
+  --sep:rgba(0,0,0,0.08);
+  --shadow-sm:0 1px 4px rgba(0,0,0,0.07);
+  --shadow-md:0 4px 20px rgba(0,0,0,0.09);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.13);
+  --r-sm:8px; --r-md:12px; --r-lg:18px; --r-xl:26px;
+  --sidebar-w:232px;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
-html { scroll-behavior: smooth; }
-body { background: var(--bg); font-family: 'Sora', system-ui, sans-serif; color: var(--label1); min-height: 100vh; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--label1);min-height:100vh}
 
-/* ══════════════════════════════════════════════════════════
-   SIDEBAR LAYOUT
-══════════════════════════════════════════════════════════ */
-.layout { display: flex; min-height: 100vh; }
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.app{display:flex;min-height:100vh}
 
-.sidebar {
-  width: 240px; flex-shrink: 0;
-  background: var(--navy);
-  display: flex; flex-direction: column;
-  position: fixed; top: 0; left: 0; bottom: 0;
-  z-index: 100; transition: transform 0.3s ease;
+/* ── SIDEBAR ─────────────────────────────────────────────── */
+.sidebar{
+  width:var(--sidebar-w);flex-shrink:0;background:var(--navy);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:200;
+  transition:transform .28s cubic-bezier(.4,0,.2,1);
+  overflow-y:auto;
 }
-.sidebar-logo {
-  padding: 1.75rem 1.25rem 1.25rem;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
+.sidebar-logo{padding:1.5rem 1.1rem 1rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar-logo .li{font-size:1.6rem;margin-bottom:.3rem}
+.sidebar-logo h2{font-family:'DM Serif Display',serif;font-size:.95rem;color:#fff;line-height:1.2}
+.sidebar-logo p{font-size:.62rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;margin-top:.15rem}
+.nav-sec{padding:.85rem .65rem .4rem}
+.nav-lbl{font-size:.58rem;font-weight:700;color:rgba(255,255,255,.22);text-transform:uppercase;letter-spacing:.15em;padding:0 .45rem;margin-bottom:.3rem}
+.nav-item{display:flex;align-items:center;gap:.6rem;padding:.58rem .7rem;border-radius:var(--r-md);font-size:.8rem;font-weight:500;color:rgba(255,255,255,.5);cursor:pointer;transition:all .16s;margin-bottom:.12rem;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+.nav-item.active{background:rgba(255,255,255,.13);color:#fff;font-weight:600}
+.nav-item .ni{font-size:.95rem;flex-shrink:0;width:20px;text-align:center}
+.nav-item .nbadge{margin-left:auto;background:var(--red);color:#fff;font-size:.58rem;font-weight:700;padding:.08rem .38rem;border-radius:10px;min-width:16px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:.85rem;border-top:1px solid rgba(255,255,255,.07)}
+.sidebar-footer p{font-size:.62rem;color:rgba(255,255,255,.18)}
+
+/* ── MAIN ─────────────────────────────────────────────────── */
+.main-area{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column;min-height:100vh}
+
+/* ── TOPBAR ──────────────────────────────────────────────── */
+.topbar{background:var(--surface);border-bottom:1px solid var(--sep);padding:.8rem 1.5rem;display:flex;align-items:center;gap:.75rem;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+.topbar-menu-btn{display:none;background:none;border:none;cursor:pointer;font-size:1.3rem;color:var(--label2);padding:.2rem}
+.topbar-title{font-size:1rem;font-weight:700;color:var(--label1);flex:1}
+.topbar-actions{display:flex;gap:.4rem;flex-wrap:wrap}
+
+/* ── OVERLAY MÓVIL ───────────────────────────────────────── */
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:199;backdrop-filter:blur(2px)}
+.sidebar-overlay.visible{display:block}
+
+/* ── CONTENT ─────────────────────────────────────────────── */
+.content{padding:1.5rem;flex:1}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── BTNS ─────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1rem;border-radius:var(--r-md);font-family:inherit;font-size:.8rem;font-weight:600;cursor:pointer;border:none;transition:all .16s;white-space:nowrap}
+.btn-navy{background:var(--navy);color:#fff}
+.btn-navy:hover{background:#152540;transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,22,40,.3)}
+.btn-blue{background:var(--blue);color:#fff}
+.btn-blue:hover{background:#0062c4;transform:translateY(-1px)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#157a3a;transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);color:var(--label2);border:1px solid var(--sep)}
+.btn-ghost:hover{background:#eaedf2}
+.btn-red{background:var(--red);color:#fff}
+.btn-red:hover{background:#b5261f}
+.btn-sm{padding:.35rem .7rem;font-size:.73rem}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+
+/* ── CARD ─────────────────────────────────────────────────── */
+.card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);border:1px solid var(--sep);overflow:hidden}
+.card-hd{padding:.9rem 1.1rem;border-bottom:1px solid var(--sep);display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.card-hd h3{font-size:.85rem;font-weight:700}
+.card-bd{padding:1.1rem}
+
+/* ── FORMS ─────────────────────────────────────────────────── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.form-row.cols3{grid-template-columns:1fr 1fr 1fr}
+.form-row.full{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:.3rem}
+.fg label{font-size:.67rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.06em}
+.fc{border:1.5px solid var(--sep);border-radius:var(--r-sm);padding:.5rem .75rem;font-family:inherit;font-size:.83rem;color:var(--label1);background:var(--surface);outline:none;transition:border-color .15s;width:100%}
+.fc:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
+
+/* ── LOADING / EMPTY ──────────────────────────────────────── */
+.loading{text-align:center;padding:3.5rem 0}
+.spinner{width:38px;height:38px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .85rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading p{color:var(--label3);font-size:.83rem}
+.empty{text-align:center;padding:3.5rem 1rem}
+.empty .ei{font-size:2.8rem;display:block;opacity:.28;margin-bottom:.85rem}
+.empty h4{font-size:.9rem;font-weight:600;color:var(--label2);margin-bottom:.3rem}
+.empty p{font-size:.8rem;color:var(--label3)}
+
+/* ══════════════════════════════════════
+   CUADRANTE
+══════════════════════════════════════ */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.dia-block{margin-bottom:1.4rem;animation:fadeUp .3s ease both}
+.dia-hdr{display:flex;align-items:center;gap:.65rem;padding:.5rem 0;margin-bottom:.55rem;border-bottom:2px solid var(--navy)}
+.dia-fecha{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--navy)}
+.dia-tag{font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:.16rem .5rem;border-radius:4px;background:var(--navy);color:var(--gold)}
+.dia-tag.ok{background:var(--green);color:#fff}
+.dia-naviera{font-size:.72rem;color:var(--label3);margin-left:auto;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.naviera-pill{background:var(--blue-soft);color:var(--blue);font-size:.62rem;font-weight:600;padding:.12rem .45rem;border-radius:4px}
+
+.aviso-bar{background:var(--amber-soft);border-left:3px solid var(--amber);border-radius:0 var(--r-sm) var(--r-sm) 0;padding:.45rem .8rem;font-size:.76rem;font-weight:600;color:#7a4500;margin-bottom:.55rem}
+.no-turno{background:var(--surface);border:1.5px dashed var(--label4);border-radius:var(--r-lg);padding:1.1rem;text-align:center;margin-bottom:.45rem}
+.no-turno p{font-size:.8rem;color:var(--label3)}
+
+/* Turno card */
+.tc{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-bottom:.55rem;overflow:visible;transition:box-shadow .2s,transform .2s}
+.tc:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.tc-accent{height:3px}
+.ac-m{background:linear-gradient(90deg,#0071e3,#34aadc)}
+.ac-t{background:linear-gradient(90deg,#e07b00,#ffcc00)}
+.tc-top{display:flex;align-items:flex-start;justify-content:space-between;padding:.8rem .95rem .35rem;gap:.65rem;flex-wrap:wrap}
+.tc-hora{font-size:1.05rem;font-weight:800;color:var(--label1);letter-spacing:-.02em}
+.tc-tipo{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .48rem;border-radius:4px;margin-top:.28rem;display:block}
+.tt-m{background:var(--blue-soft);color:var(--blue)}
+.tt-t{background:var(--amber-soft);color:var(--amber)}
+.tt-conf{background:var(--green-soft);color:var(--green)}
+.tc-acts{display:flex;gap:.35rem;flex-wrap:wrap}
+
+/* Grid equipo + disponibles */
+.tc-grid{display:grid;grid-template-columns:1fr 1fr;padding:0 .95rem .95rem}
+.tc-col-lbl{font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.4rem}
+.tc-right{border-left:1px solid var(--sep);padding-left:.8rem}
+.tc-left{padding-right:.8rem}
+
+/* Slot voluntario (drop target) */
+.vslot{
+  display:flex;align-items:center;gap:.45rem;
+  background:var(--surface2);border-radius:var(--r-sm);
+  padding:.42rem .6rem;margin-bottom:.28rem;
+  border:1.5px dashed transparent;
+  transition:all .14s ease;min-height:40px;position:relative;
 }
-.sidebar-logo .logo-icon { font-size: 1.8rem; margin-bottom: 0.35rem; }
-.sidebar-logo h2 { font-family: 'DM Serif Display', serif; font-size: 1rem; color: #fff; line-height: 1.2; }
-.sidebar-logo p { font-size: 0.68rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.2rem; }
+.vslot.drop-active{border-color:var(--blue);background:var(--blue-soft);transform:scale(1.01)}
+.vslot.drop-done{animation:pop .25s ease}
+@keyframes pop{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+.va{width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0;text-transform:uppercase}
+.vn{font-size:.78rem;font-weight:600;color:var(--label1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vm{font-size:.6rem;color:var(--label3)}
+.vhor{font-size:.58rem;color:var(--blue);font-weight:600}
+.bllave{background:var(--navy);color:var(--gold);font-size:.53rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;flex-shrink:0}
 
-.nav-section { padding: 1rem 0.75rem 0.5rem; }
-.nav-label { font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 0.15em; padding: 0 0.5rem; margin-bottom: 0.35rem; }
-.nav-item {
-  display: flex; align-items: center; gap: 0.7rem;
-  padding: 0.65rem 0.75rem; border-radius: var(--r-md);
-  font-size: 0.83rem; font-weight: 500; color: rgba(255,255,255,0.55);
-  cursor: pointer; transition: all 0.18s ease; margin-bottom: 0.15rem;
-  border: none; background: none; width: 100%; text-align: left;
+/* Chip disponible (draggable) */
+.dchip{
+  display:inline-flex;align-items:center;gap:.22rem;
+  padding:.25rem .55rem;border-radius:20px;
+  font-size:.7rem;font-weight:600;border:1.5px solid transparent;
+  cursor:grab;user-select:none;transition:all .13s ease;
+  touch-action:none; /* para touch drag */
 }
-.nav-item:hover { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.85); }
-.nav-item.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
-.nav-item .ni { font-size: 1rem; flex-shrink: 0; }
-.nav-item .badge { margin-left: auto; background: var(--red); color: #fff; font-size: 0.6rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 10px; min-width: 18px; text-align: center; }
+.dchip:active{cursor:grabbing;transform:scale(.96)}
+.dchip.dragging{opacity:.35;transform:scale(.93)}
+.dc-ok{background:var(--green-soft);color:#1a7a3a;border-color:#b0dcc0}
+.dc-red{background:var(--amber-soft);color:#7a4500;border-color:#ffc87a}
+.dc-res{background:var(--blue-soft);color:#0050a0;border-color:#90c4f0}
+.dc-blq{background:var(--surface2);color:var(--label4);border-color:var(--sep);cursor:default}
+.dchip .dh{font-size:.56rem;opacity:.7;margin-left:.12rem}
+.dchip-wrap{display:flex;flex-wrap:wrap;gap:.28rem}
 
-.sidebar-footer { margin-top: auto; padding: 1rem; border-top: 1px solid rgba(255,255,255,0.07); }
-.sidebar-footer p { font-size: 0.68rem; color: rgba(255,255,255,0.2); }
+/* Dispo panel colapsable */
+.dpanel{background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem}
+.dtoggle{width:100%;background:none;border:none;padding:.55rem .8rem;display:flex;align-items:center;justify-content:space-between;font-family:inherit;font-size:.72rem;font-weight:600;color:var(--label3);cursor:pointer;text-align:left}
+.dtoggle:hover{background:var(--surface2)}
+.darrow{transition:transform .18s;font-size:.62rem}
+.dtoggle.open .darrow{transform:rotate(180deg)}
+.dbody{display:none;padding:0 .7rem .7rem;flex-wrap:wrap;gap:.28rem}
+.dbody.show{display:flex}
 
-.main-area { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+/* ══════════════════════════════════════
+   ALERTAS / CARGA
+══════════════════════════════════════ */
+.al-item{display:flex;align-items:center;gap:.8rem;background:var(--surface);border-radius:var(--r-lg);padding:.8rem 1rem;margin-bottom:.45rem;box-shadow:var(--shadow-sm);border-left:4px solid;animation:fadeUp .3s ease both}
+.al-item.grave{border-color:var(--red);background:var(--red-soft)}
+.al-item.aviso{border-color:var(--amber);background:var(--amber-soft)}
+.al-item .ali{font-size:1.3rem;flex-shrink:0}
+.al-fecha{font-size:.76rem;font-weight:700;color:var(--label2)}
+.al-msg{font-size:.75rem;color:var(--label3);margin-top:.12rem}
 
-/* Header superior */
-.topbar {
-  background: var(--surface); border-bottom: 1px solid var(--sep);
-  padding: 0.9rem 2rem; display: flex; align-items: center; justify-content: space-between;
-  position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm);
-}
-.topbar-title { font-size: 1.05rem; font-weight: 700; color: var(--label1); }
-.topbar-actions { display: flex; gap: 0.5rem; }
+.stats-row{display:flex;gap:.65rem;margin-bottom:1.25rem;flex-wrap:wrap}
+.sbox{background:var(--surface);border-radius:var(--r-lg);padding:.85rem 1rem;flex:1;min-width:90px;box-shadow:var(--shadow-sm);text-align:center}
+.sbox .sv{font-size:1.5rem;font-weight:800;color:var(--navy);letter-spacing:-.03em}
+.sbox .sl{font-size:.62rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.07em;margin-top:.1rem}
+.vbar{display:flex;align-items:center;gap:.65rem;background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;margin-bottom:.3rem;box-shadow:var(--shadow-sm);animation:fadeUp .3s ease both}
+.vbar .vc{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;flex-shrink:0}
+.lv-alto   .vc{background:var(--red-soft);color:var(--red)}
+.lv-normal .vc{background:var(--green-soft);color:var(--green)}
+.lv-bajo   .vc{background:var(--amber-soft);color:var(--amber)}
+.vbar .vn2{flex:1;font-size:.8rem;font-weight:600;color:var(--label1)}
+.btrack{flex:1;height:5px;background:var(--sep);border-radius:3px;min-width:45px}
+.bfill{height:100%;border-radius:3px;transition:width .5s ease}
+.lv-alto   .bfill{background:var(--red)}
+.lv-normal .bfill{background:var(--green)}
+.lv-bajo   .bfill{background:var(--amber)}
 
-.content { padding: 1.75rem 2rem; flex: 1; }
+/* ══════════════════════════════════════
+   VOLUNTARIOS / DISPONIBILIDAD
+══════════════════════════════════════ */
+.vol-row2{display:flex;align-items:center;gap:.65rem;background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;margin-bottom:.3rem;box-shadow:var(--shadow-sm)}
+.vavatar{width:34px;height:34px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.67rem;font-weight:700;flex-shrink:0}
+.vinfo2{flex:1}
+.vinfo2 .vn{font-size:.83rem;font-weight:600;color:var(--label1)}
+.vinfo2 .vm2{font-size:.68rem;color:var(--label3)}
+.vol-acts{display:flex;gap:.3rem}
 
-/* ══════════════════════════════════════════════════════════
-   BOTONES
-══════════════════════════════════════════════════════════ */
-.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; border-radius: var(--r-md); font-family: inherit; font-size: 0.82rem; font-weight: 600; cursor: pointer; border: none; transition: all 0.18s ease; white-space: nowrap; }
-.btn-primary { background: var(--navy); color: #fff; }
-.btn-primary:hover { background: #152540; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(10,22,40,0.3); }
-.btn-blue { background: var(--blue); color: #fff; }
-.btn-blue:hover { background: #0062c4; transform: translateY(-1px); }
-.btn-green { background: var(--green); color: #fff; }
-.btn-green:hover { background: #157a3a; transform: translateY(-1px); }
-.btn-ghost { background: var(--surface2); color: var(--label2); border: 1px solid var(--sep); }
-.btn-ghost:hover { background: #eaedf2; }
-.btn-danger { background: var(--red); color: #fff; }
-.btn-danger:hover { background: #b5261f; }
-.btn-sm { padding: 0.38rem 0.75rem; font-size: 0.75rem; }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none !important; }
+/* Grid disponibilidad */
+.dispo-grid-wrap{overflow-x:auto}
+.dispo-grid{border-collapse:collapse;width:100%;font-size:.72rem}
+.dispo-grid th{background:var(--surface2);padding:.5rem .6rem;text-align:center;font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--label3);border:1px solid var(--sep);white-space:nowrap}
+.dispo-grid th.th-name{text-align:left;min-width:130px}
+.dispo-grid td{padding:.4rem .5rem;border:1px solid var(--sep);text-align:center;white-space:nowrap}
+.dispo-grid td.td-name{text-align:left;font-weight:600;color:var(--label1)}
+.dispo-grid .d-ok{background:#e6f7ed;color:#1a7a3a;font-size:.62rem;border-radius:3px;padding:.08rem .3rem}
+.dispo-grid .d-no{background:var(--surface2);color:var(--label4);font-size:.62rem}
 
-/* ══════════════════════════════════════════════════════════
-   CARDS / PANELS
-══════════════════════════════════════════════════════════ */
-.card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); border: 1px solid var(--sep); overflow: hidden; }
-.card-header { padding: 1rem 1.25rem; border-bottom: 1px solid var(--sep); display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.card-header h3 { font-size: 0.88rem; font-weight: 700; color: var(--label1); }
-.card-body { padding: 1.25rem; }
+/* ══════════════════════════════════════
+   BAJAS
+══════════════════════════════════════ */
+.baja-card{background:var(--surface);border-radius:var(--r-lg);padding:.85rem 1rem;margin-bottom:.5rem;box-shadow:var(--shadow-sm);border-left:4px solid;animation:fadeUp .3s ease both}
+.baja-card.cubierto{border-color:var(--green)}
+.baja-card.pendiente{border-color:var(--red)}
+.baja-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
+.baja-info .bf{font-size:.8rem;font-weight:700;color:var(--label1)}
+.baja-info .bs{font-size:.72rem;color:var(--label3);margin-top:.1rem}
+.baja-status{font-size:.68rem;font-weight:700;padding:.18rem .55rem;border-radius:4px}
+.status-pend{background:var(--red-soft);color:var(--red)}
+.status-ok{background:var(--green-soft);color:var(--green)}
+.baja-vols{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
 
-/* ══════════════════════════════════════════════════════════
-   INPUTS / FORMS
-══════════════════════════════════════════════════════════ */
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.form-group { display: flex; flex-direction: column; gap: 0.35rem; }
-.form-group label { font-size: 0.72rem; font-weight: 700; color: var(--label3); text-transform: uppercase; letter-spacing: 0.06em; }
-.form-control { border: 1.5px solid var(--sep); border-radius: var(--r-sm); padding: 0.55rem 0.8rem; font-family: inherit; font-size: 0.85rem; color: var(--label1); background: var(--surface); outline: none; transition: border-color 0.15s; width: 100%; }
-.form-control:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,113,227,0.1); }
-select.form-control { cursor: pointer; }
+/* ══════════════════════════════════════
+   CALENDARIO CONFIG
+══════════════════════════════════════ */
+.cal-row{display:flex;align-items:flex-start;gap:.65rem;background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;margin-bottom:.3rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+.cal-fecha{font-size:.83rem;font-weight:700;color:var(--label1);min-width:90px}
+.cal-dia{font-size:.72rem;color:var(--label3);min-width:80px}
+.cal-activo{display:flex;align-items:center;gap:.35rem;cursor:pointer}
+.cal-activo input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--green)}
+.cal-navieras{flex:1;min-width:200px}
+.cal-estancia{min-width:150px}
 
-/* ══════════════════════════════════════════════════════════
-   LOADING
-══════════════════════════════════════════════════════════ */
-.loading { text-align: center; padding: 4rem 0; }
-.spinner { width: 40px; height: 40px; border: 3px solid var(--sep); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 1rem; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading p { color: var(--label3); font-size: 0.85rem; }
-.empty-state { text-align: center; padding: 4rem 1rem; }
-.empty-state .ei { font-size: 3rem; margin-bottom: 1rem; display: block; opacity: 0.3; }
-.empty-state h4 { font-size: 0.95rem; font-weight: 600; color: var(--label2); margin-bottom: 0.4rem; }
-.empty-state p { font-size: 0.82rem; color: var(--label3); }
+/* Toggle switch */
+.toggle-sw{position:relative;display:inline-block;width:36px;height:20px}
+.toggle-sw input{opacity:0;width:0;height:0}
+.toggle-sl{position:absolute;cursor:pointer;inset:0;background:var(--label4);border-radius:20px;transition:.2s}
+.toggle-sl:before{position:absolute;content:"";height:14px;width:14px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+input:checked + .toggle-sl{background:var(--green)}
+input:checked + .toggle-sl:before{transform:translateX(16px)}
 
-/* ══════════════════════════════════════════════════════════
-   TAB CUADRANTE — DÍA
-══════════════════════════════════════════════════════════ */
-.dia-block { margin-bottom: 1.5rem; animation: fadeUp 0.3s ease both; }
-@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+/* Naviera tag */
+.navi-tag{display:inline-flex;align-items:center;gap:.3rem;background:var(--blue-soft);color:var(--blue);font-size:.68rem;font-weight:600;padding:.18rem .5rem;border-radius:4px;margin:.15rem}
+.navi-tag button{background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;line-height:1;padding:0}
 
-.dia-header {
-  display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.6rem 0; margin-bottom: 0.6rem;
-  border-bottom: 2px solid var(--navy);
-}
-.dia-fecha { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--navy); }
-.dia-tag { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.18rem 0.55rem; border-radius: 5px; background: var(--navy); color: var(--gold); }
-.dia-tag.conf { background: var(--green); color: #fff; }
+/* ══════════════════════════════════════
+   HISTORIAL TABLE
+══════════════════════════════════════ */
+.htable{width:100%;border-collapse:collapse;font-size:.78rem}
+.htable th{background:var(--surface2);padding:.55rem .7rem;text-align:left;font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--label3);border-bottom:1px solid var(--sep)}
+.htable td{padding:.5rem .7rem;border-bottom:1px solid var(--sep);color:var(--label2)}
+.htable tr:last-child td{border-bottom:none}
+.htable tr:hover td{background:var(--surface2)}
 
-.aviso-bar { background: var(--amber-soft); border-left: 3px solid var(--amber); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 0.5rem 0.85rem; font-size: 0.78rem; font-weight: 600; color: #7a4500; margin-bottom: 0.6rem; }
-
-.no-turno-box { background: var(--surface); border: 1.5px dashed var(--label4); border-radius: var(--r-lg); padding: 1.25rem; text-align: center; margin-bottom: 0.5rem; }
-.no-turno-box p { font-size: 0.82rem; color: var(--label3); margin-bottom: 0.35rem; }
-
-/* ── Turno card ── */
-.turno-card {
-  background: var(--surface); border-radius: var(--r-lg);
-  box-shadow: var(--shadow-sm); border: 1px solid var(--sep);
-  margin-bottom: 0.6rem; overflow: visible;
-  transition: box-shadow 0.2s, transform 0.2s;
-}
-.turno-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
-.turno-accent { height: 3px; }
-.acc-m { background: linear-gradient(90deg,#0071e3,#34aadc); }
-.acc-t { background: linear-gradient(90deg,#e07b00,#ffcc00); }
-
-.turno-top {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 0.85rem 1rem 0.4rem; gap: 0.75rem; flex-wrap: wrap;
-}
-.turno-hora { font-size: 1.1rem; font-weight: 800; color: var(--label1); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.turno-tipo { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.15rem 0.5rem; border-radius: 4px; margin-top: 0.3rem; display: block; }
-.tt-m { background: var(--blue-soft); color: var(--blue); }
-.tt-t { background: var(--amber-soft); color: var(--amber); }
-.tt-conf { background: var(--green-soft); color: var(--green); }
-
-.turno-acciones { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-
-/* ── GRID EQUIPO + DISPONIBLES ── */
-.turno-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 0; padding: 0 1rem 1rem;
-}
-@media (max-width:600px) { .turno-grid { grid-template-columns:1fr; } }
-.tg-col-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label3); margin-bottom: 0.45rem; }
-.tg-right { border-left: 1px solid var(--sep); padding-left: 0.85rem; }
-.tg-left  { padding-right: 0.85rem; }
-
-/* ── VOLUNTARIO ROW (equipo) — DRAGGABLE TARGET ── */
-.v-slot {
-  display: flex; align-items: center; gap: 0.5rem;
-  background: var(--surface2); border-radius: var(--r-sm);
-  padding: 0.45rem 0.6rem; margin-bottom: 0.3rem;
-  border: 1.5px solid transparent;
-  transition: all 0.15s ease; min-height: 42px;
-  position: relative;
-}
-.v-slot.drag-over {
-  border-color: var(--blue); background: var(--blue-soft);
-  transform: scale(1.01);
-}
-.v-slot.dropping { animation: pulse-drop 0.3s ease; }
-@keyframes pulse-drop { 0%,100%{transform:scale(1)} 50%{transform:scale(1.03)} }
-
-.v-avatar {
-  width: 28px; height: 28px; border-radius: 50%;
-  background: var(--navy); color: var(--gold);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 0.65rem; font-weight: 700; flex-shrink: 0;
-  text-transform: uppercase;
-}
-.v-name { font-size: 0.8rem; font-weight: 600; color: var(--label1); flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.v-meta { font-size: 0.63rem; color: var(--label3); }
-.v-horario-small { font-size: 0.6rem; color: var(--blue); font-weight: 600; }
-.badge-llave { background: var(--navy); color: var(--gold); font-size: 0.55rem; font-weight: 700; padding: 0.12rem 0.4rem; border-radius: 4px; flex-shrink: 0; }
-
-/* ── CHIP DISPONIBLE — DRAGGABLE ── */
-.disp-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-.disp-chip {
-  display: inline-flex; align-items: center; gap: 0.25rem;
-  padding: 0.28rem 0.6rem; border-radius: 20px;
-  font-size: 0.72rem; font-weight: 600; border: 1.5px solid transparent;
-  cursor: grab; user-select: none;
-  transition: all 0.15s ease;
-}
-.disp-chip:active { cursor: grabbing; transform: scale(0.97); }
-.disp-chip.dragging { opacity: 0.4; transform: scale(0.95); }
-.dc-ok       { background: var(--green-soft); color: #1a7a3a; border-color: #b0dcc0; }
-.dc-reducido { background: var(--amber-soft); color: #7a4500; border-color: #ffc87a; }
-.dc-reservado{ background: var(--blue-soft);  color: #0050a0; border-color: #90c4f0; }
-.dc-bloqueado{ background: var(--surface2);   color: var(--label4); border-color: var(--sep); cursor: default; }
-.disp-chip .dc-hora { font-size: 0.58rem; opacity: 0.7; margin-left: 0.15rem; }
-
-/* Panel colapsable disponibilidad */
-.dispo-panel { background: var(--surface); border-radius: var(--r-md); border: 1px solid var(--sep); margin-bottom: 0.5rem; }
-.dispo-toggle { width: 100%; background: none; border: none; padding: 0.6rem 0.85rem; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 0.75rem; font-weight: 600; color: var(--label3); cursor: pointer; text-align: left; }
-.dispo-toggle:hover { background: var(--surface2); }
-.dispo-arrow { transition: transform 0.2s; font-size: 0.65rem; }
-.dispo-toggle.open .dispo-arrow { transform: rotate(180deg); }
-.dispo-body { display: none; padding: 0 0.75rem 0.75rem; flex-wrap: wrap; gap: 0.3rem; }
-.dispo-body.visible { display: flex; }
-
-/* ══════════════════════════════════════════════════════════
-   TAB ALERTAS
-══════════════════════════════════════════════════════════ */
-.alerta-item { display: flex; align-items: center; gap: 0.85rem; background: var(--surface); border-radius: var(--r-lg); padding: 0.85rem 1.1rem; margin-bottom: 0.5rem; box-shadow: var(--shadow-sm); border-left: 4px solid; animation: fadeUp 0.3s ease both; }
-.alerta-item.grave { border-color: var(--red); background: var(--red-soft); }
-.alerta-item.aviso { border-color: var(--amber); background: var(--amber-soft); }
-.alerta-item .ai-icon { font-size: 1.4rem; flex-shrink: 0; }
-.alerta-item .ai-info .ai-fecha { font-size: 0.78rem; font-weight: 700; color: var(--label2); }
-.alerta-item .ai-info .ai-msg   { font-size: 0.78rem; color: var(--label3); margin-top: 0.15rem; }
-
-/* ══════════════════════════════════════════════════════════
-   TAB CARGA
-══════════════════════════════════════════════════════════ */
-.stats-row { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-.stat-box { background: var(--surface); border-radius: var(--r-lg); padding: 1rem 1.25rem; flex: 1; min-width: 100px; box-shadow: var(--shadow-sm); text-align: center; }
-.stat-box .sv { font-size: 1.6rem; font-weight: 800; color: var(--navy); letter-spacing: -0.03em; }
-.stat-box .sl { font-size: 0.65rem; font-weight: 700; color: var(--label3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.15rem; }
-.vol-bar-row { display: flex; align-items: center; gap: 0.75rem; background: var(--surface); border-radius: var(--r-md); padding: 0.7rem 1rem; margin-bottom: 0.35rem; box-shadow: var(--shadow-sm); animation: fadeUp 0.3s ease both; }
-.vol-cnt { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
-.lv-alto   .vol-cnt { background: var(--red-soft); color: var(--red); }
-.lv-normal .vol-cnt { background: var(--green-soft); color: var(--green); }
-.lv-bajo   .vol-cnt { background: var(--amber-soft); color: var(--amber); }
-.vol-nm { flex: 1; font-size: 0.83rem; font-weight: 600; color: var(--label1); }
-.bar-track { flex: 1; height: 5px; background: var(--sep); border-radius: 3px; min-width: 50px; }
-.bar-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
-.lv-alto   .bar-fill { background: var(--red); }
-.lv-normal .bar-fill { background: var(--green); }
-.lv-bajo   .bar-fill { background: var(--amber); }
-.vol-llave-badge { font-size: 0.58rem; background: var(--navy); color: var(--gold); padding: 0.1rem 0.4rem; border-radius: 4px; flex-shrink: 0; }
-
-/* ══════════════════════════════════════════════════════════
-   TAB VOLUNTARIOS
-══════════════════════════════════════════════════════════ */
-.vol-list-row { display: flex; align-items: center; gap: 0.75rem; background: var(--surface); border-radius: var(--r-md); padding: 0.7rem 1rem; margin-bottom: 0.35rem; box-shadow: var(--shadow-sm); }
-.vol-list-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--navy); color: var(--gold); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
-.vol-list-info { flex: 1; }
-.vol-list-info .vli-name { font-size: 0.85rem; font-weight: 600; color: var(--label1); }
-.vol-list-info .vli-meta { font-size: 0.7rem; color: var(--label3); margin-top: 0.1rem; }
-.vol-list-actions { display: flex; gap: 0.35rem; }
-
-/* ══════════════════════════════════════════════════════════
-   TAB HISTORIAL
-══════════════════════════════════════════════════════════ */
-.hist-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-.hist-table th { background: var(--surface2); padding: 0.6rem 0.75rem; text-align: left; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--label3); border-bottom: 1px solid var(--sep); }
-.hist-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--sep); color: var(--label2); }
-.hist-table tr:last-child td { border-bottom: none; }
-.hist-table tr:hover td { background: var(--surface2); }
-
-/* ══════════════════════════════════════════════════════════
+/* ══════════════════════════════════════
    MODAL
-══════════════════════════════════════════════════════════ */
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: center; justify-content: center; padding: 1rem; }
-.modal-overlay.open { display: flex; }
-.modal-box { background: var(--surface); border-radius: var(--r-xl); padding: 1.75rem; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: modalIn 0.28s cubic-bezier(0.34,1.56,0.64,1); }
-@keyframes modalIn { from { opacity:0; transform:scale(0.92) translateY(10px); } to { opacity:1; transform:scale(1) translateY(0); } }
-.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; }
-.modal-head h3 { font-size: 1rem; font-weight: 700; color: var(--label1); }
-.modal-close { background: var(--surface2); border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; color: var(--label3); }
-.modal-close:hover { background: var(--sep); }
+══════════════════════════════════════ */
+.moverlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem}
+.moverlay.open{display:flex}
+.mbox{background:var(--surface);border-radius:var(--r-xl);padding:1.6rem;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:minIn .26s cubic-bezier(.34,1.56,.64,1)}
+@keyframes minIn{from{opacity:0;transform:scale(.91) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
+.mhead h3{font-size:.95rem;font-weight:700}
+.mclose{background:var(--surface2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;color:var(--label3)}
+.mclose:hover{background:var(--sep)}
 
-/* Cubre modal rows */
-.cubre-row { display: flex; align-items: center; gap: 0.65rem; background: var(--surface2); border-radius: var(--r-md); padding: 0.6rem 0.8rem; margin-bottom: 0.35rem; }
-.cubre-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.est-disponible { background: var(--green); }
-.est-reducido   { background: var(--amber); }
-.est-bloqueado  { background: var(--label4); }
-.cubre-info { flex: 1; }
-.cubre-nombre { font-size: 0.83rem; font-weight: 600; color: var(--label1); }
-.cubre-meta   { font-size: 0.67rem; color: var(--label3); margin-top: 0.06rem; }
-.cubre-section-label { font-size: 0.68rem; font-weight: 700; color: var(--label3); text-transform: uppercase; letter-spacing: 0.08em; margin: 0.75rem 0 0.4rem; }
+/* Cubre rows */
+.cubre-row{display:flex;align-items:center;gap:.6rem;background:var(--surface2);border-radius:var(--r-md);padding:.55rem .75rem;margin-bottom:.3rem}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cdot.disp{background:var(--green)}
+.cdot.red{background:var(--amber)}
+.cdot.blq{background:var(--label4)}
+.cinfo{flex:1}
+.cname{font-size:.82rem;font-weight:600}
+.cmeta{font-size:.65rem;color:var(--label3);margin-top:.05rem}
+.csec{font-size:.65rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.07em;margin:.65rem 0 .35rem}
 
-/* ══════════════════════════════════════════════════════════
-   CUADRANTE IMPRIMIBLE
-══════════════════════════════════════════════════════════ */
-#cuadrante-print { display: none; }
-@media print {
-  .layout { display: block; }
-  .sidebar, .topbar, .content { display: none; }
-  #cuadrante-print { display: block; }
+/* ══════════════════════════════════════
+   GHOST DRAG (cursor following)
+══════════════════════════════════════ */
+#drag-ghost{
+  position:fixed;pointer-events:none;z-index:9999;
+  background:var(--navy);color:#fff;
+  padding:.3rem .7rem;border-radius:20px;font-size:.75rem;font-weight:600;
+  opacity:.9;box-shadow:0 4px 16px rgba(0,0,0,.3);
+  display:none;white-space:nowrap;transform:translate(-50%,-50%);
 }
-.print-wrap { max-width: 800px; margin: 0 auto; font-family: Arial, sans-serif; }
-.print-titulo { text-align: center; font-size: 18px; font-weight: bold; color: #1a56a0; border-bottom: 3px solid #1a56a0; padding-bottom: 8px; margin-bottom: 20px; letter-spacing: 1px; }
-.print-dia-block { display: flex; gap: 0; margin-bottom: 4px; border: 1px solid #dde; border-radius: 8px; overflow: hidden; }
-.print-dia-info { width: 180px; flex-shrink: 0; background: #f0f4fa; padding: 12px 14px; border-right: 1px solid #dde; }
-.print-dia-info .pdi-fecha { font-size: 16px; font-weight: bold; color: #1a56a0; }
-.print-dia-info .pdi-barco { font-size: 10px; color: #5580a0; margin-top: 6px; line-height: 1.4; background: #e6eef8; border-radius: 4px; padding: 4px 6px; }
-.print-dia-info .pdi-lugar { font-size: 10px; color: #888; margin-top: 4px; }
-.print-turnos { flex: 1; }
-.print-turno-row { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #eee; }
-.print-turno-row:last-child { border-bottom: none; }
-.ptr-hora { width: 100px; flex-shrink: 0; }
-.ptr-hora .ph-label { font-size: 9px; color: #888; text-transform: uppercase; }
-.ptr-hora .ph-time { font-size: 13px; font-weight: bold; color: #d94; }
-.ptr-vols { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; align-items: center; }
-.ptr-vol { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 8px; border-radius: 4px; background: #f5f5f5; border: 1px solid #ddd; color: #333; }
-.ptr-vol.llave { background: #fff3cc; border-color: #f5c518; font-weight: bold; color: #7a4800; }
-.ptr-vol .llave-icon { font-size: 10px; }
-.print-nota { margin-top: 16px; font-size: 11px; color: #555; padding: 10px 14px; background: #f9f9f9; border-radius: 6px; border: 1px solid #eee; }
-.print-nota strong { color: #f5a400; }
-.print-contacto { margin-top: 12px; font-size: 11px; color: #555; padding: 10px 14px; background: #eef4ff; border-radius: 6px; border: 1px solid #c8daf5; }
 
-/* ══════════════════════════════════════════════════════════
+/* ══════════════════════════════════════
+   CUADRANTE IMPRIMIBLE
+══════════════════════════════════════ */
+#print-area{display:none}
+@media print{
+  .app,.topbar,#drag-ghost,.toast-stack,.moverlay{display:none!important}
+  #print-area{display:block!important}
+}
+.pw{max-width:780px;margin:0 auto;font-family:Arial,sans-serif;font-size:11px}
+.ptitulo{text-align:center;font-size:17px;font-weight:bold;color:#1a56a0;border-bottom:3px solid #1a56a0;padding-bottom:6px;margin-bottom:16px;letter-spacing:1px}
+.pbloque{display:flex;margin-bottom:4px;border:1px solid #dde;border-radius:6px;overflow:hidden}
+.pinfo{width:170px;flex-shrink:0;background:#f0f4fa;padding:10px 12px;border-right:1px solid #dde}
+.pinfo .pfecha{font-size:15px;font-weight:bold;color:#1a56a0}
+.pinfo .pbarco{font-size:9px;color:#5580a0;margin-top:5px;line-height:1.4;background:#e6eef8;border-radius:3px;padding:3px 5px}
+.pinfo .plugar{font-size:9px;color:#888;margin-top:3px}
+.pturnos{flex:1}
+.pturno-row{display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid #eee}
+.pturno-row:last-child{border-bottom:none}
+.pthora{width:95px;flex-shrink:0}
+.pthora .phl{font-size:8px;color:#888;text-transform:uppercase}
+.pthora .pht{font-size:12px;font-weight:bold;color:#cc8800}
+.ptvols{display:flex;flex-wrap:wrap;gap:4px;flex:1;align-items:center}
+.pvol{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 7px;border-radius:4px;background:#f5f5f5;border:1px solid #ddd;color:#333}
+.pvol.pllave{background:#fff3cc;border-color:#f5c518;font-weight:bold;color:#7a4800}
+.pnota{margin-top:14px;font-size:10px;color:#555;padding:8px 12px;background:#f9f9f9;border-radius:5px;border:1px solid #eee}
+.pcontacto{margin-top:10px;font-size:10px;color:#555;padding:8px 12px;background:#eef4ff;border-radius:5px;border:1px solid #c8daf5}
+
+/* ══════════════════════════════════════
    TOAST
-══════════════════════════════════════════════════════════ */
-.toast-stack { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.4rem; align-items: flex-end; }
-.toast { background: rgba(26,26,46,0.95); backdrop-filter: blur(12px); color: #fff; padding: 0.65rem 1.1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 500; box-shadow: var(--shadow-md); animation: toastIn 0.25s ease; max-width: 300px; }
-.toast.ok  { background: rgba(26,150,72,0.95); }
-.toast.err { background: rgba(217,48,37,0.95); }
-@keyframes toastIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+══════════════════════════════════════ */
+.toast-stack{position:fixed;bottom:1.4rem;right:1.4rem;z-index:9999;display:flex;flex-direction:column;gap:.35rem;align-items:flex-end}
+.toast{background:rgba(26,26,46,.94);backdrop-filter:blur(12px);color:#fff;padding:.6rem 1rem;border-radius:9px;font-size:.8rem;font-weight:500;box-shadow:var(--shadow-md);animation:tIn .22s ease;max-width:280px}
+.toast.ok{background:rgba(26,150,72,.93)}
+.toast.err{background:rgba(217,48,37,.93)}
+@keyframes tIn{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:translateX(0)}}
 
-/* ══════════════════════════════════════════════════════════
-   RESPONSIVE
-══════════════════════════════════════════════════════════ */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: translateX(0); }
-  .main-area { margin-left: 0; }
-  .topbar { padding: 0.75rem 1rem; }
-  .content { padding: 1rem; }
-  .form-grid { grid-template-columns: 1fr; }
+/* ══════════════════════════════════════
+   RESPONSIVE MÓVIL
+══════════════════════════════════════ */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.mobile-open{transform:translateX(0)}
+  .main-area{margin-left:0}
+  .topbar{padding:.7rem .9rem}
+  .topbar-menu-btn{display:block}
+  .content{padding:1rem}
+  .form-row{grid-template-columns:1fr}
+  .form-row.cols3{grid-template-columns:1fr}
+  .tc-grid{grid-template-columns:1fr}
+  .tc-right{border-left:none;padding-left:0;margin-top:.65rem;border-top:1px solid var(--sep);padding-top:.65rem}
+  .topbar-actions .btn span:not(:first-child){display:none}
 }
 </style>
 </head>
 <body>
-<div class="layout">
 
-<!-- ══════════ SIDEBAR ══════════ -->
+<!-- DRAG GHOST -->
+<div id="drag-ghost"></div>
+
+<!-- APP -->
+<div class="app">
+
+<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
-    <div class="logo-icon">⚓</div>
+    <div class="li">⚓</div>
     <h2>Puerto de Sevilla</h2>
     <p>Gestión de Turnos</p>
   </div>
-
-  <div class="nav-section">
-    <div class="nav-label">Planificación</div>
-    <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante">
-      <span class="ni">📅</span> Cuadrante mensual
-    </button>
-    <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas">
-      <span class="ni">🔑</span> Alertas de llave
-      <span class="badge" id="badge-alertas" style="display:none">0</span>
-    </button>
-    <button class="nav-item" onclick="setTab('carga')" id="nav-carga">
-      <span class="ni">📊</span> Balance de carga
-    </button>
+  <div class="nav-sec">
+    <div class="nav-lbl">Planificación</div>
+    <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante"><span class="ni">📅</span> Cuadrante</button>
+    <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas"><span class="ni">🔑</span> Alertas <span class="nbadge" id="nbadge" style="display:none">0</span></button>
+    <button class="nav-item" onclick="setTab('carga')" id="nav-carga"><span class="ni">📊</span> Balance</button>
   </div>
-
-  <div class="nav-section">
-    <div class="nav-label">Gestión</div>
-    <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios">
-      <span class="ni">👥</span> Voluntarios
-    </button>
-    <button class="nav-item" onclick="setTab('historial')" id="nav-historial">
-      <span class="ni">📋</span> Historial
-    </button>
+  <div class="nav-sec">
+    <div class="nav-lbl">Gestión</div>
+    <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios"><span class="ni">👥</span> Voluntarios</button>
+    <button class="nav-item" onclick="setTab('disponibilidad')" id="nav-disponibilidad"><span class="ni">🗓️</span> Disponibilidad</button>
+    <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
+    <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Historial</button>
+    <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
   </div>
-
-  <div class="sidebar-footer">
-    <p>v4.0 · Puerto de Sevilla</p>
-  </div>
+  <div class="sidebar-footer"><p>v5.0 · Puerto de Sevilla</p></div>
 </aside>
+<div class="sidebar-overlay" id="soverlay" onclick="closeSidebar()"></div>
 
-<!-- ══════════ MAIN ══════════ -->
+<!-- MAIN -->
 <div class="main-area">
   <div class="topbar">
+    <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
     <div class="topbar-title" id="topbar-title">📅 Cuadrante mensual</div>
-    <div class="topbar-actions" id="topbar-actions">
-      <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ Imprimir</button>
-      <button class="btn btn-primary btn-sm" onclick="exportarCuadrante()">📋 Exportar Sheet</button>
-      <button class="btn btn-blue btn-sm" onclick="recargarCuadrante()">↻ Recalcular</button>
+    <div class="topbar-actions" id="topbar-acts">
+      <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
+      <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
+      <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>
     </div>
   </div>
 
   <div class="content">
-    <!-- TAB: CUADRANTE -->
-    <div id="tab-cuadrante">
-      <div class="loading"><div class="spinner"></div><p>Calculando cuadrante mensual…</p></div>
-    </div>
-    <!-- TAB: ALERTAS -->
-    <div id="tab-alertas" style="display:none">
-      <div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div>
-    </div>
-    <!-- TAB: CARGA -->
-    <div id="tab-carga" style="display:none">
-      <div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div>
-    </div>
-    <!-- TAB: VOLUNTARIOS -->
-    <div id="tab-voluntarios" style="display:none">
-      <div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div>
-    </div>
-    <!-- TAB: HISTORIAL -->
-    <div id="tab-historial" style="display:none">
-      <div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>
-    </div>
+    <div id="tab-cuadrante" class="tab-pane active"><div class="loading"><div class="spinner"></div><p>Calculando…</p></div></div>
+    <div id="tab-alertas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div></div>
+    <div id="tab-carga" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div></div>
+    <div id="tab-voluntarios" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div></div>
+    <div id="tab-disponibilidad" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando disponibilidad…</p></div></div>
+    <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
+    <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div></div>
+    <div id="tab-calendario" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div></div>
   </div>
 </div>
 </div>
 
-<!-- ══════════ CUADRANTE IMPRIMIBLE ══════════ -->
-<div id="cuadrante-print"></div>
+<!-- PRINT AREA -->
+<div id="print-area"></div>
 
-<!-- ══════════ MODAL QUIÉN CUBRE ══════════ -->
-<div class="modal-overlay" id="modal-cubre">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3 id="modal-titulo">¿Quién puede cubrir?</h3>
-      <button class="modal-close" onclick="cerrarModal('modal-cubre')">✕</button>
-    </div>
-    <div id="modal-body"></div>
+<!-- MODAL QUIÉN CUBRE -->
+<div class="moverlay" id="mcubre">
+  <div class="mbox">
+    <div class="mhead"><h3 id="mcubre-titulo">¿Quién cubre?</h3><button class="mclose" onclick="closeModal('mcubre')">✕</button></div>
+    <div id="mcubre-body"></div>
   </div>
 </div>
 
-<!-- ══════════ MODAL AÑADIR VOLUNTARIO ══════════ -->
-<div class="modal-overlay" id="modal-vol">
-  <div class="modal-box">
-    <div class="modal-head">
-      <h3 id="modal-vol-titulo">Nuevo voluntario</h3>
-      <button class="modal-close" onclick="cerrarModal('modal-vol')">✕</button>
-    </div>
-    <div id="modal-vol-body">
-      <div class="form-grid" style="margin-bottom:1rem;">
-        <div class="form-group" style="grid-column:1/-1">
-          <label>Nombre completo</label>
-          <input class="form-control" id="vol-nombre" placeholder="Nombre y apellidos">
-        </div>
-        <div class="form-group" style="grid-column:1/-1">
-          <label>¿Tiene llave?</label>
-          <select class="form-control" id="vol-llave">
-            <option value="no">No</option>
-            <option value="si">Sí</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-        <button class="btn btn-ghost" onclick="cerrarModal('modal-vol')">Cancelar</button>
-        <button class="btn btn-green" onclick="guardarVoluntario()">💾 Guardar</button>
-      </div>
-    </div>
+<!-- MODAL VER TURNOS VOLUNTARIO -->
+<div class="moverlay" id="mvol">
+  <div class="mbox">
+    <div class="mhead"><h3 id="mvol-titulo">Turnos</h3><button class="mclose" onclick="closeModal('mvol')">✕</button></div>
+    <div id="mvol-body"></div>
   </div>
 </div>
 
@@ -492,777 +448,760 @@ select.form-control { cursor: pointer; }
 <script>
 const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
 
-// ══════════════════════════════════════════════════════════
-//  ESTADO GLOBAL
-// ══════════════════════════════════════════════════════════
-const state = {
-  cuadrante: null,       // datos del mes
-  turnosEditados: {},    // { key: [equipoActual] } — cambios por drag
-  dragData: null,        // voluntario siendo arrastrado
+// ══════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════
+const S = {
+  plan: null,
+  edits: {},       // turnoKey → equipo editado
+  drag: null,      // chip siendo arrastrado
+  calConfig: null, // config calendario
 };
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════
+//  SIDEBAR MÓVIL
+// ══════════════════════════════════════
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+  document.getElementById('soverlay').classList.toggle('visible');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('soverlay').classList.remove('visible');
+}
+
+// ══════════════════════════════════════
 //  TABS
-// ══════════════════════════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','historial'];
-const TITULOS = {
-  cuadrante: '📅 Cuadrante mensual',
-  alertas:   '🔑 Alertas de llave',
-  carga:     '📊 Balance de carga',
-  voluntarios:'👥 Voluntarios',
-  historial: '📋 Historial de turnos',
+// ══════════════════════════════════════
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','calendario'];
+const TAB_TITLES = {
+  cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
+  carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
+  disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
+  historial:'📋 Historial', calendario:'⚙️ Configurar calendario',
 };
-const ACCIONES = {
-  cuadrante: `<button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ Imprimir</button>
-               <button class="btn btn-primary btn-sm" onclick="exportarCuadrante()">📋 Exportar</button>
-               <button class="btn btn-blue btn-sm" onclick="recargarCuadrante()">↻ Recalcular</button>`,
-  alertas:   `<button class="btn btn-ghost btn-sm" onclick="cargarAlertas(true)">↻ Actualizar</button>`,
-  carga:     `<button class="btn btn-ghost btn-sm" onclick="cargarCarga(true)">↻ Actualizar</button>`,
-  voluntarios:`<button class="btn btn-green btn-sm" onclick="abrirModalVol()">+ Añadir voluntario</button>`,
-  historial: `<button class="btn btn-ghost btn-sm" onclick="cargarHistorial(true)">↻ Actualizar</button>`,
+const TAB_ACTS = {
+  cuadrante:`<button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
+             <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
+             <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>`,
+  alertas:`<button class="btn btn-ghost btn-sm" onclick="loadAlertas(true)">↻ Actualizar</button>`,
+  carga:`<button class="btn btn-ghost btn-sm" onclick="loadCarga(true)">↻ Actualizar</button>`,
+  voluntarios:``,
+  disponibilidad:``,
+  bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
+  historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
+  calendario:`<button class="btn btn-green btn-sm" onclick="guardarCalendario()">💾 Guardar cambios</button>`,
 };
 
 let tabActual = 'cuadrante';
 function setTab(id) {
   TABS.forEach(t => {
-    document.getElementById('tab-'+t).style.display = t===id ? 'block' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t===id);
     document.getElementById('nav-'+t).classList.toggle('active', t===id);
   });
-  document.getElementById('topbar-title').textContent = TITULOS[id] || '';
-  document.getElementById('topbar-actions').innerHTML = ACCIONES[id] || '';
+  document.getElementById('topbar-title').textContent = TAB_TITLES[id]||'';
+  document.getElementById('topbar-acts').innerHTML = TAB_ACTS[id]||'';
   tabActual = id;
-  if (id==='cuadrante'   && !state.cuadrante)     cargarCuadrante();
-  if (id==='alertas'     && !window._alertasOk)   cargarAlertas();
-  if (id==='carga'       && !window._cargaOk)      cargarCarga();
-  if (id==='voluntarios' && !window._volsOk)       cargarVoluntarios();
-  if (id==='historial'   && !window._histOk)       cargarHistorial();
+  closeSidebar();
+  if (id==='cuadrante'      && !S.plan)         loadCuadrante();
+  if (id==='alertas'        && !window._aOk)    loadAlertas();
+  if (id==='carga'          && !window._cOk)    loadCarga();
+  if (id==='voluntarios'    && !window._vOk)    loadVoluntarios();
+  if (id==='disponibilidad' && !window._dOk)    loadDisponibilidad();
+  if (id==='bajas'          && !window._bOk)    loadBajas();
+  if (id==='historial'      && !window._hOk)    loadHistorial();
+  if (id==='calendario'     && !window._calOk)  loadCalendario();
 }
 
-// ══════════════════════════════════════════════════════════
-//  API HELPERS
-// ══════════════════════════════════════════════════════════
-async function apiGet(params) {
-  const url = API + '?' + new URLSearchParams(params);
-  const r = await fetch(url, { redirect:'follow', headers:{Accept:'application/json'} });
-  const txt = await r.text();
-  return JSON.parse(txt.trim().replace(/^[^\[{]+/,''));
+// ══════════════════════════════════════
+//  API
+// ══════════════════════════════════════
+async function apiGet(p) {
+  const r = await fetch(API+'?'+new URLSearchParams(p), {redirect:'follow', headers:{Accept:'application/json'}});
+  const t = await r.text();
+  return JSON.parse(t.trim().replace(/^[^\[{]+/,''));
 }
 async function apiPost(body) {
-  await fetch(API, { method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+  await fetch(API, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════
 //  CUADRANTE
-// ══════════════════════════════════════════════════════════
-async function cargarCuadrante() {
-  const cont = document.getElementById('tab-cuadrante');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando cuadrante mensual…</p></div>`;
+// ══════════════════════════════════════
+async function loadCuadrante() {
+  const c = document.getElementById('tab-cuadrante');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando cuadrante mensual…</p></div>`;
   try {
     const data = await apiGet({action:'getCuadranteMensual'});
     if (data.error) throw new Error(data.error);
-    state.cuadrante = data;
-    state.turnosEditados = {};
-    renderCuadrante(cont);
+    S.plan = data; S.edits = {};
+    renderCuadrante(c);
   } catch(e) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
   }
 }
+function recargar() { S.plan=null; window._aOk=false; window._cOk=false; loadCuadrante(); }
 
-function recargarCuadrante() {
-  state.cuadrante = null;
-  window._alertasOk = false;
-  window._cargaOk = false;
-  cargarCuadrante();
-}
-
-function renderCuadrante(cont) {
-  cont.innerHTML = '';
-  if (!state.cuadrante || !state.cuadrante.length) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">📭</span><h4>Sin días configurados</h4></div>`;
-    return;
-  }
-  state.cuadrante.forEach((d, i) => {
-    const el = renderDia(d);
-    el.style.animationDelay = (i*0.04)+'s';
-    cont.appendChild(el);
+function renderCuadrante(c) {
+  c.innerHTML = '';
+  if (!S.plan?.length) { c.innerHTML=`<div class="empty"><span class="ei">📭</span><h4>Sin días</h4></div>`; return; }
+  S.plan.forEach((d,i) => {
+    const el = buildDia(d);
+    el.style.animationDelay = (i*.04)+'s';
+    c.appendChild(el);
   });
 }
 
-function renderDia(d) {
-  const block = document.createElement('div');
-  block.className = 'dia-block';
-  block.id = `dia-${d.fechaRaw}`;
-  const turnos = d.turnos || [];
-  const conf = d.confirmado || false;
+function buildDia(d) {
+  const b = document.createElement('div');
+  b.className = 'dia-block';
+  const turnos = d.turnos||[];
+  const conf   = d.confirmado||false;
 
-  block.innerHTML = `
-    <div class="dia-header">
+  // Navieras del calendario config (si está cargado)
+  let navierasHTML = '';
+  if (S.calConfig) {
+    const dc = S.calConfig.find(c => c.fecha === d.fechaStr || (d.fechaLabel && d.fechaLabel.startsWith(c.fecha)));
+    if (dc && dc.navieras?.length) {
+      navierasHTML = dc.navieras.map(n=>`<span class="naviera-pill">🚢 ${n}</span>`).join('');
+      if (dc.estancia) navierasHTML += `<span style="font-size:.65rem;color:var(--label3)">📍 ${dc.estancia}</span>`;
+    }
+  }
+
+  b.innerHTML = `
+    <div class="dia-hdr">
       <span class="dia-fecha">📅 ${d.fechaLabel}</span>
-      <span class="dia-tag ${conf?'conf':''}">${conf?'✓ ':''} ${turnos.length} turno${turnos.length!==1?'s':''}</span>
+      <span class="dia-tag ${conf?'ok':''}">${conf?'✓ ':''}${turnos.length} turno${turnos.length!==1?'s':''}</span>
+      <div class="dia-naviera">${navierasHTML}</div>
     </div>`;
 
-  if (d.diagnostico?.aviso) {
-    block.insertAdjacentHTML('beforeend', `<div class="aviso-bar">${d.diagnostico.aviso}</div>`);
-  }
+  if (d.diagnostico?.aviso) b.insertAdjacentHTML('beforeend',`<div class="aviso-bar">${d.diagnostico.aviso}</div>`);
 
   if (!turnos.length) {
-    block.insertAdjacentHTML('beforeend', `
-      <div class="no-turno-box">
-        <p>⚠️ Sin franja de 2h con ≥3 voluntarios disponibles.</p>
-        <p style="font-size:0.75rem">Disponibles: ${d.diagnostico?.totalDisponibles||0} · Aptos: ${d.diagnostico?.aptos||0}</p>
-      </div>`);
+    b.insertAdjacentHTML('beforeend',`<div class="no-turno"><p>⚠️ Sin franja de 2h con ≥3 voluntarios.<br><small>Disponibles: ${d.diagnostico?.totalDisponibles||0} · Aptos: ${d.diagnostico?.aptos||0}</small></p></div>`);
   } else {
-    turnos.forEach(t => block.appendChild(renderTurno(t, d)));
+    turnos.forEach(t => b.appendChild(buildTurno(t,d)));
   }
-
-  if (d.diagnostico?.todos?.length) {
-    block.appendChild(renderDispoPanel(d.diagnostico.todos, d));
-  }
-  return block;
+  if (d.diagnostico?.todos?.length) b.appendChild(buildDispoPanel(d.diagnostico.todos, d));
+  return b;
 }
 
-// ══════════════════════════════════════════════════════════
-//  RENDERIZAR TURNO (con drag & drop)
-// ══════════════════════════════════════════════════════════
-function renderTurno(t, d) {
-  const hIni  = parseInt(t.rango.split(':')[0]);
+// ══════════════════════════════════════
+//  TURNO
+// ══════════════════════════════════════
+function buildTurno(t, d) {
+  const hIni = parseInt(t.rango.split(':')[0]);
   const tarde = hIni >= 14;
   const conf  = t.confirmado || d.confirmado;
   const key   = `${d.semana}|${d.dia}|${t.rango}`;
+  const equipo = S.edits[key] || t.equipo || [];
 
-  // Usar equipo editado si existe
-  const equipo = state.turnosEditados[key]
-    ? state.turnosEditados[key]
-    : (t.equipo || []);
-
-  const card = document.createElement('div');
-  card.className = 'turno-card';
-
-  // Franja sin llave
   if (t.sinLlave) {
-    card.innerHTML = `
-      <div class="turno-accent" style="background:#f5a400"></div>
-      <div class="turno-top">
-        <div><div class="turno-hora">🕒 ${t.rango}</div><span class="turno-tipo" style="background:#fff3cc;color:#7a5000">SIN LLAVE</span></div>
-      </div>
-      <div style="padding:0 1rem 1rem;font-size:0.8rem;color:#7a5000;">
-        ⚠️ Ningún portador de llave disponible en esta franja.
-      </div>`;
+    const card = document.createElement('div');
+    card.className = 'tc';
+    card.innerHTML = `<div class="tc-accent" style="background:#f5a400"></div>
+      <div class="tc-top"><div><div class="tc-hora">🕒 ${t.rango}</div><span class="tc-tipo" style="background:#fff3cc;color:#7a5000">SIN LLAVE</span></div></div>
+      <div style="padding:0 .95rem .95rem;font-size:.78rem;color:#7a5000">⚠️ Sin portador de llave disponible.</div>`;
     return card;
   }
 
-  const btnConfId = `btn-${d.semana}-${d.dia}-${hIni}`;
-  const tipoTxt = conf ? 'CONFIRMADO' : tarde ? 'TARDE' : 'MAÑANA';
-  const tipoCls = conf ? 'tt-conf' : tarde ? 'tt-t' : 'tt-m';
+  const btnId = `bc-${d.semana}-${d.dia}-${hIni}`;
+  const tipCls = conf?'tt-conf':tarde?'tt-t':'tt-m';
+  const tipTxt = conf?'CONFIRMADO':tarde?'TARDE':'MAÑANA';
 
+  const card = document.createElement('div');
+  card.className = 'tc';
   card.innerHTML = `
-    <div class="turno-accent ${tarde?'acc-t':'acc-m'}"></div>
-    <div class="turno-top">
-      <div>
-        <div class="turno-hora">🕒 ${t.rango}</div>
-        <span class="turno-tipo ${tipoCls}">${tipoTxt}</span>
-      </div>
-      <div class="turno-acciones">
-        ${!conf ? `
-        <button class="btn btn-ghost btn-sm" onclick="abrirCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir</button>
-        <button class="btn btn-green btn-sm" id="${btnConfId}"
-          onclick="confirmarTurno('${d.semana}','${d.dia}','${key}','${t.rango}',${d.fechaRaw||'null'},'${btnConfId}')">
-          ✓ Confirmar
-        </button>` : '<span style="font-size:0.75rem;color:var(--green);font-weight:700;">✓ Guardado</span>'}
+    <div class="tc-accent ${tarde?'ac-t':'ac-m'}"></div>
+    <div class="tc-top">
+      <div><div class="tc-hora">🕒 ${t.rango}</div><span class="tc-tipo ${tipCls}">${tipTxt}</span></div>
+      <div class="tc-acts">
+        ${!conf?`
+          <button class="btn btn-ghost btn-sm" onclick="openCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir</button>
+          <button class="btn btn-green btn-sm" id="${btnId}" onclick="confirmarTurno('${d.semana}','${d.dia}','${key}','${t.rango}',${d.fechaRaw||'null'},'${btnId}')">✓ Confirmar</button>`
+          :'<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Guardado</span>'}
       </div>
     </div>
-    <div class="turno-grid">
-      <div class="tg-left">
-        <div class="tg-col-label">Equipo asignado (${equipo.length})</div>
-        <div id="equipo-${key.replace(/[|:]/g,'-')}">
-          ${equipo.map((v,i) => renderSlot(v, key, i, conf)).join('')}
+    <div class="tc-grid">
+      <div class="tc-left">
+        <div class="tc-col-lbl">Equipo (${equipo.length})</div>
+        <div id="eq-${key.replace(/[|: ]/g,'-')}">
+          ${equipo.map((v,i) => buildSlot(v,key,i,conf)).join('')}
         </div>
       </div>
-      <div class="tg-right">
-        <div class="tg-col-label">Disponibles adicionales (${t.sustitutos?.length||0})</div>
-        <div class="disp-wrap" id="sust-${key.replace(/[|:]/g,'-')}">
-          ${(t.sustitutos||[]).map(s => renderDispChip(s, key)).join('')}
+      <div class="tc-right">
+        <div class="tc-col-lbl">Disponibles adicionales (${t.sustitutos?.length||0})</div>
+        <div class="dchip-wrap" id="sust-${key.replace(/[|: ]/g,'-')}">
+          ${(t.sustitutos||[]).map(s => buildDChip(s,key,'turno')).join('')}
         </div>
       </div>
     </div>`;
 
-  // Activar drop zones en los slots
-  setTimeout(() => activarDropZones(key, t, d), 0);
+  setTimeout(() => activateSlots(key, t, d, conf), 0);
   return card;
 }
 
-// ── Slot de voluntario en equipo (drop target)
-function renderSlot(v, key, idx, conf) {
-  const iniciales = v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-  return `
-    <div class="v-slot" id="slot-${key.replace(/[|:]/g,'-')}-${idx}"
-         data-key="${key}" data-idx="${idx}" ${conf?'':'ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,\''+key+'\','+idx+')"'}>
-      <div class="v-avatar">${iniciales}</div>
-      <div style="flex:1;min-width:0;">
-        <div class="v-name">${v.nombre}</div>
-        <div class="v-meta">${v.dias>=99?'Nuevo':v.dias+' d descanso'}${v.dispo?' · '+v.dispo+' d/mes':''}</div>
-        ${v.horario?`<div class="v-horario-small">🕐 ${v.horario}</div>`:''}
-      </div>
-      ${v.llave?'<span class="badge-llave">🔑 Llave</span>':''}
-    </div>`;
+function buildSlot(v, key, idx, conf) {
+  const ini = (v.nombre||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+  const eid = `sl-${key.replace(/[|: ]/g,'-')}-${idx}`;
+  return `<div class="vslot" id="${eid}" data-key="${key}" data-idx="${idx}">
+    <div class="va">${ini}</div>
+    <div style="flex:1;min-width:0">
+      <div class="vn">${v.nombre}</div>
+      <div class="vm">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.dispo?' · '+v.dispo+'d/mes':''}</div>
+      ${v.horario?`<div class="vhor">🕐 ${v.horario}</div>`:''}
+    </div>
+    ${v.llave?'<span class="bllave">🔑 Llave</span>':''}
+  </div>`;
 }
 
-// ── Chip disponible (draggable)
-function renderDispChip(s, turnoKey) {
-  const cls = s.dias<2?'dc-bloqueado':s.dias<5?'dc-reducido':'dc-ok';
-  const draggable = s.dias >= 2 ? 'draggable="true"' : '';
-  return `
-    <span class="disp-chip ${cls}" ${draggable}
-      data-nombre="${s.nombre}" data-llave="${s.llave}" data-dias="${s.dias}" data-dispo="${s.dispo||0}" data-horario="${s.horario||''}"
-      data-turno-key="${turnoKey}"
-      ${s.dias>=2?`ondragstart="onDragStart(event)" ondragend="onDragEnd(event)"`:''}
-      title="${s.horario?'🕐 '+s.horario:''}">
-      ${s.llave?'🔑 ':''}${s.nombre}
-      ${s.horario?`<span class="dc-hora">🕐 ${s.horario}</span>`:''}
-    </span>`;
+function buildDChip(s, turnoKey, source) {
+  const blq = s.dias < 2;
+  const cls = blq?'dc-blq':s.dias<5?'dc-red':s.estado==='reservado'?'dc-res':'dc-ok';
+  const drag = !blq ? `draggable="true" data-nombre="${s.nombre}" data-llave="${s.llave||false}" data-dias="${s.dias}" data-dispo="${s.dispo||0}" data-horario="${s.horario||''}" data-key="${turnoKey}" data-source="${source}"` : '';
+  return `<span class="dchip ${cls}" ${drag} title="${s.horario?'🕐 '+s.horario:''}" ${!blq?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${s.llave?'🔑 ':''}${s.nombre}${s.horario?`<span class="dh">🕐${s.horario}</span>`:''}</span>`;
 }
 
-// ══════════════════════════════════════════════════════════
-//  DRAG & DROP
-// ══════════════════════════════════════════════════════════
-function onDragStart(e) {
+function activateSlots(key, tOrig, d, conf) {
+  if (conf || tOrig.confirmado) return;
+  const equipo = S.edits[key] || tOrig.equipo || [];
+  equipo.forEach((_,i) => {
+    const sl = document.getElementById(`sl-${key.replace(/[|: ]/g,'-')}-${i}`);
+    if (!sl) return;
+    sl.ondragover = e => { e.preventDefault(); sl.classList.add('drop-active'); };
+    sl.ondragleave = () => sl.classList.remove('drop-active');
+    sl.ondrop = e => dDrop(e, key, i, tOrig, d);
+  });
+}
+
+// ══════════════════════════════════════
+//  DRAG & DROP (desktop + touch)
+// ══════════════════════════════════════
+const ghost = document.getElementById('drag-ghost');
+
+function dStart(e) {
   const chip = e.currentTarget;
-  state.dragData = {
-    nombre:   chip.dataset.nombre,
-    llave:    chip.dataset.llave === 'true',
-    dias:     parseInt(chip.dataset.dias),
-    dispo:    parseInt(chip.dataset.dispo),
-    horario:  chip.dataset.horario,
-    turnoKey: chip.dataset.turnoKey,
+  S.drag = {
+    nombre: chip.dataset.nombre, llave: chip.dataset.llave==='true',
+    dias: +chip.dataset.dias, dispo: +chip.dataset.dispo,
+    horario: chip.dataset.horario, key: chip.dataset.key,
+    source: chip.dataset.source,
   };
   chip.classList.add('dragging');
+  ghost.textContent = chip.dataset.nombre;
+  ghost.style.display = 'block';
   e.dataTransfer.effectAllowed = 'move';
   e.dataTransfer.setData('text/plain', chip.dataset.nombre);
 }
-
-function onDragEnd(e) {
+function dEnd(e) {
   e.currentTarget.classList.remove('dragging');
-  state.dragData = null;
+  ghost.style.display = 'none';
+  S.drag = null;
 }
+document.addEventListener('dragover', e => {
+  ghost.style.left = e.clientX+'px';
+  ghost.style.top  = e.clientY+'px';
+});
 
-function onDragOver(e) {
+function dDrop(e, turnoKey, slotIdx, tOrig, dData) {
   e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  e.currentTarget.classList.add('drag-over');
-}
+  const sl = e.currentTarget;
+  sl.classList.remove('drop-active');
+  if (!S.drag) return;
+  const nuevo = S.drag;
 
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
+  const equipoBase = S.edits[turnoKey] ? [...S.edits[turnoKey]] : [...(tOrig.equipo||[])];
+  if (equipoBase.some(v => v.nombre === nuevo.nombre)) { toast('Ya está en el equipo','err'); return; }
 
-function onDrop(e, turnoKey, slotIdx) {
-  e.preventDefault();
-  const slot = e.currentTarget;
-  slot.classList.remove('drag-over');
+  const sustituido = equipoBase[slotIdx];
+  equipoBase[slotIdx] = { nombre:nuevo.nombre, llave:nuevo.llave, dias:nuevo.dias, dispo:nuevo.dispo, horario:nuevo.horario };
+  S.edits[turnoKey] = equipoBase;
 
-  if (!state.dragData) return;
-  const nuevo = state.dragData;
-
-  // Obtener equipo actual (editado o original)
-  const diaData = state.cuadrante.find(d =>
-    d.turnos && d.turnos.some(t => `${d.semana}|${d.dia}|${t.rango}` === turnoKey)
-  );
-  if (!diaData) return;
-  const turnoOrig = diaData.turnos.find(t => `${diaData.semana}|${diaData.dia}|${t.rango}` === turnoKey);
-  if (!turnoOrig) return;
-
-  const equipoActual = state.turnosEditados[turnoKey]
-    ? [...state.turnosEditados[turnoKey]]
-    : [...(turnoOrig.equipo || [])];
-
-  // Verificar que el voluntario no esté ya en el equipo
-  if (equipoActual.some(v => v.nombre === nuevo.nombre)) {
-    toast('Este voluntario ya está en el equipo', 'err');
-    return;
+  // Re-render slots
+  sl.classList.add('drop-done');
+  const eqEl = document.getElementById(`eq-${turnoKey.replace(/[|: ]/g,'-')}`);
+  if (eqEl) {
+    eqEl.innerHTML = equipoBase.map((v,i) => buildSlot(v,turnoKey,i,false)).join('');
+    activateSlots(turnoKey, tOrig, dData, false);
   }
 
-  // Sustituir el slot
-  const sustituido = equipoActual[slotIdx];
-  equipoActual[slotIdx] = {
-    nombre: nuevo.nombre,
-    llave: nuevo.llave,
-    dias: nuevo.dias,
-    dispo: nuevo.dispo,
-    horario: nuevo.horario,
-  };
-
-  state.turnosEditados[turnoKey] = equipoActual;
-
-  // Animar y re-renderizar el equipo
-  slot.classList.add('dropping');
-  setTimeout(() => {
-    const equipoEl = document.getElementById(`equipo-${turnoKey.replace(/[|:]/g,'-')}`);
-    if (equipoEl) {
-      equipoEl.innerHTML = equipoActual.map((v,i) => renderSlot(v, turnoKey, i, false)).join('');
-      activarDropZones(turnoKey, turnoOrig, diaData);
+  // Actualizar chips disponibles: quitar el nuevo, añadir sustituido
+  const sustEl = document.getElementById(`sust-${turnoKey.replace(/[|: ]/g,'-')}`);
+  if (sustEl) {
+    const chipViejo = sustEl.querySelector(`[data-nombre="${nuevo.nombre}"]`);
+    if (chipViejo) chipViejo.remove();
+    if (sustituido) {
+      sustEl.insertAdjacentHTML('beforeend', buildDChip({...sustituido, dias:sustituido.dias||99}, turnoKey,'turno'));
     }
-
-    // Quitar el chip sustituido de sustitutos y añadir el sustituido como disponible
-    const sustEl = document.getElementById(`sust-${turnoKey.replace(/[|:]/g,'-')}`);
-    if (sustEl && sustituido) {
-      // Añadir sustituido como chip disponible
-      const chipSust = document.createElement('span');
-      chipSust.className = 'disp-chip dc-ok';
-      chipSust.innerHTML = `${sustituido.llave?'🔑 ':''}${sustituido.nombre}`;
-      chipSust.title = 'Sustituido';
-      sustEl.appendChild(chipSust);
-    }
-
-    // Eliminar el chip dragged
-    const chips = document.querySelectorAll(`.disp-chip[data-nombre="${nuevo.nombre}"][data-turno-key="${turnoKey}"]`);
-    chips.forEach(c => c.remove());
-
-    slot.classList.remove('dropping');
-  }, 150);
-
-  toast(`${nuevo.nombre} sustituye a ${sustituido?.nombre || 'voluntario'}`, 'ok');
-}
-
-function activarDropZones(key, turnoOrig, d) {
-  const equipoActual = state.turnosEditados[key] || (turnoOrig.equipo || []);
-  equipoActual.forEach((_, i) => {
-    const slot = document.getElementById(`slot-${key.replace(/[|:]/g,'-')}-${i}`);
-    if (slot && !d.confirmado && !turnoOrig.confirmado) {
-      slot.ondragover = (e) => onDragOver(e);
-      slot.ondragleave = (e) => onDragLeave(e);
-      slot.ondrop = (e) => onDrop(e, key, i);
-    }
-  });
-}
-
-// ══════════════════════════════════════════════════════════
-//  CONFIRMAR TURNO
-// ══════════════════════════════════════════════════════════
-async function confirmarTurno(semana, dia, key, rango, fechaRaw, btnId) {
-  const equipo = state.turnosEditados[key]
-    ? state.turnosEditados[key].map(v => v.nombre)
-    : (() => {
-        const d = state.cuadrante.find(d => d.semana==semana && d.dia==dia);
-        const t = d?.turnos?.find(t => t.rango===rango);
-        return t?.equipo?.map(v => v.nombre) || [];
-      })();
-
-  if (!equipo.length) { toast('Sin equipo asignado', 'err'); return; }
-  if (!confirm(`¿Confirmar turno ${rango} con: ${equipo.join(', ')}?`)) return;
-
-  const btn = document.getElementById(btnId);
-  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
-
-  try {
-    await apiPost({ accion:'confirmarTurno', semana, dia, asignados: equipo, rango,
-      fecha: fechaRaw ? new Date(fechaRaw).toISOString() : new Date().toISOString() });
-    if (btn) { btn.textContent = '✓ Guardado'; btn.classList.add('saved'); }
-    window._cargaOk = false;
-    toast('Turno confirmado y guardado ✓', 'ok');
-  } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = '✓ Confirmar'; }
-    toast('Error: ' + e.message, 'err');
   }
+
+  // Si vino del panel de todos disponibles, también actualizar ahí
+  toast(`${nuevo.nombre} sustituye a ${sustituido?.nombre||'?'}`, 'ok');
 }
 
-// ══════════════════════════════════════════════════════════
-//  PANEL DISPONIBILIDAD
-// ══════════════════════════════════════════════════════════
-function renderDispoPanel(todos, d) {
+// ══════════════════════════════════════
+//  PANEL DISPONIBILIDAD (con drag!)
+// ══════════════════════════════════════
+function buildDispoPanel(todos, d) {
   const wrap = document.createElement('div');
-  wrap.className = 'dispo-panel';
-  const lbl = { ok:'✅', reducido:'⚡', reservado:'📌', bloqueado:'🔒' };
-  const counts = todos.reduce((a,v) => { a[v.estado]=(a[v.estado]||0)+1; return a; }, {});
-  const resumen = Object.entries(counts).map(([k,n]) => `${lbl[k]||''} ${n} ${k}`).join(' · ');
-  const pid = `dp-${d.fechaRaw}`;
+  wrap.className = 'dpanel';
+  const lbl={ok:'✅',reducido:'⚡',reservado:'📌',bloqueado:'🔒'};
+  const counts = todos.reduce((a,v)=>{a[v.estado]=(a[v.estado]||0)+1;return a},{});
+  const res = Object.entries(counts).map(([k,n])=>`${lbl[k]||''} ${n} ${k}`).join(' · ');
+  const pid = `dp-${d.fechaRaw||Math.random()}`;
+
+  // Para el panel de todos disponibles, los chips también son arrastrables
+  // pero necesitamos saber a qué turno van — se puede arrastrar a cualquier slot del día
+  const chipsHTML = todos.map(v => {
+    const cls = {ok:'dc-ok',reducido:'dc-red',reservado:'dc-res',bloqueado:'dc-blq'}[v.estado]||'dc-blq';
+    const drag = v.dias >= 2 ? `draggable="true" data-nombre="${v.nombre}" data-llave="${v.llave||false}" data-dias="${v.dias}" data-dispo="${0}" data-horario="${v.horario||''}" data-key="" data-source="panel"` : '';
+    return `<span class="dchip ${cls}" ${drag} title="🕐 ${v.horario}" ${v.dias>=2?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>
+      ${v.llave?'🔑 ':''}${v.nombre}<span class="dh"> 🕐${v.horario}</span>
+    </span>`;
+  }).join('');
+
   wrap.innerHTML = `
-    <button class="dispo-toggle" onclick="toggleDispo('${pid}',this)">
-      <span>👥 Todos los disponibles (${todos.length}) — ${resumen}</span>
-      <span class="dispo-arrow">▼</span>
+    <button class="dtoggle" onclick="toggleD('${pid}',this)">
+      <span>👥 Todos los disponibles (${todos.length}) — ${res}</span>
+      <span class="darrow">▼</span>
     </button>
-    <div class="dispo-body" id="${pid}">
-      ${todos.map(v => {
-        const cls = {ok:'dc-ok',reducido:'dc-reducido',reservado:'dc-reservado',bloqueado:'dc-bloqueado'}[v.estado]||'dc-bloqueado';
-        return `<span class="disp-chip ${cls}" title="🕐 ${v.horario}">${v.llave?'🔑 ':''}${v.nombre}<span class="dc-hora"> 🕐 ${v.horario}</span></span>`;
-      }).join('')}
-    </div>`;
+    <div class="dbody" id="${pid}">${chipsHTML}</div>`;
   return wrap;
 }
+function toggleD(id, btn) { document.getElementById(id).classList.toggle('show'); btn.classList.toggle('open'); }
 
-function toggleDispo(id, btn) {
-  document.getElementById(id).classList.toggle('visible');
-  btn.classList.toggle('open');
+// ══════════════════════════════════════
+//  CONFIRMAR TURNO
+// ══════════════════════════════════════
+async function confirmarTurno(sem, dia, key, rango, fechaRaw, btnId) {
+  const equipo = S.edits[key]
+    ? S.edits[key].map(v=>v.nombre)
+    : (() => { const d=S.plan?.find(d=>d.semana==sem&&d.dia==dia); return d?.turnos?.find(t=>t.rango===rango)?.equipo?.map(v=>v.nombre)||[]; })();
+  if (!equipo.length) { toast('Sin equipo','err'); return; }
+  if (!confirm(`¿Confirmar turno ${rango}?\n${equipo.join(', ')}`)) return;
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
+  try {
+    await apiPost({accion:'confirmarTurno', semana:sem, dia, asignados:equipo, rango,
+      fecha: fechaRaw ? new Date(fechaRaw).toISOString() : new Date().toISOString()});
+    if (btn) { btn.textContent='✓ Guardado'; btn.classList.add('saved'); }
+    window._cOk = false;
+    toast('Turno guardado ✓','ok');
+  } catch(e) {
+    if (btn) { btn.disabled=false; btn.textContent='✓ Confirmar'; }
+    toast('Error: '+e.message,'err');
+  }
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════
 //  ALERTAS
-// ══════════════════════════════════════════════════════════
-async function cargarAlertas(force) {
-  if (window._alertasOk && !force) return;
-  const cont = document.getElementById('tab-alertas');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div>`;
+// ══════════════════════════════════════
+async function loadAlertas(force) {
+  if (window._aOk && !force) return;
+  const c = document.getElementById('tab-alertas');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div>`;
   try {
     const data = await apiGet({action:'getAlertasLlave'});
-    if (data.error) throw new Error(data.error);
-    cont.innerHTML = '';
-
-    const badge = document.getElementById('badge-alertas');
-    if (data.total > 0) { badge.style.display=''; badge.textContent=data.total; }
-    else badge.style.display='none';
-
+    c.innerHTML = '';
+    const nb = document.getElementById('nbadge');
+    if (data.total>0) { nb.style.display=''; nb.textContent=data.total; } else nb.style.display='none';
     if (!data.alertas?.length) {
-      cont.innerHTML = `<div class="empty-state"><span class="ei">✅</span><h4>Sin alertas</h4><p>Todos los días tienen portador de llave disponible.</p></div>`;
+      c.innerHTML=`<div class="empty"><span class="ei">✅</span><h4>Sin alertas</h4><p>Todos los días tienen portador de llave.</p></div>`;
     } else {
-      const intro = document.createElement('p');
-      intro.style.cssText = 'font-size:0.83rem;color:var(--label3);margin-bottom:1.25rem;';
-      intro.textContent = `${data.total} día${data.total!==1?'s':''} requieren atención:`;
-      cont.appendChild(intro);
+      const intro=document.createElement('p');
+      intro.style='font-size:.82rem;color:var(--label3);margin-bottom:1rem';
+      intro.textContent=`${data.total} día${data.total!==1?'s':''} requieren atención:`;
+      c.appendChild(intro);
       data.alertas.forEach((a,i) => {
-        const grave = a.mensaje.includes('Ningún');
-        const el = document.createElement('div');
-        el.className = `alerta-item ${grave?'grave':'aviso'}`;
-        el.style.animationDelay = (i*0.05)+'s';
-        el.innerHTML = `
-          <div class="ai-icon">${grave?'🔴':'🟡'}</div>
-          <div class="ai-info">
-            <div class="ai-fecha">📅 ${a.fecha} — ${a.dia} (Semana ${a.semana})</div>
-            <div class="ai-msg">${a.mensaje} · ${a.disponibles} disponible${a.disponibles!==1?'s':''}</div>
-          </div>`;
-        cont.appendChild(el);
+        const grave=a.mensaje.includes('Ningún');
+        const el=document.createElement('div');
+        el.className=`al-item ${grave?'grave':'aviso'}`;
+        el.style.animationDelay=(i*.05)+'s';
+        el.innerHTML=`<div class="ali">${grave?'🔴':'🟡'}</div><div><div class="al-fecha">📅 ${a.fecha} — ${a.dia} (S${a.semana})</div><div class="al-msg">${a.mensaje} · ${a.disponibles} disp.</div></div>`;
+        c.appendChild(el);
       });
     }
-    window._alertasOk = true;
-  } catch(e) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
-  }
+    window._aOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════
 //  CARGA
-// ══════════════════════════════════════════════════════════
-async function cargarCarga(force) {
-  if (window._cargaOk && !force) return;
-  const cont = document.getElementById('tab-carga');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div>`;
+// ══════════════════════════════════════
+async function loadCarga(force) {
+  if (window._cOk && !force) return;
+  const c = document.getElementById('tab-carga');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Calculando…</p></div>`;
   try {
     const data = await apiGet({action:'getResumenCarga'});
-    if (data.error) throw new Error(data.error);
-    cont.innerHTML = '';
-
-    const stats = document.createElement('div');
-    stats.className = 'stats-row';
-    stats.innerHTML = `
-      <div class="stat-box"><div class="sv">${data.total}</div><div class="sl">Turnos confirmados</div></div>
-      <div class="stat-box"><div class="sv">${data.media}</div><div class="sl">Media / voluntario</div></div>
-      <div class="stat-box"><div class="sv">${data.max}</div><div class="sl">Máximo</div></div>
-      <div class="stat-box"><div class="sv">${data.min}</div><div class="sl">Mínimo</div></div>`;
-    cont.appendChild(stats);
-
-    if (!data.voluntarios?.length) {
-      cont.insertAdjacentHTML('beforeend', `<div class="empty-state"><span class="ei">📋</span><h4>Sin datos</h4><p>Confirma turnos para ver el balance.</p></div>`);
-      return;
-    }
-
-    const ley = document.createElement('div');
-    ley.style.cssText = 'display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;font-size:0.73rem;color:var(--label3);';
-    ley.innerHTML = `<span>🟢 Normal</span><span>🔴 Alta (>${Math.ceil(data.media*1.5)} turnos)</span><span>🟡 Baja (<${Math.floor(data.media*0.5)} turnos)</span>`;
-    cont.appendChild(ley);
-
+    c.innerHTML='';
+    const sr=document.createElement('div'); sr.className='stats-row';
+    sr.innerHTML=`<div class="sbox"><div class="sv">${data.total}</div><div class="sl">Turnos</div></div>
+                  <div class="sbox"><div class="sv">${data.media}</div><div class="sl">Media</div></div>
+                  <div class="sbox"><div class="sv">${data.max}</div><div class="sl">Máx</div></div>
+                  <div class="sbox"><div class="sv">${data.min}</div><div class="sl">Mín</div></div>`;
+    c.appendChild(sr);
+    if (!data.voluntarios?.length) { c.insertAdjacentHTML('beforeend',`<div class="empty"><span class="ei">📋</span><h4>Sin datos</h4><p>Confirma turnos para ver el balance.</p></div>`); return; }
     data.voluntarios.forEach((v,i) => {
-      const pct = data.max > 0 ? Math.round((v.turnos/data.max)*100) : 0;
-      const el  = document.createElement('div');
-      el.className = `vol-bar-row lv-${v.nivel}`;
-      el.style.animationDelay = (i*0.03)+'s';
-      el.title = v.detalle?.map(d=>`${d.fecha} ${d.dia}: ${d.rango}`).join('\n')||'Sin turnos confirmados';
-      el.innerHTML = `
-        <div class="vol-cnt">${v.turnos}</div>
-        <div class="vol-nm">${v.nombre.split(' ').slice(0,2).join(' ')} ${v.llave?'<span class="vol-llave-badge">🔑</span>':''}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
-        <div style="font-size:0.75rem;color:var(--label2);font-weight:600;min-width:50px;text-align:right;">${v.turnos} turno${v.turnos!==1?'s':''}</div>`;
-      cont.appendChild(el);
+      const pct=data.max>0?Math.round((v.turnos/data.max)*100):0;
+      const el=document.createElement('div'); el.className=`vbar lv-${v.nivel}`; el.style.animationDelay=(i*.03)+'s';
+      el.title=v.detalle?.map(d=>`${d.fecha} ${d.dia}: ${d.rango}`).join('\n')||'Sin turnos';
+      el.innerHTML=`<div class="vc">${v.turnos}</div><div class="vn2">${v.nombre.split(' ').slice(0,2).join(' ')} ${v.llave?'<span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑</span>':''}</div><div class="btrack"><div class="bfill" style="width:${pct}%"></div></div><div style="font-size:.73rem;color:var(--label2);font-weight:600;min-width:48px;text-align:right">${v.turnos}t</div>`;
+      c.appendChild(el);
     });
-    window._cargaOk = true;
-  } catch(e) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
-  }
+    window._cOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
 
-// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════
 //  VOLUNTARIOS
-// ══════════════════════════════════════════════════════════
-async function cargarVoluntarios(force) {
-  if (window._volsOk && !force) return;
-  const cont = document.getElementById('tab-voluntarios');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div>`;
+// ══════════════════════════════════════
+async function loadVoluntarios(force) {
+  if (window._vOk && !force) return;
+  const c=document.getElementById('tab-voluntarios');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
   try {
-    const [vols, llaves] = await Promise.all([
-      apiGet({action:'getVoluntarios'}),
-      // Obtener llaves desde un turno cualquiera del cuadrante
-      Promise.resolve(state.cuadrante
-        ? [...new Set(state.cuadrante.flatMap(d => (d.turnos||[]).flatMap(t => (t.equipo||[]).filter(v=>v.llave).map(v=>v.nombre))))]
-        : [])
-    ]);
-    if (vols.error) throw new Error(vols.error);
-    cont.innerHTML = '';
-    if (!vols.length) {
-      cont.innerHTML = `<div class="empty-state"><span class="ei">👥</span><h4>Sin voluntarios</h4><p>Añade el primero con el botón superior.</p></div>`;
-      return;
-    }
-    const setLlaves = new Set(llaves.map(n=>n.toUpperCase()));
-    vols.forEach((nombre, i) => {
-      const tieneLlave = setLlaves.has(nombre.toUpperCase());
-      const iniciales = nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-      const el = document.createElement('div');
-      el.className = 'vol-list-row';
-      el.style.animationDelay = (i*0.02)+'s';
-      el.innerHTML = `
-        <div class="vol-list-avatar">${iniciales}</div>
-        <div class="vol-list-info">
-          <div class="vli-name">${nombre} ${tieneLlave?'<span style="font-size:0.6rem;background:var(--navy);color:var(--gold);padding:0.1rem 0.4rem;border-radius:4px;">🔑 Llave</span>':''}</div>
-          <div class="vli-meta">${tieneLlave?'Portador de llave':'Voluntario'}</div>
-        </div>
-        <div class="vol-list-actions">
-          <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nombre}')">📋 Ver turnos</button>
-        </div>`;
-      cont.appendChild(el);
+    const vols=await apiGet({action:'getVoluntarios'});
+    c.innerHTML='';
+    const llaveSet=new Set((S.plan||[]).flatMap(d=>(d.turnos||[]).flatMap(t=>(t.equipo||[]).filter(v=>v.llave).map(v=>v.nombre.toUpperCase()))));
+    vols.forEach((nom,i) => {
+      const ini=nom.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+      const llave=llaveSet.has(nom.toUpperCase());
+      const el=document.createElement('div'); el.className='vol-row2'; el.style.animationDelay=(i*.02)+'s';
+      el.innerHTML=`<div class="vavatar">${ini}</div><div class="vinfo2"><div class="vn">${nom}${llave?' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>':''}</div><div class="vm2">Voluntario activo</div></div><div class="vol-acts"><button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom}')">📋 Ver turnos</button></div>`;
+      c.appendChild(el);
     });
-    window._volsOk = true;
-  } catch(e) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
-  }
+    window._vOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
 
-async function verTurnos(nombre) {
+async function verTurnos(nom) {
+  document.getElementById('mvol-titulo').textContent=`📋 Turnos de ${nom}`;
+  document.getElementById('mvol-body').innerHTML=`<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Cargando…</p></div>`;
+  openModal('mvol');
   try {
-    const data = await apiGet({action:'getTurnosVoluntario', nombre});
-    if (data.error) throw new Error(data.error);
-    const titulo = document.getElementById('modal-titulo');
-    const body   = document.getElementById('modal-body');
-    titulo.textContent = `📋 Turnos de ${nombre}`;
+    const data=await apiGet({action:'getTurnosVoluntario', nombre:nom});
+    if (!data.turnos?.length) { document.getElementById('mvol-body').innerHTML=`<p style="text-align:center;color:var(--label3);font-size:.83rem">Sin turnos confirmados.</p>`; return; }
+    document.getElementById('mvol-body').innerHTML=`<table class="htable"><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th></tr></thead><tbody>${data.turnos.map(t=>`<tr><td>${t.fecha}</td><td>${t.dia}</td><td>${t.rango}</td></tr>`).join('')}</tbody></table>`;
+  } catch(e) { document.getElementById('mvol-body').innerHTML=`<p style="color:var(--red)">Error: ${e.message}</p>`; }
+}
+
+// ══════════════════════════════════════
+//  DISPONIBILIDAD TOTAL
+// ══════════════════════════════════════
+async function loadDisponibilidad(force) {
+  if (window._dOk && !force) return;
+  const c=document.getElementById('tab-disponibilidad');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando disponibilidad completa…</p></div>`;
+  try {
+    const data=await apiGet({action:'getDisponibilidadCompleta'});
+    c.innerHTML='';
+
+    // Selector de semana
+    const ctrl=document.createElement('div');
+    ctrl.style='display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
+    ctrl.innerHTML=`<label style="font-size:.75rem;font-weight:600;color:var(--label3)">Semana:</label>
+      <div style="display:flex;gap:.3rem">
+        ${[1,2,3,4,5].map(s=>`<button class="btn btn-ghost btn-sm" onclick="renderDispoGrid(${s})" id="ds-${s}" style="${s===1?'background:var(--navy);color:#fff':''}">S${s}</button>`).join('')}
+      </div>`;
+    c.appendChild(ctrl);
+    const gridWrap=document.createElement('div'); gridWrap.className='dispo-grid-wrap'; gridWrap.id='dispo-grid-wrap'; c.appendChild(gridWrap);
+    window._dispoData=data;
+    renderDispoGrid(1);
+    window._dOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+}
+
+function renderDispoGrid(sem) {
+  [1,2,3,4,5].forEach(s => {
+    const b=document.getElementById(`ds-${s}`);
+    if (b) { b.style.background=s===sem?'var(--navy)':''; b.style.color=s===sem?'#fff':''; }
+  });
+  const data=window._dispoData;
+  if (!data) return;
+  const dias=['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
+  const vols=data.voluntarios||[];
+  const wrap=document.getElementById('dispo-grid-wrap');
+  if (!wrap) return;
+  let html=`<div class="card"><table class="dispo-grid">
+    <thead><tr><th class="th-name">Voluntario</th>${dias.map(d=>`<th>${d.substring(0,3)}</th>`).join('')}</tr></thead>
+    <tbody>`;
+  vols.forEach(v => {
+    html+=`<tr><td class="td-name">${v.nombre}${v.llave?' 🔑':''}</td>`;
+    dias.forEach(dia => {
+      const d=v.disponibilidad.find(x=>x.semana===sem&&x.dia===dia);
+      html+=d?.horario ? `<td><span class="d-ok">${d.horario}</span></td>` : `<td><span class="d-no">—</span></td>`;
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  wrap.innerHTML=html;
+}
+
+// ══════════════════════════════════════
+//  BAJAS
+// ══════════════════════════════════════
+async function loadBajas(force) {
+  if (window._bOk && !force) return;
+  const c=document.getElementById('tab-bajas');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div>`;
+  try {
+    const data=await apiGet({action:'getBajas'});
+    c.innerHTML='';
     if (!data.turnos?.length) {
-      body.innerHTML = `<p style="text-align:center;color:var(--label3);font-size:0.85rem;">Sin turnos confirmados.</p>`;
-    } else {
-      body.innerHTML = `
-        <table class="hist-table" style="margin-top:0.5rem;">
-          <thead><tr><th>Fecha</th><th>Día</th><th>Turno</th></tr></thead>
-          <tbody>${data.turnos.map(t=>`<tr><td>${t.fecha}</td><td>${t.dia}</td><td>${t.rango}</td></tr>`).join('')}</tbody>
-        </table>`;
-    }
-    abrirModal('modal-cubre');
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
-
-function abrirModalVol() {
-  document.getElementById('vol-nombre').value = '';
-  document.getElementById('vol-llave').value = 'no';
-  document.getElementById('modal-vol-titulo').textContent = 'Nuevo voluntario';
-  abrirModal('modal-vol');
-}
-
-async function guardarVoluntario() {
-  const nombre = document.getElementById('vol-nombre').value.trim();
-  if (!nombre) { toast('Introduce un nombre', 'err'); return; }
-  toast(`Voluntario "${nombre}" registrado. Recuerda añadir su disponibilidad en el Sheet.`, 'ok');
-  cerrarModal('modal-vol');
-  window._volsOk = false;
-  if (tabActual === 'voluntarios') cargarVoluntarios(true);
-}
-
-// ══════════════════════════════════════════════════════════
-//  HISTORIAL
-// ══════════════════════════════════════════════════════════
-async function cargarHistorial(force) {
-  if (window._histOk && !force) return;
-  const cont = document.getElementById('tab-historial');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>`;
-  try {
-    const data = await apiGet({action:'getHistorial'});
-    if (data.error) throw new Error(data.error);
-    cont.innerHTML = '';
-    if (!data.length) {
-      cont.innerHTML = `<div class="empty-state"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`;
+      c.innerHTML=`<div class="empty"><span class="ei">✅</span><h4>Sin bajas registradas</h4><p>Aquí aparecerán los turnos con bajas.</p></div>`;
       return;
     }
+    const intro=document.createElement('p');
+    intro.style='font-size:.82rem;color:var(--label3);margin-bottom:1rem';
+    intro.textContent=`${data.turnos.length} turno${data.turnos.length!==1?'s':''} con bajas:`;
+    c.appendChild(intro);
+    data.turnos.forEach((t,i) => {
+      const el=document.createElement('div');
+      el.className=`baja-card ${t.cubierto?'cubierto':'pendiente'}`;
+      el.style.animationDelay=(i*.05)+'s';
+      el.innerHTML=`
+        <div class="baja-top">
+          <div class="baja-info">
+            <div class="bf">📅 ${t.fecha} — ${t.dia} · 🕒 ${t.rango}</div>
+            <div class="bs">S${t.semana}</div>
+          </div>
+          <span class="baja-status ${t.cubierto?'status-ok':'status-pend'}">${t.cubierto?'✓ Cubierto':'⚠️ Pendiente'}</span>
+        </div>
+        <div class="baja-vols">
+          ${t.bajas.map(nom=>`<span style="background:var(--red-soft);color:var(--red);font-size:.7rem;padding:.18rem .5rem;border-radius:4px;font-weight:600">🏥 ${nom}</span>`).join('')}
+        </div>
+        ${!t.cubierto?`<div style="margin-top:.55rem"><button class="btn btn-blue btn-sm" onclick="openCubre('${t.semana}','${t.dia}','${t.rango}')">🔄 Ver candidatos para cubrir</button></div>`:''}`;
+      c.appendChild(el);
+    });
+    window._bOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+}
 
-    // Filtros
-    const filtros = document.createElement('div');
-    filtros.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;';
-    filtros.innerHTML = `
-      <input class="form-control" id="hist-busca" placeholder="Buscar voluntario…" oninput="filtrarHistorial()" style="max-width:220px;">
-      <select class="form-control" id="hist-dia" onchange="filtrarHistorial()" style="max-width:150px;">
+// ══════════════════════════════════════
+//  HISTORIAL
+// ══════════════════════════════════════
+async function loadHistorial(force) {
+  if (window._hOk && !force) return;
+  const c=document.getElementById('tab-historial');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>`;
+  try {
+    const data=await apiGet({action:'getHistorial'});
+    c.innerHTML='';
+    if (!data.length) { c.innerHTML=`<div class="empty"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`; return; }
+    const filtros=document.createElement('div');
+    filtros.style='display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap';
+    filtros.innerHTML=`<input class="fc" id="hbusca" placeholder="Buscar voluntario…" oninput="filtH()" style="max-width:200px">
+      <select class="fc" id="hdia" onchange="filtH()" style="max-width:150px">
         <option value="">Todos los días</option>
         ${[...new Set(data.map(r=>r.dia))].map(d=>`<option>${d}</option>`).join('')}
       </select>`;
-    cont.appendChild(filtros);
-
-    const wrap = document.createElement('div');
-    wrap.className = 'card';
-    wrap.innerHTML = `
-      <table class="hist-table" id="hist-tabla">
-        <thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th></tr></thead>
-        <tbody id="hist-body">
-          ${data.slice().reverse().map(r=>`
-            <tr>
-              <td>${r.fecha}</td>
-              <td>${r.dia}</td>
-              <td>${r.rango}</td>
-              <td>${r.nombre}</td>
-            </tr>`).join('')}
-        </tbody>
-      </table>`;
-    cont.appendChild(wrap);
-    window._histData = data;
-    window._histOk = true;
-  } catch(e) {
-    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
-  }
+    c.appendChild(filtros);
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<table class="htable"><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th></tr></thead><tbody id="htbody">${data.slice().reverse().map(r=>`<tr><td>${r.fecha}</td><td>${r.dia}</td><td>${r.rango}</td><td>${r.nombre}</td></tr>`).join('')}</tbody></table>`;
+    c.appendChild(card);
+    window._histOk=true; window._hOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
-
-function filtrarHistorial() {
-  const busca = document.getElementById('hist-busca')?.value.toLowerCase() || '';
-  const dia   = document.getElementById('hist-dia')?.value || '';
-  const filas = document.querySelectorAll('#hist-body tr');
-  filas.forEach(tr => {
-    const tds = tr.querySelectorAll('td');
-    const okBusca = !busca || tds[3]?.textContent.toLowerCase().includes(busca);
-    const okDia   = !dia   || tds[1]?.textContent === dia;
-    tr.style.display = (okBusca && okDia) ? '' : 'none';
+function filtH() {
+  const b=(document.getElementById('hbusca')?.value||'').toLowerCase();
+  const d=document.getElementById('hdia')?.value||'';
+  document.querySelectorAll('#htbody tr').forEach(tr => {
+    const tds=tr.querySelectorAll('td');
+    tr.style.display=(!b||tds[3]?.textContent.toLowerCase().includes(b))&&(!d||tds[1]?.textContent===d)?'':'none';
   });
 }
 
-// ══════════════════════════════════════════════════════════
-//  MODAL QUIÉN CUBRE
-// ══════════════════════════════════════════════════════════
-async function abrirCubre(semana, dia, rango) {
-  document.getElementById('modal-titulo').textContent = `🔄 ¿Quién puede cubrir? ${rango}`;
-  document.getElementById('modal-body').innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando candidatos…</p></div>`;
-  abrirModal('modal-cubre');
+// ══════════════════════════════════════
+//  CALENDARIO CONFIG
+// ══════════════════════════════════════
+async function loadCalendario(force) {
+  if (window._calOk && !force) return;
+  const c=document.getElementById('tab-calendario');
+  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div>`;
   try {
-    const data = await apiGet({action:'quienCubre', semana, dia, rango});
+    const data=await apiGet({action:'getCalendarioConfig'});
     if (data.error) throw new Error(data.error);
-    if (!data.candidatos?.length) {
-      document.getElementById('modal-body').innerHTML = `<p style="text-align:center;color:var(--label3);font-size:0.85rem;">Sin candidatos disponibles.</p>`;
-      return;
-    }
-    const grupos = { disponible:[], reducido:[], bloqueado:[] };
-    data.candidatos.forEach(c => grupos[c.estado].push(c));
-    let html = '';
-    [['disponible','✅ Disponibles'],['reducido','⚡ Descanso reducido'],['bloqueado','🔒 Bloqueados']].forEach(([k,lbl]) => {
-      if (!grupos[k].length) return;
-      html += `<div class="cubre-section-label">${lbl}</div>`;
-      grupos[k].forEach(c => {
-        html += `<div class="cubre-row">
-          <div class="cubre-dot est-${c.estado}"></div>
-          <div class="cubre-info">
-            <div class="cubre-nombre">${c.llave?'🔑 ':''}${c.nombre}</div>
-            <div class="cubre-meta">🕐 ${c.horario} · ${c.dias>=99?'Nuevo':c.dias+' d descanso'} · ${c.dispo} d/mes</div>
-          </div>
-        </div>`;
-      });
-    });
-    document.getElementById('modal-body').innerHTML = html;
-  } catch(e) {
-    document.getElementById('modal-body').innerHTML = `<p style="color:var(--red);font-size:0.85rem;">Error: ${e.message}</p>`;
-  }
+    S.calConfig=data.dias||[];
+    renderCalendario(c, S.calConfig);
+    window._calOk=true;
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
 
-// ══════════════════════════════════════════════════════════
-//  EXPORTAR E IMPRIMIR
-// ══════════════════════════════════════════════════════════
-async function exportarCuadrante() {
+function renderCalendario(c, dias) {
+  c.innerHTML='';
+  const intro=document.createElement('p');
+  intro.style='font-size:.82rem;color:var(--label3);margin-bottom:1.1rem';
+  intro.textContent='Configura qué días hay turno, el nombre de la naviera y el tipo de estancia. Los cambios se guardan en el Spreadsheet.';
+  c.appendChild(intro);
+
+  dias.forEach((d, i) => {
+    const row=document.createElement('div');
+    row.className='cal-row';
+    const naviTagsHTML=d.navieras.map((n,ni)=>`<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`).join('');
+    row.innerHTML=`
+      <div style="min-width:95px">
+        <div class="cal-fecha">${d.fecha}</div>
+        <div class="cal-dia">${d.dia}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.4rem">
+        <label class="toggle-sw"><input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})"><span class="toggle-sl"></span></label>
+        <span style="font-size:.75rem;color:var(--label3)">${d.activo?'Activo':'Inactivo'}</span>
+      </div>
+      <div class="cal-navieras" id="cal-nv-${i}">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.3rem" id="cal-tags-${i}">
+          ${naviTagsHTML}
+        </div>
+        <div style="display:flex;gap:.35rem">
+          <input class="fc" id="cal-ninput-${i}" placeholder="Nombre naviera…" style="font-size:.75rem;padding:.35rem .6rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
+          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+ Añadir</button>
+        </div>
+      </div>
+      <div class="cal-estancia">
+        <select class="fc" id="cal-est-${i}" style="font-size:.75rem;padding:.35rem .6rem" onchange="S.calConfig[${i}].estancia=this.value">
+          <option value="">Sin estancia</option>
+          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Estancia todo el día</option>
+          <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
+          <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
+          <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
+        </select>
+      </div>`;
+    c.appendChild(row);
+  });
+}
+
+function toggleCalDia(i) {
+  S.calConfig[i].activo = document.getElementById(`cal-act-${i}`).checked;
+  const label=document.querySelector(`#cal-act-${i}`).closest('.cal-row').querySelector('span');
+  if (label) label.textContent = S.calConfig[i].activo?'Activo':'Inactivo';
+}
+
+function añadirNaviera(i) {
+  const inp=document.getElementById(`cal-ninput-${i}`);
+  const nombre=inp?.value.trim();
+  if (!nombre) return;
+  if (!S.calConfig[i].navieras) S.calConfig[i].navieras=[];
+  const ni=S.calConfig[i].navieras.length;
+  S.calConfig[i].navieras.push(nombre);
+  inp.value='';
+  const tags=document.getElementById(`cal-tags-${i}`);
+  if (tags) tags.insertAdjacentHTML('beforeend',`<span class="navi-tag">${nombre}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`);
+}
+
+function quitarNaviera(i, ni) {
+  S.calConfig[i].navieras.splice(ni,1);
+  // Re-render las tags de ese día
+  const tags=document.getElementById(`cal-tags-${i}`);
+  if (tags) tags.innerHTML=S.calConfig[i].navieras.map((n,j)=>`<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${j})">×</button></span>`).join('');
+}
+
+async function guardarCalendario() {
   try {
-    const data = await apiGet({action:'exportarCuadrante'});
-    toast(data.message || 'Exportado ✓', 'ok');
+    // Recoger estancias actuales
+    S.calConfig.forEach((d,i) => { const sel=document.getElementById(`cal-est-${i}`); if (sel) d.estancia=sel.value; });
+    await apiPost({accion:'guardarCalendarioConfig', dias:S.calConfig});
+    window._calOk=false;
+    toast('Calendario guardado ✓','ok');
   } catch(e) { toast('Error: '+e.message,'err'); }
 }
 
+// ══════════════════════════════════════
+//  MODAL QUIÉN CUBRE
+// ══════════════════════════════════════
+async function openCubre(sem, dia, rango) {
+  document.getElementById('mcubre-titulo').textContent=`🔄 Quién puede cubrir — ${rango}`;
+  document.getElementById('mcubre-body').innerHTML=`<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando…</p></div>`;
+  openModal('mcubre');
+  try {
+    const data=await apiGet({action:'quienCubre', semana:sem, dia, rango});
+    if (!data.candidatos?.length) { document.getElementById('mcubre-body').innerHTML=`<p style="text-align:center;color:var(--label3)">Sin candidatos.</p>`; return; }
+    const grupos={disponible:[],reducido:[],bloqueado:[]};
+    data.candidatos.forEach(c=>grupos[c.estado].push(c));
+    let html='';
+    [['disponible','✅ Disponibles'],['reducido','⚡ Descanso reducido'],['bloqueado','🔒 Bloqueados']].forEach(([k,l]) => {
+      if (!grupos[k].length) return;
+      html+=`<div class="csec">${l}</div>`;
+      grupos[k].forEach(c=>{ html+=`<div class="cubre-row"><div class="cdot ${k==='disponible'?'disp':k==='reducido'?'red':'blq'}"></div><div class="cinfo"><div class="cname">${c.llave?'🔑 ':''}${c.nombre}</div><div class="cmeta">🕐 ${c.horario} · ${c.dias>=99?'Nuevo':c.dias+'d'} · ${c.dispo}d/mes</div></div></div>`; });
+    });
+    document.getElementById('mcubre-body').innerHTML=html;
+  } catch(e) { document.getElementById('mcubre-body').innerHTML=`<p style="color:var(--red)">Error: ${e.message}</p>`; }
+}
+
+// ══════════════════════════════════════
+//  EXPORTAR / IMPRIMIR
+// ══════════════════════════════════════
+async function exportarSheet() {
+  try { const d=await apiGet({action:'exportarCuadrante'}); toast(d.message||'Exportado ✓','ok'); }
+  catch(e) { toast('Error: '+e.message,'err'); }
+}
+
 function imprimirCuadrante() {
-  if (!state.cuadrante) { toast('Carga el cuadrante primero','err'); return; }
-  const printDiv = document.getElementById('cuadrante-print');
-  printDiv.innerHTML = generarPrintHTML(state.cuadrante);
+  if (!S.plan) { toast('Carga el cuadrante primero','err'); return; }
+  document.getElementById('print-area').innerHTML=buildPrintHTML(S.plan);
   window.print();
 }
 
-function generarPrintHTML(plan) {
-  const hoy = new Date();
-  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const mes = meses[hoy.getMonth()].toUpperCase();
-  const anio = hoy.getFullYear();
+function buildPrintHTML(plan) {
+  const hoy=new Date();
+  const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mes=MESES[hoy.getMonth()].toUpperCase();
+  const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
 
-  let bloques = '';
+  let bloques='';
   plan.forEach(d => {
-    const turnos = (d.turnos || []).filter(t => !t.sinLlave && t.equipo?.length);
+    const turnos=(d.turnos||[]).filter(t=>!t.sinLlave&&t.equipo?.length);
     if (!turnos.length) return;
+    const fecha=new Date(d.fechaRaw);
+    const fechaFmt=`${dias[fecha.getDay()]} ${fecha.getDate()}`;
 
-    // Extraer nombre del día (Viernes 9, Sábado 10, etc.)
-    const partes = d.fechaLabel.split(' - ');
-    const fechaStr = partes[0] || d.fechaLabel;
-    const diaNom = partes[1] || '';
+    // Info naviera del calConfig
+    let barcoHTML='';
+    const calDia=S.calConfig?.find(c=>c.fecha===d.fechaStr||(d.fechaLabel&&d.fechaLabel.startsWith(c.fecha)));
+    if (calDia?.navieras?.length) {
+      calDia.navieras.forEach(n => { barcoHTML+=`<div class="pbarco">🚢 ${n}${calDia.estancia?' | '+calDia.estancia:''}<br>📍 Delicias</div>`; });
+    }
 
-    // Formatear fecha como "Viernes 9"
-    const fecha = new Date(d.fechaRaw);
-    const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    const fechaFormato = `${diasSemana[fecha.getDay()]} ${fecha.getDate()}`;
-
-    const turnosHTML = turnos.map(t => {
-      const vols = (state.turnosEditados[`${d.semana}|${d.dia}|${t.rango}`] || t.equipo);
-      const volsHTML = vols.map(v => `
-        <span class="ptr-vol ${v.llave?'llave':''}">
-          ${v.llave?'<span class="llave-icon">🔑</span> ':''}${v.nombre}
-        </span>`).join('');
-      return `
-        <div class="print-turno-row">
-          <div class="ptr-hora">
-            <div class="ph-label">TURNO</div>
-            <div class="ph-time">${t.rango}</div>
-          </div>
-          <div class="ptr-vols">${volsHTML}</div>
-        </div>`;
+    const turnosHTML=turnos.map(t => {
+      const equipo=S.edits[`${d.semana}|${d.dia}|${t.rango}`]||t.equipo;
+      return `<div class="pturno-row">
+        <div class="pthora"><div class="phl">TURNO</div><div class="pht">${t.rango}</div></div>
+        <div class="ptvols">${equipo.map(v=>`<span class="pvol${v.llave?' pllave':''}">
+          ${v.llave?'<span style="margin-right:2px">🔑</span>':''}${v.nombre}
+        </span>`).join('')}</div>
+      </div>`;
     }).join('');
 
-    bloques += `
-      <div class="print-dia-block" style="margin-bottom:8px;">
-        <div class="print-dia-info">
-          <div class="pdi-fecha">${fechaFormato}</div>
-        </div>
-        <div class="print-turnos">${turnosHTML}</div>
-      </div>`;
+    bloques+=`<div class="pbloque">
+      <div class="pinfo"><div class="pfecha">${fechaFmt}</div>${barcoHTML}</div>
+      <div class="pturnos">${turnosHTML}</div>
+    </div>`;
   });
 
-  return `
-    <div class="print-wrap">
-      <div class="print-titulo">PROGRAMA PREDICACIÓN PUERTO - ${mes}</div>
-      ${bloques}
-      <div class="print-nota">
-        <strong>Nota:</strong> El nombre sombreado en naranja indica que el voluntario <strong style="color:#f5a400">tiene llave</strong>
-        y por tanto es responsable de recoger y depositar los expositores en el salón del reino de La Oliva.
-      </div>
-      <div class="print-contacto">
-        Si por algún motivo no podéis atender vuestro turno, contactar con <strong>MANUEL FERNÁNDEZ</strong>
-        enviando un mensaje privado por Whatsapp al <strong>622 71 45 85</strong>.
-      </div>
-    </div>`;
+  return `<div class="pw">
+    <div class="ptitulo">PROGRAMA PREDICACIÓN PUERTO - ${mes}</div>
+    ${bloques}
+    <div class="pnota"><strong>Nota:</strong> El nombre sombreado indica que el voluntario <strong style="color:#f5a400">tiene llave</strong> y es responsable de recoger y depositar los expositores en el Salón del Reino de La Oliva.</div>
+    <div class="pcontacto">Si por algún motivo no podéis atender vuestro turno, contactar con <strong>MANUEL FERNÁNDEZ</strong> enviando un mensaje privado por Whatsapp al <strong>622 71 45 85</strong>.<br><br><strong>Enlace al cuestionario:</strong> <span style="color:#1a56a0">formulario.ejemplo.com/turno</span></div>
+  </div>`;
 }
 
-// ══════════════════════════════════════════════════════════
-//  MODALES / UTILIDADES
-// ══════════════════════════════════════════════════════════
-function abrirModal(id) { document.getElementById(id).classList.add('open'); }
-function cerrarModal(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.modal-overlay').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === e.currentTarget) m.classList.remove('open'); });
-});
+// ══════════════════════════════════════
+//  MODAL / UTILS
+// ══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.moverlay').forEach(m => m.addEventListener('click', e => { if (e.target===e.currentTarget) m.classList.remove('open'); }));
 
 function toast(msg, type='ok') {
-  const el = document.createElement('div');
-  el.className = `toast ${type}`;
-  el.textContent = msg;
+  const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg;
   document.getElementById('toasts').appendChild(el);
-  setTimeout(() => el.remove(), 3500);
+  setTimeout(()=>el.remove(), 3500);
 }
 
 // ── INIT
-cargarCuadrante();
+loadCuadrante();
+// Cargar config calendario en background para tenerlo disponible en el cuadrante
+apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
 </script>
 </body>
 </html>
