@@ -663,21 +663,17 @@ function renderDia(d) {
   }
 
   if (turnos.length === 0) {
-    const candidatosHtml = (diag.candidatos && diag.candidatos.length)
-      ? '<div class="cands-wrap">' + diag.candidatos.map(c =>
-          '<span class="cand-chip">' + (c.llave ? '🔑 ' : '') + c.nombre +
-          '<span class="cand-meta"> · 🕐 ' + c.horario + '</span></span>'
-        ).join('') + '</div>'
-      : '';
     sec.insertAdjacentHTML('beforeend', `
       <div class="no-turnos">
         <h6>⚠️ Sin cuadrante disponible</h6>
         <p>Los voluntarios disponibles no coinciden en una franja de 2h con ≥3 personas.</p>
         ${diag.bloqueados?.length ? `<div class="blocked-list" style="margin-bottom:0.5rem">🔒 Bloqueados: ${diag.bloqueados.join(' · ')}</div>` : ''}
-        ${candidatosHtml}
-        <div class="blocked-list" style="margin-top:0.5rem">Total disponibles: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
+        <div class="blocked-list" style="margin-top:0.25rem">Total disponibles: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
       </div>
     `);
+    if (diag.todos && diag.todos.length > 0) {
+      sec.appendChild(renderDispoPanel(diag.todos, d));
+    }
     return sec;
   }
 
@@ -730,7 +726,7 @@ function renderTurno(t, d) {
     el.className = 'card-no-llave';
     el.innerHTML = `
       <div class="no-llave-head">
-        <span>🔑 ${t.rango} — Sin portador de llave</span>
+        <span>🔑 ${t.rango} — Sin hermano que tenga llave</span>
       </div>
       <div class="no-llave-body">
         <p>${t.sustitutos.length} voluntarios disponibles pero ninguno tiene llave. El turno no puede confirmarse.</p>
@@ -780,7 +776,7 @@ function renderTurno(t, d) {
     </div>
     <div class="card-body">
       <div class="col-left">
-        <div class="col-label">Equipo asignado (${t.equipo.length})</div>
+        <div class="col-label">Turno asignado (${t.equipo.length})</div>
         ${equipoHtml}
       </div>
       <div class="col-right">
