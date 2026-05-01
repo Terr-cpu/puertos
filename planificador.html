@@ -6,541 +6,239 @@
 <title>Turnos · Puerto de Sevilla</title>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-/* ── TOKENS ────────────────────────────────────────────── */
+/* ── TOKENS ─────────────────────────────────────────────── */
 :root {
-  --bg:        #f2f2f7;
-  --surface:   #ffffff;
-  --surface2:  #f7f7fb;
-  --navy:      #0a1628;
-  --blue:      #0071e3;
-  --blue-soft: #e8f1fc;
-  --amber:     #ff9500;
-  --amber-soft:#fff3e0;
-  --green:     #34c759;
-  --green-soft:#e9f9ee;
-  --red:       #ff3b30;
-  --gold:      #c9a84c;
-  --label1:    #1c1c1e;
-  --label2:    #48484a;
-  --label3:    #8e8e93;
-  --label4:    #c7c7cc;
-  --sep:       rgba(60,60,67,0.12);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.1), 0 2px 8px rgba(0,0,0,0.06);
-  --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
-  --r-xl: 28px;
+  --bg:         #f2f2f7;
+  --surface:    #ffffff;
+  --surface2:   #f7f7fb;
+  --navy:       #0a1628;
+  --blue:       #0071e3;
+  --blue-soft:  #e8f1fc;
+  --amber:      #ff9500;
+  --amber-soft: #fff3e0;
+  --green:      #34c759;
+  --green-soft: #e9f9ee;
+  --red:        #ff3b30;
+  --red-soft:   #fff0ef;
+  --purple:     #af52de;
+  --purple-soft:#f5eeff;
+  --gold:       #c9a84c;
+  --label1:     #1c1c1e;
+  --label2:     #48484a;
+  --label3:     #8e8e93;
+  --label4:     #c7c7cc;
+  --sep:        rgba(60,60,67,0.12);
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px;
 }
-
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
 html { scroll-behavior: smooth; }
+body { background: var(--bg); font-family: 'Sora', -apple-system, sans-serif; color: var(--label1); min-height: 100vh; }
 
-body {
-  background: var(--bg);
-  font-family: 'Sora', -apple-system, BlinkMacSystemFont, sans-serif;
-  color: var(--label1);
-  min-height: 100vh;
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* ── HERO HEADER ─────────────────────────────────────── */
+/* ── HERO ────────────────────────────────────────────────── */
 .hero {
   background: linear-gradient(160deg, #0a1628 0%, #0d2346 60%, #0f3060 100%);
-  padding: 3.5rem 1.5rem 5rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
+  padding: 3.5rem 1.5rem 5rem; text-align: center; position: relative; overflow: hidden;
 }
 .hero::before {
-  content: '';
-  position: absolute; inset: 0;
-  background:
-    radial-gradient(ellipse 80% 60% at 20% 100%, rgba(0,113,227,0.18) 0%, transparent 70%),
-    radial-gradient(ellipse 60% 50% at 80% 0%,   rgba(201,168,76,0.12) 0%, transparent 70%);
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 100%, rgba(0,113,227,0.18) 0%, transparent 70%),
+              radial-gradient(ellipse 60% 50% at 80% 0%, rgba(201,168,76,0.12) 0%, transparent 70%);
 }
 .hero-inner { position: relative; }
 .hero-icon {
   width: 64px; height: 64px;
   background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05));
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 18px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 1.8rem;
-  margin: 0 auto 1.25rem;
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.2); border-radius: 18px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+  margin: 0 auto 1.25rem; backdrop-filter: blur(12px); box-shadow: 0 8px 24px rgba(0,0,0,0.3);
 }
-.hero h1 {
-  font-size: clamp(1.5rem, 4vw, 2rem);
-  font-weight: 700;
-  color: #fff;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+.hero h1 { font-size: clamp(1.5rem,4vw,2rem); font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+.hero p { color: rgba(255,255,255,0.45); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 0.5rem; }
+.hero-line { width: 36px; height: 2px; background: linear-gradient(90deg, var(--gold), transparent); margin: 1rem auto 0; border-radius: 2px; }
+
+/* ── NAVBAR TABS ─────────────────────────────────────────── */
+.navbar-wrap { position: sticky; top: 0; z-index: 200; padding: 0 1rem; margin-top: -2.5rem; }
+.navbar {
+  background: rgba(255,255,255,0.88); backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.6); border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg); padding: 0.6rem; display: flex; gap: 0.35rem; flex-wrap: wrap;
+  align-items: center; justify-content: center;
 }
-.hero p {
-  color: rgba(255,255,255,0.45);
-  font-size: 0.8rem;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-top: 0.5rem;
+.tab-btn {
+  background: transparent; border: none; padding: 0.55rem 1rem; border-radius: var(--r-lg);
+  font-family: inherit; font-size: 0.82rem; font-weight: 600; color: var(--label3);
+  cursor: pointer; display: flex; align-items: center; gap: 0.35rem; transition: all 0.18s ease; white-space: nowrap;
 }
-.hero-line {
-  width: 36px; height: 2px;
-  background: linear-gradient(90deg, var(--gold), transparent);
-  margin: 1rem auto 0;
-  border-radius: 2px;
+.tab-btn:hover { background: var(--surface2); color: var(--label1); }
+.tab-btn.active { background: var(--navy); color: #fff; }
+.tab-btn .badge {
+  background: var(--red); color: #fff; font-size: 0.6rem; font-weight: 700;
+  padding: 0.1rem 0.4rem; border-radius: 10px; min-width: 18px; text-align: center;
 }
 
-/* ── TOOLBAR (pill flotante) ──────────────────────────── */
-.toolbar-wrap {
-  position: sticky;
-  top: 0;
-  z-index: 200;
-  padding: 0 1rem;
-  margin-top: -2.5rem;
-}
-.toolbar {
-  background: rgba(255,255,255,0.85);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid rgba(255,255,255,0.6);
-  border-radius: var(--r-xl);
-  box-shadow: var(--shadow-lg);
-  padding: 0.75rem;
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-}
-
-.btn-primary {
-  background: var(--navy);
-  color: #fff;
-  border: none;
-  padding: 0.65rem 1.4rem;
-  border-radius: var(--r-lg);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 0.45rem;
-  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
-  white-space: nowrap;
-}
-.btn-primary:hover { background: #1a2e52; transform: scale(1.02); box-shadow: 0 4px 16px rgba(10,22,40,0.3); }
-.btn-primary:active { transform: scale(0.98); }
-
-.btn-secondary {
-  background: var(--surface2);
-  color: var(--label2);
-  border: 1px solid var(--sep);
-  padding: 0.65rem 1.2rem;
-  border-radius: var(--r-lg);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex; align-items: center; gap: 0.4rem;
-  transition: all 0.18s ease;
-  white-space: nowrap;
-}
-.btn-secondary:hover { background: #ebebf0; border-color: #c7c7cc; }
-.btn-secondary:active { transform: scale(0.97); }
-
-/* ── PANEL MANUAL ─────────────────────────────────────── */
-.manual-panel {
-  display: none;
-  width: 100%;
-  padding: 0.5rem 0.25rem 0;
-  gap: 0.5rem;
-  align-items: center;
-  flex-wrap: wrap;
-  justify-content: center;
-}
+/* Panel manual */
+.manual-panel { display: none; width: 100%; padding: 0.4rem 0.25rem 0; gap: 0.4rem; align-items: center; flex-wrap: wrap; justify-content: center; }
 .manual-panel.visible { display: flex; }
-.manual-panel select {
-  border: 1px solid var(--sep);
-  border-radius: var(--r-md);
-  padding: 0.55rem 0.9rem;
-  font-family: inherit;
-  font-size: 0.85rem;
-  color: var(--label1);
-  background: var(--surface);
-  outline: none;
-  cursor: pointer;
-  transition: border-color 0.15s;
-}
-.manual-panel select:focus { border-color: var(--blue); }
-.btn-go {
-  background: var(--blue);
-  color: #fff;
-  border: none;
-  padding: 0.55rem 1.2rem;
-  border-radius: var(--r-md);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-.btn-go:hover { background: #0062c4; transform: scale(1.02); }
+.manual-panel select { border: 1px solid var(--sep); border-radius: var(--r-md); padding: 0.5rem 0.8rem; font-family: inherit; font-size: 0.83rem; color: var(--label1); background: var(--surface); outline: none; cursor: pointer; }
+.btn-go { background: var(--blue); color: #fff; border: none; padding: 0.5rem 1.1rem; border-radius: var(--r-md); font-family: inherit; font-size: 0.83rem; font-weight: 600; cursor: pointer; transition: all 0.18s; }
+.btn-go:hover { background: #0062c4; }
 
-/* ── CONTENIDO PRINCIPAL ──────────────────────────────── */
-.main {
-  max-width: 860px;
-  margin: 0 auto;
-  padding: 2rem 1rem 5rem;
-}
+/* ── MAIN ────────────────────────────────────────────────── */
+.main { max-width: 860px; margin: 0 auto; padding: 2rem 1rem 5rem; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
 
-/* ── SPINNER ──────────────────────────────────────────── */
-.loading {
-  text-align: center;
-  padding: 5rem 0;
-}
-.spinner {
-  width: 44px; height: 44px;
-  border: 3px solid var(--sep);
-  border-top-color: var(--blue);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin: 0 auto 1rem;
-}
+/* ── SPINNER ─────────────────────────────────────────────── */
+.loading { text-align: center; padding: 5rem 0; }
+.spinner { width: 44px; height: 44px; border: 3px solid var(--sep); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 1rem; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .loading p { color: var(--label3); font-size: 0.88rem; font-weight: 500; }
 
-/* ── ESTADO VACÍO ─────────────────────────────────────── */
-.empty-state {
-  text-align: center;
-  padding: 5rem 1rem;
-}
-.empty-state .empty-icon {
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  display: block;
-  opacity: 0.4;
-}
+/* ── ESTADO VACÍO ────────────────────────────────────────── */
+.empty-state { text-align: center; padding: 5rem 1rem; }
+.empty-state .ei { font-size: 3.5rem; margin-bottom: 1rem; display: block; opacity: 0.35; }
 .empty-state h4 { font-size: 1rem; font-weight: 600; color: var(--label2); margin-bottom: 0.4rem; }
 .empty-state p  { font-size: 0.85rem; color: var(--label3); line-height: 1.5; }
 
-/* ── DÍA SECCIÓN ──────────────────────────────────────── */
-.dia-section {
-  margin-bottom: 0.5rem;
-  animation: fadeUp 0.35s ease both;
-}
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ── DÍA SECCIÓN ─────────────────────────────────────────── */
+.dia-section { margin-bottom: 0.5rem; animation: fadeUp 0.35s ease both; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+.dia-label { display: flex; align-items: center; gap: 0.6rem; padding: 1.8rem 0.25rem 0.75rem; flex-wrap: wrap; }
+.dia-label-text { font-size: 0.95rem; font-weight: 700; color: var(--label1); letter-spacing: -0.01em; }
+.dia-chip { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: var(--navy); color: var(--gold); padding: 0.2rem 0.6rem; border-radius: 6px; }
+.dia-chip.confirmado { background: var(--green); color: #fff; }
 
-.dia-label {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 1.8rem 0.25rem 0.75rem;
-}
-.dia-label-text {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--label1);
-  letter-spacing: -0.01em;
-}
-.dia-chip {
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  background: var(--navy);
-  color: var(--gold);
-  padding: 0.2rem 0.6rem;
-  border-radius: 6px;
-}
-
-/* ── AVISO DEGRADED ───────────────────────────────────── */
-.aviso-strip {
-  background: var(--amber-soft);
-  border-left: 3px solid var(--amber);
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
-  padding: 0.6rem 1rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #7a4500;
-  margin-bottom: 0.75rem;
-}
-
-/* ── SIN TURNOS ───────────────────────────────────────── */
-.no-turnos {
-  background: var(--surface);
-  border: 1.5px dashed var(--label4);
-  border-radius: var(--r-lg);
-  padding: 1.5rem;
-  text-align: center;
-  margin-bottom: 0.5rem;
-}
+/* ── AVISO / ERROR ───────────────────────────────────────── */
+.aviso-strip { background: var(--amber-soft); border-left: 3px solid var(--amber); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 600; color: #7a4500; margin-bottom: 0.75rem; }
+.error-strip { background: var(--red-soft); border-left: 3px solid var(--red); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 600; color: #8b0000; margin-bottom: 0.75rem; }
+.no-turnos { background: var(--surface); border: 1.5px dashed var(--label4); border-radius: var(--r-lg); padding: 1.5rem; text-align: center; margin-bottom: 0.5rem; }
 .no-turnos h6 { font-size: 0.88rem; font-weight: 600; color: var(--label2); margin-bottom: 0.3rem; }
 .no-turnos p  { font-size: 0.78rem; color: var(--label3); }
-.blocked-list { font-size: 0.75rem; color: var(--label4); margin-top: 0.5rem; }
+.blocked-list { font-size: 0.75rem; color: var(--label4); margin-top: 0.4rem; }
 
-/* ── TARJETA TURNO ────────────────────────────────────── */
-.card {
-  background: var(--surface);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-md);
-  margin-bottom: 0.75rem;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.04);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
+/* ── CARD TURNO ──────────────────────────────────────────── */
+.card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-md); margin-bottom: 0.75rem; overflow: hidden; border: 1px solid rgba(0,0,0,0.04); transition: box-shadow 0.2s, transform 0.2s; }
 .card:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
-
-/* Barra de color lateral (indicador tipo) */
-.card-accent {
-  height: 4px;
-}
-.accent-manana { background: linear-gradient(90deg, #0071e3, #34aadc); }
-.accent-tarde  { background: linear-gradient(90deg, #ff9500, #ffcc00); }
-
-/* Cabecera tarjeta */
-.card-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 1rem 1.1rem 0.5rem;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-.card-hora {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--label1);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-.card-tipo {
-  display: inline-block;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  padding: 0.18rem 0.55rem;
-  border-radius: 5px;
-  margin-top: 0.35rem;
-}
-.tipo-m { background: var(--blue-soft);  color: var(--blue); }
+.card.confirmado-card { border: 1.5px solid #b8edc8; }
+.card-accent { height: 4px; }
+.accent-m { background: linear-gradient(90deg,#0071e3,#34aadc); }
+.accent-t { background: linear-gradient(90deg,#ff9500,#ffcc00); }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 1rem 1.1rem 0.5rem; gap: 0.75rem; flex-wrap: wrap; }
+.card-hora { font-size: 1.3rem; font-weight: 700; color: var(--label1); letter-spacing: -0.03em; line-height: 1; }
+.card-tipo { display: inline-block; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.18rem 0.55rem; border-radius: 5px; margin-top: 0.35rem; }
+.tipo-m { background: var(--blue-soft); color: var(--blue); }
 .tipo-t { background: var(--amber-soft); color: #b86000; }
+.tipo-conf { background: var(--green-soft); color: #1a7a3a; }
+.card-head-actions { display: flex; gap: 0.5rem; align-items: flex-start; flex-wrap: wrap; }
 
-/* Botón confirmar */
-.btn-confirm {
-  background: var(--green);
-  color: #fff;
-  border: none;
-  padding: 0.55rem 1.2rem;
-  border-radius: var(--r-md);
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
-  white-space: nowrap;
-  display: flex; align-items: center; gap: 0.3rem;
-  align-self: flex-start;
-}
-.btn-confirm:hover { background: #28a745; transform: scale(1.04); box-shadow: 0 4px 14px rgba(52,199,89,0.35); }
-.btn-confirm:active { transform: scale(0.97); }
-.btn-confirm:disabled { background: var(--label4); cursor: not-allowed; transform: none; box-shadow: none; }
-.btn-confirm.saved { background: var(--label3); }
+/* Botones acción */
+.btn-confirm { background: var(--green); color: #fff; border: none; padding: 0.52rem 1.1rem; border-radius: var(--r-md); font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; display: flex; align-items: center; gap: 0.3rem; }
+.btn-confirm:hover { background: #28a745; transform: scale(1.04); }
+.btn-confirm:disabled, .btn-confirm.saved { background: var(--label4); cursor: not-allowed; transform: none; }
+.btn-cubrir { background: var(--blue-soft); color: var(--blue); border: 1px solid #b8d4f8; padding: 0.52rem 1rem; border-radius: var(--r-md); font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.18s; white-space: nowrap; }
+.btn-cubrir:hover { background: #d0e8fc; }
 
-/* Cuerpo tarjeta — dos columnas */
-.card-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0;
-  padding: 0 1.1rem 1.1rem;
-}
-@media (max-width: 560px) {
-  .card-body { grid-template-columns: 1fr; }
-  .col-right  { border-left: none !important; padding-left: 0 !important; margin-top: 0.75rem; border-top: 1px solid var(--sep); padding-top: 0.75rem; }
-}
-.col-left  { padding-right: 1rem; }
+/* Cuerpo card */
+.card-body { display: grid; grid-template-columns: 1fr 1fr; padding: 0 1.1rem 1.1rem; gap: 0; }
+@media (max-width:560px) { .card-body { grid-template-columns:1fr; } .col-right { border-left:none!important; padding-left:0!important; margin-top:0.75rem; border-top:1px solid var(--sep); padding-top:0.75rem; } }
+.col-left { padding-right: 1rem; }
 .col-right { border-left: 1px solid var(--sep); padding-left: 1rem; }
+.col-label { font-size: 0.63rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--label3); margin-bottom: 0.55rem; }
 
-.col-label {
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--label3);
-  margin-bottom: 0.55rem;
-}
-
-/* Voluntario en equipo */
-.v-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: var(--surface2);
-  border-radius: var(--r-sm);
-  padding: 0.55rem 0.7rem;
-  margin-bottom: 0.35rem;
-  transition: background 0.15s;
-}
+/* Filas voluntario */
+.v-row { display: flex; align-items: center; justify-content: space-between; background: var(--surface2); border-radius: var(--r-sm); padding: 0.52rem 0.7rem; margin-bottom: 0.35rem; transition: background 0.15s; }
 .v-row:hover { background: #ebebf0; }
 .v-info { flex: 1; min-width: 0; }
-.v-name {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--label1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.v-sub {
-  font-size: 0.68rem;
-  color: var(--label3);
-  margin-top: 0.08rem;
-  font-weight: 400;
-}
-.v-horario {
-  font-size: 0.66rem;
-  color: var(--blue);
-  font-weight: 600;
-  margin-top: 0.05rem;
-}
-.badge-key {
-  background: var(--navy);
-  color: var(--gold);
-  font-size: 0.58rem;
-  font-weight: 700;
-  padding: 0.15rem 0.45rem;
-  border-radius: 5px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  flex-shrink: 0;
-  margin-left: 0.4rem;
-}
+.v-name { font-size: 0.84rem; font-weight: 600; color: var(--label1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v-sub  { font-size: 0.67rem; color: var(--label3); margin-top: 0.06rem; }
+.v-horario { font-size: 0.65rem; color: var(--blue); font-weight: 600; margin-top: 0.04rem; }
+.badge-key { background: var(--navy); color: var(--gold); font-size: 0.58rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 5px; letter-spacing: 0.04em; text-transform: uppercase; flex-shrink: 0; margin-left: 0.4rem; }
 
 /* Chips sustitutos */
 .sust-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; padding-top: 0.2rem; }
-.sust-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  background: var(--surface2);
-  border: 1px solid var(--sep);
-  border-radius: 20px;
-  padding: 0.28rem 0.6rem;
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--label2);
-  transition: all 0.15s;
-}
-.sust-chip:hover { background: #ebebf0; border-color: #c7c7cc; }
+.sust-chip { display: inline-flex; align-items: center; gap: 0.25rem; background: var(--surface2); border: 1px solid var(--sep); border-radius: 20px; padding: 0.28rem 0.6rem; font-size: 0.72rem; font-weight: 500; color: var(--label2); }
 .sust-chip-meta { font-size: 0.62rem; color: var(--label3); }
 
-/* ── ALERTA SIN LLAVE ─────────────────────────────────── */
-.card-no-llave {
-  background: #fffbf0;
-  border: 1.5px solid #ffe5a0;
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  margin-bottom: 0.75rem;
-}
-.no-llave-head {
-  display: flex; align-items: center; gap: 0.6rem;
-  padding: 0.85rem 1.1rem;
-  border-bottom: 1px solid #ffe5a0;
-}
+/* ── ALERTA SIN LLAVE ────────────────────────────────────── */
+.card-no-llave { background: #fffbf0; border: 1.5px solid #ffe5a0; border-radius: var(--r-lg); overflow: hidden; margin-bottom: 0.75rem; }
+.no-llave-head { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.1rem; border-bottom: 1px solid #ffe5a0; }
 .no-llave-head span { font-size: 0.85rem; font-weight: 600; color: #7a5000; }
 .no-llave-body { padding: 0.75rem 1.1rem; }
 .no-llave-body p { font-size: 0.78rem; color: #9a6500; margin-bottom: 0.6rem; }
 
-/* ── PANEL DISPONIBILIDAD COMPLETA ───────────────────── */
-.dispo-panel {
-  background: var(--surface);
-  border-radius: var(--r-md);
-  border: 1px solid var(--sep);
-  margin-bottom: 0.5rem;
-  overflow: hidden;
-}
-.dispo-toggle {
-  width: 100%; background: none; border: none;
-  padding: 0.7rem 1rem;
-  display: flex; align-items: center; justify-content: space-between;
-  font-family: inherit; font-size: 0.78rem; font-weight: 600;
-  color: var(--label3); cursor: pointer; text-align: left;
-  transition: background 0.15s;
-}
+/* ── PANEL DISPONIBILIDAD ────────────────────────────────── */
+.dispo-panel { background: var(--surface); border-radius: var(--r-md); border: 1px solid var(--sep); margin-bottom: 0.5rem; overflow: hidden; }
+.dispo-toggle { width: 100%; background: none; border: none; padding: 0.7rem 1rem; display: flex; align-items: center; justify-content: space-between; font-family: inherit; font-size: 0.78rem; font-weight: 600; color: var(--label3); cursor: pointer; text-align: left; transition: background 0.15s; }
 .dispo-toggle:hover { background: var(--surface2); }
-.dispo-toggle-arrow { transition: transform 0.2s ease; font-size: 0.7rem; }
-.dispo-toggle.open .dispo-toggle-arrow { transform: rotate(180deg); }
-.dispo-body {
-  display: none;
-  padding: 0 0.75rem 0.75rem;
-  flex-wrap: wrap; gap: 0.3rem;
-}
+.dispo-arrow { transition: transform 0.2s ease; font-size: 0.7rem; }
+.dispo-toggle.open .dispo-arrow { transform: rotate(180deg); }
+.dispo-body { display: none; padding: 0 0.75rem 0.75rem; flex-wrap: wrap; gap: 0.3rem; }
 .dispo-body.visible { display: flex; }
-.dispo-chip {
-  display: inline-flex; align-items: center; gap: 0.3rem;
-  padding: 0.3rem 0.65rem; border-radius: 20px;
-  font-size: 0.72rem; font-weight: 500;
-  border: 1px solid transparent;
-}
+.dispo-chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.65rem; border-radius: 20px; font-size: 0.72rem; font-weight: 500; border: 1px solid transparent; }
 .dispo-ok       { background: var(--green-soft); color: #1a7a3a; border-color: #b8edc8; }
-.dispo-reducido { background: #fff8e1; color: #7a5c00; border-color: #ffe082; }
+.dispo-reducido { background: var(--amber-soft); color: #7a5c00; border-color: #ffe082; }
 .dispo-reservado{ background: var(--blue-soft); color: #005ab5; border-color: #b8d4f8; }
 .dispo-bloqueado{ background: var(--surface2); color: var(--label4); border-color: var(--sep); }
 .dispo-chip-hora{ font-size: 0.62rem; opacity: 0.75; }
 
-/* ── CANDIDATOS SIN FRANJA ───────────────────────────── */
-.cands-wrap { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.5rem; }
-.cand-chip {
-  display: inline-flex; align-items: center;
-  background: #f0f4fb; border: 1px solid #dde3ec;
-  border-radius: 20px; padding: 0.28rem 0.65rem;
-  font-size: 0.75rem; font-weight: 500; color: var(--label2);
-}
-.cand-meta { font-size: 0.65rem; color: var(--label3); margin-left: 0.2rem; }
+/* ── TAB: ALERTAS ────────────────────────────────────────── */
+.alerta-card { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: 1rem 1.2rem; margin-bottom: 0.6rem; display: flex; align-items: center; gap: 1rem; border-left: 4px solid; animation: fadeUp 0.3s ease both; }
+.alerta-card.grave  { border-color: var(--red); background: var(--red-soft); }
+.alerta-card.aviso  { border-color: var(--amber); background: var(--amber-soft); }
+.alerta-icon { font-size: 1.6rem; flex-shrink: 0; }
+.alerta-info { flex: 1; }
+.alerta-fecha { font-size: 0.78rem; font-weight: 700; color: var(--label2); }
+.alerta-msg   { font-size: 0.82rem; color: var(--label3); margin-top: 0.2rem; }
 
-/* ── TOAST ────────────────────────────────────────────── */
-.toast-stack {
-  position: fixed;
-  bottom: calc(1.5rem + env(safe-area-inset-bottom));
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  align-items: center;
-}
-.toast {
-  background: rgba(30,30,30,0.92);
-  backdrop-filter: blur(16px);
-  color: #fff;
-  padding: 0.7rem 1.25rem;
-  border-radius: 40px;
-  font-size: 0.83rem;
-  font-weight: 500;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.25);
-  animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
-  white-space: nowrap;
-}
+/* ── TAB: CARGA ──────────────────────────────────────────── */
+.carga-header { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.carga-stat { background: var(--surface); border-radius: var(--r-lg); padding: 1rem 1.2rem; flex: 1; min-width: 100px; box-shadow: var(--shadow-sm); text-align: center; }
+.carga-stat .val { font-size: 1.6rem; font-weight: 700; color: var(--navy); letter-spacing: -0.03em; }
+.carga-stat .lbl { font-size: 0.7rem; font-weight: 600; color: var(--label3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+.vol-row { background: var(--surface); border-radius: var(--r-md); padding: 0.8rem 1rem; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.75rem; box-shadow: var(--shadow-sm); animation: fadeUp 0.3s ease both; }
+.vol-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; }
+.nivel-alto   .vol-avatar { background: var(--red-soft);   color: var(--red); }
+.nivel-normal .vol-avatar { background: var(--green-soft); color: #1a7a3a; }
+.nivel-bajo   .vol-avatar { background: var(--amber-soft); color: #7a5c00; }
+.vol-nombre { flex: 1; font-size: 0.88rem; font-weight: 600; color: var(--label1); }
+.vol-turnos { font-size: 0.78rem; font-weight: 700; color: var(--label2); }
+.vol-llave  { font-size: 0.65rem; background: var(--navy); color: var(--gold); padding: 0.1rem 0.4rem; border-radius: 4px; }
+.bar-wrap { flex: 1; height: 6px; background: var(--sep); border-radius: 3px; min-width: 60px; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+.nivel-alto   .bar-fill { background: var(--red); }
+.nivel-normal .bar-fill { background: var(--green); }
+.nivel-bajo   .bar-fill { background: var(--amber); }
+
+/* ── MODAL QUIÉN CUBRE ───────────────────────────────────── */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); z-index: 500; display: none; align-items: flex-end; justify-content: center; padding: 1rem; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--surface); border-radius: var(--r-xl) var(--r-xl) var(--r-lg) var(--r-lg); padding: 1.5rem; width: 100%; max-width: 520px; max-height: 80vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.modal-head h3 { font-size: 1rem; font-weight: 700; color: var(--label1); }
+.modal-close { background: var(--surface2); border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; font-size: 1rem; display: flex; align-items: center; justify-content: center; }
+.cubre-row { display: flex; align-items: center; gap: 0.75rem; background: var(--surface2); border-radius: var(--r-md); padding: 0.65rem 0.8rem; margin-bottom: 0.4rem; }
+.cubre-estado { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.est-disponible { background: var(--green); }
+.est-reducido   { background: var(--amber); }
+.est-bloqueado  { background: var(--label4); }
+.cubre-info { flex: 1; }
+.cubre-nombre { font-size: 0.85rem; font-weight: 600; color: var(--label1); }
+.cubre-meta   { font-size: 0.68rem; color: var(--label3); margin-top: 0.06rem; }
+
+/* ── TOAST ───────────────────────────────────────────────── */
+.toast-stack { position: fixed; bottom: calc(1.5rem + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 0.4rem; align-items: center; }
+.toast { background: rgba(30,30,30,0.92); backdrop-filter: blur(16px); color: #fff; padding: 0.7rem 1.25rem; border-radius: 40px; font-size: 0.83rem; font-weight: 500; box-shadow: 0 4px 24px rgba(0,0,0,0.25); animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
 .toast.ok  { background: rgba(52,199,89,0.92); }
 .toast.err { background: rgba(255,59,48,0.92); }
-@keyframes toastIn {
-  from { opacity: 0; transform: scale(0.85) translateY(8px); }
-  to   { opacity: 1; transform: scale(1)    translateY(0); }
-}
+@keyframes toastIn { from { opacity:0; transform:scale(0.85) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
 </style>
 </head>
 <body>
 
-<!-- HERO -->
 <header class="hero">
   <div class="hero-inner">
     <div class="hero-icon">⚓</div>
@@ -550,75 +248,202 @@ body {
   </div>
 </header>
 
-<!-- TOOLBAR FLOTANTE -->
-<div class="toolbar-wrap">
-  <div class="toolbar">
-    <button class="btn-primary" onclick="proyectarMes()">
-      <span>📅</span> Proyectar mes completo
-    </button>
-    <button class="btn-secondary" onclick="toggleManual()">
-      <span>🔍</span> Búsqueda manual
-    </button>
-
-    <div class="manual-panel" id="manual-panel">
-      <select id="sem">
-        <option value="1">Semana 1</option><option value="2">Semana 2</option>
-        <option value="3">Semana 3</option><option value="4">Semana 4</option>
-        <option value="5">Semana 5</option>
-      </select>
-      <select id="dia">
-        <option value="Lunes">Lunes</option><option value="Martes">Martes</option>
-        <option value="Miercoles">Miércoles</option><option value="Jueves">Jueves</option>
-        <option value="Viernes">Viernes</option><option value="Sabado">Sábado</option>
-        <option value="Domingo">Domingo</option>
-      </select>
-      <button class="btn-go" onclick="buscarManual()">Buscar →</button>
-    </div>
+<!-- NAVBAR TABS -->
+<div class="navbar-wrap">
+  <div class="navbar">
+    <button class="tab-btn active" onclick="setTab('cuadrante')">📅 Cuadrante</button>
+    <button class="tab-btn" onclick="setTab('alertas')" id="tab-alertas-btn">🔑 Alertas</button>
+    <button class="tab-btn" onclick="setTab('carga')">📊 Carga</button>
+    <button class="tab-btn" onclick="setTab('manual')">🔍 Manual</button>
+    <button class="tab-btn" onclick="exportarCuadrante()" id="btn-exportar">📋 Exportar</button>
   </div>
 </div>
 
-<!-- CONTENIDO -->
-<main class="main" id="resultados">
-  <div class="empty-state">
-    <span class="empty-icon">⚓</span>
-    <h4>Sin cuadrante cargado</h4>
-    <p>Pulsa <strong>Proyectar mes completo</strong> para generar<br>el cuadrante o usa la búsqueda manual.</p>
+<!-- MAIN -->
+<main class="main">
+
+  <!-- TAB: CUADRANTE -->
+  <div class="tab-content active" id="tab-cuadrante">
+    <div class="empty-state">
+      <span class="ei">⚓</span>
+      <h4>Sin cuadrante cargado</h4>
+      <p>Pulsa <strong>📅 Cuadrante</strong> de nuevo para generar el mes completo.</p>
+    </div>
   </div>
+
+  <!-- TAB: ALERTAS -->
+  <div class="tab-content" id="tab-alertas">
+    <div class="empty-state"><span class="ei">🔑</span><h4>Alertas de llave</h4><p>Cargando…</p></div>
+  </div>
+
+  <!-- TAB: CARGA -->
+  <div class="tab-content" id="tab-carga">
+    <div class="empty-state"><span class="ei">📊</span><h4>Balance de carga</h4><p>Cargando…</p></div>
+  </div>
+
+  <!-- TAB: MANUAL -->
+  <div class="tab-content" id="tab-manual">
+    <div style="padding: 1.5rem 0.25rem 0;">
+      <p style="font-size:0.85rem; color:var(--label3); margin-bottom:1rem;">Buscar disponibilidad para un día concreto:</p>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+        <select id="sem" style="border:1px solid var(--sep);border-radius:var(--r-md);padding:0.55rem 0.8rem;font-family:inherit;font-size:0.85rem;background:var(--surface);outline:none;">
+          <option value="1">Semana 1</option><option value="2">Semana 2</option>
+          <option value="3">Semana 3</option><option value="4">Semana 4</option><option value="5">Semana 5</option>
+        </select>
+        <select id="dia" style="border:1px solid var(--sep);border-radius:var(--r-md);padding:0.55rem 0.8rem;font-family:inherit;font-size:0.85rem;background:var(--surface);outline:none;">
+          <option value="Lunes">Lunes</option><option value="Martes">Martes</option>
+          <option value="Miercoles">Miércoles</option><option value="Jueves">Jueves</option>
+          <option value="Viernes">Viernes</option><option value="Sabado">Sábado</option>
+          <option value="Domingo">Domingo</option>
+        </select>
+        <button class="btn-go" onclick="buscarManual()">Buscar →</button>
+      </div>
+      <div id="resultado-manual" style="margin-top:1.5rem;"></div>
+    </div>
+  </div>
+
 </main>
+
+<!-- MODAL: QUIÉN CUBRE -->
+<div class="modal-overlay" id="modal-cubre">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modal-titulo">¿Quién puede cubrir?</h3>
+      <button class="modal-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
 
 <div class="toast-stack" id="toasts"></div>
 
 <script>
 const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
 
-function toggleManual() {
-  document.getElementById('manual-panel').classList.toggle('visible');
+// ── TABS ──────────────────────────────────────────────────
+const tabs = ['cuadrante','alertas','carga','manual'];
+function setTab(id) {
+  tabs.forEach(t => {
+    document.getElementById('tab-'+t).classList.toggle('active', t === id);
+    document.querySelectorAll('.tab-btn').forEach((b,i) => {
+      if (b.getAttribute('onclick') === `setTab('${t}')`) b.classList.toggle('active', t === id);
+    });
+  });
+  if (id === 'cuadrante' && !window._cuadranteCargado) cargarCuadrante();
+  if (id === 'alertas'   && !window._alertasCargadas) cargarAlertas();
+  if (id === 'carga'     && !window._cargaCargada)    cargarCarga();
 }
 
-// ── PROYECTAR MES ─────────────────────────────────────────
-async function proyectarMes() {
-  const cont = document.getElementById('resultados');
+// ── CUADRANTE ─────────────────────────────────────────────
+async function cargarCuadrante() {
+  const cont = document.getElementById('tab-cuadrante');
   cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando cuadrante mensual…</p></div>`;
   try {
     const res   = await fetch(`${API}?action=getCuadranteMensual`, { redirect: 'follow', headers: { Accept: 'application/json' } });
     const texto = await res.text();
     const clean = texto.trim().replace(/^[^\[{]+/, '');
-    let data;
-    try { data = JSON.parse(clean); }
-    catch(e) { throw new Error(`Respuesta inesperada: "${texto.substring(0,80)}"`); }
+    const data  = JSON.parse(clean);
     if (data.error) throw new Error(data.error);
     cont.innerHTML = '';
-    if (!data.length) {
-      cont.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><h4>Sin días configurados</h4><p>No hay días activos en el calendario.</p></div>`;
+    if (!data.length) { cont.innerHTML = `<div class="empty-state"><span class="ei">📭</span><h4>Sin días configurados</h4></div>`; return; }
+    data.forEach((d, i) => { const s = renderDia(d); s.style.animationDelay = (i*0.04)+'s'; cont.appendChild(s); });
+    window._cuadranteCargado = true;
+  } catch(e) {
+    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
+  }
+}
+
+// ── ALERTAS ───────────────────────────────────────────────
+async function cargarAlertas() {
+  const cont = document.getElementById('tab-alertas');
+  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div>`;
+  try {
+    const res  = await fetch(`${API}?action=getAlertasLlave`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    cont.innerHTML = '';
+
+    // Badge en tab
+    const badge = document.querySelector('#tab-alertas-btn .badge');
+    if (data.total > 0) {
+      if (!badge) { const b = document.createElement('span'); b.className='badge'; b.textContent=data.total; document.getElementById('tab-alertas-btn').appendChild(b); }
+      else badge.textContent = data.total;
+    }
+
+    if (!data.alertas.length) {
+      cont.innerHTML = `<div class="empty-state"><span class="ei">✅</span><h4>Sin alertas</h4><p>Todos los días del mes tienen al menos un portador de llave disponible.</p></div>`;
       return;
     }
-    data.forEach((d, i) => {
-      const sec = renderDia(d);
-      sec.style.animationDelay = (i * 0.04) + 's';
-      cont.appendChild(sec);
+
+    const h = document.createElement('div');
+    h.innerHTML = `<p style="font-size:0.85rem;color:var(--label3);margin-bottom:1.25rem;">${data.total} día${data.total!==1?'s':''} requieren atención:</p>`;
+    cont.appendChild(h);
+
+    data.alertas.forEach((a, i) => {
+      const grave = a.mensaje.includes('Ningún');
+      const el = document.createElement('div');
+      el.className = `alerta-card ${grave ? 'grave' : 'aviso'}`;
+      el.style.animationDelay = (i*0.05)+'s';
+      el.innerHTML = `
+        <div class="alerta-icon">${grave ? '🔴' : '🟡'}</div>
+        <div class="alerta-info">
+          <div class="alerta-fecha">📅 ${a.fecha} — ${a.dia} (Semana ${a.semana})</div>
+          <div class="alerta-msg">${a.mensaje} · ${a.disponibles} voluntario${a.disponibles!==1?'s':''} disponible${a.disponibles!==1?'s':''}</div>
+        </div>`;
+      cont.appendChild(el);
     });
+    window._alertasCargadas = true;
   } catch(e) {
-    cont.innerHTML = `<div class="no-turnos" style="border-color:#ffb3b0;"><h6>⚠️ Error al cargar</h6><p>${e.message}</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  }
+}
+
+// ── BALANCE DE CARGA ──────────────────────────────────────
+async function cargarCarga() {
+  const cont = document.getElementById('tab-carga');
+  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div>`;
+  try {
+    const res  = await fetch(`${API}?action=getResumenCarga`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    cont.innerHTML = '';
+
+    // Stats resumen
+    const stats = document.createElement('div');
+    stats.className = 'carga-header';
+    stats.innerHTML = `
+      <div class="carga-stat"><div class="val">${data.total}</div><div class="lbl">Turnos confirmados</div></div>
+      <div class="carga-stat"><div class="val">${data.media}</div><div class="lbl">Media por voluntario</div></div>
+      <div class="carga-stat"><div class="val">${data.max}</div><div class="lbl">Máximo</div></div>
+      <div class="carga-stat"><div class="val">${data.min}</div><div class="lbl">Mínimo</div></div>`;
+    cont.appendChild(stats);
+
+    if (!data.voluntarios || !data.voluntarios.length) {
+      cont.innerHTML += `<div class="empty-state"><span class="ei">📋</span><h4>Sin datos</h4><p>Confirma turnos primero para ver el balance.</p></div>`;
+      return;
+    }
+
+    const leyenda = document.createElement('div');
+    leyenda.style.cssText = 'display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1rem;font-size:0.75rem;color:var(--label3);';
+    leyenda.innerHTML = `<span>🟢 Normal</span><span>🔴 Carga alta (>${Math.ceil(data.media*1.5)} turnos)</span><span>🟡 Carga baja (<${Math.floor(data.media*0.5)} turnos)</span>`;
+    cont.appendChild(leyenda);
+
+    data.voluntarios.forEach((v, i) => {
+      const pct = data.max > 0 ? Math.round((v.turnos / data.max) * 100) : 0;
+      const el  = document.createElement('div');
+      el.className = `vol-row nivel-${v.nivel}`;
+      el.style.animationDelay = (i*0.03)+'s';
+      el.innerHTML = `
+        <div class="vol-avatar">${v.turnos}</div>
+        <div class="vol-nombre">${v.nombre.split(' ').slice(0,2).join(' ')}${v.llave ? ' <span class="vol-llave">🔑</span>' : ''}</div>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <div class="vol-turnos">${v.turnos} turno${v.turnos!==1?'s':''}</div>`;
+      el.title = v.detalle.map(d => `${d.fecha} ${d.dia}: ${d.rango}`).join('\n') || 'Sin turnos confirmados';
+      cont.appendChild(el);
+    });
+    window._cargaCargada = true;
+  } catch(e) {
+    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
   }
 }
 
@@ -626,8 +451,8 @@ async function proyectarMes() {
 async function buscarManual() {
   const s = document.getElementById('sem').value;
   const d = document.getElementById('dia').value;
-  const cont = document.getElementById('resultados');
-  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Buscando disponibilidad…</p></div>`;
+  const cont = document.getElementById('resultado-manual');
+  cont.innerHTML = `<div class="loading"><div class="spinner"></div><p>Buscando…</p></div>`;
   try {
     const res  = await fetch(`${API}?action=getSmartCuadrante&semana=${s}&dia=${d}`);
     const data = await res.json();
@@ -636,24 +461,39 @@ async function buscarManual() {
     const diaData = { fechaLabel: `${d} (Semana ${s})`, semana: s, dia: d, turnos: data.turnos || data, diagnostico: data.diagnostico || {} };
     cont.appendChild(renderDia(diaData));
   } catch(e) {
-    cont.innerHTML = `<div class="no-turnos" style="border-color:#ffb3b0;"><h6>⚠️ Error</h6><p>${e.message}</p></div>`;
+    cont.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
   }
 }
 
-// ── RENDERIZAR UN DÍA ─────────────────────────────────────
+// ── EXPORTAR ──────────────────────────────────────────────
+async function exportarCuadrante() {
+  const btn = document.getElementById('btn-exportar');
+  btn.textContent = '⏳ Exportando…';
+  try {
+    const res  = await fetch(`${API}?action=exportarCuadrante`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    toast('✅ ' + data.message, 'ok');
+  } catch(e) {
+    toast('Error: ' + e.message, 'err');
+  } finally {
+    btn.textContent = '📋 Exportar';
+  }
+}
+
+// ── RENDERIZAR DÍA ────────────────────────────────────────
 function renderDia(d) {
   const sec    = document.createElement('div');
   sec.className = 'dia-section';
   const turnos = d.turnos || [];
   const diag   = d.diagnostico || {};
+  const conf   = d.confirmado || false;
 
-  // Cabecera día
   sec.innerHTML = `
     <div class="dia-label">
       <span class="dia-label-text">📅 ${d.fechaLabel}</span>
-      <span class="dia-chip">${turnos.length} turno${turnos.length !== 1 ? 's' : ''}</span>
-    </div>
-  `;
+      <span class="dia-chip ${conf ? 'confirmado' : ''}">${conf ? '✓ ' : ''}${turnos.length} turno${turnos.length!==1?'s':''}</span>
+    </div>`;
 
   if (diag.aviso) {
     const av = document.createElement('div');
@@ -667,158 +507,181 @@ function renderDia(d) {
       <div class="no-turnos">
         <h6>⚠️ Sin cuadrante disponible</h6>
         <p>Los voluntarios disponibles no coinciden en una franja de 2h con ≥3 personas.</p>
-        ${diag.bloqueados?.length ? `<div class="blocked-list" style="margin-bottom:0.5rem">🔒 Bloqueados: ${diag.bloqueados.join(' · ')}</div>` : ''}
-        <div class="blocked-list" style="margin-top:0.25rem">Total disponibles: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
-      </div>
-    `);
-    if (diag.todos && diag.todos.length > 0) {
-      sec.appendChild(renderDispoPanel(diag.todos, d));
-    }
+        ${diag.bloqueados?.length ? `<div class="blocked-list">🔒 Bloqueados: ${diag.bloqueados.join(' · ')}</div>` : ''}
+        <div class="blocked-list">Total: ${diag.totalDisponibles||0} · Aptos: ${diag.aptos||0}</div>
+      </div>`);
+    if (diag.todos?.length) sec.appendChild(renderDispoPanel(diag.todos, d));
     return sec;
   }
 
   turnos.forEach(t => sec.appendChild(renderTurno(t, d)));
-
-  // Panel colapsable con todos los voluntarios disponibles del día
-  if (diag.todos && diag.todos.length > 0) {
-    sec.appendChild(renderDispoPanel(diag.todos, d));
-  }
-
+  if (diag.todos?.length) sec.appendChild(renderDispoPanel(diag.todos, d));
   return sec;
-}
-
-// ── PANEL DISPONIBILIDAD COMPLETA DEL DÍA ─────────────────
-function renderDispoPanel(todos, d) {
-  const wrap = document.createElement('div');
-  wrap.className = 'dispo-panel';
-
-  const estadoLabel = { ok: '✅', reducido: '⚡', reservado: '📌', bloqueado: '🔒' };
-  const counts = todos.reduce((acc, v) => { acc[v.estado] = (acc[v.estado]||0)+1; return acc; }, {});
-  const resumen = Object.entries(counts).map(([k,n]) => `${estadoLabel[k]||''} ${n} ${k}`).join(' · ');
-
-  const panelId = `dispo-${d.semana}-${d.dia}`;
-  wrap.innerHTML = `
-    <button class="dispo-toggle" onclick="toggleDispo('${panelId}', this)">
-      <span>👥 Todos los disponibles del día (${todos.length}) — ${resumen}</span>
-      <span class="dispo-toggle-arrow">▼</span>
-    </button>
-    <div class="dispo-body" id="${panelId}">
-      ${todos.map(v => `
-        <span class="dispo-chip dispo-${v.estado}">
-          ${v.llave ? '🔑 ' : ''}${v.nombre}
-          <span class="dispo-chip-hora">🕐 ${v.horario}</span>
-        </span>`).join('')}
-    </div>`;
-  return wrap;
 }
 
 // ── RENDERIZAR TURNO ──────────────────────────────────────
 function renderTurno(t, d) {
-  const hIni   = parseInt(t.rango.split(':')[0]);
-  const tarde  = hIni >= 14;
-  const acento = tarde ? 'accent-tarde' : 'accent-manana';
-  const tipo   = tarde ? 'tipo-t' : 'tipo-m';
-  const tipoTxt = tarde ? 'TARDE' : 'MAÑANA';
+  const hIni  = parseInt(t.rango.split(':')[0]);
+  const tarde = hIni >= 14;
+  const conf  = t.confirmado || d.confirmado;
 
-  // Tarjeta sin llave
   if (t.sinLlave) {
     const el = document.createElement('div');
     el.className = 'card-no-llave';
     el.innerHTML = `
-      <div class="no-llave-head">
-        <span>🔑 ${t.rango} — Sin hermano que tenga llave</span>
-      </div>
+      <div class="no-llave-head"><span>🔑 ${t.rango} — Sin portador de llave</span></div>
       <div class="no-llave-body">
-        <p>${t.sustitutos.length} voluntarios disponibles pero ninguno tiene llave. El turno no puede confirmarse.</p>
-        <div class="sust-wrap">
-          ${t.sustitutos.map(s => `
-            <span class="sust-chip">${s.nombre} <span class="sust-chip-meta">${s.dias >= 99 ? 'Nuevo' : s.dias+'d'}</span></span>
-          `).join('')}
-        </div>
+        <p>${t.sustitutos.length} voluntarios disponibles pero ninguno tiene llave.</p>
+        <div class="sust-wrap">${t.sustitutos.map(s =>`<span class="sust-chip">${s.nombre}<span class="sust-chip-meta"> · ${s.dias>=99?'Nuevo':s.dias+'d'}</span></span>`).join('')}</div>
       </div>`;
     return el;
   }
 
-  const btnId = `btn-${d.semana}-${d.dia}-${hIni}`;
+  const btnId   = `btn-${d.semana}-${d.dia}-${hIni}`;
   const nombres = t.equipo.map(e => e.nombre).join(',');
+  const acento  = tarde ? 'accent-t' : 'accent-m';
+  const tipoTxt = conf ? 'CONFIRMADO' : tarde ? 'TARDE' : 'MAÑANA';
+  const tipoCls = conf ? 'tipo-conf' : tarde ? 'tipo-t' : 'tipo-m';
 
   const equipoHtml = t.equipo.map(v => `
     <div class="v-row">
       <div class="v-info">
         <div class="v-name">${v.nombre}</div>
-        <div class="v-sub">Descanso: <strong>${v.dias >= 99 ? 'Nuevo' : v.dias + ' d'}</strong> · ${v.dispo} días/mes</div>
-        ${v.horario ? `<div class="v-horario">🕐 Disponible: ${v.horario}</div>` : ''}
+        <div class="v-sub">Descanso: <strong>${v.dias>=99?'Nuevo':v.dias+' d'}</strong>${v.dispo?' · '+v.dispo+' d/mes':''}</div>
+        ${v.horario ? `<div class="v-horario">🕐 ${v.horario}</div>` : ''}
       </div>
       ${v.llave ? '<span class="badge-key">🔑 Llave</span>' : ''}
     </div>`).join('');
 
-  const sustHtml = t.sustitutos.length
-    ? `<div class="sust-wrap">${t.sustitutos.map(s => `
-        <span class="sust-chip">
-          ${s.llave ? '🔑 ' : ''}${s.nombre}
-          <span class="sust-chip-meta">${s.dias >= 99 ? 'Nuevo' : s.dias+'d'}${s.horario ? ' · 🕐 '+s.horario : ''}</span>
-        </span>`).join('')}</div>`
+  const sustHtml = t.sustitutos?.length
+    ? `<div class="sust-wrap">${t.sustitutos.map(s => `<span class="sust-chip">${s.llave?'🔑 ':''}${s.nombre}<span class="sust-chip-meta"> · ${s.dias>=99?'Nuevo':s.dias+'d'}${s.horario?' · 🕐 '+s.horario:''}</span></span>`).join('')}</div>`
     : '<span style="font-size:0.78rem;color:var(--label4);">—</span>';
 
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = `card${conf ? ' confirmado-card' : ''}`;
   card.innerHTML = `
     <div class="card-accent ${acento}"></div>
     <div class="card-head">
       <div>
         <div class="card-hora">🕒 ${t.rango}</div>
-        <span class="card-tipo ${tipo}">${tipoTxt}</span>
+        <span class="card-tipo ${tipoCls}">${tipoTxt}</span>
       </div>
-      <button class="btn-confirm" id="${btnId}"
-        onclick="confirmarTurno('${d.semana}','${d.dia}','${nombres}','${t.rango}',${d.fechaRaw||'null'},'${btnId}')">
-        ✓ Confirmar
-      </button>
+      <div class="card-head-actions">
+        ${!conf ? `
+        <button class="btn-cubrir" onclick="abrirCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir baja</button>
+        <button class="btn-confirm" id="${btnId}"
+          onclick="confirmarTurno('${d.semana}','${d.dia}','${nombres}','${t.rango}',${d.fechaRaw||'null'},'${btnId}')">
+          ✓ Confirmar
+        </button>` : '<span style="font-size:0.8rem;color:var(--green);font-weight:700;">✓ Confirmado</span>'}
+      </div>
     </div>
     <div class="card-body">
       <div class="col-left">
-        <div class="col-label">Turno asignado (${t.equipo.length})</div>
+        <div class="col-label">Equipo asignado (${t.equipo.length})</div>
         ${equipoHtml}
       </div>
       <div class="col-right">
-        <div class="col-label">Disponibles adicionales (${t.sustitutos.length})</div>
+        <div class="col-label">Disponibles adicionales (${t.sustitutos?.length||0})</div>
         ${sustHtml}
       </div>
     </div>`;
   return card;
 }
 
+// ── PANEL DISPONIBILIDAD ──────────────────────────────────
+function renderDispoPanel(todos, d) {
+  const wrap = document.createElement('div');
+  wrap.className = 'dispo-panel';
+  const lbl = { ok:'✅', reducido:'⚡', reservado:'📌', bloqueado:'🔒' };
+  const counts = todos.reduce((a,v) => { a[v.estado]=(a[v.estado]||0)+1; return a; }, {});
+  const resumen = Object.entries(counts).map(([k,n]) => `${lbl[k]||''} ${n} ${k}`).join(' · ');
+  const id = `dispo-${d.semana}-${d.dia}`;
+  wrap.innerHTML = `
+    <button class="dispo-toggle" onclick="toggleDispo('${id}',this)">
+      <span>👥 Todos los disponibles (${todos.length}) — ${resumen}</span>
+      <span class="dispo-arrow">▼</span>
+    </button>
+    <div class="dispo-body" id="${id}">
+      ${todos.map(v => `<span class="dispo-chip dispo-${v.estado}">${v.llave?'🔑 ':''}${v.nombre}<span class="dispo-chip-hora"> 🕐 ${v.horario}</span></span>`).join('')}
+    </div>`;
+  return wrap;
+}
+
+function toggleDispo(id, btn) {
+  document.getElementById(id).classList.toggle('visible');
+  btn.classList.toggle('open');
+}
+
 // ── CONFIRMAR TURNO ───────────────────────────────────────
 async function confirmarTurno(semana, dia, nombresStr, rango, fechaRaw, btnId) {
   if (!confirm(`¿Guardar el turno ${rango} en el historial?`)) return;
   const btn = document.getElementById(btnId);
-  btn.disabled = true;
-  btn.textContent = 'Guardando…';
+  btn.disabled = true; btn.textContent = 'Guardando…';
   try {
-    await fetch(API, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        accion: 'confirmarTurno', semana, dia,
-        asignados: nombresStr.split(','),
-        rango,
-        fecha: fechaRaw ? new Date(fechaRaw).toISOString() : new Date().toISOString()
-      })
+    const res  = await fetch(API, {
+      method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'confirmarTurno', semana, dia,
+        asignados: nombresStr.split(','), rango,
+        fecha: fechaRaw ? new Date(fechaRaw).toISOString() : new Date().toISOString() })
     });
-    btn.textContent = '✓ Guardado';
-    btn.classList.add('saved');
+    btn.textContent = '✓ Guardado'; btn.classList.add('saved');
+    // Invalidar caché de carga para que se recalcule
+    window._cargaCargada = false;
     toast('Turno guardado ✓', 'ok');
   } catch(e) {
     btn.disabled = false; btn.textContent = '✓ Confirmar';
-    toast('Error al guardar: ' + e.message, 'err');
+    toast('Error: ' + e.message, 'err');
   }
 }
 
-// ── TOGGLE DISPONIBILIDAD ────────────────────────────────
-function toggleDispo(id, btn) {
-  const body = document.getElementById(id);
-  const open = body.classList.toggle('visible');
-  btn.classList.toggle('open', open);
+// ── MODAL QUIÉN CUBRE ─────────────────────────────────────
+async function abrirCubre(semana, dia, rango) {
+  const modal = document.getElementById('modal-cubre');
+  const body  = document.getElementById('modal-body');
+  const titulo = document.getElementById('modal-titulo');
+  titulo.textContent = `¿Quién puede cubrir? ${rango}`;
+  body.innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando candidatos…</p></div>`;
+  modal.classList.add('open');
+
+  try {
+    const res  = await fetch(`${API}?action=quienCubre&semana=${semana}&dia=${dia}&rango=${encodeURIComponent(rango)}`);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    if (!data.candidatos.length) {
+      body.innerHTML = `<p style="text-align:center;color:var(--label3);font-size:0.88rem;">No hay candidatos disponibles para este turno.</p>`;
+      return;
+    }
+
+    const grupos = { disponible: [], reducido: [], bloqueado: [] };
+    data.candidatos.forEach(c => grupos[c.estado].push(c));
+
+    let html = '';
+    [['disponible','✅ Disponibles'], ['reducido','⚡ Descanso reducido'], ['bloqueado','🔒 Bloqueados']].forEach(([k, label]) => {
+      if (!grupos[k].length) return;
+      html += `<div style="font-size:0.72rem;font-weight:700;color:var(--label3);letter-spacing:0.08em;text-transform:uppercase;margin:0.75rem 0 0.4rem">${label}</div>`;
+      grupos[k].forEach(c => {
+        html += `<div class="cubre-row">
+          <div class="cubre-estado est-${c.estado}"></div>
+          <div class="cubre-info">
+            <div class="cubre-nombre">${c.llave ? '🔑 ' : ''}${c.nombre}</div>
+            <div class="cubre-meta">🕐 ${c.horario} · Descanso: ${c.dias>=99?'Nuevo':c.dias+' días'} · ${c.dispo} d/mes</div>
+          </div>
+        </div>`;
+      });
+    });
+    body.innerHTML = html;
+  } catch(e) {
+    body.innerHTML = `<p style="color:var(--red);font-size:0.88rem;">Error: ${e.message}</p>`;
+  }
 }
+
+function cerrarModal() {
+  document.getElementById('modal-cubre').classList.remove('open');
+}
+document.getElementById('modal-cubre').addEventListener('click', e => {
+  if (e.target === e.currentTarget) cerrarModal();
+});
 
 // ── TOAST ─────────────────────────────────────────────────
 function toast(msg, type = 'ok') {
@@ -828,6 +691,9 @@ function toast(msg, type = 'ok') {
   document.getElementById('toasts').appendChild(el);
   setTimeout(() => el.remove(), 3500);
 }
+
+// Cargar cuadrante al inicio
+cargarCuadrante();
 </script>
 </body>
 </html>
