@@ -234,18 +234,56 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .dispo-grid .d-no{background:var(--surface2);color:var(--label4);font-size:.62rem}
 
 /* ══════════════════════════════════════
-   BAJAS
+   BAJAS / SUSTITUCIONES
 ══════════════════════════════════════ */
-.baja-card{background:var(--surface);border-radius:var(--r-lg);padding:.85rem 1rem;margin-bottom:.5rem;box-shadow:var(--shadow-sm);border-left:4px solid;animation:fadeUp .3s ease both}
-.baja-card.cubierto{border-color:var(--green)}
-.baja-card.pendiente{border-color:var(--red)}
-.baja-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
-.baja-info .bf{font-size:.8rem;font-weight:700;color:var(--label1)}
-.baja-info .bs{font-size:.72rem;color:var(--label3);margin-top:.1rem}
-.baja-status{font-size:.68rem;font-weight:700;padding:.18rem .55rem;border-radius:4px}
-.status-pend{background:var(--red-soft);color:var(--red)}
-.status-ok{background:var(--green-soft);color:var(--green)}
-.baja-vols{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.55rem}
+.baja-section{margin-bottom:2rem}
+.baja-sec-title{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);margin-bottom:.65rem;display:flex;align-items:center;gap:.5rem;padding-bottom:.4rem;border-bottom:1.5px solid var(--sep)}
+.baja-card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-md);margin-bottom:.85rem;overflow:hidden;animation:fadeUp .3s ease both;border:1px solid var(--sep);transition:border-color .3s,box-shadow .2s}
+.baja-card:hover{box-shadow:var(--shadow-lg)}
+.baja-card.cubierto{border-color:#b0dcc0}
+.baja-card.pendiente{border-color:#f5b8b5}
+.baja-accent{height:4px}
+.ba-pend{background:linear-gradient(90deg,var(--red),#ff7061)}
+/* Slots de equipo en la card de baja */
+.baja-slots-grid{display:flex;flex-direction:column;gap:.3rem}
+.baja-vol-slot{display:flex;align-items:center;gap:.55rem;padding:.42rem .65rem;border-radius:var(--r-sm);border:1px solid transparent}
+.slot-activo{background:var(--green-soft);border-color:#b0dcc0}
+.slot-baja{background:var(--red-soft);border-color:#f5b8b5}
+.slot-refuerzo{background:var(--blue-soft);border-color:#90c4f0}
+.slot-icon{font-size:.85rem;flex-shrink:0;width:20px;text-align:center}
+.slot-name{font-size:.8rem;font-weight:600;color:var(--label1)}
+.slot-sub{font-size:.63rem;color:var(--label3);margin-top:.05rem}
+/* Candidatos inline */
+.cand-row-v6{display:flex;align-items:center;gap:.6rem;padding:.5rem .65rem;border-radius:var(--r-sm);background:var(--surface2);margin-bottom:.28rem;transition:background .14s}
+.cand-row-v6:hover{background:#eaedf2}
+.cand-dot-v6{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.btn-asignar{background:var(--green);color:#fff;border:none;padding:.35rem .8rem;border-radius:var(--r-sm);font-family:inherit;font-size:.73rem;font-weight:700;cursor:pointer;transition:all .16s;white-space:nowrap;flex-shrink:0}
+.btn-asignar:hover{background:#157a3a;transform:scale(1.04)}
+.btn-asignar:disabled{background:var(--label4);cursor:not-allowed;transform:none}
+.ba-ok{background:linear-gradient(90deg,var(--green),#34c759)}
+.baja-head{display:flex;align-items:flex-start;justify-content:space-between;padding:.85rem 1rem .5rem;gap:.65rem;flex-wrap:wrap}
+.baja-titulo{font-size:.95rem;font-weight:800;color:var(--label1);letter-spacing:-.02em}
+.baja-sub{font-size:.72rem;color:var(--label3);margin-top:.18rem}
+.baja-badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.68rem;font-weight:700;padding:.22rem .65rem;border-radius:20px;flex-shrink:0}
+.bb-pend{background:var(--red-soft);color:var(--red)}
+.bb-ok{background:var(--green-soft);color:var(--green)}
+.baja-progress{height:4px;background:var(--sep);margin:0 1rem .7rem;border-radius:4px;overflow:hidden}
+.baja-progress-bar{height:100%;border-radius:4px;transition:width .5s ease}
+.baja-body{padding:0 1rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+@media(max-width:560px){.baja-body{grid-template-columns:1fr}}
+.baja-col-title{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.42rem}
+.baja-vol-chip{display:inline-flex;align-items:center;gap:.28rem;font-size:.73rem;font-weight:600;padding:.26rem .6rem;border-radius:20px;margin:.12rem;border:1.5px solid transparent}
+.chip-baja{background:var(--red-soft);color:var(--red);border-color:#f5b8b5}
+.chip-activo{background:var(--green-soft);color:var(--green);border-color:#b0dcc0}
+.chip-refuerzo{background:var(--blue-soft);color:var(--blue);border-color:#90c4f0}
+.baja-cands{padding:0 1rem 1rem;border-top:1px solid var(--sep);margin-top:0}
+.baja-cands-title{font-size:.67rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);padding:.6rem 0 .4rem}
+.cand-row2{display:flex;align-items:center;gap:.6rem;padding:.48rem .65rem;border-radius:var(--r-sm);margin-bottom:.28rem;background:var(--surface2);transition:background .14s;cursor:default}
+.cand-row2:hover{background:#eaedf2}
+.cdot2{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cand-inf{flex:1;min-width:0}
+.cand-nm{font-size:.8rem;font-weight:600;color:var(--label1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cand-mt{font-size:.63rem;color:var(--label3);margin-top:.04rem}
 
 /* ══════════════════════════════════════
    CALENDARIO CONFIG
@@ -393,6 +431,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios"><span class="ni">👥</span> Voluntarios</button>
     <button class="nav-item" onclick="setTab('disponibilidad')" id="nav-disponibilidad"><span class="ni">🗓️</span> Disponibilidad</button>
     <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
+    <button class="nav-item" onclick="setTab('oferta')" id="nav-oferta"><span class="ni">✋</span> Turnos disponibles</button>
     <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Historial</button>
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
   </div>
@@ -419,6 +458,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-voluntarios" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div></div>
     <div id="tab-disponibilidad" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando disponibilidad…</p></div></div>
     <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
+    <div id="tab-oferta" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div></div>
     <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div></div>
     <div id="tab-calendario" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div></div>
   </div>
@@ -474,11 +514,12 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','calendario'];
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','calendario'];
 const TAB_TITLES = {
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
+  oferta:'✋ Turnos disponibles',
   historial:'📋 Historial', calendario:'⚙️ Configurar calendario',
 };
 const TAB_ACTS = {
@@ -490,6 +531,7 @@ const TAB_ACTS = {
   voluntarios:``,
   disponibilidad:``,
   bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
+  oferta:`<button class="btn btn-ghost btn-sm" onclick="loadOferta(true)">↻ Actualizar</button>`,
   historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
   calendario:`<button class="btn btn-green btn-sm" onclick="guardarCalendario()">💾 Guardar cambios</button>`,
 };
@@ -510,6 +552,7 @@ function setTab(id) {
   if (id==='voluntarios'    && !window._vOk)    loadVoluntarios();
   if (id==='disponibilidad' && !window._dOk)    loadDisponibilidad();
   if (id==='bajas'          && !window._bOk)    loadBajas();
+  if (id==='oferta'         && !window._oOk)    loadOferta();
   if (id==='historial'      && !window._hOk)    loadHistorial();
   if (id==='calendario'     && !window._calOk)  loadCalendario();
 }
@@ -1055,44 +1098,656 @@ function renderDispoGrid(sem) {
 }
 
 // ══════════════════════════════════════
-//  BAJAS
+//  BAJAS / SUSTITUCIONES — v6 rediseño
+//  Flujo: Panel principal → card por turno → candidatos
+//  inline → asignación con feedback visual inmediato
 // ══════════════════════════════════════
 async function loadBajas(force) {
   if (window._bOk && !force) return;
-  const c=document.getElementById('tab-bajas');
-  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div>`;
+  const c = document.getElementById('tab-bajas');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando bajas y sustituciones…</p></div>`;
   try {
-    const data=await apiGet({action:'getBajas'});
-    c.innerHTML='';
-    if (!data.turnos?.length) {
-      c.innerHTML=`<div class="empty"><span class="ei">✅</span><h4>Sin bajas registradas</h4><p>Aquí aparecerán los turnos con bajas.</p></div>`;
+    const [bajasData, histData] = await Promise.all([
+      apiGet({action:'getBajas'}),
+      apiGet({action:'getHistorial'}),
+    ]);
+
+    // Construir mapa de equipos confirmados por turno
+    window._histPorTurno = {};
+    (histData||[]).forEach(r => {
+      const k = `${r.semana}|${r.dia}|${r.rango}`;
+      if (!window._histPorTurno[k]) window._histPorTurno[k] = [];
+      window._histPorTurno[k].push(r.nombre);
+    });
+
+    window._bajasData = bajasData;
+    c.innerHTML = '';
+
+    // ── ESTADO VACÍO
+    if (!bajasData.turnos?.length) {
+      c.innerHTML = `
+        <div style="text-align:center;padding:3rem 1rem">
+          <div style="font-size:3rem;margin-bottom:1rem;opacity:.3">🏥</div>
+          <h4 style="font-size:.95rem;font-weight:600;color:var(--label2);margin-bottom:.4rem">Sin bajas registradas</h4>
+          <p style="font-size:.82rem;color:var(--label3);margin-bottom:1.5rem">Cuando un voluntario notifique que no puede asistir,<br>regístralo aquí para buscar sustituto.</p>
+          <button class="btn btn-red" onclick="abrirNuevaBaja()">+ Registrar primera baja</button>
+        </div>`;
+      window._bOk = true;
       return;
     }
-    const intro=document.createElement('p');
-    intro.style='font-size:.82rem;color:var(--label3);margin-bottom:1rem';
-    intro.textContent=`${data.turnos.length} turno${data.turnos.length!==1?'s':''} con bajas:`;
-    c.appendChild(intro);
-    data.turnos.forEach((t,i) => {
-      const el=document.createElement('div');
-      el.className=`baja-card ${t.cubierto?'cubierto':'pendiente'}`;
-      el.style.animationDelay=(i*.05)+'s';
-      el.innerHTML=`
-        <div class="baja-top">
-          <div class="baja-info">
-            <div class="bf">📅 ${t.fecha} — ${t.dia} · 🕒 ${t.rango}</div>
-            <div class="bs">S${t.semana}</div>
-          </div>
-          <span class="baja-status ${t.cubierto?'status-ok':'status-pend'}">${t.cubierto?'✓ Cubierto':'⚠️ Pendiente'}</span>
-        </div>
-        <div class="baja-vols">
-          ${t.bajas.map(nom=>`<span style="background:var(--red-soft);color:var(--red);font-size:.7rem;padding:.18rem .5rem;border-radius:4px;font-weight:600">🏥 ${nom}</span>`).join('')}
-        </div>
-        ${!t.cubierto?`<div style="margin-top:.55rem"><button class="btn btn-blue btn-sm" onclick="openCubre('${t.semana}','${t.dia}','${t.rango}')">🔄 Ver candidatos para cubrir</button></div>`:''}`;
-      c.appendChild(el);
-    });
-    window._bOk=true;
-  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+
+    const pendientes = bajasData.turnos.filter(t => !t.cubierto);
+    const cubiertos  = bajasData.turnos.filter(t => t.cubierto);
+
+    // ── STATS
+    const sr = document.createElement('div'); sr.className = 'stats-row';
+    sr.innerHTML = `
+      <div class="sbox"><div class="sv">${bajasData.turnos.length}</div><div class="sl">Turnos afectados</div></div>
+      <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Pendientes</div></div>
+      <div class="sbox" style="border-left:3px solid var(--green)"><div class="sv" style="color:var(--green)">${cubiertos.length}</div><div class="sl">Cubiertos</div></div>
+      <div class="sbox"><div class="sv">${bajasData.bajas?.length||0}</div><div class="sl">Bajas totales</div></div>`;
+    c.appendChild(sr);
+
+    // ── ACCIÓN REGISTRAR
+    const topBar = document.createElement('div');
+    topBar.style = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem';
+    topBar.innerHTML = `
+      <p style="font-size:.8rem;color:var(--label3)">Gestiona las bajas y asigna sustitutos directamente desde aquí.</p>
+      <button class="btn btn-red btn-sm" onclick="abrirNuevaBaja()">🏥 + Registrar baja</button>`;
+    c.appendChild(topBar);
+
+    // ── PENDIENTES primero (urgentes)
+    if (pendientes.length) {
+      c.insertAdjacentHTML('beforeend',`
+        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem">
+          <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red)">⚠️ Pendientes de cubrir</span>
+          <span style="background:var(--red-soft);color:var(--red);font-size:.63rem;padding:.1rem .4rem;border-radius:10px;font-weight:700">${pendientes.length}</span>
+        </div>`);
+      pendientes.forEach((t, i) => {
+        const card = buildBajaCard(t, `pend-${i}`, false);
+        c.appendChild(card);
+        // Cargar candidatos automáticamente para los pendientes
+        setTimeout(() => cargarCandidatosInline(`pend-${i}`, t.semana, t.dia, t.rango), i * 120);
+      });
+    }
+
+    // ── CUBIERTOS al final (colapsados)
+    if (cubiertos.length) {
+      const secCub = document.createElement('div');
+      secCub.style = 'margin-top:1.5rem';
+      secCub.innerHTML = `
+        <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.5rem" onclick="toggleD('sec-cub',this)">
+          <span style="font-weight:700;font-size:.72rem;color:var(--green)">✅ Cubiertos (${cubiertos.length})</span>
+          <span class="darrow">▼</span>
+        </button>
+        <div class="dbody" id="sec-cub" style="flex-direction:column;gap:.5rem">
+          ${cubiertos.map((t,i) => buildBajaCard(t, `cub-${i}`, true).outerHTML).join('')}
+        </div>`;
+      c.appendChild(secCub);
+    }
+
+    window._bOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  }
 }
+
+// ── Construye la card de una baja
+function buildBajaCard(t, uid, cubierto) {
+  const tarde = parseInt((t.rango||'').split(':')[0]) >= 14;
+  const turnoKey = `${t.semana}|${t.dia}|${t.rango}`;
+  const equipoOriginal = window._histPorTurno?.[turnoKey] || [];
+  const activos = equipoOriginal.filter(n => !t.bajas.includes(n.toUpperCase()) && !t.bajas.map(b=>b.toUpperCase()).includes(n.toUpperCase()));
+
+  const card = document.createElement('div');
+  card.className = 'baja-card ' + (cubierto ? 'cubierto' : 'pendiente');
+  card.id = `baja-card-${uid}`;
+
+  // ── Chips del equipo con estado visual
+  const equipoHTML = (() => {
+    if (!equipoOriginal.length) return `<span style="font-size:.75rem;color:var(--label4);font-style:italic">Turno no confirmado en historial</span>`;
+    return equipoOriginal.map(nom => {
+      const esBaja = t.bajas.map(b=>b.toUpperCase()).includes(nom.toUpperCase());
+      const esRefuerzo = (t.refuerzos||[]).map(r=>r.toUpperCase()).includes(nom.toUpperCase());
+      if (esBaja) return `
+        <div class="baja-vol-slot slot-baja">
+          <span class="slot-icon">🏥</span>
+          <div>
+            <div class="slot-name">${nom}</div>
+            <div class="slot-sub">Baja registrada</div>
+          </div>
+        </div>`;
+      return `
+        <div class="baja-vol-slot slot-activo">
+          <span class="slot-icon">✓</span>
+          <div>
+            <div class="slot-name">${nom}</div>
+            <div class="slot-sub">Confirmado</div>
+          </div>
+        </div>`;
+    }).join('') + (t.refuerzos||[]).map(nom => `
+      <div class="baja-vol-slot slot-refuerzo">
+        <span class="slot-icon">🔄</span>
+        <div>
+          <div class="slot-name">${nom}</div>
+          <div class="slot-sub">Sustituto asignado</div>
+        </div>
+      </div>`).join('');
+  })();
+
+  card.innerHTML = `
+    <div class="baja-accent ${cubierto ? 'ba-ok' : 'ba-pend'}"></div>
+    <div class="baja-head">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
+          <span class="baja-titulo">🕒 ${t.rango}</span>
+          <span style="font-size:.63rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
+        </div>
+        <div class="baja-sub">📅 ${t.fecha} · ${t.dia} · Semana ${t.semana}</div>
+      </div>
+      <span class="baja-badge ${cubierto ? 'bb-ok' : 'bb-pend'}">
+        ${cubierto ? '✓ Cubierto' : '⚠️ Pendiente'}
+      </span>
+    </div>
+
+    <div style="padding:0 1rem .9rem">
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.5rem">Estado del equipo</div>
+      <div class="baja-slots-grid">${equipoHTML}</div>
+    </div>
+
+    ${!cubierto ? `
+    <div class="baja-cands" id="cands-${uid}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem .4rem;border-top:1px solid var(--sep)">
+        <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)">Candidatos disponibles</span>
+        <button class="btn btn-ghost btn-sm" style="font-size:.68rem" onclick="cargarCandidatosInline('${uid}','${t.semana}','${t.dia}','${t.rango}')">↻ Actualizar</button>
+      </div>
+      <div id="cands-list-${uid}" style="padding:0 1rem .9rem">
+        <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;color:var(--label3);font-size:.78rem">
+          <div class="spinner" style="width:16px;height:16px;border-width:2px;flex-shrink:0"></div>
+          Buscando candidatos…
+        </div>
+      </div>
+    </div>` : ''}`;
+
+  return card;
+}
+
+// ── Carga candidatos inline dentro de la card
+async function cargarCandidatosInline(uid, semana, dia, rango) {
+  const el = document.getElementById(`cands-list-${uid}`);
+  if (!el) return;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div> Buscando…</div>`;
+  try {
+    const data = await apiGet({action:'quienCubre', semana, dia, rango});
+    const cands = data.candidatos || [];
+
+    if (!cands.length) {
+      el.innerHTML = `
+        <div style="text-align:center;padding:.75rem 0;color:var(--label3);font-size:.8rem">
+          😔 Sin candidatos disponibles para este turno.<br>
+          <span style="font-size:.72rem">Todos los voluntarios con ese horario están bloqueados por descanso.</span>
+        </div>`;
+      return;
+    }
+
+    const disponibles = cands.filter(c => c.estado !== 'bloqueado');
+    const bloqueados  = cands.filter(c => c.estado === 'bloqueado');
+
+    let html = '';
+
+    if (disponibles.length) {
+      disponibles.forEach(c => {
+        const color = c.estado === 'disponible' ? 'var(--green)' : 'var(--amber)';
+        const label = c.estado === 'disponible' ? 'Disponible' : 'Descanso reducido';
+        html += `
+          <div class="cand-row-v6">
+            <div class="cand-dot-v6" style="background:${color}"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:.82rem;font-weight:600;color:var(--label1)">${c.llave?'🔑 ':''}${c.nombre}</div>
+              <div style="font-size:.67rem;color:var(--label3);margin-top:.05rem">
+                🕐 ${c.horario} · ${c.dias>=99?'Voluntario nuevo':c.dias+' días descanso'} · ${c.dispo}d/mes
+              </div>
+              <div style="font-size:.63rem;margin-top:.1rem;color:${color};font-weight:600">${label}</div>
+            </div>
+            <button class="btn-asignar" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${uid}',this)">
+              ✓ Asignar
+            </button>
+          </div>`;
+      });
+    }
+
+    if (bloqueados.length) {
+      html += `
+        <button class="dtoggle" style="font-size:.68rem;padding:.35rem .5rem;margin-top:.3rem" onclick="toggleD('blq-${uid}',this)">
+          <span>🔒 ${bloqueados.length} bloqueado${bloqueados.length!==1?'s':''} por descanso</span>
+          <span class="darrow" style="font-size:.6rem">▼</span>
+        </button>
+        <div class="dbody" id="blq-${uid}" style="flex-direction:column;gap:.25rem">
+          ${bloqueados.map(c=>`
+            <div class="cand-row-v6" style="opacity:.55">
+              <div class="cand-dot-v6" style="background:var(--label4)"></div>
+              <div style="flex:1">
+                <div style="font-size:.8rem;font-weight:600;color:var(--label2)">${c.nombre}</div>
+                <div style="font-size:.65rem;color:var(--label3)">🕐 ${c.horario} · Solo ${c.dias}d de descanso</div>
+              </div>
+            </div>`).join('')}
+        </div>`;
+    }
+
+    el.innerHTML = html || `<p style="font-size:.77rem;color:var(--label3);padding:.5rem 0">Sin candidatos.</p>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:.77rem;padding:.4rem 0">⚠️ Error: ${e.message}</div>`;
+  }
+}
+
+// ── Asignar sustituto con feedback visual en la card
+async function asignarSustituto(semana, dia, rango, nombre, uid, btn) {
+  btn.disabled = true;
+  btn.textContent = '…';
+  const t = window._bajasData?.turnos?.find(t=>t.semana==semana&&t.dia==dia&&t.rango===rango);
+  try {
+    await apiPost({accion:'registrarRefuerzo', nombre, key:`${semana}|${dia}|${rango}`,
+      fecha:t?.fecha||'', semana, dia});
+    // Feedback inmediato en la card
+    const card = document.getElementById(`baja-card-${uid}`);
+    if (card) {
+      // Animación de éxito
+      card.style.transition = 'all .3s ease';
+      card.style.borderColor = 'var(--green)';
+      // Reemplazar el botón asignar por confirmación
+      const candsEl = document.getElementById(`cands-${uid}`);
+      if (candsEl) {
+        candsEl.innerHTML = `
+          <div style="display:flex;align-items:center;gap:.65rem;padding:.85rem 1rem;border-top:1px solid var(--sep);background:var(--green-soft)">
+            <span style="font-size:1.2rem">✅</span>
+            <div>
+              <div style="font-size:.82rem;font-weight:700;color:var(--green)">Sustituto asignado correctamente</div>
+              <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${nombre} cubrirá el turno ${rango}</div>
+            </div>
+          </div>`;
+      }
+    }
+    toast(`✓ ${nombre} asignado como sustituto`, 'ok');
+    // Refrescar datos tras 1.5s para que el usuario vea el feedback
+    setTimeout(() => { window._bOk=false; loadBajas(true); }, 2500);
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '✓ Asignar';
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
+// ── Formulario nueva baja — carga turnos del historial para seleccionar
+async function abrirNuevaBaja() {
+  document.getElementById('mvol-titulo').textContent = '🏥 Registrar baja';
+  document.getElementById('mvol-body').innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Cargando turnos confirmados…</p></div>`;
+  openModal('mvol');
+  try {
+    const hist = await apiGet({action:'getHistorial'});
+    // Agrupar por "turno único" para selección
+    const mapa = {};
+    (hist||[]).forEach(r => {
+      const k = `${r.fecha}|${r.rango}`;
+      if (!mapa[k]) mapa[k] = { semana:r.semana, dia:r.dia, fecha:r.fecha, rango:r.rango, vols:[] };
+      mapa[k].vols.push(r.nombre);
+    });
+    const turnos = Object.values(mapa).sort((a,b)=>a.fecha<b.fecha?-1:1);
+    const voluntarios = [...new Set((hist||[]).map(r=>r.nombre))].sort();
+
+    document.getElementById('mvol-body').innerHTML = `
+      <p style="font-size:.8rem;color:var(--label3);margin-bottom:1.1rem">Selecciona el turno y el voluntario que no puede asistir.</p>
+
+      <div class="form-row full" style="margin-bottom:.85rem">
+        <div class="fg">
+          <label>Turno confirmado</label>
+          <select class="fc" id="nb-turno" onchange="onNbTurnoChange()">
+            <option value="">— Selecciona un turno —</option>
+            ${turnos.map((t,i)=>`<option value="${i}" data-sem="${t.semana}" data-dia="${t.dia}" data-rango="${t.rango}" data-fecha="${t.fecha}" data-vols='${JSON.stringify(t.vols)}'>
+              📅 ${t.fecha} · ${t.dia} · 🕒 ${t.rango}
+            </option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row full" style="margin-bottom:.85rem" id="nb-vol-wrap" style="display:none">
+        <div class="fg">
+          <label>Voluntario que causa baja</label>
+          <select class="fc" id="nb-nombre">
+            <option value="">— Primero selecciona un turno —</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="nb-turno-preview" style="margin-bottom:1rem"></div>
+
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+        <button class="btn btn-red" id="nb-submit" onclick="guardarNuevaBaja()">🏥 Registrar baja</button>
+      </div>`;
+
+  } catch(e) {
+    document.getElementById('mvol-body').innerHTML = `<p style="color:var(--red)">Error al cargar turnos: ${e.message}</p>`;
+  }
+}
+
+function onNbTurnoChange() {
+  const sel = document.getElementById('nb-turno');
+  const opt = sel.options[sel.selectedIndex];
+  const preview = document.getElementById('nb-turno-preview');
+  const volSel  = document.getElementById('nb-nombre');
+  if (!opt.value) { preview.innerHTML=''; volSel.innerHTML='<option value="">— Primero selecciona un turno —</option>'; return; }
+  let vols = [];
+  try { vols = JSON.parse(opt.dataset.vols||'[]'); } catch(e) {}
+  const tarde = parseInt((opt.dataset.rango||'').split(':')[0]) >= 14;
+  preview.innerHTML = `
+    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.75rem .9rem;border:1px solid var(--sep)">
+      <div style="font-size:.72rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Equipo del turno</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+        ${vols.map(n=>`<span style="background:var(--surface);border:1px solid var(--sep);border-radius:20px;padding:.22rem .6rem;font-size:.75rem;font-weight:500">${n}</span>`).join('')}
+      </div>
+    </div>`;
+  volSel.innerHTML = `<option value="">— Selecciona quién da la baja —</option>` +
+    vols.map(n=>`<option value="${n}">${n}</option>`).join('');
+}
+
+async function guardarNuevaBaja() {
+  const turnoSel = document.getElementById('nb-turno');
+  const opt      = turnoSel?.options[turnoSel.selectedIndex];
+  const nombre   = document.getElementById('nb-nombre')?.value;
+  if (!opt?.value || !nombre) { toast('Selecciona el turno y el voluntario','err'); return; }
+  const { semana:sem, dia, rango, fecha } = opt.dataset;
+  const btn = document.getElementById('nb-submit');
+  btn.disabled = true; btn.textContent = 'Registrando…';
+  try {
+    await apiPost({accion:'registrarBaja', nombre,
+      turnos:[{semana:sem, dia, rango, fecha}]});
+    closeModal('mvol');
+    window._bOk = false;
+    toast(`Baja de ${nombre} registrada. Buscando sustituto…`, 'ok');
+    loadBajas(true);
+  } catch(e) {
+    btn.disabled=false; btn.textContent='🏥 Registrar baja';
+    toast('Error: '+e.message,'err');
+  }
+}
+
+// ══════════════════════════════════════
+//  OFERTA DE TURNOS DISPONIBLES
+//  Panel para que el coordinador vea qué turnos
+//  necesitan voluntarios y pueda gestionar refuerzos
+// ══════════════════════════════════════
+async function loadOferta(force) {
+  if (window._oOk && !force) return;
+  const c = document.getElementById('tab-oferta');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div>`;
+  try {
+    const [ofertaData, vols] = await Promise.all([
+      apiGet({action:'getOfertaTurnos'}),
+      apiGet({action:'getVoluntarios'}),
+    ]);
+    if (ofertaData.error) throw new Error(ofertaData.error);
+    window._ofertaData   = ofertaData.turnos || [];
+    window._ofertaVols   = Array.isArray(vols) ? vols : [];
+    window._ofertaVolSel = '';
+    renderOfertaPanel(c);
+    window._oOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
+  }
+}
+
+function renderOfertaPanel(c) {
+  const turnos   = window._ofertaData   || [];
+  const vols     = window._ofertaVols   || [];
+  const volSel   = window._ofertaVolSel || '';
+  const nRef     = volSel.toUpperCase().trim();
+
+  c.innerHTML = '';
+
+  // ── STATS ──────────────────────────────────────
+  const pendientes = turnos.filter(t => !t.esDia && t.necesitan > 0);
+  const sinLlave   = turnos.filter(t => !t.tieneLlave);
+  const dias       = turnos.filter(t => t.esDia);
+  const sr = document.createElement('div'); sr.className = 'stats-row';
+  sr.innerHTML = `
+    <div class="sbox"><div class="sv">${turnos.length}</div><div class="sl">Con plazas</div></div>
+    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Faltan vols.</div></div>
+    <div class="sbox" style="border-left:3px solid var(--amber)"><div class="sv" style="color:var(--amber)">${sinLlave.length}</div><div class="sl">Sin llave</div></div>
+    <div class="sbox" style="border-left:3px solid var(--purple, #af52de)"><div class="sv" style="color:#af52de">${dias.length}</div><div class="sl">Días sin cuadrt.</div></div>`;
+  c.appendChild(sr);
+
+  // ── SELECTOR VOLUNTARIO ────────────────────────
+  const selWrap = document.createElement('div');
+  selWrap.className = 'card';
+  selWrap.style.marginBottom = '1.25rem';
+  selWrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">
+      <span style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)">Voluntario (para apuntarse)</span>
+      <span style="font-size:.72rem;color:var(--label3)">${turnos.length} turno${turnos.length!==1?'s':''} disponibles</span>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <div class="of-ac-wrap" style="flex:1;min-width:180px;position:relative">
+        <input type="text" class="fc" id="of-inp-vol"
+          placeholder="Busca un voluntario…"
+          value="${volSel}"
+          autocomplete="off"
+          oninput="ofSugerir(this)"
+          style="background:var(--surface2)"
+          onkeydown="ofNavSug(event)">
+        <div id="of-sug" style="position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-md);max-height:200px;overflow-y:auto;z-index:300;box-shadow:var(--shadow-lg);display:none"></div>
+      </div>
+      ${volSel ? `<button class="btn btn-ghost btn-sm" onclick="ofLimpiarVol()">✕ Limpiar</button>` : ''}
+    </div>
+    ${volSel ? `<div style="margin-top:.6rem;display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--green-dark);font-weight:600"><span>✓</span> Mostrando disponibilidad para <strong>${volSel}</strong></div>` : ''}`;
+  c.appendChild(selWrap);
+
+  // ── LISTA POR FECHA ────────────────────────────
+  if (!turnos.length) {
+    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios.</p></div>`);
+    return;
+  }
+
+  // Agrupar por fecha
+  const porFecha = {};
+  turnos.forEach(t => {
+    const k = t.fecha + '|' + t.dia;
+    if (!porFecha[k]) porFecha[k] = [];
+    porFecha[k].push(t);
+  });
+
+  Object.keys(porFecha).sort().forEach((fk, gi) => {
+    const [fecha, dia] = fk.split('|');
+    const grupo = document.createElement('div');
+    grupo.style.marginBottom = '1.5rem';
+    grupo.style.animation = 'fadeUp .3s ease both';
+    grupo.style.animationDelay = (gi * .05) + 's';
+    grupo.innerHTML = `
+      <div style="display:flex;align-items:center;gap:.65rem;padding-bottom:.5rem;margin-bottom:.65rem;border-bottom:2px solid var(--navy)">
+        <span style="font-size:.95rem;font-weight:700;color:var(--navy)">📅 ${dia} · ${fecha}</span>
+      </div>`;
+    porFecha[fk].forEach(t => grupo.appendChild(buildOfertaCard(t, nRef)));
+    c.appendChild(grupo);
+  });
+}
+
+function buildOfertaCard(t, nRef) {
+  const esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
+  const h      = !esDia && t.rango ? parseInt(t.rango) : 0;
+  const tarde  = !esDia && h >= 14;
+  const pct    = Math.min(100, Math.round((t.equipoActual / 4) * 100));
+
+  // Colores y tipo
+  const accentColor = esDia ? 'linear-gradient(90deg,#af52de,#c084fc)'
+    : tarde ? 'linear-gradient(90deg,var(--amber),#ffcc00)'
+    : 'linear-gradient(90deg,var(--blue),#34aadc)';
+  const typeTxt   = esDia ? 'DÍA SIN CUADRANTE' : tarde ? 'TARDE' : 'MAÑANA';
+  const typeStyle = esDia
+    ? 'background:#f5eeff;color:#af52de'
+    : tarde ? 'background:var(--amber-soft);color:var(--amber)'
+    : 'background:var(--blue-soft);color:var(--blue)';
+  const pfColor = esDia ? '#af52de'
+    : pct === 0 ? 'var(--red)' : pct >= 75 ? 'var(--green-dark)' : 'var(--amber)';
+
+  const rangoTxt = esDia
+    ? `<div style="font-size:1.05rem;font-weight:800;color:#af52de;letter-spacing:-.02em">📅 Día sin cuadrante</div>`
+    : `<div style="font-size:1.05rem;font-weight:800;color:var(--label1);letter-spacing:-.02em">🕒 ${t.rango}</div>`;
+
+  const cntTxt = esDia
+    ? `Interesados: <strong>${t.equipoActual}</strong> · Mín. necesario: <strong>3</strong>`
+    : `Equipo: <strong>${t.equipoActual} / 4</strong> · Faltan: <strong>${t.necesitan}</strong>`;
+
+  const alertaLlave = !t.tieneLlave
+    ? `<div style="margin:0 1rem .55rem;background:#fffbf0;border:1px solid #ffe082;border-radius:var(--r-sm);padding:.45rem .75rem;font-size:.73rem;color:#7a5000;display:flex;align-items:center;gap:.35rem">🔑 ${esDia?'Necesita portador de llave.':'Este turno necesita portador de llave.'}</div>`
+    : '';
+
+  // Voluntarios ya apuntados
+  const yaApuntado = nRef && t.equipoNombres.some(n => n.toUpperCase() === nRef);
+  const equipoHTML = t.equipoNombres.length
+    ? t.equipoNombres.map(n => `<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('')
+    : `<span style="font-size:.73rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>`;
+
+  // Acciones
+  let accionHTML = '';
+  if (yaApuntado) {
+    accionHTML = `<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.55rem .8rem;font-size:.78rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`;
+  } else if (esDia) {
+    const franjas = t.franjasCalculadas || [];
+    if (franjas.length) {
+      accionHTML = `
+        <div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);margin-bottom:.4rem">Elige tu franja horaria:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.35rem">
+          ${franjas.map(fr => {
+            const hf = parseInt(fr); const tf = hf >= 14;
+            return `<button style="background:${tf?'var(--amber-soft)':'var(--blue-soft)'};color:${tf?'var(--amber)':'var(--blue)'};border:1.5px solid ${tf?'#ffd59e':'#b3ceef'};border-radius:var(--r-sm);padding:.38rem .78rem;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .16s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''" onclick="ofApuntarFranja('${esc(t.key)}','${esc(t.fecha)}','${esc(fr)}')">🕒 ${fr}</button>`;
+          }).join('')}
+        </div>`;
+    } else {
+      accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme</button>`;
+    }
+  } else {
+    accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
+  }
+
+  const card = document.createElement('div');
+  card.className = 'tc'; // reusar estilos de turno card
+  card.style.marginBottom = '.6rem';
+  card.innerHTML = `
+    <div style="height:3px;background:${accentColor}"></div>
+    <div style="padding:.85rem 1rem .4rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div>
+        ${rangoTxt}
+        <span style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;margin-top:.28rem;display:inline-block;${typeStyle}">${typeTxt}</span>
+      </div>
+    </div>
+    <div style="padding:0 1rem .55rem">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.28rem">
+        <span style="font-size:.68rem;font-weight:600;color:var(--label3)">${cntTxt}</span>
+      </div>
+      <div style="height:5px;background:var(--sep);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${pfColor};border-radius:3px;transition:width .45s ease"></div>
+      </div>
+    </div>
+    ${alertaLlave}
+    <div style="padding:0 1rem .5rem">
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--label3);margin-bottom:.38rem">Voluntarios apuntados (${t.equipoNombres.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.28rem">${equipoHTML}</div>
+    </div>
+    <div style="padding:0 1rem 1rem">${accionHTML}</div>`;
+  return card;
+}
+
+// ── AUTOCOMPLETE OFERTA ──────────────────────
+function ofSugerir(inp) {
+  const q    = inp.value.trim().toLowerCase();
+  const sg   = document.getElementById('of-sug');
+  if (q.length < 1) { sg.style.display='none'; sg.innerHTML=''; return; }
+  const vols = window._ofertaVols || [];
+  const matches = vols.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { sg.style.display='none'; return; }
+  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\]/g,'\$&')})`, 'gi');
+  sg.innerHTML = matches.map(v => {
+    const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    return `<div onclick="ofElegirVol('${esc(v)}')" style="padding:.6rem .9rem;font-size:.83rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .12s" onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${ini}</div>
+      <span>${v.replace(re,'<mark style="background:transparent;color:var(--blue);font-weight:700">$1</mark>')}</span>
+    </div>`;
+  }).join('');
+  sg.style.display = 'block';
+}
+
+function ofNavSug(e) {
+  const sg = document.getElementById('of-sug');
+  const items = sg.querySelectorAll('div');
+  const cur = [...items].find(el => el.style.background.includes('blue'));
+  if (e.key === 'Escape') { sg.style.display='none'; return; }
+  if (e.key === 'Enter' && cur) { cur.click(); return; }
+}
+
+function ofElegirVol(nombre) {
+  window._ofertaVolSel = nombre;
+  document.getElementById('of-inp-vol').value = nombre;
+  document.getElementById('of-sug').style.display = 'none';
+  const c = document.getElementById('tab-oferta');
+  renderOfertaPanel(c);
+}
+
+function ofLimpiarVol() {
+  window._ofertaVolSel = '';
+  const c = document.getElementById('tab-oferta');
+  renderOfertaPanel(c);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.of-ac-wrap')) {
+    const sg = document.getElementById('of-sug');
+    if (sg) sg.style.display = 'none';
+  }
+});
+
+// ── APUNTARSE (con feedback optimista) ────────
+function ofNombreSeleccionado() {
+  const n = window._ofertaVolSel || document.getElementById('of-inp-vol')?.value.trim();
+  if (!n) { toast('Selecciona un voluntario primero', 'err'); return null; }
+  return n;
+}
+
+async function ofApuntar(key, fecha) {
+  const nombre = ofNombreSeleccionado();
+  if (!nombre) return;
+  await ofEnviarRefuerzo({ accion:'registrarRefuerzo', nombre, key, fecha });
+}
+
+async function ofApuntarFranja(key, fecha, franja) {
+  const nombre = ofNombreSeleccionado();
+  if (!nombre) return;
+  await ofEnviarRefuerzo({ accion:'registrarRefuerzo', nombre, key, fecha, franja, esDia:true });
+}
+
+async function ofEnviarRefuerzo(data) {
+  toast('Apuntando…', 'ok');
+  // Feedback optimista: actualizar estado local
+  const nUp = (data.nombre||'').toUpperCase().trim();
+  (window._ofertaData||[]).forEach(t => {
+    if (t.key === data.key && !t.equipoNombres.some(n => n.toUpperCase() === nUp)) {
+      t.equipoNombres.push(data.nombre);
+      t.equipoActual = t.equipoNombres.length;
+      t.necesitan    = Math.max(0, 4 - t.equipoActual);
+    }
+  });
+  renderOfertaPanel(document.getElementById('tab-oferta'));
+  try {
+    await apiPost(data);
+    toast(`✓ ${data.nombre} apuntado correctamente`, 'ok');
+    // Resincronizar tras 2s
+    setTimeout(() => { window._oOk=false; window._bOk=false; loadOferta(true); }, 2000);
+  } catch(e) {
+    toast('Error al apuntar. Inténtalo de nuevo.', 'err');
+    window._oOk = false;
+    loadOferta(true);
+  }
+}
+
+function esc(s) { return (s+'').replace(/\/g,'\\').replace(/'/g,"\'"); }
 
 // ══════════════════════════════════════
 //  HISTORIAL
