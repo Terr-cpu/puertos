@@ -2,585 +2,940 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Sustituciones · Puerto de Sevilla</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{
-  --navy:#0f1f38;--ocean:#1a3a5c;--gold:#c9a84c;--dawn:#f5f0e8;
-  --mist:#eef2f7;--ink:#1c2b3a;--slate:#5c7a96;--green:#1e7d5a;
-  --red:#c0392b;--amber:#e07b00;--white:#ffffff;--purple:#6d28d9;
+/* ══════════════════════════════════════════════════
+   TOKENS — mismo sistema que el planificador
+══════════════════════════════════════════════════ */
+:root {
+  --bg:         #f2f2f7;
+  --surface:    #ffffff;
+  --surface2:   #f5f7fa;
+  --navy:       #0a1628;
+  --blue:       #0071e3;
+  --blue-soft:  #ddeeff;
+  --amber:      #e07b00;
+  --amber-soft: #fff3e0;
+  --gold:       #c9a84c;
+  --green:      #34c759;
+  --green-dark: #1a9648;
+  --green-soft: #e6f7ed;
+  --red:        #ff3b30;
+  --red-dark:   #c0392b;
+  --red-soft:   #fff0ef;
+  --purple:     #af52de;
+  --purple-soft:#f5eeff;
+  --label1:     #1c1c1e;
+  --label2:     #48484a;
+  --label3:     #8e8e93;
+  --label4:     #c7c7cc;
+  --sep:        rgba(60,60,67,0.12);
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.07);
+  --shadow-md:  0 4px 20px rgba(0,0,0,0.09);
+  --shadow-lg:  0 12px 40px rgba(0,0,0,0.13);
+  --r-sm: 10px; --r-md: 14px; --r-lg: 20px; --r-xl: 28px;
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{scroll-behavior:smooth;}
-body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);min-height:100vh;padding-bottom:4rem;}
 
-/* HEADER */
-.hdr{background:linear-gradient(135deg,var(--navy),var(--ocean));padding:2rem 1.5rem 1.8rem;text-align:center;position:relative;overflow:hidden;}
-.hdr::before{content:'';position:absolute;inset:0;background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");}
-.hdr h1{font-family:'DM Serif Display',serif;font-size:clamp(1.4rem,4vw,2rem);color:#fff;position:relative;}
-.hdr p{color:rgba(255,255,255,.5);font-size:.8rem;margin-top:.3rem;letter-spacing:.08em;text-transform:uppercase;position:relative;}
-.gold-line{width:48px;height:3px;background:var(--gold);margin:.9rem auto 0;border-radius:2px;position:relative;}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-font-smoothing: antialiased; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); font-family: 'Sora', -apple-system, sans-serif; color: var(--label1); min-height: 100vh; padding-bottom: env(safe-area-inset-bottom); }
 
-/* TABS */
-.tabs{display:flex;background:var(--white);border-bottom:2px solid #dde3ec;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.06);}
-.tab-btn{flex:1;padding:.9rem .5rem;border:none;background:transparent;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;color:var(--slate);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;}
-.tab-btn.active{color:var(--navy);border-bottom-color:var(--navy);}
-.tab-btn:hover:not(.active){background:var(--mist);}
+/* ══════════════════════════════════════════════════
+   HERO
+══════════════════════════════════════════════════ */
+.hero {
+  background: linear-gradient(160deg, #0a1628 0%, #0d2346 60%, #0f3060 100%);
+  padding: 3rem 1.5rem 5.5rem; text-align: center; position: relative; overflow: hidden;
+}
+.hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 20% 100%, rgba(0,113,227,.18) 0%, transparent 70%),
+              radial-gradient(ellipse 60% 50% at 80% 0%, rgba(201,168,76,.12) 0%, transparent 70%);
+}
+.hero-inner { position: relative; }
+.hero-icon {
+  width: 60px; height: 60px; margin: 0 auto 1rem;
+  background: linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,.05));
+  border: 1px solid rgba(255,255,255,.2); border-radius: 16px;
+  display: flex; align-items: center; justify-content: center; font-size: 1.6rem;
+  backdrop-filter: blur(12px); box-shadow: 0 8px 24px rgba(0,0,0,.3);
+}
+.hero h1 { font-size: clamp(1.4rem,4vw,1.9rem); font-weight: 700; color: #fff; letter-spacing: -.02em; }
+.hero p { color: rgba(255,255,255,.4); font-size: .75rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; margin-top: .4rem; }
+.hero-line { width: 32px; height: 2px; background: linear-gradient(90deg, var(--gold), transparent); margin: .9rem auto 0; border-radius: 2px; }
 
-/* LAYOUT */
-.main{max-width:820px;margin:0 auto;padding:1.5rem 1rem 3rem;}
-.sec{display:none;}.sec.active{display:block;}
-.card{background:var(--white);border-radius:14px;box-shadow:0 2px 16px rgba(15,31,56,.07);border:1px solid #e4eaf3;padding:1.4rem;margin-bottom:1.2rem;}
-.lbl{font-size:.72rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--slate);margin-bottom:.75rem;display:block;}
+/* ══════════════════════════════════════════════════
+   PILL TABS — flotante sobre el hero
+══════════════════════════════════════════════════ */
+.tabs-wrap {
+  position: sticky; top: 0; z-index: 200;
+  padding: 0 1rem; margin-top: -2.2rem;
+}
+.tabs-pill {
+  background: rgba(255,255,255,.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,.6);
+  border-radius: var(--r-xl); box-shadow: var(--shadow-lg);
+  padding: .45rem; display: flex; gap: .3rem;
+}
+.tab-btn {
+  flex: 1; padding: .55rem .75rem; border: none; border-radius: var(--r-lg);
+  font-family: inherit; font-size: .8rem; font-weight: 600; color: var(--label3);
+  cursor: pointer; background: transparent; transition: all .2s ease;
+  display: flex; align-items: center; justify-content: center; gap: .35rem;
+  white-space: nowrap;
+}
+.tab-btn:hover { background: var(--surface2); color: var(--label1); }
+.tab-btn.active { background: var(--navy); color: #fff; }
 
-/* AUTOCOMPLETE */
-.ac-wrap{position:relative;}
-.ac-wrap input{width:100%;border:2px solid #dde3ec;border-radius:9px;padding:.75rem 1rem;font-size:.95rem;font-family:'DM Sans',sans-serif;color:var(--ink);background:var(--white);transition:border-color .2s;outline:none;}
-.ac-wrap input:focus{border-color:var(--navy);}
-.ac-wrap input.ok{border-color:var(--green);background:#f0fbf6;}
-.sugs{position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid #dde3ec;border-top:none;border-radius:0 0 10px 10px;max-height:220px;overflow-y:auto;z-index:200;box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;}
-.sugs.open{display:block;}
-.sug{padding:.6rem 1rem;font-size:.88rem;cursor:pointer;transition:background .15s;}
-.sug:hover,.sug.hi{background:var(--mist);}
-.sug mark{background:transparent;color:var(--navy);font-weight:700;}
+/* ══════════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════════ */
+.main { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+.sec { display: none; }
+.sec.active { display: block; }
 
-/* BOTONES */
-.btn{display:inline-flex;align-items:center;gap:.4rem;border:none;border-radius:8px;padding:.65rem 1.3rem;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:.03em;}
-.btn:disabled{opacity:.55;cursor:not-allowed;transform:none!important;box-shadow:none!important;}
-.btn-navy{background:var(--navy);color:#fff;}
-.btn-navy:hover:not(:disabled){background:var(--ocean);transform:translateY(-1px);box-shadow:0 4px 14px rgba(15,31,56,.25);}
-.btn-green{background:var(--green);color:#fff;}
-.btn-green:hover:not(:disabled){background:#165c42;transform:translateY(-1px);box-shadow:0 4px 12px rgba(30,125,90,.3);}
-.btn-red{background:var(--red);color:#fff;}
-.btn-red:hover:not(:disabled){background:#962d22;transform:translateY(-1px);}
-.btn-sm{padding:.4rem .9rem;font-size:.78rem;}
-.btn-w{width:100%;justify-content:center;margin-top:.75rem;}
+/* ══════════════════════════════════════════════════
+   CARDS
+══════════════════════════════════════════════════ */
+.card {
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,.04);
+  padding: 1.2rem; margin-bottom: .85rem;
+  animation: fadeUp .3s ease both;
+}
+@keyframes fadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
 
-/* TURNO ITEM EN BAJA */
-.ti{border:2px solid #e4eaf3;border-radius:12px;padding:.85rem 1rem;margin-bottom:.5rem;transition:all .2s;cursor:pointer;user-select:none;}
-.ti:hover{border-color:#c5cfe0;background:#fafbff;}
-.ti.sel{border-color:var(--red);background:#fff5f5;}
-.ti.baja-ya{border-color:#c5cfe0;background:#f8f9fa;opacity:.7;cursor:default;}
-.ti.confirmado{border-color:var(--green);background:#f0fbf6;}
-.ti-inner{display:flex;align-items:center;gap:.75rem;}
-.ti-check{width:22px;height:22px;border-radius:5px;border:2px solid #c5cfe0;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:.85rem;}
-.ti.sel .ti-check{background:var(--red);border-color:var(--red);color:#fff;}
-.ti.baja-ya .ti-check{background:var(--slate);border-color:var(--slate);color:#fff;}
-.ti.confirmado .ti-check{background:var(--green);border-color:var(--green);color:#fff;}
-.ti-hora{font-family:'DM Serif Display',serif;font-size:1.05rem;color:var(--navy);}
-.ti-meta{font-size:.75rem;color:var(--slate);margin-top:.1rem;}
-.badge{font-size:.62rem;font-weight:700;padding:.15rem .5rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;display:inline-block;}
-.b-man{background:#e8f1fc;color:#1a6fc4;}
-.b-tar{background:#fff3e0;color:var(--amber);}
-.b-baj{background:#fde8e8;color:var(--red);}
-.b-ok{background:#e0f2ec;color:var(--green);}
+.section-label {
+  font-size: .62rem; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--label3); margin-bottom: .75rem; display: block;
+}
 
-/* RESUMEN SELECCIÓN */
-.resumen{background:#fff8e1;border:1.5px solid #ffe082;border-radius:10px;padding:.8rem 1rem;margin:.75rem 0;font-size:.83rem;color:#7a5c00;display:none;}
-.resumen.visible{display:block;}
-.resumen strong{display:block;margin-bottom:.4rem;font-size:.85rem;}
-.resumen-item{padding:.2rem 0;border-bottom:1px solid #fff0a0;}
-.resumen-item:last-child{border:none;}
+/* ══════════════════════════════════════════════════
+   STEPPER
+══════════════════════════════════════════════════ */
+.stepper {
+  display: flex; align-items: center; gap: 0; margin-bottom: 1.25rem;
+  background: var(--surface); border-radius: var(--r-xl); padding: .5rem;
+  box-shadow: var(--shadow-sm); border: 1px solid var(--sep);
+}
+.step-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: .25rem; padding: .35rem .2rem; border-radius: var(--r-md);
+  transition: all .2s ease;
+}
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 700;
+  background: var(--surface2); color: var(--label4); border: 2px solid var(--label4);
+  transition: all .25s ease;
+}
+.step-txt { font-size: .62rem; font-weight: 600; color: var(--label4); letter-spacing: .04em; text-transform: uppercase; transition: color .2s; }
+.step-item.active .step-num { background: var(--navy); color: #fff; border-color: var(--navy); transform: scale(1.1); }
+.step-item.active .step-txt { color: var(--navy); }
+.step-item.done  .step-num { background: var(--green-dark); color: #fff; border-color: var(--green-dark); }
+.step-item.done  .step-num::after { content: '✓'; }
+.step-item.done  .step-txt { color: var(--green-dark); }
+.step-connector { width: 24px; height: 2px; background: var(--label4); flex-shrink: 0; border-radius: 2px; transition: background .3s; }
+.step-connector.done { background: var(--green-dark); }
 
-/* OFERTA */
-.oc{background:var(--white);border-radius:12px;border:1.5px solid #e4eaf3;padding:1rem 1.1rem;margin-bottom:.8rem;box-shadow:0 1px 8px rgba(15,31,56,.05);}
-.oc.dia-card{border-color:#c4b5fd;background:#faf7ff;}
-.oc-hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.6rem;}
-.oc-fecha{font-size:.7rem;color:var(--slate);font-weight:700;letter-spacing:.06em;text-transform:uppercase;}
-.oc-rango{font-family:'DM Serif Display',serif;font-size:1.1rem;color:var(--navy);}
-.oc-rango.dia{color:var(--purple);}
-.prog{height:6px;background:#e4eaf3;border-radius:3px;margin:.5rem 0;}
-.prog-fill{height:100%;border-radius:3px;background:var(--navy);transition:width .4s;}
-.prog-fill.full{background:var(--green);}
-.prog-fill.low{background:var(--red);}
-.prog-fill.dia{background:var(--purple);}
-.al-llave{background:#fff8e1;border:1.5px solid #ffe082;border-radius:8px;padding:.5rem .75rem;font-size:.75rem;color:#7a5c00;margin:.4rem 0;display:flex;align-items:center;gap:.35rem;}
-.cnt{font-size:.8rem;color:var(--slate);margin:.3rem 0;}
-.cnt strong{color:var(--ink);}
-.ya-apuntado{background:#e0f2ec;border-radius:8px;padding:.45rem .75rem;font-size:.8rem;color:var(--green);font-weight:600;margin-top:.4rem;}
-.franjas-wrap{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.6rem;}
-.franja-btn{background:#e8f1fc;color:#1a3a6c;border:1.5px solid #b3ceef;border-radius:6px;padding:.35rem .75rem;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;}
-.franja-btn.tar{background:#fff3e0;color:#7a4500;border-color:#ffd59e;}
-.franja-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12);}
-.franja-lbl{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);margin-bottom:.35rem;}
+/* ══════════════════════════════════════════════════
+   AUTOCOMPLETE
+══════════════════════════════════════════════════ */
+.ac-wrap { position: relative; }
+.ac-input {
+  width: 100%; border: 1.5px solid var(--sep);
+  border-radius: var(--r-md); padding: .7rem 1rem;
+  font-family: inherit; font-size: .9rem; color: var(--label1);
+  background: var(--surface2); transition: all .2s; outline: none;
+}
+.ac-input:focus { border-color: var(--blue); background: var(--surface); box-shadow: 0 0 0 3px rgba(0,113,227,.1); }
+.ac-input.selected { border-color: var(--green-dark); background: var(--green-soft); }
+.ac-icon {
+  position: absolute; right: .85rem; top: 50%; transform: translateY(-50%);
+  font-size: .9rem; pointer-events: none; opacity: 0; transition: opacity .2s;
+}
+.ac-input.selected ~ .ac-icon { opacity: 1; }
+.ac-suggestions {
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: var(--surface); border: 1px solid var(--sep);
+  border-radius: var(--r-md); max-height: 220px; overflow-y: auto;
+  z-index: 300; box-shadow: var(--shadow-lg); display: none;
+}
+.ac-suggestions.open { display: block; }
+.ac-sug {
+  padding: .65rem 1rem; font-size: .85rem; color: var(--label1);
+  cursor: pointer; transition: background .12s;
+  display: flex; align-items: center; gap: .5rem;
+}
+.ac-sug:hover, .ac-sug.highlighted { background: var(--blue-soft); }
+.ac-sug mark { background: transparent; color: var(--blue); font-weight: 700; }
+.ac-sug .sug-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--navy); color: var(--gold);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .62rem; font-weight: 700; flex-shrink: 0; text-transform: uppercase;
+}
 
-/* SPINNER / LOADING */
-.spin-wrap{text-align:center;padding:3rem 0;}
-.spin{width:40px;height:40px;border:3px solid #dde3ec;border-top-color:var(--navy);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem;}
-@keyframes spin{to{transform:rotate(360deg);}}
-.empty{text-align:center;padding:3rem 1rem;color:var(--slate);}
-.empty .ico{font-size:2.5rem;margin-bottom:.75rem;}
+/* ══════════════════════════════════════════════════
+   BOTONES
+══════════════════════════════════════════════════ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  border: none; border-radius: var(--r-md); padding: .65rem 1.3rem;
+  font-family: inherit; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: all .2s cubic-bezier(.34,1.56,.64,1);
+  letter-spacing: .02em; white-space: nowrap;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+.btn-full { width: 100%; margin-top: .75rem; }
+.btn-navy { background: var(--navy); color: #fff; }
+.btn-navy:not(:disabled):hover { background: #152540; transform: translateY(-1px); box-shadow: 0 4px 14px rgba(10,22,40,.3); }
+.btn-green { background: var(--green-dark); color: #fff; }
+.btn-green:not(:disabled):hover { background: #157a3a; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(26,150,72,.3); }
+.btn-red   { background: var(--red-dark); color: #fff; }
+.btn-red:not(:disabled):hover   { background: #962d22; transform: translateY(-1px); }
+.btn-ghost { background: var(--surface2); color: var(--label2); border: 1px solid var(--sep); }
+.btn-ghost:not(:disabled):hover { background: #eaedf2; }
+.btn-sm { padding: .42rem .85rem; font-size: .75rem; }
 
-/* TOAST */
-.toasts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:.5rem;pointer-events:none;}
-.toast{background:var(--navy);color:#fff;padding:.7rem 1.1rem;border-radius:9px;font-size:.83rem;box-shadow:0 4px 20px rgba(0,0,0,.2);animation:tin .3s ease;max-width:300px;pointer-events:auto;}
-.toast.ok{border-left:4px solid #2ecc71;}
-.toast.err{border-left:4px solid #e74c3c;}
-.toast.inf{border-left:4px solid var(--gold);}
-@keyframes tin{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:translateX(0);}}
+/* ══════════════════════════════════════════════════
+   TURNO ITEM (selector de baja)
+══════════════════════════════════════════════════ */
+.turno-item {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--surface2); border-radius: var(--r-md);
+  padding: .7rem .9rem; margin-bottom: .4rem;
+  border: 1.5px solid transparent; cursor: pointer;
+  transition: all .18s ease; user-select: none;
+}
+.turno-item:hover { background: #ebebf0; border-color: var(--label4); }
+.turno-item.selected { background: var(--red-soft); border-color: var(--red-dark); }
+.turno-item.already-baja { background: var(--surface2); border-color: var(--label4); opacity: .65; cursor: default; }
+.turno-item.confirmed { background: var(--green-soft); border-color: var(--green-dark); cursor: default; }
 
-/* PASO A PASO */
-.steps{display:flex;gap:.5rem;margin-bottom:1.2rem;}
-.step{flex:1;padding:.5rem .4rem;text-align:center;font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--slate);border-bottom:3px solid #dde3ec;transition:all .2s;}
-.step.active{color:var(--navy);border-color:var(--navy);}
-.step.done{color:var(--green);border-color:var(--green);}
+.ti-checkbox {
+  width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--label4);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; transition: all .18s ease; background: var(--surface);
+}
+.turno-item.selected  .ti-checkbox { background: var(--red-dark); border-color: var(--red-dark); color: #fff; }
+.turno-item.already-baja .ti-checkbox { background: var(--label3); border-color: var(--label3); color: #fff; }
+.turno-item.confirmed .ti-checkbox { background: var(--green-dark); border-color: var(--green-dark); color: #fff; }
+
+.ti-body { flex: 1; min-width: 0; }
+.ti-hora { font-size: .9rem; font-weight: 700; color: var(--label1); letter-spacing: -.01em; }
+.ti-meta { font-size: .7rem; color: var(--label3); margin-top: .12rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.ti-pill {
+  font-size: .6rem; font-weight: 700; padding: .12rem .42rem; border-radius: 4px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+.pill-m   { background: var(--blue-soft); color: var(--blue); }
+.pill-t   { background: var(--amber-soft); color: var(--amber); }
+.pill-baja{ background: var(--red-soft); color: var(--red-dark); }
+.pill-ok  { background: var(--green-soft); color: var(--green-dark); }
+
+/* ══════════════════════════════════════════════════
+   RESUMEN SELECCIÓN
+══════════════════════════════════════════════════ */
+.resumen-box {
+  background: linear-gradient(135deg, #fff8e1, #fff3cc);
+  border: 1.5px solid #ffe082; border-radius: var(--r-md);
+  padding: .85rem 1rem; margin: .75rem 0;
+  display: none; animation: fadeUp .2s ease;
+}
+.resumen-box.visible { display: block; }
+.resumen-title { font-size: .78rem; font-weight: 700; color: #7a5c00; margin-bottom: .5rem; display: flex; align-items: center; gap: .4rem; }
+.resumen-item { font-size: .78rem; color: #6b5000; padding: .25rem 0; border-bottom: 1px solid rgba(255,224,82,.5); display: flex; align-items: center; gap: .4rem; }
+.resumen-item:last-child { border-bottom: none; }
+
+/* ══════════════════════════════════════════════════
+   INFO BOX (usuario cargado)
+══════════════════════════════════════════════════ */
+.user-info-bar {
+  display: flex; align-items: center; gap: .75rem;
+  background: var(--navy); border-radius: var(--r-md);
+  padding: .75rem 1rem; margin-bottom: .75rem;
+}
+.uib-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,.12); border: 2px solid rgba(201,168,76,.4);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 700; color: var(--gold); flex-shrink: 0; text-transform: uppercase;
+}
+.uib-name { font-size: .85rem; font-weight: 600; color: #fff; }
+.uib-sub  { font-size: .68rem; color: rgba(255,255,255,.45); margin-top: .06rem; }
+
+/* ══════════════════════════════════════════════════
+   OFERTA — FECHA GRUPO
+══════════════════════════════════════════════════ */
+.fecha-grupo { margin-bottom: 1.5rem; }
+.fecha-header {
+  display: flex; align-items: center; gap: .6rem;
+  padding-bottom: .5rem; margin-bottom: .75rem;
+  border-bottom: 2px solid var(--navy);
+}
+.fecha-txt { font-size: .95rem; font-weight: 700; color: var(--navy); letter-spacing: -.01em; }
+
+/* OFERTA CARD */
+.oc {
+  background: var(--surface); border-radius: var(--r-lg);
+  border: 1px solid var(--sep); box-shadow: var(--shadow-sm);
+  overflow: hidden; margin-bottom: .65rem;
+  transition: box-shadow .2s, transform .2s;
+  animation: fadeUp .3s ease both;
+}
+.oc:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.oc.dia-card { border-color: #d8b4fe; }
+.oc-accent { height: 3px; }
+.oa-m { background: linear-gradient(90deg, var(--blue), #34aadc); }
+.oa-t { background: linear-gradient(90deg, var(--amber), #ffcc00); }
+.oa-d { background: linear-gradient(90deg, var(--purple), #c084fc); }
+
+.oc-head { padding: .9rem 1.1rem .4rem; display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; flex-wrap: wrap; }
+.oc-rango { font-size: 1.1rem; font-weight: 800; color: var(--label1); letter-spacing: -.02em; }
+.oc-rango.dia { color: var(--purple); }
+.oc-type { font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .14rem .48rem; border-radius: 4px; margin-top: .28rem; display: block; }
+.ot-m { background: var(--blue-soft); color: var(--blue); }
+.ot-t { background: var(--amber-soft); color: var(--amber); }
+.ot-d { background: var(--purple-soft); color: var(--purple); }
+
+/* Barra de progreso */
+.prog-wrap { padding: .35rem 1.1rem .6rem; }
+.prog-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: .3rem; }
+.prog-label { font-size: .68rem; font-weight: 600; color: var(--label3); }
+.prog-count { font-size: .7rem; font-weight: 700; color: var(--label2); }
+.prog-track { height: 5px; background: var(--sep); border-radius: 3px; overflow: hidden; }
+.prog-fill { height: 100%; border-radius: 3px; transition: width .45s ease; }
+.pf-empty { background: var(--red-dark); }
+.pf-partial { background: var(--amber); }
+.pf-full { background: var(--green-dark); }
+.pf-dia { background: var(--purple); }
+
+/* Alerta llave */
+.alerta-llave {
+  margin: 0 1.1rem .6rem; background: #fffbf0;
+  border: 1px solid #ffe082; border-radius: var(--r-sm);
+  padding: .5rem .75rem; font-size: .75rem; color: #7a5000;
+  display: flex; align-items: center; gap: .4rem;
+}
+
+/* Acciones de oferta */
+.oc-actions { padding: 0 1.1rem 1rem; }
+.ya-apuntado {
+  display: flex; align-items: center; gap: .5rem;
+  background: var(--green-soft); border: 1px solid #b0dcc0;
+  border-radius: var(--r-md); padding: .6rem .85rem;
+  font-size: .8rem; font-weight: 700; color: var(--green-dark);
+}
+
+/* Selector de franja horaria */
+.franja-label { font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--label3); margin-bottom: .45rem; }
+.franjas-grid { display: flex; flex-wrap: wrap; gap: .35rem; }
+.franja-btn {
+  background: var(--blue-soft); color: var(--blue);
+  border: 1.5px solid #b3ceef; border-radius: var(--r-sm);
+  padding: .42rem .85rem; font-size: .78rem; font-weight: 700;
+  cursor: pointer; font-family: inherit; transition: all .18s ease;
+  display: flex; align-items: center; gap: .3rem;
+}
+.franja-btn.tarde { background: var(--amber-soft); color: var(--amber); border-color: #ffd59e; }
+.franja-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,.12); }
+
+/* Estado de carga inline */
+.inline-loading {
+  display: flex; align-items: center; gap: .5rem;
+  color: var(--label3); font-size: .8rem; padding: .75rem 0;
+}
+.mini-spin {
+  width: 16px; height: 16px; border: 2px solid var(--sep);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Loading y empty state */
+.loading-state { text-align: center; padding: 3.5rem 0; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--sep); border-top-color: var(--blue); border-radius: 50%; animation: spin .75s linear infinite; margin: 0 auto .9rem; }
+.loading-state p { color: var(--label3); font-size: .85rem; }
+.empty-state { text-align: center; padding: 3.5rem 1rem; }
+.empty-state .ei { font-size: 2.8rem; display: block; opacity: .28; margin-bottom: .85rem; }
+.empty-state h4 { font-size: .92rem; font-weight: 600; color: var(--label2); margin-bottom: .35rem; }
+.empty-state p { font-size: .8rem; color: var(--label3); }
+
+/* Feedback confirmación */
+.feedback-ok {
+  background: var(--green-soft); border: 1.5px solid #b0dcc0;
+  border-radius: var(--r-md); padding: .8rem 1rem; margin-top: .65rem;
+  display: flex; align-items: center; gap: .65rem;
+  animation: fadeUp .25s ease;
+}
+.feedback-ok .fok-icon { font-size: 1.3rem; flex-shrink: 0; }
+.feedback-ok .fok-txt { font-size: .82rem; font-weight: 600; color: var(--green-dark); }
+.feedback-ok .fok-sub { font-size: .72rem; color: var(--label3); margin-top: .1rem; }
+
+/* ══════════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════════ */
+.toast-stack {
+  position: fixed; bottom: calc(1.4rem + env(safe-area-inset-bottom));
+  left: 50%; transform: translateX(-50%);
+  z-index: 9999; display: flex; flex-direction: column; gap: .35rem; align-items: center;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(26,26,46,.93); backdrop-filter: blur(14px);
+  color: #fff; padding: .65rem 1.2rem; border-radius: 40px;
+  font-size: .8rem; font-weight: 500; box-shadow: var(--shadow-md);
+  animation: toastIn .28s cubic-bezier(.34,1.56,.64,1);
+  white-space: nowrap; pointer-events: auto;
+}
+.toast.ok  { background: rgba(26,150,72,.93); }
+.toast.err { background: rgba(192,57,43,.93); }
+.toast.inf { background: rgba(10,22,40,.93); border: 1px solid rgba(201,168,76,.5); }
+@keyframes toastIn { from { opacity:0; transform:scale(.85) translateY(8px); } to { opacity:1; transform:scale(1) translateY(0); } }
 </style>
 </head>
 <body>
 
-<header class="hdr">
-  <h1>🔄 Sustituciones</h1>
-  <p>Puerto de Sevilla · Gestión de cambios</p>
-  <div class="gold-line"></div>
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-icon">🔄</div>
+    <h1>Sustituciones</h1>
+    <p>Puerto de Sevilla · Gestión de cambios</p>
+    <div class="hero-line"></div>
+  </div>
 </header>
 
-<div class="tabs">
-  <button class="tab-btn active" onclick="tab('bajas')">📤 Comunicar baja</button>
-  <button class="tab-btn" onclick="tab('oferta')">📋 Turnos disponibles</button>
+<!-- TABS FLOTANTES -->
+<div class="tabs-wrap">
+  <div class="tabs-pill">
+    <button class="tab-btn active" onclick="cambiarTab('bajas')">
+      <span>📤</span> Comunicar baja
+    </button>
+    <button class="tab-btn" onclick="cambiarTab('oferta')">
+      <span>📋</span> Turnos disponibles
+    </button>
+  </div>
 </div>
 
-<div class="main">
+<main class="main">
 
-  <!-- ══ TAB 1: BAJA ══ -->
+  <!-- ═══════════════════════════════════════
+       TAB 1: COMUNICAR BAJA
+  ═══════════════════════════════════════ -->
   <div id="tab-bajas" class="sec active">
 
-    <!-- Pasos -->
-    <div class="steps">
-      <div class="step active" id="step1">1 · Tu nombre</div>
-      <div class="step" id="step2">2 · Tus turnos</div>
-      <div class="step" id="step3">3 · Confirmar</div>
+    <!-- STEPPER -->
+    <div class="stepper" id="stepper">
+      <div class="step-item active" id="step-1">
+        <div class="step-num" id="snum-1">1</div>
+        <span class="step-txt">Nombre</span>
+      </div>
+      <div class="step-connector" id="scon-1"></div>
+      <div class="step-item" id="step-2">
+        <div class="step-num" id="snum-2">2</div>
+        <span class="step-txt">Turnos</span>
+      </div>
+      <div class="step-connector" id="scon-2"></div>
+      <div class="step-item" id="step-3">
+        <div class="step-num" id="snum-3">3</div>
+        <span class="step-txt">Listo</span>
+      </div>
     </div>
 
-    <!-- Paso 1: nombre -->
+    <!-- PASO 1: NOMBRE -->
     <div class="card" id="card-nombre">
-      <span class="lbl">¿Quién eres?</span>
+      <span class="section-label">¿Quién eres?</span>
       <div class="ac-wrap">
-        <input type="text" id="inp-baja" placeholder="Empieza a escribir tu nombre..."
+        <input type="text" class="ac-input" id="inp-baja"
+               placeholder="Escribe tu nombre…"
                autocomplete="off"
-               oninput="sugerir(this,'sg-baja','hid-baja')"
-               onkeydown="navSug(event,'sg-baja','hid-baja')">
+               oninput="sugerir(this, 'sg-baja', 'hid-baja')"
+               onkeydown="navSug(event, 'sg-baja', 'hid-baja')">
         <input type="hidden" id="hid-baja">
-        <div class="sugs" id="sg-baja"></div>
+        <span class="ac-icon">✓</span>
+        <div class="ac-suggestions" id="sg-baja"></div>
       </div>
-      <button class="btn btn-navy btn-w" id="btn-buscar" onclick="buscarTurnos()" disabled>
+      <button class="btn btn-navy btn-full" id="btn-buscar" disabled onclick="buscarTurnos()">
         🔍 Ver mis turnos asignados
       </button>
     </div>
 
-    <!-- Paso 2: turnos -->
-    <div class="card" id="card-turnos" style="display:none;">
-      <span class="lbl">Selecciona los turnos en los que no puedes asistir</span>
-      <div id="lista-turnos"></div>
+    <!-- PASO 2: TURNOS -->
+    <div id="card-turnos" style="display:none">
+
+      <!-- Barra de usuario -->
+      <div class="user-info-bar" id="uib" style="display:none"></div>
+
+      <div class="card" style="padding-bottom:.5rem">
+        <span class="section-label">Selecciona los turnos en los que no puedes asistir</span>
+        <div id="lista-turnos"></div>
+      </div>
 
       <!-- Resumen dinámico -->
-      <div class="resumen" id="resumen">
-        <strong>📋 Darás de baja en estos turnos:</strong>
+      <div class="resumen-box" id="resumen">
+        <div class="resumen-title">📋 Darás de baja en estos turnos:</div>
         <div id="resumen-items"></div>
       </div>
 
-      <button class="btn btn-red btn-w" id="btn-baja" disabled onclick="registrarBaja()">
+      <button class="btn btn-red btn-full" id="btn-baja" disabled onclick="registrarBaja()">
         📤 Registrar mi baja
       </button>
-      <div id="fb-baja" style="margin-top:.6rem;font-size:.83rem;display:none;"></div>
+
+      <!-- Feedback tras confirmar -->
+      <div id="fb-baja" style="display:none"></div>
     </div>
 
   </div>
 
-  <!-- ══ TAB 2: OFERTA ══ -->
+  <!-- ═══════════════════════════════════════
+       TAB 2: TURNOS DISPONIBLES / OFERTA
+  ═══════════════════════════════════════ -->
   <div id="tab-oferta" class="sec">
 
     <!-- Nombre del voluntario para refuerzo -->
-    <div class="card">
-      <span class="lbl">¿Quién eres? (para apuntarte)</span>
+    <div class="card" style="margin-bottom:1.25rem">
+      <span class="section-label">¿Quién eres? <span style="font-weight:400;text-transform:none;letter-spacing:0">(para apuntarte)</span></span>
       <div class="ac-wrap">
-        <input type="text" id="inp-ref" placeholder="Empieza a escribir tu nombre..."
+        <input type="text" class="ac-input" id="inp-ref"
+               placeholder="Escribe tu nombre…"
                autocomplete="off"
-               oninput="sugerir(this,'sg-ref','hid-ref'); if(ofertaActual.length) renderOferta();"
-               onkeydown="navSug(event,'sg-ref','hid-ref')">
+               oninput="sugerir(this, 'sg-ref', 'hid-ref'); if(ofertaActual.length) renderOferta();"
+               onkeydown="navSug(event, 'sg-ref', 'hid-ref')">
         <input type="hidden" id="hid-ref">
-        <div class="sugs" id="sg-ref"></div>
+        <span class="ac-icon">✓</span>
+        <div class="ac-suggestions" id="sg-ref"></div>
       </div>
-      <p style="font-size:.75rem;color:var(--slate);margin-top:.5rem;">
-        Selecciona tu nombre para ver si ya estás apuntado en algún turno y poder apuntarte a nuevos.
+      <p style="font-size:.73rem;color:var(--label3);margin-top:.55rem;line-height:1.5">
+        Introduce tu nombre para ver si ya estás apuntado y poder apuntarte a los turnos que necesitan voluntarios.
       </p>
     </div>
 
+    <!-- Oferta de turnos -->
     <div id="oferta-wrap">
-      <div class="spin-wrap"><div class="spin"></div><p style="color:var(--slate);font-size:.85rem;">Cargando turnos disponibles...</p></div>
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando turnos disponibles…</p>
+      </div>
     </div>
 
   </div>
 
-</div>
+</main>
 
-<div class="toasts" id="toasts"></div>
+<div class="toast-stack" id="toasts"></div>
 
 <script>
 const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
 
-var voluntarios   = [];
-var turnosActuales = [];
-var ofertaActual  = [];
+// ── ESTADO GLOBAL ──────────────────────────────
+let voluntarios    = [];
+let turnosUsuario  = [];
+let ofertaActual   = [];
 
-// ══ TABS ═══════════════════════════════════
-function tab(t) {
-  ['bajas','oferta'].forEach(function(id, i) {
-    document.getElementById('tab-'+id).classList.toggle('active', id===t);
-    document.querySelectorAll('.tab-btn')[i].classList.toggle('active', (i===0&&t==='bajas')||(i===1&&t==='oferta'));
-  });
-  if (t==='oferta' && !ofertaActual.length) cargarOferta();
-}
-
-// ══ INIT ════════════════════════════════════
-window.addEventListener('DOMContentLoaded', function() {
-  // Cargar lista de voluntarios para autocompletado
-  apiGet('getVoluntarios').then(function(data) {
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  // Cargar voluntarios para autocomplete
+  apiGet('getVoluntarios').then(data => {
     voluntarios = Array.isArray(data) ? data : [];
-  }).catch(function() { voluntarios = []; });
+  }).catch(() => { voluntarios = []; });
 
-  // Habilitar botón buscar cuando hay nombre seleccionado
+  // Habilitar btn buscar cuando hay texto
   document.getElementById('inp-baja').addEventListener('input', function() {
     document.getElementById('btn-buscar').disabled = this.value.trim().length < 2;
   });
 });
 
-// ══ AUTOCOMPLETADO ══════════════════════════
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function cambiarTab(t) {
+  ['bajas', 'oferta'].forEach((id, i) => {
+    document.getElementById('tab-'+id).classList.toggle('active', id === t);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',
+      (i === 0 && t === 'bajas') || (i === 1 && t === 'oferta'));
+  });
+  if (t === 'oferta' && !ofertaActual.length) cargarOferta();
+}
+
+// ══════════════════════════════════════════════
+//  AUTOCOMPLETE
+// ══════════════════════════════════════════════
 function sugerir(inp, sgId, hidId) {
-  var q   = inp.value.trim().toLowerCase();
-  var sg  = document.getElementById(sgId);
-  var hid = document.getElementById(hidId);
+  const q   = inp.value.trim().toLowerCase();
+  const sg  = document.getElementById(sgId);
+  const hid = document.getElementById(hidId);
   hid.value = '';
-  inp.classList.remove('ok');
+  inp.classList.remove('selected');
 
-  if (q.length < 2) { sg.classList.remove('open'); sg.innerHTML=''; return; }
+  if (q.length < 2) { sg.classList.remove('open'); sg.innerHTML = ''; return; }
 
-  var matches = voluntarios.filter(function(v) {
-    return v.toLowerCase().indexOf(q) !== -1;
-  }).slice(0, 8);
+  const matches = voluntarios.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { sg.classList.remove('open'); sg.innerHTML = ''; return; }
 
-  if (!matches.length) { sg.classList.remove('open'); sg.innerHTML=''; return; }
-
-  var re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
-  sg.innerHTML = matches.map(function(v) {
-    return '<div class="sug" onclick="elegir(\''+esc(v)+'\',\''+inp.id+'\',\''+sgId+'\',\''+hidId+'\')">'
-      + v.replace(re,'<mark>$1</mark>') + '</div>';
+  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
+  sg.innerHTML = matches.map(v => {
+    const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    return `<div class="ac-sug" onclick="elegir('${esc(v)}','${inp.id}','${sgId}','${hidId}')">
+      <div class="sug-avatar">${ini}</div>
+      <span>${v.replace(re,'<mark>$1</mark>')}</span>
+    </div>`;
   }).join('');
   sg.classList.add('open');
 }
 
-function elegir(nom, inpId, sgId, hidId) {
-  document.getElementById(inpId).value  = nom;
-  document.getElementById(inpId).classList.add('ok');
-  document.getElementById(hidId).value  = nom;
+function elegir(nombre, inpId, sgId, hidId) {
+  const inp = document.getElementById(inpId);
+  inp.value = nombre;
+  inp.classList.add('selected');
+  document.getElementById(hidId).value = nombre;
   document.getElementById(sgId).classList.remove('open');
   document.getElementById(sgId).innerHTML = '';
-  // Habilitar botón buscar si estamos en tab bajas
-  var btnBuscar = document.getElementById('btn-buscar');
-  if (btnBuscar) btnBuscar.disabled = false;
+  const btn = document.getElementById('btn-buscar');
+  if (btn) btn.disabled = false;
 }
 
 function navSug(e, sgId, hidId) {
-  var sg    = document.getElementById(sgId);
-  var items = sg.querySelectorAll('.sug');
-  var cur   = sg.querySelector('.hi');
-  if (e.key==='Escape') { sg.classList.remove('open'); return; }
-  if (e.key==='ArrowDown') {
+  const sg    = document.getElementById(sgId);
+  const items = sg.querySelectorAll('.ac-sug');
+  const cur   = sg.querySelector('.highlighted');
+  if (e.key === 'Escape') { sg.classList.remove('open'); return; }
+  if (e.key === 'ArrowDown') {
     e.preventDefault();
-    var nx = cur ? cur.nextElementSibling : items[0];
-    if (cur) cur.classList.remove('hi');
-    if (nx)  { nx.classList.add('hi'); nx.scrollIntoView({block:'nearest'}); }
-  } else if (e.key==='ArrowUp') {
+    const nx = cur ? cur.nextElementSibling : items[0];
+    cur?.classList.remove('highlighted');
+    nx?.classList.add('highlighted');
+    nx?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
     e.preventDefault();
-    var pv = cur ? cur.previousElementSibling : items[items.length-1];
-    if (cur) cur.classList.remove('hi');
-    if (pv)  { pv.classList.add('hi'); pv.scrollIntoView({block:'nearest'}); }
-  } else if (e.key==='Enter') {
+    const pv = cur ? cur.previousElementSibling : items[items.length-1];
+    cur?.classList.remove('highlighted');
+    pv?.classList.add('highlighted');
+    pv?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
     e.preventDefault();
-    if (cur) cur.click();
+    cur?.click();
   }
 }
 
-document.addEventListener('click', function(e) {
+document.addEventListener('click', e => {
   if (!e.target.closest('.ac-wrap')) {
-    document.querySelectorAll('.sugs').forEach(function(s) { s.classList.remove('open'); });
+    document.querySelectorAll('.ac-suggestions').forEach(s => s.classList.remove('open'));
   }
 });
 
-// ══ TAB 1: BUSCAR TURNOS ════════════════════
-async function buscarTurnos() {
-  var nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
-  if (!nombre) { toast('Selecciona tu nombre de la lista.','err'); return; }
+// ══════════════════════════════════════════════
+//  STEPPER
+// ══════════════════════════════════════════════
+function setStep(n) {
+  [1, 2, 3].forEach(i => {
+    const item = document.getElementById(`step-${i}`);
+    const con  = document.getElementById(`scon-${i}`);
+    item.className = 'step-item' + (i < n ? ' done' : i === n ? ' active' : '');
+    if (con) con.className = 'step-connector' + (i < n ? ' done' : '');
+  });
+}
 
-  var btn = document.getElementById('btn-buscar');
+// ══════════════════════════════════════════════
+//  BUSCAR TURNOS DEL VOLUNTARIO
+// ══════════════════════════════════════════════
+async function buscarTurnos() {
+  const nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
+  if (!nombre) { toast('Selecciona tu nombre de la lista', 'err'); return; }
+
+  const btn = document.getElementById('btn-buscar');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spin" style="width:18px;height:18px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:.4rem;"></div> Buscando...';
+  btn.innerHTML = `<div class="mini-spin"></div> Buscando…`;
 
   try {
-    var res = await apiGet('getTurnosVoluntario&nombre='+encodeURIComponent(nombre));
-    turnosActuales = res.turnos || [];
+    const res = await apiGet('getTurnosVoluntario&nombre=' + encodeURIComponent(nombre));
+    turnosUsuario = res.turnos || [];
 
-    if (!turnosActuales.length) {
-      toast('No se encontraron turnos confirmados para "'+nombre+'".','err');
+    if (!turnosUsuario.length) {
+      toast(`No hay turnos confirmados para "${nombre}"`, 'err');
     } else {
-      renderTurnos(turnosActuales, nombre);
+      mostrarUserInfoBar(nombre, turnosUsuario);
+      renderTurnos(turnosUsuario);
       document.getElementById('card-turnos').style.display = 'block';
       setStep(2);
-      document.getElementById('card-turnos').scrollIntoView({behavior:'smooth',block:'start'});
+      setTimeout(() => document.getElementById('card-turnos').scrollIntoView({ behavior:'smooth', block:'start' }), 100);
     }
   } catch(e) {
-    toast('Error al buscar turnos. Inténtalo de nuevo.','err');
+    toast('Error al buscar turnos. Inténtalo de nuevo.', 'err');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '🔍 Ver mis turnos asignados';
   }
 }
 
-function renderTurnos(turnos, nombre) {
-  var lista = document.getElementById('lista-turnos');
-  var activos = turnos.filter(function(t) { return !t.yaBaja; }).length;
+function mostrarUserInfoBar(nombre, turnos) {
+  const ini = nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+  const activos = turnos.filter(t => !t.yaBaja).length;
+  const uib = document.getElementById('uib');
+  uib.style.display = 'flex';
+  uib.innerHTML = `
+    <div class="uib-avatar">${ini}</div>
+    <div>
+      <div class="uib-name">${nombre}</div>
+      <div class="uib-sub">${turnos.length} turno${turnos.length!==1?'s':''} · ${activos} activo${activos!==1?'s':''}</div>
+    </div>`;
+}
 
-  lista.innerHTML =
-    '<div style="background:var(--mist);border-radius:8px;padding:.65rem .9rem;margin-bottom:.9rem;font-size:.83rem;">' +
-      '👤 <strong>'+nombre+'</strong> · '+turnos.length+' turno(s) · ' +
-      '<span style="color:var(--green);font-weight:700;">'+activos+' activo(s)</span>' +
-    '</div>' +
-    turnos.map(function(t, i) {
-      var h  = t.rango ? parseInt(t.rango) : 0;
-      var tar = h >= 14;
-      var bCls = tar ? 'b-tar' : 'b-man';
-      var bTxt = tar ? 'TARDE' : 'MAÑANA';
-      var tiCls = t.yaBaja ? 'baja-ya' : '';
-      var chk   = t.yaBaja ? '✓' : '';
-      var bajaTxt = t.yaBaja ? ' <span class="badge b-baj">✓ BAJA REGISTRADA</span>' : '';
+function renderTurnos(turnos) {
+  const lista = document.getElementById('lista-turnos');
+  lista.innerHTML = turnos.map((t, i) => {
+    const h    = t.rango ? parseInt(t.rango) : 0;
+    const tard = h >= 14;
+    const pillCls = tard ? 'pill-t' : 'pill-m';
+    const pillTxt = tard ? 'TARDE' : 'MAÑANA';
+    let cls = '', chk = '', extra = '';
 
-      return '<div class="ti '+tiCls+'" id="ti-'+i+'" '+(t.yaBaja?'':'onclick="toggleTurno('+i+')"')+'>' +
-        '<div class="ti-inner">' +
-          '<div class="ti-check" id="chk-'+i+'">'+chk+'</div>' +
-          '<div>' +
-            '<div class="ti-hora">🕒 '+t.rango+'</div>' +
-            '<div class="ti-meta"><span class="badge '+bCls+'">'+bTxt+'</span> '+t.dia+' · '+t.fecha+bajaTxt+'</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
+    if (t.yaBaja) {
+      cls = 'already-baja'; chk = '✓';
+      extra = `<span class="ti-pill pill-baja">Baja registrada</span>`;
+    }
+
+    return `
+      <div class="turno-item ${cls}" id="ti-${i}" ${t.yaBaja ? '' : `onclick="toggleTurno(${i})"`}>
+        <div class="ti-checkbox" id="chk-${i}">${chk}</div>
+        <div class="ti-body">
+          <div class="ti-hora">🕒 ${t.rango}</div>
+          <div class="ti-meta">
+            <span class="ti-pill ${pillCls}">${pillTxt}</span>
+            <span>${t.dia}</span>
+            <span>·</span>
+            <span>${t.fecha}</span>
+            ${extra}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 function toggleTurno(i) {
-  var ti  = document.getElementById('ti-'+i);
-  var chk = document.getElementById('chk-'+i);
-  var sel = ti.classList.toggle('sel');
+  const ti  = document.getElementById(`ti-${i}`);
+  const chk = document.getElementById(`chk-${i}`);
+  const sel = ti.classList.toggle('selected');
   chk.textContent = sel ? '✓' : '';
   actualizarResumen();
 }
 
 function actualizarResumen() {
-  var selIds  = [];
-  turnosActuales.forEach(function(t, i) {
-    var ti = document.getElementById('ti-'+i);
-    if (ti && ti.classList.contains('sel')) selIds.push(i);
-  });
+  const selIdx = turnosUsuario.map((_,i) => i)
+    .filter(i => document.getElementById(`ti-${i}`)?.classList.contains('selected'));
 
-  var btnBaja = document.getElementById('btn-baja');
-  var resumen = document.getElementById('resumen');
-  var items   = document.getElementById('resumen-items');
+  const btnBaja = document.getElementById('btn-baja');
+  const resumen = document.getElementById('resumen');
 
-  btnBaja.disabled = selIds.length === 0;
+  btnBaja.disabled = selIdx.length === 0;
 
-  if (selIds.length === 0) {
-    resumen.classList.remove('visible');
-    return;
-  }
+  if (!selIdx.length) { resumen.classList.remove('visible'); return; }
 
   resumen.classList.add('visible');
-  items.innerHTML = selIds.map(function(i) {
-    var t = turnosActuales[i];
-    return '<div class="resumen-item">🕒 <strong>'+t.rango+'</strong> · '+t.dia+' '+t.fecha+'</div>';
+  document.getElementById('resumen-items').innerHTML = selIdx.map(i => {
+    const t = turnosUsuario[i];
+    return `<div class="resumen-item">🕒 <strong>${t.rango}</strong> · ${t.dia} ${t.fecha}</div>`;
   }).join('');
 
   setStep(2);
-  btnBaja.scrollIntoView({behavior:'smooth',block:'nearest'});
+  btnBaja.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
-function setStep(n) {
-  [1,2,3].forEach(function(i) {
-    var el = document.getElementById('step'+i);
-    el.className = 'step' + (i < n ? ' done' : (i === n ? ' active' : ''));
-  });
-}
-
-// ══ REGISTRAR BAJA ══════════════════════════
+// ══════════════════════════════════════════════
+//  REGISTRAR BAJA (con feedback optimista)
+// ══════════════════════════════════════════════
 async function registrarBaja() {
-  var nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
-  var selIds = [];
-  turnosActuales.forEach(function(t, i) {
-    var ti = document.getElementById('ti-'+i);
-    if (ti && ti.classList.contains('sel')) selIds.push(i);
-  });
-  if (!selIds.length || !nombre) return;
+  const nombre  = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
+  const selIdx  = turnosUsuario.map((_,i)=>i)
+    .filter(i => document.getElementById(`ti-${i}`)?.classList.contains('selected'));
+  if (!selIdx.length || !nombre) return;
 
-  var seleccionados = selIds.map(function(i) { return turnosActuales[i]; });
-
-  var btn = document.getElementById('btn-baja');
+  const seleccionados = selIdx.map(i => turnosUsuario[i]);
+  const btn  = document.getElementById('btn-baja');
   btn.disabled = true;
-  btn.innerHTML = '<div class="spin" style="width:16px;height:16px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:.4rem;"></div> Registrando...';
+  btn.innerHTML = `<div class="mini-spin"></div> Registrando…`;
 
-  // Feedback optimista inmediato
-  selIds.forEach(function(i) {
-    var ti  = document.getElementById('ti-'+i);
-    var chk = document.getElementById('chk-'+i);
-    if (ti) { ti.className = 'ti confirmado'; ti.onclick = null; }
+  // ── Feedback optimista inmediato
+  selIdx.forEach(i => {
+    const ti  = document.getElementById(`ti-${i}`);
+    const chk = document.getElementById(`chk-${i}`);
+    if (ti) { ti.className = 'turno-item confirmed'; ti.onclick = null; }
     if (chk) chk.textContent = '✓';
   });
 
-  var fb = document.getElementById('fb-baja');
-  fb.style.display = 'block';
-  fb.style.background = '#e0f2ec';
-  fb.style.color = '#0f4d31';
-  fb.style.border = '1.5px solid #aadec7';
-  fb.style.borderRadius = '8px';
-  fb.style.padding = '.65rem .9rem';
-  fb.innerHTML = '✅ Baja registrada correctamente para ' + seleccionados.length + ' turno(s). ¡Gracias por avisar!';
-
-  btn.innerHTML = '✓ Baja registrada';
-  btn.className = 'btn btn-green btn-w';
-  setStep(3);
   document.getElementById('resumen').classList.remove('visible');
+  btn.innerHTML = '✓ Baja registrada';
+  btn.className = 'btn btn-green btn-full';
 
-  // Enviar al servidor en background
+  const fb = document.getElementById('fb-baja');
+  fb.style.display = 'block';
+  fb.innerHTML = `
+    <div class="feedback-ok">
+      <div class="fok-icon">✅</div>
+      <div>
+        <div class="fok-txt">Baja registrada correctamente</div>
+        <div class="fok-sub">${seleccionados.length} turno${seleccionados.length!==1?'s':''} · ¡Gracias por avisar con tiempo!</div>
+      </div>
+    </div>`;
+
+  setStep(3);
+
+  // ── Enviar al servidor en background
   try {
-    await apiPost({ accion:'registrarBaja', nombre:nombre, turnos:seleccionados });
+    await apiPost({ accion: 'registrarBaja', nombre, turnos: seleccionados });
     ofertaActual = [];
-    // Si el tab de oferta está visible, refrescar
     if (document.getElementById('tab-oferta').classList.contains('active')) cargarOferta();
   } catch(e) {
-    // El feedback optimista ya fue dado; loguear error silenciosamente
-    console.warn('Error al enviar baja al servidor:', e);
+    console.warn('Error servidor (silencioso):', e);
   }
 }
 
-// ══ TAB 2: OFERTA ═══════════════════════════
+// ══════════════════════════════════════════════
+//  CARGAR OFERTA DE TURNOS
+// ══════════════════════════════════════════════
 async function cargarOferta() {
-  var wrap = document.getElementById('oferta-wrap');
-  wrap.innerHTML = '<div class="spin-wrap"><div class="spin"></div><p style="color:var(--slate);font-size:.85rem;">Cargando turnos disponibles...</p></div>';
+  const wrap = document.getElementById('oferta-wrap');
+  wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
   try {
-    var res = await apiGet('getOfertaTurnos');
+    const res = await apiGet('getOfertaTurnos');
     ofertaActual = res.turnos || [];
     renderOferta();
   } catch(e) {
-    wrap.innerHTML = '<div class="empty"><div class="ico">⚠️</div><p>Error al cargar: '+e.message+'</p></div>';
+    wrap.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
   }
 }
 
 function renderOferta() {
-  var wrap   = document.getElementById('oferta-wrap');
-  var nUpRef = (document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim()).toUpperCase().trim();
+  const wrap  = document.getElementById('oferta-wrap');
+  const nRef  = (document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim()).toUpperCase().trim();
 
   if (!ofertaActual.length) {
-    wrap.innerHTML = '<div class="empty"><div class="ico">✅</div><p>No hay turnos que necesiten voluntarios en este momento.</p></div>';
+    wrap.innerHTML = `<div class="empty-state"><span class="ei">✅</span><h4>¡Todo cubierto!</h4><p>No hay turnos que necesiten voluntarios en este momento.</p></div>`;
     return;
   }
 
-  var html = '';
-  // Agrupar por fecha para mejor legibilidad
-  var porFecha = {};
-  ofertaActual.forEach(function(t) {
-    var k = t.fecha + '|' + t.dia;
+  // Agrupar por fecha
+  const porFecha = {};
+  ofertaActual.forEach(t => {
+    const k = t.fecha + '|' + t.dia;
     if (!porFecha[k]) porFecha[k] = [];
     porFecha[k].push(t);
   });
 
-  Object.keys(porFecha).sort().forEach(function(fk) {
-    var turnos = porFecha[fk];
-    var partes = fk.split('|');
-    html += '<div style="margin-bottom:.3rem;margin-top:1.2rem;padding-bottom:.3rem;border-bottom:2px solid var(--navy);">' +
-      '<strong style="font-family:\'DM Serif Display\',serif;font-size:1.05rem;color:var(--navy);">📅 '+partes[1]+' '+partes[0]+'</strong>' +
-    '</div>';
-
-    turnos.forEach(function(t) {
-      html += renderOfertaCard(t, nUpRef);
-    });
+  wrap.innerHTML = '';
+  Object.keys(porFecha).sort().forEach((fk, gi) => {
+    const [fecha, dia] = fk.split('|');
+    const grupo = document.createElement('div');
+    grupo.className = 'fecha-grupo';
+    grupo.style.animationDelay = (gi * .06) + 's';
+    grupo.innerHTML = `
+      <div class="fecha-header">
+        <span class="fecha-txt">📅 ${dia} · ${fecha}</span>
+      </div>`;
+    porFecha[fk].forEach(t => grupo.appendChild(buildOfertaCard(t, nRef)));
+    wrap.appendChild(grupo);
   });
-
-  wrap.innerHTML = html;
 }
 
-function renderOfertaCard(t, nUpRef) {
-  var esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
-  var h      = !esDia && t.rango ? parseInt(t.rango) : 0;
-  var tar    = !esDia && h >= 14;
-  var pct    = Math.min(100, Math.round(t.equipoActual / 4 * 100));
-  var pCls   = esDia ? 'dia' : (t.equipoActual === 0 ? 'low' : (t.equipoActual >= 3 ? 'full' : ''));
+function buildOfertaCard(t, nRef) {
+  const esDia = t.esDia || t.rango === 'DIA_COMPLETO';
+  const h     = !esDia && t.rango ? parseInt(t.rango) : 0;
+  const tarde  = !esDia && h >= 14;
 
-  var yaApuntado = nUpRef && t.equipoNombres.some(function(n) { return n === nUpRef; });
+  const pct  = Math.min(100, Math.round((t.equipoActual / 4) * 100));
+  const pfCls = esDia ? 'pf-dia' : pct === 0 ? 'pf-empty' : pct >= 75 ? 'pf-full' : 'pf-partial';
 
-  var badgeTxt = esDia ? 'DÍA SIN TURNO' : (tar ? 'TARDE' : 'MAÑANA');
-  var badgeSty = esDia
-    ? 'background:#f0e6ff;color:var(--purple);'
-    : (tar ? 'background:#fff3e0;color:var(--amber);' : 'background:#e8f1fc;color:#1a6fc4;');
+  const accentCls = esDia ? 'oa-d' : tarde ? 'oa-t' : 'oa-m';
+  const typeCls   = esDia ? 'ot-d' : tarde ? 'ot-t' : 'ot-m';
+  const typeTxt   = esDia ? 'DÍA COMPLETO' : tarde ? 'TARDE' : 'MAÑANA';
 
-  var rangoTxt = esDia
-    ? '<div class="oc-rango dia">📅 Día sin cuadrante asignado</div>'
-    : '<div class="oc-rango">🕒 '+t.rango+'</div>';
+  const rangoTxt = esDia
+    ? `<div class="oc-rango dia">📅 Día sin cuadrante</div>`
+    : `<div class="oc-rango">🕒 ${t.rango}</div>`;
 
-  var cntTxt = esDia
-    ? 'Interesados: <strong>'+t.equipoActual+'</strong> · Mínimo necesario: <strong>3</strong>'
-    : 'Voluntarios: <strong>'+t.equipoActual+' / 4</strong> · Faltan: <strong>'+t.necesitan+'</strong>';
+  const cntTxt = esDia
+    ? `Interesados: <strong>${t.equipoActual}</strong> · Mín. necesario: <strong>3</strong>`
+    : `Equipo: <strong>${t.equipoActual} / 4</strong> · Faltan: <strong>${t.necesitan}</strong>`;
 
-  var alertaLlave = !t.tieneLlave
-    ? '<div class="al-llave">🔑 '+(esDia?'Necesario al menos un portador de llave.':'Este turno necesita un portador de llave.')+'</div>'
+  const yaApuntado = nRef && t.equipoNombres.some(n => n.toUpperCase() === nRef);
+
+  const alertaLlave = !t.tieneLlave
+    ? `<div class="alerta-llave">🔑 ${esDia ? 'Necesario al menos un portador de llave.' : 'Este turno necesita un portador de llave.'}</div>`
     : '';
 
-  var accion = '';
+  let acciones = '';
   if (yaApuntado) {
-    accion = '<div class="ya-apuntado">✓ Ya estás apuntado en este turno.</div>';
+    acciones = `<div class="ya-apuntado">✓ Ya estás apuntado en este turno.</div>`;
   } else if (esDia) {
-    var franjas = t.franjasCalculadas || [];
+    const franjas = t.franjasCalculadas || [];
     if (franjas.length > 0) {
-      accion = '<div style="margin-top:.6rem;">' +
-        '<div class="franja-lbl">Elige la franja en que puedes estar:</div>' +
-        '<div class="franjas-wrap">' +
-        franjas.map(function(fr) {
-          var hf  = parseInt(fr);
-          var trf = hf >= 14;
-          return '<button class="franja-btn'+(trf?' tar':'')+'" onclick="apuntarFranja(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\',\''+esc(fr)+'\')">' +
-            '🕒 '+fr+'</button>';
-        }).join('') +
-        '</div></div>';
+      acciones = `
+        <div class="franja-label">Elige la franja en que puedes estar:</div>
+        <div class="franjas-grid">
+          ${franjas.map(fr => {
+            const hf = parseInt(fr);
+            return `<button class="franja-btn${hf>=14?' tarde':''}" onclick="apuntarFranja('${esc(t.key)}','${esc(t.fecha)}','${esc(fr)}')">
+              🕒 ${fr}
+            </button>`;
+          }).join('')}
+        </div>`;
     } else {
-      accion = '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntarFranja(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\',\'\')">✋ Apuntarme</button>';
+      acciones = `<button class="btn btn-green btn-sm" onclick="apuntarFranja('${esc(t.key)}','${esc(t.fecha)}','')">✋ Apuntarme</button>`;
     }
   } else {
-    accion = '<button class="btn btn-green btn-sm" style="margin-top:.5rem;" onclick="apuntar(\''+esc(t.key)+'\',\''+esc(t.fecha)+'\')">✋ Apuntarme a este turno</button>';
+    acciones = `<button class="btn btn-green btn-sm" onclick="apuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
   }
 
-  return '<div class="oc'+(esDia?' dia-card':'')+'">' +
-    '<div class="oc-hdr">' +
-      '<div>'+rangoTxt+'</div>' +
-      '<span class="badge" style="'+badgeSty+'font-size:.62rem;font-weight:700;padding:.2rem .55rem;border-radius:4px;white-space:nowrap;">'+badgeTxt+'</span>' +
-    '</div>' +
-    '<div class="cnt">'+cntTxt+'</div>' +
-    '<div class="prog"><div class="prog-fill '+pCls+'" style="width:'+pct+'%"></div></div>' +
-    alertaLlave + accion +
-  '</div>';
+  const card = document.createElement('div');
+  card.className = `oc${esDia ? ' dia-card' : ''}`;
+  card.innerHTML = `
+    <div class="oc-accent ${accentCls}"></div>
+    <div class="oc-head">
+      <div>
+        ${rangoTxt}
+        <span class="oc-type ${typeCls}">${typeTxt}</span>
+      </div>
+    </div>
+    <div class="prog-wrap">
+      <div class="prog-info">
+        <span class="prog-label">${cntTxt}</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill ${pfCls}" style="width:${pct}%"></div>
+      </div>
+    </div>
+    ${alertaLlave}
+    <div class="oc-actions">${acciones}</div>`;
+  return card;
 }
 
+// ══════════════════════════════════════════════
+//  APUNTARSE A UN TURNO
+// ══════════════════════════════════════════════
 async function apuntar(key, fecha) {
-  var nombre = nombreRefuerzo();
+  const nombre = nombreRefuerzo();
   if (!nombre) return;
-  await enviarRefuerzo({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha });
+  await enviarRefuerzo({ accion: 'registrarRefuerzo', nombre, key, fecha });
 }
 
 async function apuntarFranja(key, fecha, franja) {
-  var nombre = nombreRefuerzo();
+  const nombre = nombreRefuerzo();
   if (!nombre) return;
-  await enviarRefuerzo({ accion:'registrarRefuerzo', nombre:nombre, key:key, fecha:fecha, franja:franja, esDia:true });
+  await enviarRefuerzo({ accion: 'registrarRefuerzo', nombre, key, fecha, franja, esDia: true });
 }
 
 function nombreRefuerzo() {
-  var n = document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim();
+  const n = document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim();
   if (!n) {
-    toast('Escribe y selecciona tu nombre antes de apuntarte.','err');
+    toast('Escribe y selecciona tu nombre primero', 'err');
     document.getElementById('inp-ref').focus();
     return null;
   }
@@ -588,13 +943,12 @@ function nombreRefuerzo() {
 }
 
 async function enviarRefuerzo(data) {
-  // Mostrar feedback inmediato
-  toast('Apuntándote...', 'inf');
+  toast('Apuntándote…', 'inf');
 
-  // Marcar visualmente como apuntado de forma optimista
-  var nUp = (data.nombre || '').toUpperCase().trim();
-  ofertaActual.forEach(function(t) {
-    if (t.key === data.key && t.equipoNombres.indexOf(nUp) === -1) {
+  // ── Feedback optimista: actualizar estado local
+  const nUp = (data.nombre || '').toUpperCase().trim();
+  ofertaActual.forEach(t => {
+    if (t.key === data.key && !t.equipoNombres.some(n => n.toUpperCase() === nUp)) {
       t.equipoNombres.push(nUp);
       t.equipoActual = t.equipoNombres.length;
       t.necesitan    = Math.max(0, 4 - t.equipoActual);
@@ -604,52 +958,52 @@ async function enviarRefuerzo(data) {
 
   try {
     await apiPost(data);
-    toast('✓ Apuntado correctamente. ¡Gracias!', 'ok');
-    // Recargar en background para sincronizar estado real
-    setTimeout(function() { ofertaActual = []; cargarOferta(); }, 2000);
+    toast('✓ ¡Apuntado correctamente! Gracias.', 'ok');
+    // Recargar en background para sincronizar con el servidor
+    setTimeout(() => { ofertaActual = []; cargarOferta(); }, 2000);
   } catch(e) {
     toast('Error al apuntarse. Inténtalo de nuevo.', 'err');
-    // Revertir el optimismo
     ofertaActual = [];
     cargarOferta();
   }
 }
 
-// ══ API HELPERS ═════════════════════════════
+// ══════════════════════════════════════════════
+//  API HELPERS
+// ══════════════════════════════════════════════
 async function apiGet(action) {
-  var res   = await fetch(API+'?action='+action, { redirect:'follow' });
-  var text  = await res.text();
-  var clean = text.trim().replace(/^[^\[{]+/, '');
+  const res   = await fetch(API + '?action=' + action, { redirect: 'follow' });
+  const text  = await res.text();
+  const clean = text.trim().replace(/^[^\[{]+/, '');
   return JSON.parse(clean);
 }
 
 async function apiPost(data) {
-  // Apps Script no permite leer respuesta en no-cors, así que mostramos feedback optimista
-  // y enviamos en background
   await fetch(API, {
-    method: 'POST',
-    mode:   'no-cors',
+    method:  'POST',
+    mode:    'no-cors',
     headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify(data)
+    body:    JSON.stringify(data),
   });
   return { status: 'success' };
 }
 
-// ══ TOAST ════════════════════════════════════
-function toast(msg, tipo) {
-  var wrap = document.getElementById('toasts');
-  var el   = document.createElement('div');
-  el.className = 'toast ' + (tipo||'ok');
+// ══════════════════════════════════════════════
+//  TOAST
+// ══════════════════════════════════════════════
+function toast(msg, tipo = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${tipo}`;
   el.textContent = msg;
-  wrap.appendChild(el);
-  setTimeout(function() {
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => {
     el.style.opacity = '0';
     el.style.transition = 'opacity .3s';
-    setTimeout(function() { el.remove(); }, 300);
+    setTimeout(() => el.remove(), 300);
   }, 3500);
 }
 
-function esc(s) { return (s+'').replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+function esc(s) { return (s + '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 </script>
 </body>
 </html>
