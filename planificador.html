@@ -1664,7 +1664,8 @@ function ofSugerir(inp) {
   const vols = window._ofertaVols || [];
   const matches = vols.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
   if (!matches.length) { sg.style.display='none'; return; }
-  const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\]/g,'\$&')})`, 'gi');
+  const reStr = q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  const re = new RegExp('(' + reStr + ')', 'gi');
   sg.innerHTML = matches.map(v => {
     const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
     return `<div onclick="ofElegirVol('${esc(v)}')" style="padding:.6rem .9rem;font-size:.83rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .12s" onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
@@ -1747,7 +1748,7 @@ async function ofEnviarRefuerzo(data) {
   }
 }
 
-function esc(s) { return (s+'').replace(/\/g,'\\').replace(/'/g,"\'"); }
+function esc(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
 
 // ══════════════════════════════════════
 //  HISTORIAL
