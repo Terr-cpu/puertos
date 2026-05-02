@@ -18,6 +18,7 @@
   --shadow-md:0 4px 20px rgba(0,0,0,0.09);
   --shadow-lg:0 12px 40px rgba(0,0,0,0.13);
   --r-sm:8px; --r-md:12px; --r-lg:18px; --r-xl:26px;
+  --gold-soft:#fffbec;
   --sidebar-w:232px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
@@ -861,18 +862,133 @@ async function loadVoluntarios(force) {
   const c=document.getElementById('tab-voluntarios');
   c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
   try {
-    const vols=await apiGet({action:'getVoluntarios'});
+    const [vols, llData] = await Promise.all([
+      apiGet({action:'getVoluntarios'}),
+      apiGet({action:'getLlaves'})
+    ]);
+    const llaveSet = new Set((llData.llaves||[]).map(n=>n.toUpperCase()));
+    window._llaveSet = llaveSet;
     c.innerHTML='';
-    const llaveSet=new Set((S.plan||[]).flatMap(d=>(d.turnos||[]).flatMap(t=>(t.equipo||[]).filter(v=>v.llave).map(v=>v.nombre.toUpperCase()))));
+
+    // Header con botón añadir
+    const hdr=document.createElement('div');
+    hdr.style='display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem';
+    hdr.innerHTML=`<p style="font-size:.82rem;color:var(--label3)">${vols.length} voluntarios registrados</p>
+      <button class="btn btn-green btn-sm" onclick="abrirNuevoVol()">+ Nuevo voluntario</button>`;
+    c.appendChild(hdr);
+
     vols.forEach((nom,i) => {
       const ini=nom.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
       const llave=llaveSet.has(nom.toUpperCase());
       const el=document.createElement('div'); el.className='vol-row2'; el.style.animationDelay=(i*.02)+'s';
-      el.innerHTML=`<div class="vavatar">${ini}</div><div class="vinfo2"><div class="vn">${nom}${llave?' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>':''}</div><div class="vm2">Voluntario activo</div></div><div class="vol-acts"><button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom}')">📋 Ver turnos</button></div>`;
+      el.innerHTML=`
+        <div class="vavatar">${ini}</div>
+        <div class="vinfo2">
+          <div class="vn">${nom}${llave?' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>':''}</div>
+          <div class="vm2">${llave?'Portador de llave':'Voluntario'}</div>
+        </div>
+        <div class="vol-acts">
+          <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nom}', ${llave})">✏️ Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom}')">📋 Turnos</button>
+        </div>`;
       c.appendChild(el);
     });
     window._vOk=true;
   } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+}
+
+function abrirNuevoVol() {
+  editarDisponibilidad('', false, true);
+}
+
+async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
+  document.getElementById('mvol-titulo').textContent = esNuevo ? '+ Nuevo voluntario' : `✏️ Editar — ${nombre}`;
+  document.getElementById('mvol-body').innerHTML=`<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Cargando disponibilidad…</p></div>`;
+  openModal('mvol');
+
+  // Cargar datos actuales si no es nuevo
+  let dispActual = {};
+  if (!esNuevo) {
+    try {
+      const d = await apiGet({action:'getDisponibilidadCompleta'});
+      const vol = d.voluntarios?.find(v=>v.nombre===nombre);
+      if (vol) {
+        vol.disponibilidad.forEach(x => {
+          if (x.horario) dispActual[`${x.semana}|${x.dia}`] = x.horario;
+        });
+        tieneLlave = vol.llave;
+      }
+    } catch(e) {}
+  }
+
+  const DIAS = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
+  const DIAS_LABEL = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  const HORAS = Array.from({length:15},(_,i)=>i+7).map(h=>h.toString().padStart(2,'0')+':00');
+
+  let html = `
+    <div class="form-row full" style="margin-bottom:.85rem">
+      <div class="fg">
+        <label>Nombre completo</label>
+        <input class="fc" id="ev-nombre" value="${nombre}" placeholder="Nombre y apellidos" ${!esNuevo?'readonly':''}>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:.75rem;margin-bottom:1rem;padding:.65rem .85rem;background:var(--gold-soft);border-radius:var(--r-md)">
+      <label class="toggle-sw"><input type="checkbox" id="ev-llave" ${tieneLlave?'checked':''}><span class="toggle-sl"></span></label>
+      <div>
+        <div style="font-size:.8rem;font-weight:600">🔑 Portador de llave</div>
+        <div style="font-size:.68rem;color:var(--label3)">Responsable de recoger expositores</div>
+      </div>
+    </div>
+    <div style="font-size:.72rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem">Disponibilidad por semana y día</div>
+    <div style="overflow-x:auto">
+    <table style="border-collapse:collapse;width:100%;font-size:.72rem;min-width:500px">
+      <thead>
+        <tr>
+          <th style="padding:.4rem .5rem;background:var(--surface2);text-align:left;font-weight:700;color:var(--label3);border:1px solid var(--sep)">Semana</th>
+          ${DIAS_LABEL.map(d=>`<th style="padding:.4rem .35rem;background:var(--surface2);text-align:center;font-weight:700;color:var(--label3);border:1px solid var(--sep)">${d}</th>`).join('')}
+        </tr>
+      </thead>
+      <tbody>`;
+
+  for (let s=1; s<=5; s++) {
+    html += `<tr><td style="padding:.35rem .5rem;font-weight:700;color:var(--navy);background:var(--surface2);border:1px solid var(--sep);text-align:center">S${s}</td>`;
+    DIAS.forEach(dia => {
+      const key = `${s}|${dia}`;
+      const val = dispActual[key] || '';
+      html += `<td style="padding:.25rem;border:1px solid var(--sep)">
+        <input class="fc ev-cell" data-sem="${s}" data-dia="${dia}" value="${val}"
+          placeholder="ej: 9 a 14" style="padding:.28rem .4rem;font-size:.68rem;min-width:80px;text-align:center">
+      </td>`;
+    });
+    html += '</tr>';
+  }
+
+  html += `</tbody></table></div>
+    <p style="font-size:.68rem;color:var(--label3);margin-top:.5rem">Formato: "9 a 14" o "10 a 18". Deja vacío si no está disponible ese día.</p>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.1rem">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-green" onclick="guardarVolDisponibilidad()">💾 Guardar</button>
+    </div>`;
+
+  document.getElementById('mvol-body').innerHTML = html;
+}
+
+async function guardarVolDisponibilidad() {
+  const nombre = document.getElementById('ev-nombre')?.value.trim();
+  if (!nombre) { toast('Introduce un nombre','err'); return; }
+  const llave = document.getElementById('ev-llave')?.checked || false;
+  const disponibilidad = [];
+  document.querySelectorAll('.ev-cell').forEach(inp => {
+    const val = inp.value.trim();
+    if (val) disponibilidad.push({ semana: +inp.dataset.sem, dia: inp.dataset.dia, horario: val });
+  });
+  try {
+    await apiPost({accion:'guardarDisponibilidadVoluntario', nombre, llave, disponibilidad});
+    closeModal('mvol');
+    window._vOk=false; window._dOk=false;
+    if(tabActual==='voluntarios') loadVoluntarios(true);
+    toast(`${nombre} guardado ✓`,'ok');
+  } catch(e) { toast('Error: '+e.message,'err'); }
 }
 
 async function verTurnos(nom) {
@@ -989,28 +1105,118 @@ async function loadHistorial(force) {
     const data=await apiGet({action:'getHistorial'});
     c.innerHTML='';
     if (!data.length) { c.innerHTML=`<div class="empty"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`; return; }
+
+    // Stats rápidas
+    const totalTurnos = [...new Set(data.map(r=>r.fecha+'|'+r.rango))].length;
+    const totalVols   = [...new Set(data.map(r=>r.nombre))].length;
+    const sr = document.createElement('div'); sr.className='stats-row';
+    sr.innerHTML=`<div class="sbox"><div class="sv">${data.length}</div><div class="sl">Asignaciones</div></div>
+                  <div class="sbox"><div class="sv">${totalTurnos}</div><div class="sl">Turnos únicos</div></div>
+                  <div class="sbox"><div class="sv">${totalVols}</div><div class="sl">Voluntarios</div></div>`;
+    c.appendChild(sr);
+
+    // Filtros
     const filtros=document.createElement('div');
-    filtros.style='display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap';
-    filtros.innerHTML=`<input class="fc" id="hbusca" placeholder="Buscar voluntario…" oninput="filtH()" style="max-width:200px">
+    filtros.style='display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
+    filtros.innerHTML=`
+      <input class="fc" id="hbusca" placeholder="🔍 Buscar voluntario…" oninput="filtH()" style="max-width:210px">
       <select class="fc" id="hdia" onchange="filtH()" style="max-width:150px">
         <option value="">Todos los días</option>
         ${[...new Set(data.map(r=>r.dia))].map(d=>`<option>${d}</option>`).join('')}
-      </select>`;
+      </select>
+      <select class="fc" id="hrango" onchange="filtH()" style="max-width:160px">
+        <option value="">Todos los turnos</option>
+        ${[...new Set(data.map(r=>r.rango))].sort().map(r=>`<option>${r}</option>`).join('')}
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="verHistVista('timeline')">📅 Timeline</button>
+      <button class="btn btn-ghost btn-sm" onclick="verHistVista('tabla')">📋 Tabla</button>`;
     c.appendChild(filtros);
-    const card=document.createElement('div'); card.className='card';
-    card.innerHTML=`<table class="htable"><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th></tr></thead><tbody id="htbody">${data.slice().reverse().map(r=>`<tr><td>${r.fecha}</td><td>${r.dia}</td><td>${r.rango}</td><td>${r.nombre}</td></tr>`).join('')}</tbody></table>`;
-    c.appendChild(card);
+
+    window._histData = data.slice().reverse();
+    window._histVista = 'tabla';
+    renderHistorial(c);
     window._histOk=true; window._hOk=true;
   } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
-function filtH() {
-  const b=(document.getElementById('hbusca')?.value||'').toLowerCase();
-  const d=document.getElementById('hdia')?.value||'';
-  document.querySelectorAll('#htbody tr').forEach(tr => {
-    const tds=tr.querySelectorAll('td');
-    tr.style.display=(!b||tds[3]?.textContent.toLowerCase().includes(b))&&(!d||tds[1]?.textContent===d)?'':'none';
-  });
+
+function verHistVista(v) {
+  window._histVista = v;
+  const c = document.getElementById('tab-historial');
+  // Quitar vista anterior si existe
+  const old = c.querySelector('.hist-view');
+  if (old) old.remove();
+  renderHistorial(c);
 }
+
+function renderHistorial(c) {
+  // Quitar vista anterior
+  const old = c.querySelector('.hist-view');
+  if (old) old.remove();
+  const wrap = document.createElement('div'); wrap.className='hist-view';
+  c.appendChild(wrap);
+
+  const data = window._histData || [];
+  const b = (document.getElementById('hbusca')?.value||'').toLowerCase();
+  const d = document.getElementById('hdia')?.value||'';
+  const r = document.getElementById('hrango')?.value||'';
+  const filt = data.filter(row =>
+    (!b || row.nombre.toLowerCase().includes(b)) &&
+    (!d || row.dia===d) &&
+    (!r || row.rango===r)
+  );
+
+  if (window._histVista === 'timeline') {
+    // Agrupar por fecha
+    const grupos = {};
+    filt.forEach(row => {
+      const k = row.fecha+'|'+row.rango;
+      if (!grupos[k]) grupos[k]={fecha:row.fecha,dia:row.dia,rango:row.rango,vols:[]};
+      grupos[k].vols.push(row.nombre);
+    });
+    const entries = Object.values(grupos).sort((a,b)=>a.fecha<b.fecha?-1:1);
+    if (!entries.length) { wrap.innerHTML=`<div class="empty"><span class="ei">🔍</span><h4>Sin resultados</h4></div>`; return; }
+    entries.forEach((g,i) => {
+      const tarde = parseInt(g.rango.split(':')[0]) >= 14;
+      const el = document.createElement('div');
+      el.style.cssText='display:flex;gap:.85rem;margin-bottom:.75rem;animation:fadeUp .3s ease both';
+      el.style.animationDelay=(i*.03)+'s';
+      el.innerHTML=`
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:10px;height:10px;border-radius:50%;background:${tarde?'var(--amber)':'var(--blue)'};margin-top:.35rem"></div>
+          <div style="width:2px;flex:1;background:var(--sep);margin-top:.25rem"></div>
+        </div>
+        <div style="background:var(--surface);border-radius:var(--r-md);padding:.7rem .9rem;flex:1;box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-bottom:.1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.35rem">
+            <div>
+              <span style="font-size:.78rem;font-weight:700;color:var(--label1)">${g.fecha}</span>
+              <span style="font-size:.7rem;color:var(--label3);margin-left:.5rem">${g.dia}</span>
+            </div>
+            <span style="font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${g.rango}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
+            ${g.vols.map(n=>`<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('')}
+          </div>
+        </div>`;
+      wrap.appendChild(el);
+    });
+  } else {
+    // Vista tabla
+    const card=document.createElement('div'); card.className='card';
+    card.innerHTML=`<table class="htable"><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th></tr></thead>
+      <tbody id="htbody">${filt.map(row=>{
+        const tarde=parseInt(row.rango.split(':')[0])>=14;
+        return `<tr>
+          <td style="font-weight:600">${row.fecha}</td>
+          <td>${row.dia}</td>
+          <td><span style="font-size:.7rem;padding:.15rem .45rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'};font-weight:700">${row.rango}</span></td>
+          <td>${row.nombre}</td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+    wrap.appendChild(card);
+  }
+}
+
+function filtH() { if(window._histData) renderHistorial(document.getElementById('tab-historial')); }
 
 // ══════════════════════════════════════
 //  CALENDARIO CONFIG
@@ -1028,52 +1234,117 @@ async function loadCalendario(force) {
   } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
 }
 
+function addDiaCalendario() {
+  const fechaVal = document.getElementById('cal-new-fecha')?.value;
+  if (!fechaVal) { toast('Selecciona una fecha','err'); return; }
+  const f = new Date(fechaVal+'T12:00:00');
+  const DIAS_SEM = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  const diaReal = DIAS_SEM[f.getDay()];
+  const semana  = Math.ceil(f.getDate() / 7);
+  const dd = String(f.getDate()).padStart(2,'0');
+  const mm = String(f.getMonth()+1).padStart(2,'0');
+  const yyyy = f.getFullYear();
+  const fechaFmt = `${dd}/${mm}/${yyyy}`;
+  // Verificar que no existe ya
+  if (S.calConfig.some(d => d.fecha === fechaFmt)) { toast('Esta fecha ya existe','err'); return; }
+  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, fechaRaw:f.getTime(), semana, dia:diaReal, activo:true, navieras:[], estancia:'' });
+  S.calConfig.sort((a,b)=>a.fechaRaw-b.fechaRaw);
+  const c=document.getElementById('tab-calendario');
+  renderCalendario(c, S.calConfig);
+  toast(`${fechaFmt} (${diaReal}) añadido`,'ok');
+}
+
+function removeDiaCalendario(i) {
+  if (!confirm(`¿Eliminar ${S.calConfig[i].fecha}?`)) return;
+  S.calConfig.splice(i,1);
+  const c=document.getElementById('tab-calendario');
+  renderCalendario(c, S.calConfig);
+  toast('Día eliminado','ok');
+}
+
+const DIAS_SEM_LABEL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+function diaRealDesdeFecha(fechaStr) {
+  // fechaStr: dd/mm/yyyy
+  const p = fechaStr.split('/');
+  if (p.length === 3) {
+    const f = new Date(+p[2], +p[1]-1, +p[0], 12, 0, 0);
+    return DIAS_SEM_LABEL[f.getDay()];
+  }
+  return fechaStr;
+}
+
 function renderCalendario(c, dias) {
-  c.innerHTML='';
-  const intro=document.createElement('p');
-  intro.style='font-size:.82rem;color:var(--label3);margin-bottom:1.1rem';
-  intro.textContent='Configura qué días hay turno, el nombre de la naviera y el tipo de estancia. Los cambios se guardan en el Spreadsheet.';
-  c.appendChild(intro);
+  c.innerHTML = '';
+
+  // Cabecera con añadir día
+  const hdr = document.createElement('div');
+  hdr.style = 'margin-bottom:1.1rem';
+  hdr.innerHTML = `
+    <p style="font-size:.82rem;color:var(--label3);margin-bottom:.75rem">Configura los días del mes, navieras y estancias. El día de la semana se calcula automáticamente desde la fecha.</p>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep)">
+      <div class="fg" style="margin:0">
+        <label>Añadir nuevo día</label>
+        <input type="date" class="fc" id="cal-new-fecha" style="width:auto">
+      </div>
+      <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
+    </div>`;
+  c.appendChild(hdr);
+
+  if (!dias.length) {
+    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">📅</span><h4>Sin días configurados</h4><p>Añade el primer día con el formulario superior.</p></div>`);
+    return;
+  }
+
+  // Contador activos
+  const activos = dias.filter(d=>d.activo).length;
+  c.insertAdjacentHTML('beforeend', `<p style="font-size:.78rem;color:var(--label3);margin-bottom:.65rem">${dias.length} días · <strong>${activos} activos</strong></p>`);
 
   dias.forEach((d, i) => {
-    const row=document.createElement('div');
-    row.className='cal-row';
-    const naviTagsHTML=d.navieras.map((n,ni)=>`<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`).join('');
-    row.innerHTML=`
-      <div style="min-width:95px">
+    const diaReal = diaRealDesdeFecha(d.fecha);
+    const naviTagsHTML = d.navieras.map((n,ni) =>
+      `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`
+    ).join('');
+    const row = document.createElement('div');
+    row.className = 'cal-row';
+    row.style.opacity = d.activo ? '1' : '0.5';
+    row.innerHTML = `
+      <div style="min-width:105px;flex-shrink:0">
         <div class="cal-fecha">${d.fecha}</div>
-        <div class="cal-dia">${d.dia}</div>
+        <div class="cal-dia" style="color:var(--blue);font-weight:600;font-size:.75rem">${diaReal}</div>
       </div>
-      <div style="display:flex;align-items:center;gap:.4rem">
-        <label class="toggle-sw"><input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})"><span class="toggle-sl"></span></label>
-        <span style="font-size:.75rem;color:var(--label3)">${d.activo?'Activo':'Inactivo'}</span>
+      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+        <label class="toggle-sw">
+          <input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})">
+          <span class="toggle-sl"></span>
+        </label>
+        <span style="font-size:.72rem;color:var(--label3);min-width:48px" id="cal-act-lbl-${i}">${d.activo?'Activo':'Inactivo'}</span>
       </div>
       <div class="cal-navieras" id="cal-nv-${i}">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.3rem" id="cal-tags-${i}">
-          ${naviTagsHTML}
-        </div>
-        <div style="display:flex;gap:.35rem">
-          <input class="fc" id="cal-ninput-${i}" placeholder="Nombre naviera…" style="font-size:.75rem;padding:.35rem .6rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
-          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+ Añadir</button>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.28rem" id="cal-tags-${i}">${naviTagsHTML}</div>
+        <div style="display:flex;gap:.3rem">
+          <input class="fc" id="cal-ninput-${i}" placeholder="🚢 Naviera…" style="font-size:.72rem;padding:.28rem .5rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
+          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
         </div>
       </div>
-      <div class="cal-estancia">
-        <select class="fc" id="cal-est-${i}" style="font-size:.75rem;padding:.35rem .6rem" onchange="S.calConfig[${i}].estancia=this.value">
+      <div class="cal-estancia" style="min-width:140px">
+        <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
           <option value="">Sin estancia</option>
-          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Estancia todo el día</option>
+          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
           <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
           <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
           <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
         </select>
-      </div>`;
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
     c.appendChild(row);
   });
 }
 
 function toggleCalDia(i) {
   S.calConfig[i].activo = document.getElementById(`cal-act-${i}`).checked;
-  const label=document.querySelector(`#cal-act-${i}`).closest('.cal-row').querySelector('span');
-  if (label) label.textContent = S.calConfig[i].activo?'Activo':'Inactivo';
+  const lbl = document.getElementById(`cal-act-lbl-${i}`);
+  if (lbl) lbl.textContent = S.calConfig[i].activo?'Activo':'Inactivo';
 }
 
 function añadirNaviera(i) {
@@ -1097,10 +1368,14 @@ function quitarNaviera(i, ni) {
 
 async function guardarCalendario() {
   try {
-    // Recoger estancias actuales
-    S.calConfig.forEach((d,i) => { const sel=document.getElementById(`cal-est-${i}`); if (sel) d.estancia=sel.value; });
+    S.calConfig.forEach((d,i) => {
+      const sel=document.getElementById(`cal-est-${i}`);
+      if (sel) d.estancia=sel.value;
+      // Recalcular día real desde la fecha antes de guardar
+      d.dia = diaRealDesdeFecha(d.fecha);
+    });
     await apiPost({accion:'guardarCalendarioConfig', dias:S.calConfig});
-    window._calOk=false;
+    window._calOk=false; window._aOk=false;
     toast('Calendario guardado ✓','ok');
   } catch(e) { toast('Error: '+e.message,'err'); }
 }
