@@ -433,6 +433,8 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
     <button class="nav-item" onclick="setTab('oferta')" id="nav-oferta"><span class="ni">✋</span> Turnos disponibles</button>
     <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Historial</button>
+    <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo meses</button>
+    <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
   </div>
   <div class="sidebar-footer"><p>v5.0 · Puerto de Sevilla</p></div>
@@ -460,6 +462,8 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
     <div id="tab-oferta" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div></div>
     <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div></div>
+    <div id="tab-archivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando archivo…</p></div></div>
+    <div id="tab-busqueda" class="tab-pane"><div class="empty"><span class="ei">🔎</span><h4>Búsqueda manual</h4><p>Configura los filtros para buscar.</p></div></div>
     <div id="tab-calendario" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div></div>
   </div>
 </div>
@@ -514,13 +518,14 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','calendario'];
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','archivo','busqueda','calendario'];
 const TAB_TITLES = {
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
   oferta:'✋ Turnos disponibles',
-  historial:'📋 Historial', calendario:'⚙️ Configurar calendario',
+  historial:'📋 Historial', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
+  calendario:'⚙️ Configurar calendario',
 };
 const TAB_ACTS = {
   cuadrante:`<button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
@@ -533,6 +538,8 @@ const TAB_ACTS = {
   bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
   oferta:`<button class="btn btn-ghost btn-sm" onclick="loadOferta(true)">↻ Actualizar</button>`,
   historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
+  archivo:`<button class="btn btn-ghost btn-sm" onclick="loadArchivo(true)">↻ Actualizar</button>`,
+  busqueda:``,
   calendario:`<button class="btn btn-green btn-sm" onclick="guardarCalendario()">💾 Guardar cambios</button>`,
 };
 
@@ -554,6 +561,8 @@ function setTab(id) {
   if (id==='bajas'          && !window._bOk)    loadBajas();
   if (id==='oferta'         && !window._oOk)    loadOferta();
   if (id==='historial'      && !window._hOk)    loadHistorial();
+  if (id==='archivo'        && !window._arOk)   loadArchivo();
+  if (id==='busqueda')                          initBusqueda();
   if (id==='calendario'     && !window._calOk)  loadCalendario();
 }
 
@@ -2114,6 +2123,510 @@ function buildPrintHTML(plan) {
     <div class="pnota"><strong>Nota:</strong> El nombre sombreado indica que el voluntario <strong style="color:#f5a400">tiene llave</strong> y es responsable de recoger y depositar los expositores en el Salón del Reino de La Oliva.</div>
     <div class="pcontacto">Si por algún motivo no podéis atender vuestro turno, contactar con <strong>MANUEL FERNÁNDEZ</strong> enviando un mensaje privado por Whatsapp al <strong>622 71 45 85</strong>.<br><br><strong>Enlace al cuestionario:</strong> <span style="color:#1a56a0">formulario.ejemplo.com/turno</span></div>
   </div>`;
+}
+
+// ══════════════════════════════════════
+//  HISTORIAL — con edición y borrado
+// ══════════════════════════════════════
+async function loadHistorial(force) {
+  if (window._hOk && !force) return;
+  const c = document.getElementById('tab-historial');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>`;
+  try {
+    const data = await apiGet({action:'getHistorial'});
+    c.innerHTML = '';
+    if (!data.length) {
+      c.innerHTML = `<div class="empty"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`;
+      return;
+    }
+    window._histData = data.slice().reverse();
+    window._histVista = 'tabla';
+    renderHistorialPanel(c, data.slice().reverse());
+    window._histOk = true; window._hOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  }
+}
+
+function renderHistorialPanel(c, data) {
+  c.innerHTML = '';
+
+  // Stats
+  const turnosUnicos = new Set(data.map(r => r.fecha+'|'+r.rango)).size;
+  const vols = new Set(data.map(r => r.nombre)).size;
+  const sr = document.createElement('div'); sr.className = 'stats-row';
+  sr.innerHTML = `
+    <div class="sbox"><div class="sv">${data.length}</div><div class="sl">Asignaciones</div></div>
+    <div class="sbox"><div class="sv">${turnosUnicos}</div><div class="sl">Turnos únicos</div></div>
+    <div class="sbox"><div class="sv">${vols}</div><div class="sl">Voluntarios</div></div>
+    <div class="sbox"><div class="sv">${data.length && vols ? (data.length/vols).toFixed(1) : 0}</div><div class="sl">Media/vol.</div></div>`;
+  c.appendChild(sr);
+
+  // Controles
+  const ctrl = document.createElement('div');
+  ctrl.style = 'display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
+  ctrl.innerHTML = `
+    <input class="fc" id="hbusca" placeholder="🔍 Buscar voluntario…" oninput="filtH()" style="max-width:210px">
+    <select class="fc" id="hdia" onchange="filtH()" style="max-width:150px">
+      <option value="">Todos los días</option>
+      ${[...new Set(data.map(r=>r.dia))].map(d=>`<option>${d}</option>`).join('')}
+    </select>
+    <select class="fc" id="hrango" onchange="filtH()" style="max-width:160px">
+      <option value="">Todos los turnos</option>
+      ${[...new Set(data.map(r=>r.rango))].sort().map(r=>`<option>${r}</option>`).join('')}
+    </select>
+    <div style="display:flex;gap:.3rem;margin-left:auto">
+      <button class="btn btn-ghost btn-sm ${window._histVista==='tabla'?'btn-navy':''}" onclick="cambiarVistaHist('tabla')">📋 Tabla</button>
+      <button class="btn btn-ghost btn-sm ${window._histVista==='timeline'?'btn-navy':''}" onclick="cambiarVistaHist('timeline')">📅 Timeline</button>
+    </div>`;
+  c.appendChild(ctrl);
+
+  // Botón archivar mes
+  const hoy = new Date();
+  const mesKey = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+  const archBar = document.createElement('div');
+  archBar.style = 'display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;margin-bottom:1rem;box-shadow:var(--shadow-sm);border:1px solid var(--sep);flex-wrap:wrap;gap:.5rem';
+  archBar.innerHTML = `
+    <div>
+      <div style="font-size:.8rem;font-weight:600;color:var(--label1)">🗄️ Archivar mes al cerrarlo</div>
+      <div style="font-size:.7rem;color:var(--label3);margin-top:.1rem">Mueve los registros del mes a un archivo separado y limpia el historial activo</div>
+    </div>
+    <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap">
+      <select class="fc" id="arch-mes-sel" style="font-size:.75rem;padding:.35rem .6rem;width:auto">
+        ${generarOpcionesMeses()}
+      </select>
+      <button class="btn btn-navy btn-sm" onclick="archivarMes()">🗄️ Archivar</button>
+    </div>`;
+  c.appendChild(archBar);
+
+  const wrap = document.createElement('div'); wrap.id = 'hist-view-wrap';
+  c.appendChild(wrap);
+  renderVistaHistorial(wrap, data);
+}
+
+function generarOpcionesMeses() {
+  const hoy = new Date();
+  let opts = '';
+  for (let i = 0; i < 6; i++) {
+    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+    const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const lbl = `${MESES[d.getMonth()]} ${d.getFullYear()}`;
+    opts += `<option value="${k}">${lbl}</option>`;
+  }
+  return opts;
+}
+
+function cambiarVistaHist(v) {
+  window._histVista = v;
+  const wrap = document.getElementById('hist-view-wrap');
+  if (wrap) renderVistaHistorial(wrap, getHistFiltrado());
+  // Actualizar botones
+  document.querySelectorAll('[onclick*="cambiarVistaHist"]').forEach(b => {
+    b.className = b.getAttribute('onclick').includes(v) ? 'btn btn-navy btn-sm' : 'btn btn-ghost btn-sm';
+  });
+}
+
+function getHistFiltrado() {
+  const data = window._histData || [];
+  const b = (document.getElementById('hbusca')?.value||'').toLowerCase();
+  const d = document.getElementById('hdia')?.value||'';
+  const r = document.getElementById('hrango')?.value||'';
+  return data.filter(row =>
+    (!b || row.nombre.toLowerCase().includes(b)) &&
+    (!d || row.dia === d) &&
+    (!r || row.rango === r));
+}
+
+function filtH() {
+  const wrap = document.getElementById('hist-view-wrap');
+  if (wrap) renderVistaHistorial(wrap, getHistFiltrado());
+}
+
+function renderVistaHistorial(wrap, filt) {
+  wrap.innerHTML = '';
+  if (!filt.length) {
+    wrap.innerHTML = `<div class="empty"><span class="ei">🔍</span><h4>Sin resultados</h4></div>`;
+    return;
+  }
+
+  if (window._histVista === 'timeline') {
+    // Agrupar por fecha+turno
+    const grupos = {};
+    filt.forEach(r => {
+      const k = r.fecha+'|'+r.rango;
+      if (!grupos[k]) grupos[k] = {fecha:r.fecha,dia:r.dia,rango:r.rango,vols:[]};
+      grupos[k].vols.push(r);
+    });
+    Object.values(grupos).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach((g,i) => {
+      const tarde = parseInt(g.rango) >= 14;
+      const el = document.createElement('div');
+      el.style = `display:flex;gap:.75rem;margin-bottom:.65rem;animation:fadeUp .3s ease both;animation-delay:${i*.03}s`;
+      el.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+          <div style="width:10px;height:10px;border-radius:50%;background:${tarde?'var(--amber)':'var(--blue)'};margin-top:.35rem;flex-shrink:0"></div>
+          <div style="width:2px;flex:1;background:var(--sep);margin-top:.2rem"></div>
+        </div>
+        <div style="background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;flex:1;box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-bottom:.1rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.3rem">
+            <div>
+              <span style="font-size:.8rem;font-weight:700">${g.fecha}</span>
+              <span style="font-size:.7rem;color:var(--label3);margin-left:.4rem">${g.dia}</span>
+            </div>
+            <span style="font-size:.67rem;font-weight:700;padding:.12rem .42rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${g.rango}</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
+            ${g.vols.map(v => `
+              <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">
+                ${v.nombre}
+                <button onclick="abrirEditarTurno(${JSON.stringify(v).replace(/"/g,'&quot;')})" style="background:none;border:none;cursor:pointer;color:var(--label3);font-size:.7rem;padding:0 .1rem" title="Editar">✏️</button>
+                <button onclick="borrarTurno(${JSON.stringify(v).replace(/"/g,'&quot;')})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.7rem;padding:0 .1rem" title="Eliminar">🗑️</button>
+              </span>`).join('')}
+          </div>
+        </div>`;
+      wrap.appendChild(el);
+    });
+  } else {
+    // Vista tabla con acciones inline
+    const card = document.createElement('div'); card.className = 'card'; card.style.padding = '0';
+    card.innerHTML = `
+      <table class="htable" style="font-size:.78rem">
+        <thead><tr>
+          <th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th>
+          <th style="text-align:right;padding-right:.9rem">Acciones</th>
+        </tr></thead>
+        <tbody>
+          ${filt.map(r => {
+            const tarde = parseInt(r.rango) >= 14;
+            const rv = JSON.stringify(r).replace(/"/g,'&quot;');
+            return `<tr>
+              <td style="font-weight:600">${r.fecha}</td>
+              <td>${r.dia}</td>
+              <td><span style="font-size:.67rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${r.rango}</span></td>
+              <td>${r.nombre}</td>
+              <td style="text-align:right;padding-right:.65rem">
+                <button class="btn btn-ghost btn-sm" style="padding:.25rem .55rem;font-size:.68rem" onclick="abrirEditarTurno(${rv})" title="Editar">✏️</button>
+                <button class="btn btn-red btn-sm" style="padding:.25rem .55rem;font-size:.68rem" onclick="borrarTurno(${rv})" title="Eliminar">🗑️</button>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    wrap.appendChild(card);
+  }
+}
+
+// ── Editar turno del historial
+function abrirEditarTurno(r) {
+  document.getElementById('mvol-titulo').textContent = '✏️ Editar registro';
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.78rem;color:var(--label3);margin-bottom:1rem">Edita los datos de este registro en el historial.</p>
+    <div class="form-row" style="margin-bottom:.85rem">
+      <div class="fg"><label>Fecha</label><input class="fc" value="${r.fecha}" readonly style="background:var(--surface2);color:var(--label3)"></div>
+      <div class="fg"><label>Día</label><input class="fc" value="${r.dia}" readonly style="background:var(--surface2);color:var(--label3)"></div>
+    </div>
+    <div class="form-row full" style="margin-bottom:.85rem">
+      <div class="fg"><label>Voluntario</label><input class="fc" id="edit-nombre" value="${r.nombre}"></div>
+    </div>
+    <div class="form-row full" style="margin-bottom:1rem">
+      <div class="fg"><label>Rango horario</label><input class="fc" id="edit-rango" value="${r.rango}" placeholder="ej: 10:00 a 12:00"></div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-green" onclick="guardarEdicionTurno(${JSON.stringify(r).replace(/"/g,'&quot;')})">💾 Guardar cambios</button>
+    </div>`;
+  openModal('mvol');
+}
+
+async function guardarEdicionTurno(original) {
+  const nuevoNombre = document.getElementById('edit-nombre')?.value.trim();
+  const nuevoRango  = document.getElementById('edit-rango')?.value.trim();
+  if (!nuevoNombre) { toast('El nombre no puede estar vacío','err'); return; }
+  try {
+    await apiPost({ accion:'editarTurnoHistorial',
+      nombreOriginal: original.nombre, rangoOriginal: original.rango,
+      fecha: original.fecha, semana: original.semana, dia: original.dia,
+      nuevoNombre, nuevoRango });
+    closeModal('mvol');
+    window._hOk = false; window._cOk = false;
+    toast('Registro actualizado ✓','ok');
+    loadHistorial(true);
+  } catch(e) { toast('Error: '+e.message,'err'); }
+}
+
+async function borrarTurno(r) {
+  if (!confirm(`¿Eliminar a ${r.nombre} del turno ${r.rango} del ${r.fecha}?\nEsta acción no se puede deshacer.`)) return;
+  try {
+    await apiPost({ accion:'eliminarTurnoHistorial',
+      nombre: r.nombre, rango: r.rango, fecha: r.fecha,
+      semana: r.semana, dia: r.dia });
+    window._hOk = false; window._cOk = false;
+    toast('Registro eliminado ✓','ok');
+    loadHistorial(true);
+  } catch(e) { toast('Error: '+e.message,'err'); }
+}
+
+async function archivarMes() {
+  const sel = document.getElementById('arch-mes-sel')?.value;
+  if (!sel) return;
+  const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const [anio,mes] = sel.split('-');
+  const lbl = `${MESES[parseInt(mes)]} ${anio}`;
+  if (!confirm(`¿Archivar ${lbl}?\nSe moverán todos los registros de ese mes a una hoja separada y se eliminarán del historial activo.`)) return;
+  try {
+    await apiPost({ accion:'archivarMes', mes: sel });
+    window._hOk = false; window._arOk = false;
+    toast(`${lbl} archivado correctamente ✓`,'ok');
+    loadHistorial(true);
+    if (tabActual === 'archivo') loadArchivo(true);
+  } catch(e) { toast('Error: '+e.message,'err'); }
+}
+
+// ══════════════════════════════════════
+//  ARCHIVO DE MESES ANTERIORES
+// ══════════════════════════════════════
+async function loadArchivo(force) {
+  if (window._arOk && !force) return;
+  const c = document.getElementById('tab-archivo');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando archivo…</p></div>`;
+  try {
+    const data = await apiGet({action:'getHistorialMeses'});
+    if (data.error) throw new Error(data.error);
+    window._archivoMeses = data.meses || [];
+    renderArchivo(c, data.meses || []);
+    window._arOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  }
+}
+
+function renderArchivo(c, meses) {
+  c.innerHTML = '';
+
+  if (!meses.length) {
+    c.innerHTML = `<div class="empty"><span class="ei">🗄️</span><h4>Sin meses archivados</h4><p>Archiva el mes actual desde la pestaña Historial cuando lo cierres.</p></div>`;
+    return;
+  }
+
+  const intro = document.createElement('p');
+  intro.style = 'font-size:.82rem;color:var(--label3);margin-bottom:1.1rem';
+  intro.textContent = `${meses.length} período${meses.length!==1?'s':''} disponible${meses.length!==1?'s':''}. Pulsa uno para ver los detalles y estadísticas.`;
+  c.appendChild(intro);
+
+  meses.forEach((m, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style = `cursor:pointer;transition:box-shadow .2s,transform .2s;animation:fadeUp .3s ease both;animation-delay:${i*.04}s`;
+    card.onclick = () => abrirMesArchivado(m.key, m.label, card);
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:.85rem">
+        <div style="width:42px;height:42px;border-radius:var(--r-md);background:${m.key==='actual'?'var(--blue)':'var(--navy)'};display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">
+          ${m.key === 'actual' ? '📋' : '🗄️'}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:.9rem;font-weight:700;color:var(--label1)">${m.label}</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${m.filas} registro${m.filas!==1?'s':''}</div>
+        </div>
+        <span style="font-size:.7rem;color:var(--label3)">Ver →</span>
+      </div>
+      <div id="arch-detail-${m.key}" style="display:none;margin-top:.9rem;padding-top:.9rem;border-top:1px solid var(--sep)"></div>`;
+    c.appendChild(card);
+  });
+}
+
+async function abrirMesArchivado(key, label, card) {
+  const detail = card.querySelector(`[id^="arch-detail-"]`);
+  if (!detail) return;
+
+  if (detail.style.display !== 'none') {
+    detail.style.display = 'none'; return;
+  }
+
+  detail.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;color:var(--label3);font-size:.78rem"><div class="spinner" style="width:16px;height:16px;border-width:2px"></div> Cargando…</div>`;
+  detail.style.display = 'block';
+
+  try {
+    let data;
+    if (key === 'actual') {
+      const hist = await apiGet({action:'getHistorial'});
+      const recs = Array.isArray(hist) ? hist : [];
+      const turnosUnicos = new Set(recs.map(r=>r.fecha+'|'+r.rango)).size;
+      const volsSet = new Set(recs.map(r=>r.nombre));
+      const porVol = {};
+      recs.forEach(r => { porVol[r.nombre] = (porVol[r.nombre]||0)+1; });
+      const top = Object.entries(porVol).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([nombre,turnos])=>({nombre,turnos}));
+      data = { registros: recs, stats: {
+        totalRegistros: recs.length, turnosUnicos, voluntariosActivos: volsSet.size,
+        topVoluntarios: top, media: recs.length && volsSet.size ? (recs.length/volsSet.size).toFixed(1) : 0
+      }};
+    } else {
+      data = await apiGet({action:'getHistorialArchivo', mes: key});
+    }
+    if (data.error) throw new Error(data.error);
+    detail.innerHTML = renderDetalleArchivo(data, label);
+  } catch(e) {
+    detail.innerHTML = `<p style="color:var(--red);font-size:.8rem">Error: ${e.message}</p>`;
+  }
+}
+
+function renderDetalleArchivo(data, label) {
+  const s = data.stats;
+  if (!s || !data.registros?.length) return `<p style="font-size:.8rem;color:var(--label3)">Sin datos suficientes.</p>`;
+
+  const diasBadges = Object.entries(s.porDia||{}).sort((a,b)=>b[1]-a[1])
+    .map(([d,n]) => `<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.18rem .5rem;font-size:.7rem;font-weight:500">${d}: ${n}</span>`).join('');
+
+  return `
+    <div class="stats-row" style="margin-bottom:.85rem">
+      <div class="sbox"><div class="sv">${s.totalRegistros}</div><div class="sl">Asignaciones</div></div>
+      <div class="sbox"><div class="sv">${s.turnosUnicos}</div><div class="sl">Turnos</div></div>
+      <div class="sbox"><div class="sv">${s.voluntariosActivos}</div><div class="sl">Voluntarios</div></div>
+      <div class="sbox"><div class="sv">${s.media}</div><div class="sl">Media/vol.</div></div>
+    </div>
+    <div style="margin-bottom:.65rem">
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.4rem">Top voluntarios</div>
+      ${s.topVoluntarios.map((v,i) => `
+        <div style="display:flex;align-items:center;gap:.6rem;padding:.35rem 0;${i<s.topVoluntarios.length-1?'border-bottom:1px solid var(--sep)':''}">
+          <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${i+1}</div>
+          <div style="flex:1;font-size:.8rem;font-weight:600">${v.nombre}</div>
+          <div style="font-size:.75rem;font-weight:700;color:var(--blue)">${v.turnos} turnos</div>
+          <div style="width:60px;height:4px;background:var(--sep);border-radius:2px"><div style="height:100%;width:${Math.round(v.turnos/s.topVoluntarios[0].turnos*100)}%;background:var(--blue);border-radius:2px"></div></div>
+        </div>`).join('')}
+    </div>
+    <div>
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.35rem">Por día de la semana</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.3rem">${diasBadges}</div>
+    </div>`;
+}
+
+// ══════════════════════════════════════
+//  BÚSQUEDA MANUAL POR DÍA/SEMANA/HORA
+// ══════════════════════════════════════
+function initBusqueda() {
+  const c = document.getElementById('tab-busqueda');
+  c.innerHTML = '';
+
+  const card = document.createElement('div'); card.className = 'card';
+  card.style.marginBottom = '1.25rem';
+  card.innerHTML = `
+    <span style="font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.85rem;display:block">Parámetros de búsqueda</span>
+    <div class="form-row" style="margin-bottom:.75rem">
+      <div class="fg">
+        <label>Semana</label>
+        <select class="fc" id="bus-sem">
+          ${[1,2,3,4,5].map(s=>`<option value="${s}">Semana ${s}</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg">
+        <label>Día de la semana</label>
+        <select class="fc" id="bus-dia">
+          <option value="Lunes">Lunes</option>
+          <option value="Martes">Martes</option>
+          <option value="Miercoles">Miércoles</option>
+          <option value="Jueves">Jueves</option>
+          <option value="Viernes">Viernes</option>
+          <option value="Sabado">Sábado</option>
+          <option value="Domingo">Domingo</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:1rem">
+      <div class="fg">
+        <label>Hora de inicio (opcional)</label>
+        <select class="fc" id="bus-hora">
+          <option value="">Cualquier hora</option>
+          ${Array.from({length:15},(_,i)=>i+7).map(h=>`<option value="${h}">${String(h).padStart(2,'0')}:00</option>`).join('')}
+        </select>
+      </div>
+      <div class="fg" style="justify-content:flex-end;padding-bottom:.1rem">
+        <label>&nbsp;</label>
+        <button class="btn btn-blue" onclick="ejecutarBusqueda()">🔎 Buscar voluntarios</button>
+      </div>
+    </div>`;
+  c.appendChild(card);
+
+  const result = document.createElement('div'); result.id = 'bus-result';
+  c.appendChild(result);
+}
+
+async function ejecutarBusqueda() {
+  const sem  = document.getElementById('bus-sem')?.value;
+  const dia  = document.getElementById('bus-dia')?.value;
+  const hora = document.getElementById('bus-hora')?.value;
+  const res  = document.getElementById('bus-result');
+  if (!res) return;
+
+  res.innerHTML = `<div class="loading"><div class="spinner"></div><p>Buscando…</p></div>`;
+
+  try {
+    const data = await apiGet({action:'buscarDia', semana:sem, dia, hora: hora||''});
+    if (data.error) throw new Error(data.error);
+    renderResultadoBusqueda(res, data, sem, dia, hora);
+  } catch(e) {
+    res.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  }
+}
+
+function renderResultadoBusqueda(c, data, sem, dia, hora) {
+  const horaLabel = hora ? ` · turno ${hora}:00` : '';
+  c.innerHTML = '';
+
+  // Cabecera resultado
+  const hdr = document.createElement('div');
+  hdr.style = 'display:flex;align-items:center;gap:.65rem;padding-bottom:.5rem;margin-bottom:.85rem;border-bottom:2px solid var(--navy)';
+  hdr.innerHTML = `
+    <span style="font-size:.95rem;font-weight:700;color:var(--navy)">📅 ${dia} · Semana ${sem}${horaLabel}</span>
+    <span style="font-size:.7rem;background:var(--navy);color:var(--gold);padding:.18rem .55rem;border-radius:5px;font-weight:700">${data.aptos} aptos · ${data.totalDisponibles} disponibles</span>`;
+  c.appendChild(hdr);
+
+  if (!data.candidatos.length) {
+    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">😔</span><h4>Sin voluntarios disponibles</h4><p>Nadie tiene disponibilidad para esta combinación.</p></div>`);
+    return;
+  }
+
+  // Separar por estado
+  const grupos = { ok:[], reducido:[], bloqueado:[] };
+  data.candidatos.forEach(v => grupos[v.estado].push(v));
+
+  [['ok','✅ Disponibles (descanso completo)','var(--green-dark)'],
+   ['reducido','⚡ Disponibles (descanso reducido)','var(--amber)'],
+   ['bloqueado','🔒 Bloqueados por descanso insuficiente','var(--label4)']
+  ].forEach(([key, titulo, color]) => {
+    if (!grupos[key].length) return;
+    const sec = document.createElement('div');
+    sec.style = 'margin-bottom:1.1rem';
+    sec.innerHTML = `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${color};margin-bottom:.5rem">${titulo} (${grupos[key].length})</div>`;
+
+    grupos[key].forEach((v, i) => {
+      const el = document.createElement('div');
+      el.className = 'vbar';
+      el.style.animationDelay = (i*.02)+'s';
+      el.style.opacity = key==='bloqueado' ? '0.55' : '1';
+      el.innerHTML = `
+        <div style="width:9px;height:9px;border-radius:50%;background:${color};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.83rem;font-weight:600;color:var(--label1)">${v.llave?'🔑 ':''}${v.nombre}</div>
+          <div style="font-size:.68rem;color:var(--label3);margin-top:.05rem">🕐 ${v.horario} · ${v.dias>=99?'Voluntario nuevo':v.dias+' d descanso'} · ${v.dispo} d/mes</div>
+        </div>`;
+      sec.appendChild(el);
+    });
+    c.appendChild(sec);
+  });
+
+  // Historial de ese día para contexto
+  if (data.historialDia?.length) {
+    const histSec = document.createElement('div');
+    histSec.style = 'margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--sep)';
+    histSec.innerHTML = `
+      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.5rem">📋 Historial confirmado para este día</div>
+      <div class="card" style="padding:0">
+        <table class="htable" style="font-size:.75rem">
+          <thead><tr><th>Turno</th><th>Voluntario</th><th>Fecha</th></tr></thead>
+          <tbody>${data.historialDia.map(h=>`<tr><td>${h.rango}</td><td>${h.nombre}</td><td>${h.fecha}</td></tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+    c.appendChild(histSec);
+  }
 }
 
 // ══════════════════════════════════════
