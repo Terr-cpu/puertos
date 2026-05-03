@@ -648,8 +648,13 @@ function setStep(n) {
 //  BUSCAR TURNOS DEL VOLUNTARIO
 // ══════════════════════════════════════════════
 async function buscarTurnos() {
-  const nombre = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
-  if (!nombre) { toast('Selecciona tu nombre de la lista', 'err'); return; }
+  const hidNombre = document.getElementById('hid-baja').value.trim();
+  if (!hidNombre) {
+    toast('Selecciona tu nombre de la lista desplegable', 'err');
+    document.getElementById('inp-baja').focus();
+    return;
+  }
+  const nombre = hidNombre;
 
   const btn = document.getElementById('btn-buscar');
   btn.disabled = true;
@@ -753,7 +758,8 @@ function actualizarResumen() {
 //  REGISTRAR BAJA (con feedback optimista)
 // ══════════════════════════════════════════════
 async function registrarBaja() {
-  const nombre  = document.getElementById('hid-baja').value || document.getElementById('inp-baja').value.trim();
+  const nombre  = document.getElementById('hid-baja').value.trim();
+  if (!nombre) { toast('Error: nombre no seleccionado', 'err'); return; }
   const selIdx  = turnosUsuario.map((_,i)=>i)
     .filter(i => document.getElementById(`ti-${i}`)?.classList.contains('selected'));
   if (!selIdx.length || !nombre) return;
@@ -933,13 +939,20 @@ async function apuntarFranja(key, fecha, franja) {
 }
 
 function nombreRefuerzo() {
-  const n = document.getElementById('hid-ref').value || document.getElementById('inp-ref').value.trim();
-  if (!n) {
-    toast('Escribe y selecciona tu nombre primero', 'err');
+  const hid = document.getElementById('hid-ref').value.trim();
+  const txt = document.getElementById('inp-ref').value.trim();
+  // El nombre DEBE haber sido seleccionado del autocomplete (hid tiene valor)
+  if (!hid) {
+    if (txt.length >= 2) {
+      toast('Selecciona tu nombre de la lista desplegable', 'err');
+    } else {
+      toast('Escribe y selecciona tu nombre antes de apuntarte', 'err');
+    }
     document.getElementById('inp-ref').focus();
     return null;
   }
-  return n;
+  // Usar siempre el valor del hidden (nombre exacto seleccionado)
+  return hid;
 }
 
 async function enviarRefuerzo(data) {
