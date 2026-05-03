@@ -866,11 +866,31 @@ async function loadAlertas(force) {
       intro.textContent=`${data.total} día${data.total!==1?'s':''} requieren atención:`;
       c.appendChild(intro);
       data.alertas.forEach((a,i) => {
-        const grave=a.mensaje.includes('Ningún');
-        const el=document.createElement('div');
-        el.className=`al-item ${grave?'grave':'aviso'}`;
-        el.style.animationDelay=(i*.05)+'s';
-        el.innerHTML=`<div class="ali">${grave?'🔴':'🟡'}</div><div><div class="al-fecha">📅 ${a.fecha} — ${a.dia} (S${a.semana})</div><div class="al-msg">${a.mensaje} · ${a.disponibles} disp.</div></div>`;
+        const grave = a.gravedad === 'critica';
+        const el = document.createElement('div');
+        el.className = `al-item ${grave ? 'grave' : 'aviso'}`;
+        el.style.animationDelay = (i*.05)+'s';
+
+        const turnosHTML = a.turnosAfectados?.length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.4rem">
+              ${a.turnosAfectados.map(t=>`<span style="font-size:.65rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:rgba(0,0,0,.08)">${t}</span>`).join('')}
+             </div>`
+          : '';
+
+        const portadoresHTML = a.portadores?.length
+          ? `<div style="font-size:.72rem;margin-top:.35rem;color:${grave?'#7a2020':'#7a5c00'}">
+              🔑 Disponible: <strong>${a.portadores.map(p=>p.nombre+' ('+p.horario+')').join(', ')}</strong>
+             </div>`
+          : `<div style="font-size:.72rem;margin-top:.35rem;font-weight:600;color:${grave?'#c0392b':'#7a4500'}">🔑 Ningún portador de llave disponible</div>`;
+
+        el.innerHTML = `
+          <div class="ali">${grave?'🔴':'🟡'}</div>
+          <div style="flex:1">
+            <div class="al-fecha">📅 ${a.fecha} — ${a.dia} (Semana ${a.semana})</div>
+            <div class="al-msg" style="font-weight:600">${a.mensaje}</div>
+            ${portadoresHTML}
+            ${a.turnosAfectados?.length ? '<div style="font-size:.67rem;color:var(--label3);margin-top:.3rem">Turnos calculados para este día:</div>'+turnosHTML : ''}
+          </div>`;
         c.appendChild(el);
       });
     }
@@ -1716,9 +1736,22 @@ document.addEventListener('click', e => {
 
 // ── APUNTARSE (con feedback optimista) ────────
 function ofNombreSeleccionado() {
+  // Primero intentar el voluntario seleccionado explícitamente
   const n = window._ofertaVolSel || document.getElementById('of-inp-vol')?.value.trim();
-  if (!n) { toast('Selecciona un voluntario primero', 'err'); return null; }
-  return n;
+  if (!n || n.length < 2) {
+    toast('Busca y selecciona un voluntario de la lista primero', 'err');
+    document.getElementById('of-inp-vol')?.focus();
+    return null;
+  }
+  // Verificar que el nombre existe en la lista de voluntarios
+  const vols = window._ofertaVols || [];
+  const existe = vols.some(v => v.toLowerCase() === n.toLowerCase());
+  if (!existe) {
+    toast('Selecciona un nombre válido de la lista de voluntarios', 'err');
+    return null;
+  }
+  // Usar el nombre exacto de la lista (capitalización correcta)
+  return vols.find(v => v.toLowerCase() === n.toLowerCase()) || n;
 }
 
 async function ofApuntar(key, fecha) {
@@ -1734,6 +1767,11 @@ async function ofApuntarFranja(key, fecha, franja) {
 }
 
 async function ofEnviarRefuerzo(data) {
+  // Validar que hay nombre real antes de enviar
+  if (!data.nombre || !data.nombre.trim()) {
+    toast('Selecciona un voluntario primero','err');
+    return;
+  }
   toast('Apuntando…', 'ok');
   // Feedback optimista: actualizar estado local
   const nUp = (data.nombre||'').toUpperCase().trim();
