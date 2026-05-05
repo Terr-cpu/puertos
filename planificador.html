@@ -1165,15 +1165,26 @@ async function loadBajas(force) {
   const c = document.getElementById('tab-bajas');
   c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
   try {
-    const [bajasData, ofertaData] = await Promise.all([
-      apiGet({action:'getBajas'}),
-      apiGet({action:'getOfertaTurnos'}),
-    ]);
-    window._bajasData  = bajasData;
-    window._ofertaBajas = ofertaData.turnos || [];
+    // Cargar bajas primero — render inmediato sin esperar la oferta
+    const bajasData = await apiGet({action:'getBajas'});
+    if (bajasData.error) throw new Error(bajasData.error);
+    window._bajasData   = bajasData;
+    window._ofertaBajas = [];       // empieza vacío
     c.innerHTML = '';
     renderBajasPanel(c);
     window._bOk = true;
+    // Cargar oferta en background — se actualiza cuando llega
+    apiGet({action:'getOfertaTurnos'}).then(ofertaData => {
+      window._ofertaBajas = ofertaData.turnos || [];
+      // Si estamos en el tab de turnos disponibles, re-renderizar
+      if (window._bajaTab === 'turnos') {
+        const content = document.getElementById('bajas-content');
+        if (content) renderBajaTab(content);
+      }
+    }).catch(e => {
+      console.warn('Oferta no disponible:', e);
+      window._ofertaBajas = [];
+    });
   } catch(e) {
     c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
   }
@@ -1232,7 +1243,14 @@ function setBajaTab(tab) {
     btn.style.background = t===tab ? 'var(--navy)' : 'transparent';
     btn.style.color      = t===tab ? '#fff' : 'var(--label3)';
   });
-  renderBajaTab(document.getElementById('bajas-content'));
+  const content = document.getElementById('bajas-content');
+  if (!content) return;
+  // Si cambia a turnos y oferta aún no llegó, mostrar spinner
+  if (tab === 'turnos' && window._ofertaBajas === undefined) {
+    content.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
+    return;
+  }
+  renderBajaTab(content);
 }
 
 function renderBajaTab(c) {
@@ -1357,17 +1375,27 @@ function buildTurnoActividad(t, idx, resuelto) {
 
 // ── TAB 2: TURNOS DISPONIBLES (dentro del panel bajas) ─────
 function renderTurnosDisponiblesEnBajas(c) {
-  const oferta = window._ofertaBajas || [];
+  const oferta = window._ofertaBajas;
 
-  if (!oferta.length) {
-    c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios en este momento.</p></div>`;
+  // Si es undefined, aún está cargando
+  if (oferta === undefined) {
+    c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
     return;
   }
 
+  // Filtrar solo turnos con rango real (no DIA_COMPLETO)
+  const turnosReales = (oferta || []).filter(t => !t.esDia && t.rango !== 'DIA_COMPLETO');
+
+  if (!turnosReales.length) {
+    c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios.</p></div>`;
+    return;
+  }
+
+  const oferta2 = turnosReales; // alias para el resto del código
+
   // Agrupar por fecha
   const porFecha = {};
-  oferta.forEach(t => {
-    if (t.esDia || t.rango === 'DIA_COMPLETO') return; // solo turnos reales
+  oferta2.forEach(t => {
     const k = t.fecha+'|'+t.dia;
     if (!porFecha[k]) porFecha[k] = [];
     porFecha[k].push(t);
