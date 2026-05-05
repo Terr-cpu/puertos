@@ -826,9 +826,9 @@ function toggleD(id, btn) { document.getElementById(id).classList.toggle('show')
 function toggleBlock(id, btn) {
   const el = document.getElementById(id);
   if (!el) return;
-  const visible = el.style.display !== 'none' && el.style.display !== '';
-  el.style.display = visible ? 'none' : 'flex';
-  btn.classList.toggle('open', !visible);
+  const oculto = el.style.display === 'none' || el.style.display === '';
+  el.style.display = oculto ? 'block' : 'none';
+  btn.classList.toggle('open', oculto);
 }
 
 // ══════════════════════════════════════
@@ -1233,7 +1233,7 @@ function renderBajasPanel(c) {
       style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;transition:all .18s">
       📋 Actividad reciente
     </button>
-    <button id="btab-turnos" onclick="setBajaTab('turnos')"
+    <button id="btab-turnos" onclick="setBajaTab('turnos'); if(window._ofertaBajas===null||window._ofertaBajas===undefined) recargarOfertaBajas();"
       style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:var(--label3);transition:all .18s">
       ✋ Turnos disponibles
     </button>`;
@@ -1298,7 +1298,7 @@ function renderActividadBajas(c) {
         <span>✅ Resueltos — sin bajas pendientes (${resueltos.length})</span>
         <span class="darrow">▼</span>
       </button>
-      <div id="sec-res" style="display:none;flex-direction:column;gap:.45rem;margin-bottom:.5rem">
+      <div id="sec-res" style="display:none;margin-bottom:.5rem">
         ${resueltos.map((t,i) => buildTurnoActividad(t, i+1000, true).outerHTML).join('')}
       </div>`;
     c.appendChild(secRes);
@@ -2178,6 +2178,17 @@ async function asignarSustituto(semana, dia, rango, nombre, cardIdx, btn) {
 function normRangoJS(r) {
   if (!r) return '';
   return r.toString().replace(/:\d\d/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+}
+
+// Fuerza recarga de oferta si no está lista
+function recargarOfertaBajas() {
+  apiGet({action:'getOfertaTurnos'}).then(ofertaData => {
+    window._ofertaBajas = ofertaData.turnos || [];
+    if (window._bajaTab === 'turnos') {
+      const content = document.getElementById('bajas-content');
+      if (content) renderBajaTab(content);
+    }
+  }).catch(() => { window._ofertaBajas = []; });
 }
 
 // ── INIT
