@@ -1264,10 +1264,10 @@ function setBajaTab(tab) {
   renderBajaTab(content);
 }
 
-function renderBajaTab(c) {
+async function renderBajaTab(c) {
   c.innerHTML = '';
   if (window._bajaTab === 'actividad') renderActividadBajas(c);
-  else renderTurnosDisponiblesEnBajas(c);
+  else await renderTurnosDisponiblesEnBajas(c);
 }
 
 // ── TAB 1: ACTIVIDAD (historial de movimientos) ────────────
@@ -1290,17 +1290,29 @@ function renderActividadBajas(c) {
   }
 
   if (resueltos.length) {
-    // Colapsable para no contaminar la vista
+    // Contenedor externo
     const secRes = document.createElement('div');
-    secRes.style = 'margin-top:1.25rem';
-    secRes.innerHTML = `
-      <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem;font-weight:700;font-size:.72rem;color:var(--green-dark)" onclick="toggleBlock('sec-res',this)">
-        <span>✅ Resueltos — sin bajas pendientes (${resueltos.length})</span>
-        <span class="darrow">▼</span>
-      </button>
-      <div id="sec-res" style="display:none;margin-bottom:.5rem">
-        ${resueltos.map((t,i) => buildTurnoActividad(t, i+1000, true).outerHTML).join('')}
-      </div>`;
+    secRes.style.marginTop = '1.25rem';
+
+    // Contenedor colapsable — lo creamos como elemento DOM para evitar problemas de ID duplicado
+    const cuerpo = document.createElement('div');
+    cuerpo.style.cssText = 'display:none;margin-bottom:.5rem';
+    // Insertar las cards directamente como nodos DOM (sin .outerHTML)
+    resueltos.forEach((t, i) => cuerpo.appendChild(buildTurnoActividad(t, i+1000, true)));
+
+    // Botón toggle — referencia directa al elemento, sin depender de getElementById
+    const btnRes = document.createElement('button');
+    btnRes.className = 'dtoggle';
+    btnRes.style.cssText = 'background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem;font-weight:700;font-size:.72rem;color:var(--green-dark);width:100%';
+    btnRes.innerHTML = `<span>✅ Resueltos — sin bajas pendientes (${resueltos.length})</span><span class="darrow">▼</span>`;
+    btnRes.onclick = function() {
+      const abierto = cuerpo.style.display !== 'none';
+      cuerpo.style.display = abierto ? 'none' : 'block';
+      btnRes.classList.toggle('open', !abierto);
+    };
+
+    secRes.appendChild(btnRes);
+    secRes.appendChild(cuerpo);
     c.appendChild(secRes);
   }
 }
@@ -1385,24 +1397,29 @@ function buildTurnoActividad(t, idx, resuelto) {
 }
 
 // ── TAB 2: TURNOS DISPONIBLES (dentro del panel bajas) ─────
-function renderTurnosDisponiblesEnBajas(c) {
-  const oferta = window._ofertaBajas;
+async function renderTurnosDisponiblesEnBajas(c) {
+  // Siempre cargar directamente — no depender de cache que puede estar vacía
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
 
-  // Si es undefined, aún está cargando
-  if (oferta === null) {
-    c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
+  let turnosReales = [];
+  try {
+    // Usar endpoint directo sin calcularDia para que sea rápido
+    const data = await apiGet({action:'getOfertaSimple'});
+    const oferta = data.turnos || [];
+    turnosReales = oferta.filter(t => !t.esDia && t.rango !== 'DIA_COMPLETO');
+    window._ofertaBajas = oferta; // actualizar cache
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
     return;
   }
-
-  // Filtrar solo turnos con rango real (no DIA_COMPLETO)
-  const turnosReales = (oferta || []).filter(t => !t.esDia && t.rango !== 'DIA_COMPLETO');
 
   if (!turnosReales.length) {
     c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios.</p></div>`;
     return;
   }
 
-  const oferta2 = turnosReales; // alias para el resto del código
+  c.innerHTML = '';
+  const oferta2 = turnosReales;
 
   // Agrupar por fecha
   const porFecha = {};
