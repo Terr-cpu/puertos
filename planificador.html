@@ -869,28 +869,56 @@ async function loadAlertas(force) {
       data.alertas.forEach((a,i) => {
         const grave = a.gravedad === 'critica';
         const el = document.createElement('div');
-        el.className = `al-item ${grave ? 'grave' : 'aviso'}`;
-        el.style.animationDelay = (i*.05)+'s';
+        el.style = `background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);margin-bottom:.75rem;overflow:hidden;border:1px solid var(--sep);animation:fadeUp .3s ease both;animation-delay:${i*.05}s`;
 
-        const turnosHTML = a.turnosAfectados?.length
-          ? `<div style="display:flex;flex-wrap:wrap;gap:.28rem;margin-top:.4rem">
-              ${a.turnosAfectados.map(t=>`<span style="font-size:.65rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:rgba(0,0,0,.08)">${t}</span>`).join('')}
-             </div>`
-          : '';
+        // Barra de color superior
+        const accentColor = grave ? 'linear-gradient(90deg,var(--red),#ff7061)' : 'linear-gradient(90deg,var(--amber),#ffcc00)';
 
-        const portadoresHTML = a.portadores?.length
-          ? `<div style="font-size:.72rem;margin-top:.35rem;color:${grave?'#7a2020':'#7a5c00'}">
-              🔑 Disponible: <strong>${a.portadores.map(p=>p.nombre+' ('+p.horario+')').join(', ')}</strong>
-             </div>`
-          : `<div style="font-size:.72rem;margin-top:.35rem;font-weight:600;color:${grave?'#c0392b':'#7a4500'}">🔑 Ningún portador de llave disponible</div>`;
+        // Turnos afectados con hora
+        const turnosHTML = (a.turnosAfectados||[]).length
+          ? (a.turnosAfectados||[]).map(t => {
+              const h = parseInt(t); const tard = h>=14;
+              return `<span style="font-size:.68rem;padding:.15rem .5rem;border-radius:5px;font-weight:700;background:${tard?'var(--amber-soft)':'var(--blue-soft)'};color:${tard?'var(--amber)':'var(--blue)'}">${t}</span>`;
+            }).join('')
+          : `<span style="font-size:.72rem;color:var(--label3)">No hay turnos calculados para este día</span>`;
+
+        // Portadores con horario
+        const portadoresHTML = (a.portadores||[]).length
+          ? (a.portadores||[]).map(p =>
+              `<div style="display:flex;align-items:center;gap:.5rem;background:var(--gold-soft);border:1px solid rgba(201,168,76,.3);border-radius:var(--r-sm);padding:.35rem .65rem">
+                <span style="font-size:.8rem">🔑</span>
+                <div>
+                  <div style="font-size:.78rem;font-weight:600;color:var(--navy)">${p.nombre}</div>
+                  <div style="font-size:.65rem;color:var(--label3)">Disponible ${p.horario}</div>
+                </div>
+              </div>`
+            ).join('')
+          : `<div style="font-size:.78rem;color:var(--red);font-weight:600;padding:.35rem 0">⚠️ Ningún portador de llave disponible este día</div>`;
 
         el.innerHTML = `
-          <div class="ali">${grave?'🔴':'🟡'}</div>
-          <div style="flex:1">
-            <div class="al-fecha">📅 ${a.fecha} — ${a.dia} (Semana ${a.semana})</div>
-            <div class="al-msg" style="font-weight:600">${a.mensaje}</div>
-            ${portadoresHTML}
-            ${a.turnosAfectados?.length ? '<div style="font-size:.67rem;color:var(--label3);margin-top:.3rem">Turnos calculados para este día:</div>'+turnosHTML : ''}
+          <div style="height:4px;background:${accentColor}"></div>
+          <div style="padding:.9rem 1.1rem">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.65rem">
+              <div>
+                <div style="font-size:.95rem;font-weight:800;color:var(--label1)">📅 ${a.dia} ${a.fecha}</div>
+                <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">Semana ${a.semana}</div>
+              </div>
+              <span style="font-size:.65rem;font-weight:700;padding:.2rem .6rem;border-radius:20px;white-space:nowrap;background:${grave?'var(--red-soft)':'var(--amber-soft)'};color:${grave?'var(--red)':'var(--amber)'}">${grave?'🔴 CRÍTICO':'🟡 RIESGO'}</span>
+            </div>
+
+            <div style="background:var(--surface2);border-radius:var(--r-md);padding:.65rem .85rem;margin-bottom:.65rem">
+              <div style="font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--label3);margin-bottom:.45rem">Portador${(a.portadores||[]).length!==1?'es':''} de llave disponible${(a.portadores||[]).length!==1?'s':''}</div>
+              <div style="display:flex;flex-direction:column;gap:.35rem">${portadoresHTML}</div>
+            </div>
+
+            <div style="margin-bottom:.65rem">
+              <div style="font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--label3);margin-bottom:.4rem">Turnos de ese día que necesitan llave</div>
+              <div style="display:flex;flex-wrap:wrap;gap:.3rem">${turnosHTML}</div>
+            </div>
+
+            <div style="background:${grave?'var(--red-soft)':'var(--amber-soft)'};border-radius:var(--r-sm);padding:.5rem .75rem;font-size:.75rem;color:${grave?'var(--red)':'var(--amber)'};font-weight:600">
+              💡 ${a.accion||'Revisa la disponibilidad de los portadores de llave para este día'}
+            </div>
           </div>`;
         c.appendChild(el);
       });
@@ -1128,1040 +1156,355 @@ function renderDispoGrid(sem) {
 }
 
 // ══════════════════════════════════════
-//  BAJAS / SUSTITUCIONES — v6 rediseño
-//  Flujo: Panel principal → card por turno → candidatos
-//  inline → asignación con feedback visual inmediato
+//  BAJAS / SUSTITUCIONES — v7
+//  Panel unificado: historial de actividad + turnos disponibles
+//  Una sola pantalla muestra todo el estado real
 // ══════════════════════════════════════
 async function loadBajas(force) {
   if (window._bOk && !force) return;
   const c = document.getElementById('tab-bajas');
-  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando bajas y sustituciones…</p></div>`;
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
   try {
-    const [bajasData, histData] = await Promise.all([
+    const [bajasData, ofertaData] = await Promise.all([
       apiGet({action:'getBajas'}),
-      apiGet({action:'getHistorial'}),
+      apiGet({action:'getOfertaTurnos'}),
     ]);
-
-    // Construir mapa de equipos confirmados por turno
-    window._histPorTurno = {};
-    (histData||[]).forEach(r => {
-      const k = `${r.semana}|${r.dia}|${r.rango}`;
-      if (!window._histPorTurno[k]) window._histPorTurno[k] = [];
-      window._histPorTurno[k].push(r.nombre);
-    });
-
-    window._bajasData = bajasData;
+    window._bajasData  = bajasData;
+    window._ofertaBajas = ofertaData.turnos || [];
     c.innerHTML = '';
-
-    // ── ESTADO VACÍO
-    if (!bajasData.turnos?.length) {
-      c.innerHTML = `
-        <div style="text-align:center;padding:3rem 1rem">
-          <div style="font-size:3rem;margin-bottom:1rem;opacity:.3">🏥</div>
-          <h4 style="font-size:.95rem;font-weight:600;color:var(--label2);margin-bottom:.4rem">Sin bajas registradas</h4>
-          <p style="font-size:.82rem;color:var(--label3);margin-bottom:1.5rem">Cuando un voluntario notifique que no puede asistir,<br>regístralo aquí para buscar sustituto.</p>
-          <button class="btn btn-red" onclick="abrirNuevaBaja()">+ Registrar primera baja</button>
-        </div>`;
-      window._bOk = true;
-      return;
-    }
-
-    const pendientes = bajasData.turnos.filter(t => !t.cubierto);
-    const cubiertos  = bajasData.turnos.filter(t => t.cubierto);
-
-    // ── STATS
-    const sr = document.createElement('div'); sr.className = 'stats-row';
-    sr.innerHTML = `
-      <div class="sbox"><div class="sv">${bajasData.turnos.length}</div><div class="sl">Turnos afectados</div></div>
-      <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Pendientes</div></div>
-      <div class="sbox" style="border-left:3px solid var(--green)"><div class="sv" style="color:var(--green)">${cubiertos.length}</div><div class="sl">Cubiertos</div></div>
-      <div class="sbox"><div class="sv">${bajasData.bajas?.length||0}</div><div class="sl">Bajas totales</div></div>`;
-    c.appendChild(sr);
-
-    // ── ACCIÓN REGISTRAR
-    const topBar = document.createElement('div');
-    topBar.style = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.5rem';
-    topBar.innerHTML = `
-      <p style="font-size:.8rem;color:var(--label3)">Gestiona las bajas y asigna sustitutos directamente desde aquí.</p>
-      <button class="btn btn-red btn-sm" onclick="abrirNuevaBaja()">🏥 + Registrar baja</button>`;
-    c.appendChild(topBar);
-
-    // ── PENDIENTES primero (urgentes)
-    if (pendientes.length) {
-      c.insertAdjacentHTML('beforeend',`
-        <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.65rem">
-          <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red)">⚠️ Pendientes de cubrir</span>
-          <span style="background:var(--red-soft);color:var(--red);font-size:.63rem;padding:.1rem .4rem;border-radius:10px;font-weight:700">${pendientes.length}</span>
-        </div>`);
-      pendientes.forEach((t, i) => {
-        const card = buildBajaCard(t, `pend-${i}`, false);
-        c.appendChild(card);
-        // Cargar candidatos automáticamente para los pendientes
-        setTimeout(() => cargarCandidatosInline(`pend-${i}`, t.semana, t.dia, t.rango), i * 120);
-      });
-    }
-
-    // ── CUBIERTOS al final (colapsados)
-    if (cubiertos.length) {
-      const secCub = document.createElement('div');
-      secCub.style = 'margin-top:1.5rem';
-      secCub.innerHTML = `
-        <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.5rem" onclick="toggleD('sec-cub',this)">
-          <span style="font-weight:700;font-size:.72rem;color:var(--green)">✅ Cubiertos (${cubiertos.length})</span>
-          <span class="darrow">▼</span>
-        </button>
-        <div class="dbody" id="sec-cub" style="flex-direction:column;gap:.5rem">
-          ${cubiertos.map((t,i) => buildBajaCard(t, `cub-${i}`, true).outerHTML).join('')}
-        </div>`;
-      c.appendChild(secCub);
-    }
-
+    renderBajasPanel(c);
     window._bOk = true;
   } catch(e) {
     c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
   }
 }
 
-// ── Construye la card de una baja
-function buildBajaCard(t, uid, cubierto) {
+function renderBajasPanel(c) {
+  const data   = window._bajasData  || {};
+  const oferta = window._ofertaBajas || [];
+  const turnos = data.turnos || [];
+
+  // ── STATS ─────────────────────────────────────────────────
+  const pend = turnos.filter(t => !t.cubierto).length;
+  const cub  = turnos.filter(t => t.cubierto).length;
+  const sr   = document.createElement('div'); sr.className = 'stats-row';
+  sr.innerHTML = `
+    <div class="sbox"><div class="sv">${data.totalBajas||0}</div><div class="sl">Bajas registradas</div></div>
+    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pend}</div><div class="sl">Pendientes</div></div>
+    <div class="sbox" style="border-left:3px solid var(--green-dark)"><div class="sv" style="color:var(--green-dark)">${cub}</div><div class="sl">Resueltos</div></div>
+    <div class="sbox"><div class="sv">${data.totalAltas||0}</div><div class="sl">Altas / refuerzos</div></div>`;
+  c.appendChild(sr);
+
+  // ── BOTÓN REGISTRAR BAJA ───────────────────────────────────
+  const addBar = document.createElement('div');
+  addBar.style = 'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:1.25rem';
+  addBar.innerHTML = `
+    <p style="font-size:.82rem;color:var(--label3)">Registra bajas, consulta el historial de cambios y gestiona los turnos disponibles.</p>
+    <button class="btn btn-red btn-sm" onclick="abrirNuevaBaja()">🏥 + Registrar baja</button>`;
+  c.appendChild(addBar);
+
+  // ── TABS INTERNOS ─────────────────────────────────────────
+  const tabsBar = document.createElement('div');
+  tabsBar.style = 'display:flex;gap:.35rem;margin-bottom:1rem;background:var(--surface2);border-radius:var(--r-lg);padding:.4rem';
+  tabsBar.innerHTML = `
+    <button id="btab-actividad" onclick="setBajaTab('actividad')"
+      style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;transition:all .18s">
+      📋 Actividad reciente
+    </button>
+    <button id="btab-turnos" onclick="setBajaTab('turnos')"
+      style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:var(--label3);transition:all .18s">
+      ✋ Turnos disponibles
+    </button>`;
+  c.appendChild(tabsBar);
+
+  // Contenedor de contenido
+  const content = document.createElement('div'); content.id = 'bajas-content';
+  c.appendChild(content);
+  window._bajaTab = 'actividad';
+  renderBajaTab(content);
+}
+
+function setBajaTab(tab) {
+  window._bajaTab = tab;
+  ['actividad','turnos'].forEach(t => {
+    const btn = document.getElementById(`btab-${t}`);
+    if (!btn) return;
+    btn.style.background = t===tab ? 'var(--navy)' : 'transparent';
+    btn.style.color      = t===tab ? '#fff' : 'var(--label3)';
+  });
+  renderBajaTab(document.getElementById('bajas-content'));
+}
+
+function renderBajaTab(c) {
+  c.innerHTML = '';
+  if (window._bajaTab === 'actividad') renderActividadBajas(c);
+  else renderTurnosDisponiblesEnBajas(c);
+}
+
+// ── TAB 1: ACTIVIDAD (historial de movimientos) ────────────
+function renderActividadBajas(c) {
+  const turnos = (window._bajasData?.turnos || []);
+
+  if (!turnos.length) {
+    c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Sin actividad registrada</h4><p>Aquí aparecerá el historial de bajas y altas de los voluntarios.</p></div>`;
+    return;
+  }
+
+  // Separar: pendientes primero, resueltos después
+  const pendientes = turnos.filter(t => !t.cubierto);
+  const resueltos  = turnos.filter(t => t.cubierto);
+
+  if (pendientes.length) {
+    c.insertAdjacentHTML('beforeend', `
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--red);margin-bottom:.6rem">⚠️ Pendientes de resolver (${pendientes.length})</div>`);
+    pendientes.forEach((t,i) => c.appendChild(buildTurnoActividad(t, i, false)));
+  }
+
+  if (resueltos.length) {
+    // Colapsable para no contaminar la vista
+    const secRes = document.createElement('div');
+    secRes.style = 'margin-top:1.25rem';
+    secRes.innerHTML = `
+      <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem;font-weight:700;font-size:.72rem;color:var(--green-dark)" onclick="toggleD('sec-res',this)">
+        <span>✅ Resueltos — sin bajas pendientes (${resueltos.length})</span>
+        <span class="darrow">▼</span>
+      </button>
+      <div class="dbody" id="sec-res" style="flex-direction:column;gap:.45rem">
+        ${resueltos.map((t,i) => buildTurnoActividad(t, i+1000, true).outerHTML).join('')}
+      </div>`;
+    c.appendChild(secRes);
+  }
+}
+
+function buildTurnoActividad(t, idx, resuelto) {
   const tarde = parseInt((t.rango||'').split(':')[0]) >= 14;
-  const turnoKey = `${t.semana}|${t.dia}|${t.rango}`;
-  const equipoOriginal = window._histPorTurno?.[turnoKey] || [];
-  const activos = equipoOriginal.filter(n => !t.bajas.includes(n.toUpperCase()) && !t.bajas.map(b=>b.toUpperCase()).includes(n.toUpperCase()));
+  const card  = document.createElement('div');
+  card.style  = `background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);margin-bottom:.65rem;overflow:hidden;border:1px solid ${resuelto?'#b0dcc0':'#f5b8b5'};animation:fadeUp .3s ease both;animation-delay:${idx*.05}s`;
 
-  const card = document.createElement('div');
-  card.className = 'baja-card ' + (cubierto ? 'cubierto' : 'pendiente');
-  card.id = `baja-card-${uid}`;
+  // Cabecera del turno
+  const headerColor = resuelto ? 'var(--green-dark)' : 'var(--red)';
+  const headerBg    = resuelto ? 'linear-gradient(90deg,var(--green-dark),#34c759)' : 'linear-gradient(90deg,var(--red),#ff7061)';
 
-  // ── Chips del equipo con estado visual
-  const equipoHTML = (() => {
-    if (!equipoOriginal.length) return `<span style="font-size:.75rem;color:var(--label4);font-style:italic">Turno no confirmado en historial</span>`;
-    return equipoOriginal.map(nom => {
-      const esBaja = t.bajas.map(b=>b.toUpperCase()).includes(nom.toUpperCase());
-      const esRefuerzo = (t.refuerzos||[]).map(r=>r.toUpperCase()).includes(nom.toUpperCase());
-      if (esBaja) return `
-        <div class="baja-vol-slot slot-baja">
-          <span class="slot-icon">🏥</span>
-          <div>
-            <div class="slot-name">${nom}</div>
-            <div class="slot-sub">Baja registrada</div>
-          </div>
-        </div>`;
-      return `
-        <div class="baja-vol-slot slot-activo">
-          <span class="slot-icon">✓</span>
-          <div>
-            <div class="slot-name">${nom}</div>
-            <div class="slot-sub">Confirmado</div>
-          </div>
-        </div>`;
-    }).join('') + (t.refuerzos||[]).map(nom => `
-      <div class="baja-vol-slot slot-refuerzo">
-        <span class="slot-icon">🔄</span>
-        <div>
-          <div class="slot-name">${nom}</div>
-          <div class="slot-sub">Sustituto asignado</div>
+  // Estado de cada persona en el equipo
+  const estadosHTML = Object.values(t.estados||{}).map(e => {
+    let bg, color, icon;
+    if (e.estado === 'original') { bg='var(--green-soft)'; color=`var(--green-dark)`; icon='✓'; }
+    else if (e.estado === 'baja') { bg='var(--red-soft)'; color='var(--red)'; icon='🏥'; }
+    else { bg='var(--blue-soft)'; color='var(--blue)'; icon='🔄'; }
+    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:var(--r-sm);background:${bg};border:1px solid ${bg}">
+      <span style="font-size:.8rem">${icon}</span>
+      <div style="flex:1">
+        <div style="font-size:.78rem;font-weight:600;color:var(--label1)">${e.nombre}</div>
+        <div style="font-size:.63rem;color:${color};font-weight:600;margin-top:.05rem">
+          ${e.estado==='original'?'Confirmado':e.estado==='baja'?'Baja pendiente':'Alta / refuerzo'}
         </div>
-      </div>`).join('');
-  })();
+      </div>
+    </div>`;
+  }).join('');
+
+  // Historial de actividad del turno cronológico
+  const actividadHTML = (t.actividad||[]).map(ev => {
+    const esBaja = ev.tipo === 'baja';
+    return `<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid var(--sep)">
+      <div style="width:8px;height:8px;border-radius:50%;background:${esBaja?'var(--red)':'var(--green-dark)'};flex-shrink:0"></div>
+      <div style="flex:1;font-size:.75rem;color:var(--label2)">
+        <strong>${ev.voluntario}</strong>
+        ${esBaja ? 'registró una <strong style="color:var(--red)">baja</strong>' : 'se volvió a <strong style="color:var(--green-dark)">apuntar</strong>'}
+      </div>
+      <div style="font-size:.65rem;color:var(--label3)">${ev.fechaRegistro||''}</div>
+    </div>`;
+  }).join('');
 
   card.innerHTML = `
-    <div class="baja-accent ${cubierto ? 'ba-ok' : 'ba-pend'}"></div>
-    <div class="baja-head">
-      <div style="flex:1">
-        <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">
-          <span class="baja-titulo">🕒 ${t.rango}</span>
-          <span style="font-size:.63rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
+    <div style="height:3px;background:${headerBg}"></div>
+    <div style="padding:.85rem 1rem .4rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+      <div>
+        <div style="font-size:1rem;font-weight:800;color:var(--label1);letter-spacing:-.02em">🕒 ${t.rango}</div>
+        <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">
+          📅 ${t.fecha} · ${t.dia} · Semana ${t.semana}
+          <span style="margin-left:.4rem;font-size:.63rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
         </div>
-        <div class="baja-sub">📅 ${t.fecha} · ${t.dia} · Semana ${t.semana}</div>
       </div>
-      <span class="baja-badge ${cubierto ? 'bb-ok' : 'bb-pend'}">
-        ${cubierto ? '✓ Cubierto' : '⚠️ Pendiente'}
+      <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;background:${resuelto?'var(--green-soft)':'var(--red-soft)'};color:${resuelto?'var(--green-dark)':'var(--red)'}">
+        ${resuelto ? '✓ Resuelto' : `⚠️ ${t.bajasActivas?.length||0} baja${(t.bajasActivas?.length||0)!==1?'s':''} pendiente${(t.bajasActivas?.length||0)!==1?'s':''}`}
       </span>
     </div>
 
-    <div style="padding:0 1rem .9rem">
-      <div style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.5rem">Estado del equipo</div>
-      <div class="baja-slots-grid">${equipoHTML}</div>
+    <div style="padding:0 1rem .9rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem">
+      <div>
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.4rem">Estado del equipo</div>
+        <div style="display:flex;flex-direction:column;gap:.28rem">${estadosHTML||'<span style="font-size:.75rem;color:var(--label4)">Sin datos del historial</span>'}</div>
+      </div>
+      <div>
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.4rem">Historial de cambios</div>
+        <div>${actividadHTML||'<span style="font-size:.75rem;color:var(--label4)">Sin actividad</span>'}</div>
+      </div>
     </div>
 
-    ${!cubierto ? `
-    <div class="baja-cands" id="cands-${uid}">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 1rem .4rem;border-top:1px solid var(--sep)">
-        <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)">Candidatos disponibles</span>
-        <button class="btn btn-ghost btn-sm" style="font-size:.68rem" onclick="cargarCandidatosInline('${uid}','${t.semana}','${t.dia}','${t.rango}')">↻ Actualizar</button>
-      </div>
-      <div id="cands-list-${uid}" style="padding:0 1rem .9rem">
-        <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem 0;color:var(--label3);font-size:.78rem">
-          <div class="spinner" style="width:16px;height:16px;border-width:2px;flex-shrink:0"></div>
-          Buscando candidatos…
-        </div>
+    ${!resuelto ? `
+    <div style="padding:0 1rem .9rem;border-top:1px solid var(--sep);padding-top:.75rem">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.5rem">Candidatos para cubrir</div>
+      <div id="cands-${idx}" style="display:flex;flex-direction:column;gap:.28rem">
+        <div style="display:flex;align-items:center;gap:.5rem;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Buscando…</div>
       </div>
     </div>` : ''}`;
 
+  if (!resuelto) {
+    setTimeout(() => cargarCandidatosInline(idx, t.semana, t.dia, t.rango), idx * 100);
+  }
   return card;
 }
 
-// ── Carga candidatos inline dentro de la card
-async function cargarCandidatosInline(uid, semana, dia, rango) {
-  const el = document.getElementById(`cands-list-${uid}`);
-  if (!el) return;
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;padding:.3rem 0;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div> Buscando…</div>`;
-  try {
-    const data = await apiGet({action:'quienCubre', semana, dia, rango});
-    const cands = data.candidatos || [];
+// ── TAB 2: TURNOS DISPONIBLES (dentro del panel bajas) ─────
+function renderTurnosDisponiblesEnBajas(c) {
+  const oferta = window._ofertaBajas || [];
 
-    if (!cands.length) {
-      el.innerHTML = `
-        <div style="text-align:center;padding:.75rem 0;color:var(--label3);font-size:.8rem">
-          😔 Sin candidatos disponibles para este turno.<br>
-          <span style="font-size:.72rem">Todos los voluntarios con ese horario están bloqueados por descanso.</span>
-        </div>`;
-      return;
-    }
-
-    const disponibles = cands.filter(c => c.estado !== 'bloqueado');
-    const bloqueados  = cands.filter(c => c.estado === 'bloqueado');
-
-    let html = '';
-
-    if (disponibles.length) {
-      disponibles.forEach(c => {
-        const color = c.estado === 'disponible' ? 'var(--green)' : 'var(--amber)';
-        const label = c.estado === 'disponible' ? 'Disponible' : 'Descanso reducido';
-        html += `
-          <div class="cand-row-v6">
-            <div class="cand-dot-v6" style="background:${color}"></div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:.82rem;font-weight:600;color:var(--label1)">${c.llave?'🔑 ':''}${c.nombre}</div>
-              <div style="font-size:.67rem;color:var(--label3);margin-top:.05rem">
-                🕐 ${c.horario} · ${c.dias>=99?'Voluntario nuevo':c.dias+' días descanso'} · ${c.dispo}d/mes
-              </div>
-              <div style="font-size:.63rem;margin-top:.1rem;color:${color};font-weight:600">${label}</div>
-            </div>
-            <button class="btn-asignar" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${uid}',this)">
-              ✓ Asignar
-            </button>
-          </div>`;
-      });
-    }
-
-    if (bloqueados.length) {
-      html += `
-        <button class="dtoggle" style="font-size:.68rem;padding:.35rem .5rem;margin-top:.3rem" onclick="toggleD('blq-${uid}',this)">
-          <span>🔒 ${bloqueados.length} bloqueado${bloqueados.length!==1?'s':''} por descanso</span>
-          <span class="darrow" style="font-size:.6rem">▼</span>
-        </button>
-        <div class="dbody" id="blq-${uid}" style="flex-direction:column;gap:.25rem">
-          ${bloqueados.map(c=>`
-            <div class="cand-row-v6" style="opacity:.55">
-              <div class="cand-dot-v6" style="background:var(--label4)"></div>
-              <div style="flex:1">
-                <div style="font-size:.8rem;font-weight:600;color:var(--label2)">${c.nombre}</div>
-                <div style="font-size:.65rem;color:var(--label3)">🕐 ${c.horario} · Solo ${c.dias}d de descanso</div>
-              </div>
-            </div>`).join('')}
-        </div>`;
-    }
-
-    el.innerHTML = html || `<p style="font-size:.77rem;color:var(--label3);padding:.5rem 0">Sin candidatos.</p>`;
-  } catch(e) {
-    el.innerHTML = `<div style="color:var(--red);font-size:.77rem;padding:.4rem 0">⚠️ Error: ${e.message}</div>`;
+  if (!oferta.length) {
+    c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios en este momento.</p></div>`;
+    return;
   }
+
+  // Agrupar por fecha
+  const porFecha = {};
+  oferta.forEach(t => {
+    if (t.esDia || t.rango === 'DIA_COMPLETO') return; // solo turnos reales
+    const k = t.fecha+'|'+t.dia;
+    if (!porFecha[k]) porFecha[k] = [];
+    porFecha[k].push(t);
+  });
+
+  if (!Object.keys(porFecha).length) {
+    c.innerHTML = `<div class="empty"><span class="ei">✅</span><h4>Todos los turnos tienen equipo</h4></div>`;
+    return;
+  }
+
+  Object.keys(porFecha).sort().forEach((fk, gi) => {
+    const [fecha, dia] = fk.split('|');
+    const grupo = document.createElement('div');
+    grupo.style = `margin-bottom:1.4rem;animation:fadeUp .3s ease both;animation-delay:${gi*.05}s`;
+    grupo.innerHTML = `<div style="display:flex;align-items:center;gap:.65rem;padding-bottom:.5rem;margin-bottom:.65rem;border-bottom:2px solid var(--navy)"><span style="font-size:.92rem;font-weight:700;color:var(--navy)">📅 ${dia} · ${fecha}</span></div>`;
+
+    porFecha[fk].forEach(t => {
+      const tarde = parseInt((t.rango||'0').split(':')[0]) >= 14;
+      const pct = Math.min(100, Math.round((t.equipoActual/4)*100));
+      const pfColor = pct===0?'var(--red)':pct>=75?'var(--green-dark)':'var(--amber)';
+      const card = document.createElement('div');
+      card.className = 'tc';
+      card.style.marginBottom = '.5rem';
+      card.innerHTML = `
+        <div style="height:3px;background:${tarde?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+        <div style="padding:.75rem 1rem .35rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <div style="font-size:1rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
+            <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.78rem;font-weight:700;color:var(--label2)">${t.equipoActual}/4 <span style="font-weight:400;color:var(--label3)">voluntarios</span></div>
+            ${t.necesitan>0?`<div style="font-size:.68rem;color:var(--red);font-weight:600">Faltan ${t.necesitan}</div>`:''}
+          </div>
+        </div>
+        <div style="padding:0 1rem .6rem">
+          <div style="height:4px;background:var(--sep);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pfColor};border-radius:2px;transition:width .4s"></div>
+          </div>
+          ${!t.tieneLlave?`<div style="font-size:.7rem;color:var(--amber);font-weight:600;margin-top:.3rem">🔑 Necesita portador de llave</div>`:''}
+        </div>
+        <div style="padding:0 1rem .85rem">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.35rem">Voluntarios apuntados</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+            ${(t.equipoNombres||[]).map(n=>`<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('') || '<span style="font-size:.72rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>'}
+          </div>
+          ${t.necesitan>0?`<button class="btn btn-green btn-sm" style="margin-top:.55rem" onclick="abrirCubre('${t.semana}','${t.dia}','${t.rango}')">🔄 Ver quién puede cubrir</button>`:''}
+        </div>`;
+      grupo.appendChild(card);
+    });
+    c.appendChild(grupo);
+  });
 }
 
-// ── Asignar sustituto con feedback visual en la card
-async function asignarSustituto(semana, dia, rango, nombre, uid, btn) {
-  btn.disabled = true;
-  btn.textContent = '…';
-  const t = window._bajasData?.turnos?.find(t=>t.semana==semana&&t.dia==dia&&t.rango===rango);
-  try {
-    await apiPost({accion:'registrarRefuerzo', nombre, key:`${semana}|${dia}|${rango}`,
-      fecha:t?.fecha||'', semana, dia});
-    // Feedback inmediato en la card
-    const card = document.getElementById(`baja-card-${uid}`);
-    if (card) {
-      // Animación de éxito
-      card.style.transition = 'all .3s ease';
-      card.style.borderColor = 'var(--green)';
-      // Reemplazar el botón asignar por confirmación
-      const candsEl = document.getElementById(`cands-${uid}`);
-      if (candsEl) {
-        candsEl.innerHTML = `
-          <div style="display:flex;align-items:center;gap:.65rem;padding:.85rem 1rem;border-top:1px solid var(--sep);background:var(--green-soft)">
-            <span style="font-size:1.2rem">✅</span>
-            <div>
-              <div style="font-size:.82rem;font-weight:700;color:var(--green)">Sustituto asignado correctamente</div>
-              <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${nombre} cubrirá el turno ${rango}</div>
-            </div>
-          </div>`;
-      }
-    }
-    toast(`✓ ${nombre} asignado como sustituto`, 'ok');
-    // Refrescar datos tras 1.5s para que el usuario vea el feedback
-    setTimeout(() => { window._bOk=false; loadBajas(true); }, 2500);
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = '✓ Asignar';
-    toast('Error: ' + e.message, 'err');
-  }
-}
-
-// ── Formulario nueva baja — carga turnos del historial para seleccionar
+// ── NUEVA BAJA — formulario simplificado ──────────────────
 async function abrirNuevaBaja() {
   document.getElementById('mvol-titulo').textContent = '🏥 Registrar baja';
   document.getElementById('mvol-body').innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Cargando turnos confirmados…</p></div>`;
   openModal('mvol');
   try {
     const hist = await apiGet({action:'getHistorial'});
-    // Agrupar por "turno único" para selección
     const mapa = {};
     (hist||[]).forEach(r => {
-      const k = `${r.fecha}|${r.rango}`;
-      if (!mapa[k]) mapa[k] = { semana:r.semana, dia:r.dia, fecha:r.fecha, rango:r.rango, vols:[] };
+      const k = r.fecha+'|'+r.rango;
+      if (!mapa[k]) mapa[k] = {semana:r.semana,dia:r.dia,fecha:r.fecha,rango:r.rango,vols:[]};
       mapa[k].vols.push(r.nombre);
     });
     const turnos = Object.values(mapa).sort((a,b)=>a.fecha<b.fecha?-1:1);
-    const voluntarios = [...new Set((hist||[]).map(r=>r.nombre))].sort();
 
     document.getElementById('mvol-body').innerHTML = `
-      <p style="font-size:.8rem;color:var(--label3);margin-bottom:1.1rem">Selecciona el turno y el voluntario que no puede asistir.</p>
-
+      <p style="font-size:.8rem;color:var(--label3);margin-bottom:1rem">Selecciona el turno y el voluntario que no puede asistir.</p>
       <div class="form-row full" style="margin-bottom:.85rem">
         <div class="fg">
           <label>Turno confirmado</label>
           <select class="fc" id="nb-turno" onchange="onNbTurnoChange()">
             <option value="">— Selecciona un turno —</option>
-            ${turnos.map((t,i)=>`<option value="${i}" data-sem="${t.semana}" data-dia="${t.dia}" data-rango="${t.rango}" data-fecha="${t.fecha}" data-vols='${JSON.stringify(t.vols)}'>
+            ${turnos.map((t,i)=>`<option value="${i}" data-sem="${t.semana}" data-dia="${t.dia}" data-rango="${t.rango}" data-fecha="${t.fecha}" data-vols='${JSON.stringify(t.vols).replace(/'/g,"&apos;")}'>
               📅 ${t.fecha} · ${t.dia} · 🕒 ${t.rango}
             </option>`).join('')}
           </select>
         </div>
       </div>
-
-      <div class="form-row full" style="margin-bottom:.85rem" id="nb-vol-wrap" style="display:none">
+      <div id="nb-vol-wrap" style="display:none" class="form-row full" style="margin-bottom:.85rem">
         <div class="fg">
-          <label>Voluntario que causa baja</label>
-          <select class="fc" id="nb-nombre">
-            <option value="">— Primero selecciona un turno —</option>
-          </select>
+          <label>Voluntario que da la baja</label>
+          <select class="fc" id="nb-nombre"><option value="">— Selecciona el voluntario —</option></select>
         </div>
       </div>
-
-      <div id="nb-turno-preview" style="margin-bottom:1rem"></div>
-
+      <div id="nb-preview" style="margin-bottom:1rem"></div>
       <div style="display:flex;gap:.5rem;justify-content:flex-end">
         <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
         <button class="btn btn-red" id="nb-submit" onclick="guardarNuevaBaja()">🏥 Registrar baja</button>
       </div>`;
-
   } catch(e) {
-    document.getElementById('mvol-body').innerHTML = `<p style="color:var(--red)">Error al cargar turnos: ${e.message}</p>`;
+    document.getElementById('mvol-body').innerHTML = `<p style="color:var(--red)">Error: ${e.message}</p>`;
   }
 }
 
 function onNbTurnoChange() {
   const sel = document.getElementById('nb-turno');
   const opt = sel.options[sel.selectedIndex];
-  const preview = document.getElementById('nb-turno-preview');
-  const volSel  = document.getElementById('nb-nombre');
-  if (!opt.value) { preview.innerHTML=''; volSel.innerHTML='<option value="">— Primero selecciona un turno —</option>'; return; }
+  const wrap = document.getElementById('nb-vol-wrap');
+  const volSel = document.getElementById('nb-nombre');
+  const preview = document.getElementById('nb-preview');
+  if (!opt?.value) { wrap.style.display='none'; preview.innerHTML=''; return; }
   let vols = [];
-  try { vols = JSON.parse(opt.dataset.vols||'[]'); } catch(e) {}
-  const tarde = parseInt((opt.dataset.rango||'').split(':')[0]) >= 14;
+  try { vols = JSON.parse(opt.dataset.vols?.replace(/&apos;/g,"'")||'[]'); } catch(e) {}
+  const tarde = parseInt((opt.dataset.rango||'0').split(':')[0]) >= 14;
   preview.innerHTML = `
-    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.75rem .9rem;border:1px solid var(--sep)">
-      <div style="font-size:.72rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.45rem">Equipo del turno</div>
+    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.7rem .9rem;border:1px solid var(--sep)">
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.4rem">Equipo del turno</div>
       <div style="display:flex;flex-wrap:wrap;gap:.3rem">
-        ${vols.map(n=>`<span style="background:var(--surface);border:1px solid var(--sep);border-radius:20px;padding:.22rem .6rem;font-size:.75rem;font-weight:500">${n}</span>`).join('')}
+        ${vols.map(n=>`<span style="background:var(--green-soft);border:1px solid #b0dcc0;border-radius:20px;padding:.22rem .6rem;font-size:.75rem;font-weight:500;color:var(--green-dark)">✓ ${n}</span>`).join('')}
       </div>
     </div>`;
-  volSel.innerHTML = `<option value="">— Selecciona quién da la baja —</option>` +
-    vols.map(n=>`<option value="${n}">${n}</option>`).join('');
+  wrap.style.display = 'block';
+  volSel.innerHTML = `<option value="">— Selecciona el voluntario —</option>` + vols.map(n=>`<option value="${n}">${n}</option>`).join('');
 }
 
 async function guardarNuevaBaja() {
   const turnoSel = document.getElementById('nb-turno');
-  const opt      = turnoSel?.options[turnoSel.selectedIndex];
-  const nombre   = document.getElementById('nb-nombre')?.value;
+  const opt = turnoSel?.options[turnoSel.selectedIndex];
+  const nombre = document.getElementById('nb-nombre')?.value;
   if (!opt?.value || !nombre) { toast('Selecciona el turno y el voluntario','err'); return; }
-  const { semana:sem, dia, rango, fecha } = opt.dataset;
+  const {semana:sem, dia, rango, fecha} = opt.dataset;
   const btn = document.getElementById('nb-submit');
-  btn.disabled = true; btn.textContent = 'Registrando…';
+  btn.disabled=true; btn.textContent='Registrando…';
   try {
-    await apiPost({accion:'registrarBaja', nombre,
-      turnos:[{semana:sem, dia, rango, fecha}]});
+    await apiPost({accion:'registrarBaja', nombre, turnos:[{semana:sem,dia,rango,fecha}]});
     closeModal('mvol');
-    window._bOk = false;
-    toast(`Baja de ${nombre} registrada. Buscando sustituto…`, 'ok');
+    window._bOk=false;
+    toast(`Baja de ${nombre} registrada`,'ok');
     loadBajas(true);
   } catch(e) {
     btn.disabled=false; btn.textContent='🏥 Registrar baja';
     toast('Error: '+e.message,'err');
   }
-}
-
-// ══════════════════════════════════════
-//  OFERTA DE TURNOS DISPONIBLES
-//  Panel para que el coordinador vea qué turnos
-//  necesitan voluntarios y pueda gestionar refuerzos
-// ══════════════════════════════════════
-async function loadOferta(force) {
-  if (window._oOk && !force) return;
-  const c = document.getElementById('tab-oferta');
-  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div>`;
-  try {
-    const [ofertaData, vols] = await Promise.all([
-      apiGet({action:'getOfertaTurnos'}),
-      apiGet({action:'getVoluntarios'}),
-    ]);
-    if (ofertaData.error) throw new Error(ofertaData.error);
-    window._ofertaData   = ofertaData.turnos || [];
-    window._ofertaVols   = Array.isArray(vols) ? vols : [];
-    window._ofertaVolSel = '';
-    renderOfertaPanel(c);
-    window._oOk = true;
-  } catch(e) {
-    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
-  }
-}
-
-function renderOfertaPanel(c) {
-  const turnos   = window._ofertaData   || [];
-  const vols     = window._ofertaVols   || [];
-  const volSel   = window._ofertaVolSel || '';
-  const nRef     = volSel.toUpperCase().trim();
-
-  c.innerHTML = '';
-
-  // ── STATS ──────────────────────────────────────
-  const pendientes = turnos.filter(t => !t.esDia && t.necesitan > 0);
-  const sinLlave   = turnos.filter(t => !t.tieneLlave);
-  const dias       = turnos.filter(t => t.esDia);
-  const sr = document.createElement('div'); sr.className = 'stats-row';
-  sr.innerHTML = `
-    <div class="sbox"><div class="sv">${turnos.length}</div><div class="sl">Con plazas</div></div>
-    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Faltan vols.</div></div>
-    <div class="sbox" style="border-left:3px solid var(--amber)"><div class="sv" style="color:var(--amber)">${sinLlave.length}</div><div class="sl">Sin llave</div></div>
-    <div class="sbox" style="border-left:3px solid var(--purple, #af52de)"><div class="sv" style="color:#af52de">${dias.length}</div><div class="sl">Días sin cuadrt.</div></div>`;
-  c.appendChild(sr);
-
-  // ── SELECTOR VOLUNTARIO ────────────────────────
-  const selWrap = document.createElement('div');
-  selWrap.className = 'card';
-  selWrap.style.marginBottom = '1.25rem';
-  selWrap.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">
-      <span style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)">Voluntario (para apuntarse)</span>
-      <span style="font-size:.72rem;color:var(--label3)">${turnos.length} turno${turnos.length!==1?'s':''} disponibles</span>
-    </div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-      <div class="of-ac-wrap" style="flex:1;min-width:180px;position:relative">
-        <input type="text" class="fc" id="of-inp-vol"
-          placeholder="Busca un voluntario…"
-          value="${volSel}"
-          autocomplete="off"
-          oninput="ofSugerir(this)"
-          style="background:var(--surface2)"
-          onkeydown="ofNavSug(event)">
-        <div id="of-sug" style="position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-md);max-height:200px;overflow-y:auto;z-index:300;box-shadow:var(--shadow-lg);display:none"></div>
-      </div>
-      ${volSel ? `<button class="btn btn-ghost btn-sm" onclick="ofLimpiarVol()">✕ Limpiar</button>` : ''}
-    </div>
-    ${volSel ? `<div style="margin-top:.6rem;display:flex;align-items:center;gap:.5rem;font-size:.78rem;color:var(--green-dark);font-weight:600"><span>✓</span> Mostrando disponibilidad para <strong>${volSel}</strong></div>` : ''}`;
-  c.appendChild(selWrap);
-
-  // ── LISTA POR FECHA ────────────────────────────
-  if (!turnos.length) {
-    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios.</p></div>`);
-    return;
-  }
-
-  // Agrupar por fecha
-  const porFecha = {};
-  turnos.forEach(t => {
-    const k = t.fecha + '|' + t.dia;
-    if (!porFecha[k]) porFecha[k] = [];
-    porFecha[k].push(t);
-  });
-
-  Object.keys(porFecha).sort().forEach((fk, gi) => {
-    const [fecha, dia] = fk.split('|');
-    const grupo = document.createElement('div');
-    grupo.style.marginBottom = '1.5rem';
-    grupo.style.animation = 'fadeUp .3s ease both';
-    grupo.style.animationDelay = (gi * .05) + 's';
-    grupo.innerHTML = `
-      <div style="display:flex;align-items:center;gap:.65rem;padding-bottom:.5rem;margin-bottom:.65rem;border-bottom:2px solid var(--navy)">
-        <span style="font-size:.95rem;font-weight:700;color:var(--navy)">📅 ${dia} · ${fecha}</span>
-      </div>`;
-    porFecha[fk].forEach(t => grupo.appendChild(buildOfertaCard(t, nRef)));
-    c.appendChild(grupo);
-  });
-}
-
-function buildOfertaCard(t, nRef) {
-  const esDia  = t.esDia || t.rango === 'DIA_COMPLETO';
-  const h      = !esDia && t.rango ? parseInt(t.rango) : 0;
-  const tarde  = !esDia && h >= 14;
-  const pct    = Math.min(100, Math.round((t.equipoActual / 4) * 100));
-
-  // Colores y tipo
-  const accentColor = esDia ? 'linear-gradient(90deg,#af52de,#c084fc)'
-    : tarde ? 'linear-gradient(90deg,var(--amber),#ffcc00)'
-    : 'linear-gradient(90deg,var(--blue),#34aadc)';
-  const typeTxt   = esDia ? 'DÍA SIN CUADRANTE' : tarde ? 'TARDE' : 'MAÑANA';
-  const typeStyle = esDia
-    ? 'background:#f5eeff;color:#af52de'
-    : tarde ? 'background:var(--amber-soft);color:var(--amber)'
-    : 'background:var(--blue-soft);color:var(--blue)';
-  const pfColor = esDia ? '#af52de'
-    : pct === 0 ? 'var(--red)' : pct >= 75 ? 'var(--green-dark)' : 'var(--amber)';
-
-  const rangoTxt = esDia
-    ? `<div style="font-size:1.05rem;font-weight:800;color:#af52de;letter-spacing:-.02em">📅 Día sin cuadrante</div>`
-    : `<div style="font-size:1.05rem;font-weight:800;color:var(--label1);letter-spacing:-.02em">🕒 ${t.rango}</div>`;
-
-  const cntTxt = esDia
-    ? `Interesados: <strong>${t.equipoActual}</strong> · Mín. necesario: <strong>3</strong>`
-    : `Equipo: <strong>${t.equipoActual} / 4</strong> · Faltan: <strong>${t.necesitan}</strong>`;
-
-  const alertaLlave = !t.tieneLlave
-    ? `<div style="margin:0 1rem .55rem;background:#fffbf0;border:1px solid #ffe082;border-radius:var(--r-sm);padding:.45rem .75rem;font-size:.73rem;color:#7a5000;display:flex;align-items:center;gap:.35rem">🔑 ${esDia?'Necesita portador de llave.':'Este turno necesita portador de llave.'}</div>`
-    : '';
-
-  // Voluntarios ya apuntados
-  const yaApuntado = nRef && t.equipoNombres.some(n => n.toUpperCase() === nRef);
-  const equipoHTML = t.equipoNombres.length
-    ? t.equipoNombres.map(n => `<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('')
-    : `<span style="font-size:.73rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>`;
-
-  // Acciones
-  let accionHTML = '';
-  if (yaApuntado) {
-    accionHTML = `<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.55rem .8rem;font-size:.78rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`;
-  } else if (esDia) {
-    const franjas = t.franjasCalculadas || [];
-    if (franjas.length) {
-      accionHTML = `
-        <div style="font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);margin-bottom:.4rem">Elige tu franja horaria:</div>
-        <div style="display:flex;flex-wrap:wrap;gap:.35rem">
-          ${franjas.map(fr => {
-            const hf = parseInt(fr); const tf = hf >= 14;
-            return `<button style="background:${tf?'var(--amber-soft)':'var(--blue-soft)'};color:${tf?'var(--amber)':'var(--blue)'};border:1.5px solid ${tf?'#ffd59e':'#b3ceef'};border-radius:var(--r-sm);padding:.38rem .78rem;font-size:.76rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .16s" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform=''" onclick="ofApuntarFranja('${esc(t.key)}','${esc(t.fecha)}','${esc(fr)}')">🕒 ${fr}</button>`;
-          }).join('')}
-        </div>`;
-    } else {
-      accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme</button>`;
-    }
-  } else {
-    accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
-  }
-
-  const card = document.createElement('div');
-  card.className = 'tc'; // reusar estilos de turno card
-  card.style.marginBottom = '.6rem';
-  card.innerHTML = `
-    <div style="height:3px;background:${accentColor}"></div>
-    <div style="padding:.85rem 1rem .4rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
-      <div>
-        ${rangoTxt}
-        <span style="font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;margin-top:.28rem;display:inline-block;${typeStyle}">${typeTxt}</span>
-      </div>
-    </div>
-    <div style="padding:0 1rem .55rem">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.28rem">
-        <span style="font-size:.68rem;font-weight:600;color:var(--label3)">${cntTxt}</span>
-      </div>
-      <div style="height:5px;background:var(--sep);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${pfColor};border-radius:3px;transition:width .45s ease"></div>
-      </div>
-    </div>
-    ${alertaLlave}
-    <div style="padding:0 1rem .5rem">
-      <div style="font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--label3);margin-bottom:.38rem">Voluntarios apuntados (${t.equipoNombres.length})</div>
-      <div style="display:flex;flex-wrap:wrap;gap:.28rem">${equipoHTML}</div>
-    </div>
-    <div style="padding:0 1rem 1rem">${accionHTML}</div>`;
-  return card;
-}
-
-// ── AUTOCOMPLETE OFERTA ──────────────────────
-function ofSugerir(inp) {
-  const q    = inp.value.trim().toLowerCase();
-  const sg   = document.getElementById('of-sug');
-  if (q.length < 1) { sg.style.display='none'; sg.innerHTML=''; return; }
-  const vols = window._ofertaVols || [];
-  const matches = vols.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
-  if (!matches.length) { sg.style.display='none'; return; }
-  const reStr = q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-  const re = new RegExp('(' + reStr + ')', 'gi');
-  sg.innerHTML = matches.map(v => {
-    const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-    return `<div onclick="ofElegirVol('${esc(v)}')" style="padding:.6rem .9rem;font-size:.83rem;cursor:pointer;display:flex;align-items:center;gap:.5rem;transition:background .12s" onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
-      <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${ini}</div>
-      <span>${v.replace(re,'<mark style="background:transparent;color:var(--blue);font-weight:700">$1</mark>')}</span>
-    </div>`;
-  }).join('');
-  sg.style.display = 'block';
-}
-
-function ofNavSug(e) {
-  const sg = document.getElementById('of-sug');
-  const items = sg.querySelectorAll('div');
-  const cur = [...items].find(el => el.style.background.includes('blue'));
-  if (e.key === 'Escape') { sg.style.display='none'; return; }
-  if (e.key === 'Enter' && cur) { cur.click(); return; }
-}
-
-function ofElegirVol(nombre) {
-  window._ofertaVolSel = nombre;
-  document.getElementById('of-inp-vol').value = nombre;
-  document.getElementById('of-sug').style.display = 'none';
-  const c = document.getElementById('tab-oferta');
-  renderOfertaPanel(c);
-}
-
-function ofLimpiarVol() {
-  window._ofertaVolSel = '';
-  const c = document.getElementById('tab-oferta');
-  renderOfertaPanel(c);
-}
-
-document.addEventListener('click', e => {
-  if (!e.target.closest('.of-ac-wrap')) {
-    const sg = document.getElementById('of-sug');
-    if (sg) sg.style.display = 'none';
-  }
-});
-
-// ── APUNTARSE (con feedback optimista) ────────
-function ofNombreSeleccionado() {
-  // Primero intentar el voluntario seleccionado explícitamente
-  const n = window._ofertaVolSel || document.getElementById('of-inp-vol')?.value.trim();
-  if (!n || n.length < 2) {
-    toast('Busca y selecciona un voluntario de la lista primero', 'err');
-    document.getElementById('of-inp-vol')?.focus();
-    return null;
-  }
-  // Verificar que el nombre existe en la lista de voluntarios
-  const vols = window._ofertaVols || [];
-  const existe = vols.some(v => v.toLowerCase() === n.toLowerCase());
-  if (!existe) {
-    toast('Selecciona un nombre válido de la lista de voluntarios', 'err');
-    return null;
-  }
-  // Usar el nombre exacto de la lista (capitalización correcta)
-  return vols.find(v => v.toLowerCase() === n.toLowerCase()) || n;
-}
-
-async function ofApuntar(key, fecha) {
-  const nombre = ofNombreSeleccionado();
-  if (!nombre) return;
-  await ofEnviarRefuerzo({ accion:'registrarRefuerzo', nombre, key, fecha });
-}
-
-async function ofApuntarFranja(key, fecha, franja) {
-  const nombre = ofNombreSeleccionado();
-  if (!nombre) return;
-  await ofEnviarRefuerzo({ accion:'registrarRefuerzo', nombre, key, fecha, franja, esDia:true });
-}
-
-async function ofEnviarRefuerzo(data) {
-  // Validar que hay nombre real antes de enviar
-  if (!data.nombre || !data.nombre.trim()) {
-    toast('Selecciona un voluntario primero','err');
-    return;
-  }
-  toast('Apuntando…', 'ok');
-  // Feedback optimista: actualizar estado local
-  const nUp = (data.nombre||'').toUpperCase().trim();
-  (window._ofertaData||[]).forEach(t => {
-    if (t.key === data.key && !t.equipoNombres.some(n => n.toUpperCase() === nUp)) {
-      t.equipoNombres.push(data.nombre);
-      t.equipoActual = t.equipoNombres.length;
-      t.necesitan    = Math.max(0, 4 - t.equipoActual);
-    }
-  });
-  renderOfertaPanel(document.getElementById('tab-oferta'));
-  try {
-    await apiPost(data);
-    toast(`✓ ${data.nombre} apuntado correctamente`, 'ok');
-    // Resincronizar tras 2s
-    setTimeout(() => { window._oOk=false; window._bOk=false; loadOferta(true); }, 2000);
-  } catch(e) {
-    toast('Error al apuntar. Inténtalo de nuevo.', 'err');
-    window._oOk = false;
-    loadOferta(true);
-  }
-}
-
-function esc(s) { return String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
-
-// ══════════════════════════════════════
-//  HISTORIAL
-// ══════════════════════════════════════
-async function loadHistorial(force) {
-  if (window._hOk && !force) return;
-  const c=document.getElementById('tab-historial');
-  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>`;
-  try {
-    const data=await apiGet({action:'getHistorial'});
-    c.innerHTML='';
-    if (!data.length) { c.innerHTML=`<div class="empty"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`; return; }
-
-    // Stats rápidas
-    const totalTurnos = [...new Set(data.map(r=>r.fecha+'|'+r.rango))].length;
-    const totalVols   = [...new Set(data.map(r=>r.nombre))].length;
-    const sr = document.createElement('div'); sr.className='stats-row';
-    sr.innerHTML=`<div class="sbox"><div class="sv">${data.length}</div><div class="sl">Asignaciones</div></div>
-                  <div class="sbox"><div class="sv">${totalTurnos}</div><div class="sl">Turnos únicos</div></div>
-                  <div class="sbox"><div class="sv">${totalVols}</div><div class="sl">Voluntarios</div></div>`;
-    c.appendChild(sr);
-
-    // Filtros
-    const filtros=document.createElement('div');
-    filtros.style='display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
-    filtros.innerHTML=`
-      <input class="fc" id="hbusca" placeholder="🔍 Buscar voluntario…" oninput="filtH()" style="max-width:210px">
-      <select class="fc" id="hdia" onchange="filtH()" style="max-width:150px">
-        <option value="">Todos los días</option>
-        ${[...new Set(data.map(r=>r.dia))].map(d=>`<option>${d}</option>`).join('')}
-      </select>
-      <select class="fc" id="hrango" onchange="filtH()" style="max-width:160px">
-        <option value="">Todos los turnos</option>
-        ${[...new Set(data.map(r=>r.rango))].sort().map(r=>`<option>${r}</option>`).join('')}
-      </select>
-      <button class="btn btn-ghost btn-sm" onclick="verHistVista('timeline')">📅 Timeline</button>
-      <button class="btn btn-ghost btn-sm" onclick="verHistVista('tabla')">📋 Tabla</button>`;
-    c.appendChild(filtros);
-
-    window._histData = data.slice().reverse();
-    window._histVista = 'tabla';
-    renderHistorial(c);
-    window._histOk=true; window._hOk=true;
-  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
-}
-
-function verHistVista(v) {
-  window._histVista = v;
-  const c = document.getElementById('tab-historial');
-  // Quitar vista anterior si existe
-  const old = c.querySelector('.hist-view');
-  if (old) old.remove();
-  renderHistorial(c);
-}
-
-function renderHistorial(c) {
-  // Quitar vista anterior
-  const old = c.querySelector('.hist-view');
-  if (old) old.remove();
-  const wrap = document.createElement('div'); wrap.className='hist-view';
-  c.appendChild(wrap);
-
-  const data = window._histData || [];
-  const b = (document.getElementById('hbusca')?.value||'').toLowerCase();
-  const d = document.getElementById('hdia')?.value||'';
-  const r = document.getElementById('hrango')?.value||'';
-  const filt = data.filter(row =>
-    (!b || row.nombre.toLowerCase().includes(b)) &&
-    (!d || row.dia===d) &&
-    (!r || row.rango===r)
-  );
-
-  if (window._histVista === 'timeline') {
-    // Agrupar por fecha
-    const grupos = {};
-    filt.forEach(row => {
-      const k = row.fecha+'|'+row.rango;
-      if (!grupos[k]) grupos[k]={fecha:row.fecha,dia:row.dia,rango:row.rango,vols:[]};
-      grupos[k].vols.push(row.nombre);
-    });
-    const entries = Object.values(grupos).sort((a,b)=>a.fecha<b.fecha?-1:1);
-    if (!entries.length) { wrap.innerHTML=`<div class="empty"><span class="ei">🔍</span><h4>Sin resultados</h4></div>`; return; }
-    entries.forEach((g,i) => {
-      const tarde = parseInt(g.rango.split(':')[0]) >= 14;
-      const el = document.createElement('div');
-      el.style.cssText='display:flex;gap:.85rem;margin-bottom:.75rem;animation:fadeUp .3s ease both';
-      el.style.animationDelay=(i*.03)+'s';
-      el.innerHTML=`
-        <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
-          <div style="width:10px;height:10px;border-radius:50%;background:${tarde?'var(--amber)':'var(--blue)'};margin-top:.35rem"></div>
-          <div style="width:2px;flex:1;background:var(--sep);margin-top:.25rem"></div>
-        </div>
-        <div style="background:var(--surface);border-radius:var(--r-md);padding:.7rem .9rem;flex:1;box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-bottom:.1rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.35rem">
-            <div>
-              <span style="font-size:.78rem;font-weight:700;color:var(--label1)">${g.fecha}</span>
-              <span style="font-size:.7rem;color:var(--label3);margin-left:.5rem">${g.dia}</span>
-            </div>
-            <span style="font-size:.7rem;font-weight:700;padding:.15rem .45rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${g.rango}</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
-            ${g.vols.map(n=>`<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('')}
-          </div>
-        </div>`;
-      wrap.appendChild(el);
-    });
-  } else {
-    // Vista tabla
-    const card=document.createElement('div'); card.className='card';
-    card.innerHTML=`<table class="htable"><thead><tr><th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th></tr></thead>
-      <tbody id="htbody">${filt.map(row=>{
-        const tarde=parseInt(row.rango.split(':')[0])>=14;
-        return `<tr>
-          <td style="font-weight:600">${row.fecha}</td>
-          <td>${row.dia}</td>
-          <td><span style="font-size:.7rem;padding:.15rem .45rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'};font-weight:700">${row.rango}</span></td>
-          <td>${row.nombre}</td>
-        </tr>`;
-      }).join('')}</tbody></table>`;
-    wrap.appendChild(card);
-  }
-}
-
-function filtH() { if(window._histData) renderHistorial(document.getElementById('tab-historial')); }
-
-// ══════════════════════════════════════
-//  CALENDARIO CONFIG
-// ══════════════════════════════════════
-async function loadCalendario(force) {
-  if (window._calOk && !force) return;
-  const c=document.getElementById('tab-calendario');
-  c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div>`;
-  try {
-    const data=await apiGet({action:'getCalendarioConfig'});
-    if (data.error) throw new Error(data.error);
-    S.calConfig=data.dias||[];
-    renderCalendario(c, S.calConfig);
-    window._calOk=true;
-  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
-}
-
-function addDiaCalendario() {
-  const fechaVal = document.getElementById('cal-new-fecha')?.value;
-  if (!fechaVal) { toast('Selecciona una fecha','err'); return; }
-  const f = new Date(fechaVal+'T12:00:00');
-  const DIAS_SEM = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
-  const diaReal = DIAS_SEM[f.getDay()];
-  const semana  = Math.ceil(f.getDate() / 7);
-  const dd = String(f.getDate()).padStart(2,'0');
-  const mm = String(f.getMonth()+1).padStart(2,'0');
-  const yyyy = f.getFullYear();
-  const fechaFmt = `${dd}/${mm}/${yyyy}`;
-  // Verificar que no existe ya
-  if (S.calConfig.some(d => d.fecha === fechaFmt)) { toast('Esta fecha ya existe','err'); return; }
-  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, fechaRaw:f.getTime(), semana, dia:diaReal, activo:true, navieras:[], estancia:'' });
-  S.calConfig.sort((a,b)=>a.fechaRaw-b.fechaRaw);
-  const c=document.getElementById('tab-calendario');
-  renderCalendario(c, S.calConfig);
-  toast(`${fechaFmt} (${diaReal}) añadido`,'ok');
-}
-
-function removeDiaCalendario(i) {
-  if (!confirm(`¿Eliminar ${S.calConfig[i].fecha}?`)) return;
-  S.calConfig.splice(i,1);
-  const c=document.getElementById('tab-calendario');
-  renderCalendario(c, S.calConfig);
-  toast('Día eliminado','ok');
-}
-
-const DIAS_SEM_LABEL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-
-function diaRealDesdeFecha(fechaStr) {
-  // fechaStr: dd/mm/yyyy
-  const p = fechaStr.split('/');
-  if (p.length === 3) {
-    const f = new Date(+p[2], +p[1]-1, +p[0], 12, 0, 0);
-    return DIAS_SEM_LABEL[f.getDay()];
-  }
-  return fechaStr;
-}
-
-function renderCalendario(c, dias) {
-  c.innerHTML = '';
-
-  // Cabecera con añadir día
-  const hdr = document.createElement('div');
-  hdr.style = 'margin-bottom:1.1rem';
-  hdr.innerHTML = `
-    <p style="font-size:.82rem;color:var(--label3);margin-bottom:.75rem">Configura los días del mes, navieras y estancias. El día de la semana se calcula automáticamente desde la fecha.</p>
-    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep)">
-      <div class="fg" style="margin:0">
-        <label>Añadir nuevo día</label>
-        <input type="date" class="fc" id="cal-new-fecha" style="width:auto">
-      </div>
-      <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
-    </div>`;
-  c.appendChild(hdr);
-
-  if (!dias.length) {
-    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">📅</span><h4>Sin días configurados</h4><p>Añade el primer día con el formulario superior.</p></div>`);
-    return;
-  }
-
-  // Contador activos
-  const activos = dias.filter(d=>d.activo).length;
-  c.insertAdjacentHTML('beforeend', `<p style="font-size:.78rem;color:var(--label3);margin-bottom:.65rem">${dias.length} días · <strong>${activos} activos</strong></p>`);
-
-  dias.forEach((d, i) => {
-    const diaReal = diaRealDesdeFecha(d.fecha);
-    const naviTagsHTML = d.navieras.map((n,ni) =>
-      `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`
-    ).join('');
-    const row = document.createElement('div');
-    row.className = 'cal-row';
-    row.style.opacity = d.activo ? '1' : '0.5';
-    row.innerHTML = `
-      <div style="min-width:105px;flex-shrink:0">
-        <div class="cal-fecha">${d.fecha}</div>
-        <div class="cal-dia" style="color:var(--blue);font-weight:600;font-size:.75rem">${diaReal}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
-        <label class="toggle-sw">
-          <input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})">
-          <span class="toggle-sl"></span>
-        </label>
-        <span style="font-size:.72rem;color:var(--label3);min-width:48px" id="cal-act-lbl-${i}">${d.activo?'Activo':'Inactivo'}</span>
-      </div>
-      <div class="cal-navieras" id="cal-nv-${i}">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.28rem" id="cal-tags-${i}">${naviTagsHTML}</div>
-        <div style="display:flex;gap:.3rem">
-          <input class="fc" id="cal-ninput-${i}" placeholder="🚢 Naviera…" style="font-size:.72rem;padding:.28rem .5rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
-          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
-        </div>
-      </div>
-      <div class="cal-estancia" style="min-width:140px">
-        <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
-          <option value="">Sin estancia</option>
-          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
-          <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
-          <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
-          <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
-        </select>
-      </div>
-      <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
-    c.appendChild(row);
-  });
-}
-
-function toggleCalDia(i) {
-  S.calConfig[i].activo = document.getElementById(`cal-act-${i}`).checked;
-  const lbl = document.getElementById(`cal-act-lbl-${i}`);
-  if (lbl) lbl.textContent = S.calConfig[i].activo?'Activo':'Inactivo';
-}
-
-function añadirNaviera(i) {
-  const inp=document.getElementById(`cal-ninput-${i}`);
-  const nombre=inp?.value.trim();
-  if (!nombre) return;
-  if (!S.calConfig[i].navieras) S.calConfig[i].navieras=[];
-  const ni=S.calConfig[i].navieras.length;
-  S.calConfig[i].navieras.push(nombre);
-  inp.value='';
-  const tags=document.getElementById(`cal-tags-${i}`);
-  if (tags) tags.insertAdjacentHTML('beforeend',`<span class="navi-tag">${nombre}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`);
-}
-
-function quitarNaviera(i, ni) {
-  S.calConfig[i].navieras.splice(ni,1);
-  // Re-render las tags de ese día
-  const tags=document.getElementById(`cal-tags-${i}`);
-  if (tags) tags.innerHTML=S.calConfig[i].navieras.map((n,j)=>`<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${j})">×</button></span>`).join('');
-}
-
-async function guardarCalendario() {
-  try {
-    S.calConfig.forEach((d,i) => {
-      const sel=document.getElementById(`cal-est-${i}`);
-      if (sel) d.estancia=sel.value;
-      // Recalcular día real desde la fecha antes de guardar
-      d.dia = diaRealDesdeFecha(d.fecha);
-    });
-    await apiPost({accion:'guardarCalendarioConfig', dias:S.calConfig});
-    window._calOk=false; window._aOk=false;
-    toast('Calendario guardado ✓','ok');
-  } catch(e) { toast('Error: '+e.message,'err'); }
-}
-
-// ══════════════════════════════════════
-//  MODAL QUIÉN CUBRE
-// ══════════════════════════════════════
-async function openCubre(sem, dia, rango) {
-  document.getElementById('mcubre-titulo').textContent=`🔄 Quién puede cubrir — ${rango}`;
-  document.getElementById('mcubre-body').innerHTML=`<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando…</p></div>`;
-  openModal('mcubre');
-  try {
-    const data=await apiGet({action:'quienCubre', semana:sem, dia, rango});
-    if (!data.candidatos?.length) { document.getElementById('mcubre-body').innerHTML=`<p style="text-align:center;color:var(--label3)">Sin candidatos.</p>`; return; }
-    const grupos={disponible:[],reducido:[],bloqueado:[]};
-    data.candidatos.forEach(c=>grupos[c.estado].push(c));
-    let html='';
-    [['disponible','✅ Disponibles'],['reducido','⚡ Descanso reducido'],['bloqueado','🔒 Bloqueados']].forEach(([k,l]) => {
-      if (!grupos[k].length) return;
-      html+=`<div class="csec">${l}</div>`;
-      grupos[k].forEach(c=>{ html+=`<div class="cubre-row"><div class="cdot ${k==='disponible'?'disp':k==='reducido'?'red':'blq'}"></div><div class="cinfo"><div class="cname">${c.llave?'🔑 ':''}${c.nombre}</div><div class="cmeta">🕐 ${c.horario} · ${c.dias>=99?'Nuevo':c.dias+'d'} · ${c.dispo}d/mes</div></div></div>`; });
-    });
-    document.getElementById('mcubre-body').innerHTML=html;
-  } catch(e) { document.getElementById('mcubre-body').innerHTML=`<p style="color:var(--red)">Error: ${e.message}</p>`; }
-}
-
-// ══════════════════════════════════════
-//  EXPORTAR / IMPRIMIR
-// ══════════════════════════════════════
-async function exportarSheet() {
-  try { const d=await apiGet({action:'exportarCuadrante'}); toast(d.message||'Exportado ✓','ok'); }
-  catch(e) { toast('Error: '+e.message,'err'); }
-}
-
-function imprimirCuadrante() {
-  if (!S.plan) { toast('Carga el cuadrante primero','err'); return; }
-  document.getElementById('print-area').innerHTML=buildPrintHTML(S.plan);
-  window.print();
-}
-
-function buildPrintHTML(plan) {
-  const hoy=new Date();
-  const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  const mes=MESES[hoy.getMonth()].toUpperCase();
-  const dias=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-
-  let bloques='';
-  plan.forEach(d => {
-    const turnos=(d.turnos||[]).filter(t=>!t.sinLlave&&t.equipo?.length);
-    if (!turnos.length) return;
-    const fecha=new Date(d.fechaRaw);
-    const fechaFmt=`${dias[fecha.getDay()]} ${fecha.getDate()}`;
-
-    // Info naviera del calConfig
-    let barcoHTML='';
-    const calDia=S.calConfig?.find(c=>c.fecha===d.fechaStr||(d.fechaLabel&&d.fechaLabel.startsWith(c.fecha)));
-    if (calDia?.navieras?.length) {
-      calDia.navieras.forEach(n => { barcoHTML+=`<div class="pbarco">🚢 ${n}${calDia.estancia?' | '+calDia.estancia:''}<br>📍 Delicias</div>`; });
-    }
-
-    const turnosHTML=turnos.map(t => {
-      const equipo=S.edits[`${d.semana}|${d.dia}|${t.rango}`]||t.equipo;
-      return `<div class="pturno-row">
-        <div class="pthora"><div class="phl">TURNO</div><div class="pht">${t.rango}</div></div>
-        <div class="ptvols">${equipo.map(v=>`<span class="pvol${v.llave?' pllave':''}">
-          ${v.llave?'<span style="margin-right:2px">🔑</span>':''}${v.nombre}
-        </span>`).join('')}</div>
-      </div>`;
-    }).join('');
-
-    bloques+=`<div class="pbloque">
-      <div class="pinfo"><div class="pfecha">${fechaFmt}</div>${barcoHTML}</div>
-      <div class="pturnos">${turnosHTML}</div>
-    </div>`;
-  });
-
-  return `<div class="pw">
-    <div class="ptitulo">PROGRAMA PREDICACIÓN PUERTO - ${mes}</div>
-    ${bloques}
-    <div class="pnota"><strong>Nota:</strong> El nombre sombreado indica que el voluntario <strong style="color:#f5a400">tiene llave</strong> y es responsable de recoger y depositar los expositores en el Salón del Reino de La Oliva.</div>
-    <div class="pcontacto">Si por algún motivo no podéis atender vuestro turno, contactar con <strong>MANUEL FERNÁNDEZ</strong> enviando un mensaje privado por Whatsapp al <strong>622 71 45 85</strong>.<br><br><strong>Enlace al cuestionario:</strong> <span style="color:#1a56a0">formulario.ejemplo.com/turno</span></div>
-  </div>`;
 }
 
 // ══════════════════════════════════════
