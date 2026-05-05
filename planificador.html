@@ -823,6 +823,13 @@ function buildDispoPanel(todos, d) {
   return wrap;
 }
 function toggleD(id, btn) { document.getElementById(id).classList.toggle('show'); btn.classList.toggle('open'); }
+function toggleBlock(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const visible = el.style.display !== 'none' && el.style.display !== '';
+  el.style.display = visible ? 'none' : 'flex';
+  btn.classList.toggle('open', !visible);
+}
 
 // ══════════════════════════════════════
 //  CONFIRMAR TURNO
@@ -1169,7 +1176,7 @@ async function loadBajas(force) {
     const bajasData = await apiGet({action:'getBajas'});
     if (bajasData.error) throw new Error(bajasData.error);
     window._bajasData   = bajasData;
-    window._ofertaBajas = [];       // empieza vacío
+    window._ofertaBajas = null;      // null = cargando, [] = cargado vacío
     c.innerHTML = '';
     renderBajasPanel(c);
     window._bOk = true;
@@ -1183,7 +1190,11 @@ async function loadBajas(force) {
       }
     }).catch(e => {
       console.warn('Oferta no disponible:', e);
-      window._ofertaBajas = [];
+      window._ofertaBajas = [];  // [] = sin datos pero cargado
+      if (window._bajaTab === 'turnos') {
+        const content = document.getElementById('bajas-content');
+        if (content) renderBajaTab(content);
+      }
     });
   } catch(e) {
     c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
@@ -1246,7 +1257,7 @@ function setBajaTab(tab) {
   const content = document.getElementById('bajas-content');
   if (!content) return;
   // Si cambia a turnos y oferta aún no llegó, mostrar spinner
-  if (tab === 'turnos' && window._ofertaBajas === undefined) {
+  if (tab === 'turnos' && window._ofertaBajas === null) {
     content.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
     return;
   }
@@ -1283,11 +1294,11 @@ function renderActividadBajas(c) {
     const secRes = document.createElement('div');
     secRes.style = 'margin-top:1.25rem';
     secRes.innerHTML = `
-      <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem;font-weight:700;font-size:.72rem;color:var(--green-dark)" onclick="toggleD('sec-res',this)">
+      <button class="dtoggle" style="background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);margin-bottom:.45rem;font-weight:700;font-size:.72rem;color:var(--green-dark)" onclick="toggleBlock('sec-res',this)">
         <span>✅ Resueltos — sin bajas pendientes (${resueltos.length})</span>
         <span class="darrow">▼</span>
       </button>
-      <div class="dbody" id="sec-res" style="flex-direction:column;gap:.45rem">
+      <div id="sec-res" style="display:none;flex-direction:column;gap:.45rem;margin-bottom:.5rem">
         ${resueltos.map((t,i) => buildTurnoActividad(t, i+1000, true).outerHTML).join('')}
       </div>`;
     c.appendChild(secRes);
@@ -1378,7 +1389,7 @@ function renderTurnosDisponiblesEnBajas(c) {
   const oferta = window._ofertaBajas;
 
   // Si es undefined, aún está cargando
-  if (oferta === undefined) {
+  if (oferta === null) {
     c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
     return;
   }
