@@ -323,7 +323,8 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 <div class="toast-stack" id="toasts"></div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
+const SUPA_URL = "https://inifdflvblnonzowbxie.supabase.co";
+const SUPA_KEY = "sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
 
 let voluntarios   = [];
 let turnosUsuario = [];
@@ -682,15 +683,105 @@ document.getElementById('apuntar-overlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) ocultarOverlay();
 });
 
-// ══ API ════════════════════════════════════════
-async function apiGet(action) {
-  const r = await fetch(API+'?action='+action, {redirect:'follow'});
-  const t = await r.text();
-  return JSON.parse(t.trim().replace(/^[^\[{]+/,''));
+// ══ API — Supabase ══════════════════════════════
+const SB_H = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer '+SUPA_KEY,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+};
+async function sbGet(tabla, params='') {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+tabla+(params?'?'+params:''), { headers: SB_H });
+  if (!r.ok) throw new Error('Error '+r.status);
+  return r.json();
 }
+async function sbPost(tabla, body, prefer='return=minimal') {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+tabla, {
+    method:'POST', headers:{...SB_H,'Prefer':prefer}, body:JSON.stringify(body)
+  });
+  if (!r.ok) { const t=await r.text(); throw new Error('Error '+r.status+': '+t.substring(0,80)); }
+  return prefer.includes('representation') ? r.json() : {ok:true};
+}
+async function sbPatch(tabla, params, body) {
+  const r = await fetch(SUPA_URL+'/rest/v1/'+tabla+'?'+params, {
+    method:'PATCH', headers:{...SB_H,'Prefer':'return=minimal'}, body:JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('Error '+r.status);
+  return {ok:true};
+}
+async function rpc(fn, params={}) {
+  const r = await fetch(SUPA_URL+'/rest/v1/rpc/'+fn, {
+    method:'POST', headers:SB_H, body:JSON.stringify(params)
+  });
+  if (!r.ok) { const t=await r.text(); throw new Error('RPC error '+r.status+': '+t.substring(0,80)); }
+  return r.json();
+}
+
+function isoADMY(iso) { if(!iso) return ''; const p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function dmyAIso(dmy) { if(!dmy) return ''; const p=dmy.split('/'); return p[2]+'-'+p[1]+'-'+p[0]; }
+
+async function apiGet(action) {
+  if (action === 'getVoluntarios') {
+    const rows = await sbGet('voluntarios', 'select=nombre&activo=eq.true&order=nombre');
+    return rows.map(r => r.nombre);
+  }
+  if (action.startsWith('getTurnosVoluntario&nombre=')) {
+    const nombre = decodeURIComponent(action.split('nombre=')[1]);
+    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if (!vols.length) return { turnos: [] };
+    const volId = vols[0].id;
+    const [rows, bajasR] = await Promise.all([
+      sbGet('historial', 'voluntario_id=eq.'+volId+'&select=fecha,semana,dia,rango&order=fecha,rango'),
+      sbGet('bajas', 'voluntario_id=eq.'+volId+'&activa=eq.true&select=fecha,rango')
+    ]);
+    const bajasSet = new Set(bajasR.map(b => b.fecha+'|'+b.rango));
+    return { turnos: rows.map(r => ({
+      semana: r.semana, dia: r.dia,
+      fecha: isoADMY(r.fecha), rango: r.rango,
+      yaBaja: bajasSet.has(r.fecha+'|'+r.rango)
+    }))};
+  }
+  if (action === 'getOfertaTurnos') {
+    const data = await rpc('get_oferta_simple');
+    return { turnos: data || [] };
+  }
+  throw new Error('Acción no reconocida: '+action);
+}
+
 async function apiPost(data) {
-  await fetch(API, {method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  return {status:'success'};
+  const d = data;
+  if (d.accion === 'registrarBaja') {
+    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+    if (!vols.length) throw new Error('Voluntario no encontrado');
+    const volId = vols[0].id;
+    const rows = (d.turnos||[]).map(t => ({
+      voluntario_id: volId,
+      fecha: dmyAIso(t.fecha), semana: parseInt(t.semana),
+      dia: t.dia, rango: t.rango, activa: true
+    }));
+    await sbPost('bajas', rows, 'resolution=merge-duplicates,return=minimal');
+    return { status:'success' };
+  }
+  if (d.accion === 'registrarRefuerzo') {
+    const nombre = d.nombre;
+    const [sem, dia, ...rp] = (d.key||'').split('|');
+    const rango = rp.join('|') || d.rango || '';
+    const fechaISO = dmyAIso(d.fecha||'');
+    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if (!vols.length) throw new Error('Voluntario no encontrado');
+    const volId = vols[0].id;
+    // Neutralizar baja si existe
+    await sbPatch('bajas',
+      'voluntario_id=eq.'+volId+'&fecha=eq.'+fechaISO+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',
+      { activa: false });
+    await sbPost('refuerzos', [{
+      voluntario_id: volId, fecha: fechaISO,
+      semana: parseInt(sem||1), dia: dia||'', rango,
+      es_dia_completo: !!d.esDia, franja: d.franja||null
+    }], 'resolution=merge-duplicates,return=minimal');
+    return { status:'success' };
+  }
+  throw new Error('Acción no reconocida: '+d.accion);
 }
 
 // ══ TOAST ══════════════════════════════════════
