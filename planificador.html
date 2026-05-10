@@ -492,7 +492,8 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 <div class="toast-stack" id="toasts"></div>
 
 <script>
-const API = "https://script.google.com/macros/s/AKfycbxWWRqBRJkgVenOCzNVa82BQRryCKtXXMzCqDQMBJzQnmfMpBYOfu7cBBZAnoPNgC4A/exec";
+const SUPA_URL = "https://inifdflvblnonzowbxie.supabase.co";
+const SUPA_KEY = "sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
 
 // ══════════════════════════════════════
 //  ESTADO
@@ -568,26 +569,532 @@ function setTab(id) {
 }
 
 // ══════════════════════════════════════
-//  API
+//  API — Supabase
 // ══════════════════════════════════════
-async function apiGet(p, timeout=25000) {
-  const ctrl = new AbortController();
-  const tid  = setTimeout(() => ctrl.abort(), timeout);
-  try {
-    const r = await fetch(API+'?'+new URLSearchParams(p), {
-      redirect:'follow', signal:ctrl.signal,
-      headers:{Accept:'application/json'}
-    });
-    const t = await r.text();
-    return JSON.parse(t.trim().replace(/^[^\[{]+/,''));
-  } catch(e) {
-    if (e.name==='AbortError') throw new Error('Tiempo de espera agotado (>25s). Inténtalo de nuevo.');
-    throw e;
-  } finally { clearTimeout(tid); }
+const SB_H = {
+  'apikey': SUPA_KEY,
+  'Authorization': 'Bearer ' + SUPA_KEY,
+  'Content-Type': 'application/json',
+  'Accept': 'application/json'
+};
+
+async function sbGet(tabla, params='') {
+  const url = SUPA_URL + '/rest/v1/' + tabla + (params ? '?' + params : '');
+  const r = await fetch(url, { headers: SB_H });
+  if (!r.ok) throw new Error('Error ' + r.status + ' en ' + tabla);
+  return r.json();
 }
+async function sbPost(tabla, body, prefer='return=minimal') {
+  const r = await fetch(SUPA_URL + '/rest/v1/' + tabla, {
+    method: 'POST',
+    headers: { ...SB_H, 'Prefer': prefer },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error('Error ' + r.status + ': ' + t.substring(0,100)); }
+  return prefer.includes('representation') ? r.json() : { ok: true };
+}
+async function sbPatch(tabla, params, body) {
+  const r = await fetch(SUPA_URL + '/rest/v1/' + tabla + '?' + params, {
+    method: 'PATCH', headers: { ...SB_H, 'Prefer': 'return=minimal' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error('Error ' + r.status);
+  return { ok: true };
+}
+async function sbDelete(tabla, params) {
+  const r = await fetch(SUPA_URL + '/rest/v1/' + tabla + '?' + params, {
+    method: 'DELETE', headers: SB_H
+  });
+  if (!r.ok) throw new Error('Error ' + r.status);
+  return { ok: true };
+}
+async function rpc(fn, params={}) {
+  const r = await fetch(SUPA_URL + '/rest/v1/rpc/' + fn, {
+    method: 'POST', headers: SB_H, body: JSON.stringify(params)
+  });
+  if (!r.ok) { const t = await r.text(); throw new Error('RPC ' + fn + ' error ' + r.status + ': ' + t.substring(0,100)); }
+  return r.json();
+}
+
+// Caché en memoria
+const _cache = {};
+async function cached(key, ttlMs, fn) {
+  const now = Date.now();
+  if (_cache[key] && now - _cache[key].ts < ttlMs) return _cache[key].data;
+  const data = await fn();
+  _cache[key] = { data, ts: now };
+  return data;
+}
+function invalidar(...keys) { keys.forEach(k => delete _cache[k]); }
+
+// Helpers de fecha
+function isoADMY(iso) { if (!iso) return ''; const p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
+function dmyAIso(dmy) { if (!dmy) return ''; const p=dmy.split('/'); return p[2]+'-'+p[1]+'-'+p[0]; }
+
+// ── WRAPPERS — misma interfaz que antes pero sobre Supabase ──────
+
+// apiGet — traduce {action:'xxx', ...params} a llamadas Supabase
+async function apiGet(p) {
+  const action = p.action || p;
+  switch(action) {
+
+    case 'getCuadranteMensual':
+      return getCuadranteMensual();
+
+    case 'getVoluntarios': {
+      const rows = await sbGet('voluntarios', 'select=nombre&activo=eq.true&order=nombre');
+      return rows.map(r => r.nombre);
+    }
+
+    case 'getHistorial': {
+      const rows = await sbGet('v_historial', 'order=fecha,rango');
+      return rows.map(r => ({
+        semana: r.semana, dia: r.dia, nombre: r.nombre,
+        fecha: isoADMY(r.fecha), rango: r.rango
+      }));
+    }
+
+    case 'getTurnosVoluntario': {
+      const nombre = p.nombre || '';
+      const vols = await sbGet('voluntarios', 'nombre=ilike.' + encodeURIComponent(nombre) + '&select=id');
+      if (!vols.length) return { turnos: [] };
+      const volId = vols[0].id;
+      const [rows, bajasR] = await Promise.all([
+        sbGet('historial', 'voluntario_id=eq.' + volId + '&select=fecha,semana,dia,rango&order=fecha,rango'),
+        sbGet('bajas', 'voluntario_id=eq.' + volId + '&activa=eq.true&select=fecha,rango')
+      ]);
+      const bajasSet = new Set(bajasR.map(b => b.fecha + '|' + b.rango));
+      return { turnos: rows.map(r => ({
+        semana: r.semana, dia: r.dia,
+        fecha: isoADMY(r.fecha), rango: r.rango,
+        yaBaja: bajasSet.has(r.fecha + '|' + r.rango)
+      }))};
+    }
+
+    case 'getCalendarioConfig':
+      return getCalendarioConfig();
+
+    case 'getAlertasLlave':
+      return getAlertasLlave();
+
+    case 'getResumenCarga': {
+      const data = await cached('carga', 3*60000, () => rpc('get_resumen_carga'));
+      return data || { total:0, max:0, min:0, media:0, voluntarios:[] };
+    }
+
+    case 'quienCubre': {
+      const fecha = p.fecha ? dmyAIso(isoADMY(p.fecha)) : null;
+      return rpc('quien_puede_cubrir', {
+        p_semana: parseInt(p.semana),
+        p_dia: p.dia,
+        p_rango: p.rango,
+        p_fecha: fecha
+      });
+    }
+
+    case 'getBajas': {
+      const data = await rpc('get_bajas_dashboard');
+      const arr = data || [];
+      return {
+        turnos: arr,
+        total: arr.length,
+        pendientes: arr.filter(t => !t.cubierto).length,
+        totalBajas: arr.reduce((a,t) => a+(t.bajas?.length||0), 0),
+        totalAltas: arr.reduce((a,t) => a+(t.refuerzos?.length||0), 0)
+      };
+    }
+
+    case 'getDashboard': {
+      const [bajasRaw, ofertaRaw, volsRaw] = await Promise.all([
+        rpc('get_bajas_dashboard'),
+        rpc('get_oferta_simple'),
+        sbGet('voluntarios', 'select=nombre&activo=eq.true&order=nombre')
+      ]);
+      const arr = bajasRaw || [];
+      return {
+        bajas: {
+          turnos: arr, total: arr.length,
+          pendientes: arr.filter(t=>!t.cubierto).length,
+          totalBajas: arr.reduce((a,t)=>a+(t.bajas?.length||0),0),
+          totalAltas: arr.reduce((a,t)=>a+(t.refuerzos?.length||0),0)
+        },
+        oferta: { turnos: ofertaRaw || [] },
+        voluntarios: volsRaw.map(r=>r.nombre)
+      };
+    }
+
+    case 'getOfertaTurnos':
+    case 'getOfertaSimple': {
+      const data = await rpc('get_oferta_simple');
+      return { turnos: data || [] };
+    }
+
+    case 'getLlaves': {
+      const rows = await sbGet('voluntarios', 'tiene_llave=eq.true&activo=eq.true&select=nombre_norm');
+      return { llaves: rows.map(r => r.nombre_norm) };
+    }
+
+    case 'getDisponibilidadCompleta': {
+      const rows = await sbGet('v_disponibilidad', 'order=nombre,semana,dia');
+      const mapa = {};
+      rows.forEach(r => {
+        if (!mapa[r.nombre]) mapa[r.nombre] = { nombre: r.nombre, llave: r.tiene_llave, disponibilidad: [] };
+        if (r.semana) mapa[r.nombre].disponibilidad.push({ semana: r.semana, dia: r.dia, horario: r.horario });
+      });
+      return { voluntarios: Object.values(mapa) };
+    }
+
+    case 'getHistorialArchivo': {
+      const mes = p.mes;
+      const rows = await sbGet('historial_archivo', 'mes_archivo=eq.' + mes + '&order=fecha,rango');
+      const registros = rows.map(r => ({ nombre: r.nombre_snap, fecha: isoADMY(r.fecha), semana: r.semana, dia: r.dia, rango: r.rango }));
+      const porVol = {};
+      registros.forEach(r => { porVol[r.nombre]=(porVol[r.nombre]||0)+1; });
+      const top = Object.entries(porVol).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([nombre,turnos])=>({nombre,turnos}));
+      const turnosUnicos = new Set(registros.map(r=>r.fecha+'|'+r.rango)).size;
+      return { registros, stats: { totalRegistros: registros.length, turnosUnicos, voluntariosActivos: Object.keys(porVol).length, topVoluntarios: top, media: registros.length ? (registros.length/Object.keys(porVol).length).toFixed(1) : 0 }};
+    }
+
+    case 'getHistorialMeses': {
+      const rows = await sbGet('historial_archivo', 'select=mes_archivo&order=mes_archivo.desc');
+      const unicos = [...new Set(rows.map(r=>r.mes_archivo))];
+      const MESES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      return { meses: [
+        { key:'actual', label:'Mes actual', filas:-1 },
+        ...unicos.map(m => { const [a,n]=m.split('-'); return { key:m, label:MESES[+n]+' '+a, filas:-1 }; })
+      ]};
+    }
+
+    case 'buscarDia': {
+      return rpc('quien_puede_cubrir', {
+        p_semana: parseInt(p.semana), p_dia: p.dia,
+        p_rango: p.hora ? p.hora+':00 a '+(parseInt(p.hora)+2)+':00' : '',
+        p_fecha: null
+      }).then(data => ({
+        semana: p.semana, dia: p.dia, hora: p.hora||null,
+        candidatos: data.candidatos||[],
+        totalDisponibles: (data.candidatos||[]).length,
+        aptos: (data.candidatos||[]).filter(c=>c.estado!=='bloqueado').length,
+        historialDia: []
+      }));
+    }
+
+    default:
+      throw new Error('Acción no reconocida: ' + action);
+  }
+}
+
+// apiPost — traduce {accion:'xxx', ...} a escrituras Supabase
 async function apiPost(body) {
-  await fetch(API, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  const d = body;
+  switch(d.accion) {
+
+    case 'confirmarTurno': {
+      const vols = await sbGet('voluntarios',
+        'nombre=in.(' + d.asignados.map(n=>`"${n}"`).join(',') + ')&select=id,nombre');
+      const idMap = {};
+      vols.forEach(v => { idMap[v.nombre.toUpperCase()] = v.id; });
+      const rows = d.asignados.map(n => ({
+        voluntario_id: idMap[n.toUpperCase()],
+        fecha: dmyAIso(isoADMY(d.fecha || '')),
+        semana: parseInt(d.semana), dia: d.dia, rango: d.rango
+      })).filter(r => r.voluntario_id && r.fecha);
+      await sbPost('historial', rows, 'resolution=merge-duplicates,return=minimal');
+      invalidar('historial','oferta','carga');
+      break;
+    }
+
+    case 'registrarBaja': {
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) throw new Error('Voluntario no encontrado');
+      const volId = vols[0].id;
+      const rows = (d.turnos||[]).map(t => ({
+        voluntario_id: volId,
+        fecha: dmyAIso(t.fecha), semana: parseInt(t.semana),
+        dia: t.dia, rango: t.rango, activa: true
+      }));
+      await sbPost('bajas', rows, 'resolution=merge-duplicates,return=minimal');
+      invalidar('bajas','oferta');
+      break;
+    }
+
+    case 'registrarRefuerzo':
+    case 'confirmarSustituto': {
+      const nombre = d.nombre;
+      const [sem, dia, ...rp] = (d.key||'').split('|');
+      const rango = rp.join('|') || d.rango || '';
+      const fechaISO = dmyAIso(d.fecha || isoADMY(d.fecha || ''));
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+      if (!vols.length) throw new Error('Voluntario no encontrado');
+      const volId = vols[0].id;
+      // Neutralizar baja si existe
+      await sbPatch('bajas',
+        'voluntario_id=eq.'+volId+'&fecha=eq.'+fechaISO+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',
+        { activa: false });
+      await sbPost('refuerzos', [{
+        voluntario_id: volId, fecha: fechaISO,
+        semana: parseInt(sem||d.semana||1), dia: dia||d.dia||'', rango,
+        es_dia_completo: !!d.esDia, franja: d.franja||null
+      }], 'resolution=merge-duplicates,return=minimal');
+      invalidar('bajas','oferta');
+      break;
+    }
+
+    case 'guardarCalendarioConfig': {
+      await guardarCalendarioConfig(d.dias);
+      break;
+    }
+
+    case 'guardarDisponibilidadVoluntario': {
+      let vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) {
+        vols = await sbPost('voluntarios', [{ nombre: d.nombre, tiene_llave: !!d.llave, activo: true }], 'return=representation');
+      } else {
+        await sbPatch('voluntarios', 'id=eq.'+vols[0].id, { tiene_llave: !!d.llave });
+      }
+      const volId = vols[0].id;
+      await sbDelete('disponibilidad', 'voluntario_id=eq.'+volId);
+      const rows = (d.disponibilidad||[]).filter(x=>x.horario).map(x => ({
+        voluntario_id: volId, semana: x.semana, dia: x.dia, horario: x.horario
+      }));
+      if (rows.length) await sbPost('disponibilidad', rows);
+      invalidar('voluntarios','disponibilidad');
+      break;
+    }
+
+    case 'eliminarTurnoHistorial': {
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) break;
+      await sbDelete('historial',
+        'voluntario_id=eq.'+vols[0].id+'&rango=eq.'+encodeURIComponent(d.rango)+'&fecha=eq.'+dmyAIso(d.fecha));
+      invalidar('historial','oferta','carga');
+      break;
+    }
+
+    case 'editarTurnoHistorial': {
+      const vOrig = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombreOriginal)+'&select=id');
+      if (!vOrig.length) break;
+      await sbDelete('historial',
+        'voluntario_id=eq.'+vOrig[0].id+'&rango=eq.'+encodeURIComponent(d.rangoOriginal)+'&fecha=eq.'+dmyAIso(d.fecha));
+      if (d.nuevoNombre) {
+        const vNew = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nuevoNombre)+'&select=id');
+        if (vNew.length) {
+          await sbPost('historial', [{
+            voluntario_id: vNew[0].id, fecha: dmyAIso(d.fecha),
+            semana: parseInt(d.semana), dia: d.dia,
+            rango: d.nuevoRango||d.rangoOriginal
+          }], 'resolution=merge-duplicates,return=minimal');
+        }
+      }
+      invalidar('historial','carga');
+      break;
+    }
+
+    case 'archivarMes': {
+      const [anio, numMes] = d.mes.split('-');
+      const ini = anio+'-'+numMes+'-01';
+      const fin = anio+'-'+numMes+'-31';
+      const rows = await sbGet('v_historial', 'fecha=gte.'+ini+'&fecha=lte.'+fin+'&order=fecha,rango');
+      if (rows.length) {
+        await sbPost('historial_archivo', rows.map(r=>({
+          voluntario_id: r.voluntario_id||null, nombre_snap: r.nombre,
+          fecha: r.fecha, semana: r.semana, dia: r.dia, rango: r.rango,
+          mes_archivo: d.mes
+        })));
+        await sbDelete('historial', 'fecha=gte.'+ini+'&fecha=lte.'+fin);
+      }
+      invalidar('historial','carga');
+      break;
+    }
+
+    case 'actualizarLlave': {
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (vols.length) await sbPatch('voluntarios', 'id=eq.'+vols[0].id, { tiene_llave: !!d.tieneLlave });
+      invalidar('voluntarios');
+      break;
+    }
+  }
+  return { status: 'success' };
 }
+
+// ── LÓGICA DE NEGOCIO EN CLIENTE ─────────────────────────────────
+
+async function getCalendarioConfig() {
+  return cached('calendario', 5*60000, async () => {
+    const rows = await sbGet('v_calendario', 'order=fecha');
+    return { dias: rows.map(r => ({
+      fecha: isoADMY(r.fecha), fechaISO: r.fecha,
+      semana: r.semana, dia: r.dia, activo: r.activo,
+      navieras: r.navieras||[], estancia: r.estancia||''
+    }))};
+  });
+}
+
+async function guardarCalendarioConfig(dias) {
+  const DIAS_SEM = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  // Recalcular semanas y días reales
+  const procesados = dias.map((d, idx) => {
+    const f = new Date(d.fechaISO || dmyAIso(d.fecha));
+    return {
+      ...d,
+      fechaISO: d.fechaISO || dmyAIso(d.fecha),
+      dia: DIAS_SEM[f.getDay()],
+      semana: calcSemana(dias, idx)
+    };
+  }).sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
+
+  // Borrar y reinsertar (más simple que upsert con navieras)
+  const calActual = await sbGet('calendario', 'select=id,fecha');
+  for (const c of calActual) {
+    await sbDelete('navieras', 'calendario_id=eq.'+c.id);
+  }
+  if (calActual.length) await sbDelete('calendario', 'id=in.('+calActual.map(c=>c.id).join(',')+')');
+
+  const calRows = procesados.map(d => ({
+    fecha: d.fechaISO, semana: d.semana, dia: d.dia,
+    activo: d.activo, estancia: d.estancia||null
+  }));
+  const insertados = await sbPost('calendario', calRows, 'return=representation');
+
+  const navRows = [];
+  insertados.forEach((cal, i) => {
+    (procesados[i].navieras||[]).forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
+  });
+  if (navRows.length) await sbPost('navieras', navRows);
+  invalidar('calendario');
+  return { status:'success' };
+}
+
+function calcSemana(dias, idx) {
+  const activos = dias.slice(0, idx+1).filter(d=>d.activo).length;
+  return Math.max(1, Math.ceil(activos/7));
+}
+
+async function getAlertasLlave() {
+  const [calData, hist] = await Promise.all([
+    getCalendarioConfig(),
+    sbGet('v_historial', 'order=fecha,rango'),
+  ]);
+  const vols = await sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true');
+  const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase()));
+
+  const histPorFecha = {};
+  hist.forEach(h => {
+    if (!histPorFecha[h.fecha]) histPorFecha[h.fecha] = [];
+    histPorFecha[h.fecha].push(h);
+  });
+
+  const alertas = [];
+  for (const dia of (calData.dias||[]).filter(d=>d.activo)) {
+    const turnos = histPorFecha[dia.fechaISO] || [];
+    if (!turnos.length) continue;
+    const portadores = turnos
+      .filter(t => llaves.has(t.nombre.toUpperCase()))
+      .map(t => ({ nombre: t.nombre, horario: t.rango }));
+    const rangosUnicos = [...new Set(turnos.map(t=>t.rango))];
+
+    if (!portadores.length) {
+      alertas.push({ fecha: dia.fecha, dia: dia.dia, semana: dia.semana,
+        gravedad: 'critica', mensaje: 'Sin portador de llave',
+        portadores: [], turnosAfectados: rangosUnicos,
+        accion: 'Ningún portador de llave tiene turno confirmado este día' });
+    } else if (portadores.length === 1) {
+      alertas.push({ fecha: dia.fecha, dia: dia.dia, semana: dia.semana,
+        gravedad: 'riesgo', mensaje: 'Solo 1 portador de llave: riesgo si hay baja',
+        portadores, turnosAfectados: rangosUnicos,
+        accion: 'Asegúrate de que ' + portadores[0].nombre + ' puede asistir' });
+    }
+  }
+  return { alertas, total: alertas.length };
+}
+
+async function getCuadranteMensual() {
+  const [calData, hist, vDisp] = await Promise.all([
+    getCalendarioConfig(),
+    sbGet('v_historial', 'order=fecha,rango'),
+    sbGet('v_disponibilidad', 'order=nombre,semana,dia')
+  ]);
+  const vols = await sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true');
+  const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase()));
+
+  // Agrupar historial por fecha+rango
+  const histMap = {};
+  hist.forEach(h => {
+    const k = h.fecha+'|'+h.rango;
+    if (!histMap[k]) histMap[k] = [];
+    histMap[k].push({ nombre: h.nombre, llave: h.tiene_llave, dias:0, dispo:0, horario:'' });
+  });
+
+  // Agrupar disponibilidad por voluntario+semana+dia
+  const dispoMap = {};
+  vDisp.forEach(d => {
+    if (!d.semana) return;
+    const k = (d.nombre||'').toUpperCase()+'|'+d.semana+'|'+d.dia;
+    dispoMap[k] = d.horario;
+  });
+
+  const plan = [];
+  for (const dia of (calData.dias||[]).filter(d=>d.activo)) {
+    const fechaISO = dia.fechaISO;
+    const turnosConf = {};
+    Object.keys(histMap).forEach(k => {
+      const [f, ...rp] = k.split('|');
+      if (f === fechaISO) turnosConf[rp.join('|')] = histMap[k];
+    });
+
+    if (Object.keys(turnosConf).length) {
+      // Día con turnos confirmados
+      const turnos = Object.entries(turnosConf).sort((a,b)=>a[0]<b[0]?-1:1).map(([rango, equipo]) => ({
+        rango, equipo, confirmado: true, sustitutos: [], sinLlave: false,
+        necesitaLlave: false, alertaLlave: false
+      }));
+      plan.push({ fechaLabel: dia.fecha+' - '+dia.dia, fechaStr: dia.fecha,
+        fechaRaw: new Date(fechaISO).getTime(), semana: dia.semana, dia: dia.diaNombre||dia.dia,
+        turnos, confirmado: true,
+        diagnostico: { aptos:0, totalDisponibles:0, todos:[], aviso:'' } });
+    } else {
+      // Día sin confirmar: calcular disponibles para ese semana+dia
+      const disponibles = vDisp.filter(d =>
+        d.semana === dia.semana && d.dia === dia.dia && d.horario
+      ).map(d => ({
+        nombre: d.nombre, llave: d.tiene_llave,
+        horario: d.horario, dias: 99, estado:'ok', dispo:0
+      }));
+
+      // Generar franjas de 2h simples
+      const franjas = {};
+      disponibles.forEach(v => {
+        const h = parseInt((v.horario||'0'));
+        for (let s = h; s <= h+4; s += 1) {
+          const rango = pad(s)+':00 a '+pad(s+2)+':00';
+          if (!franjas[rango]) franjas[rango] = [];
+          franjas[rango].push(v);
+        }
+      });
+
+      const turnos = Object.entries(franjas)
+        .filter(([,vols]) => vols.length >= 3)
+        .sort((a,b)=>a[0]<b[0]?-1:1).slice(0,3)
+        .map(([rango, vols]) => ({
+          rango,
+          equipo: vols.slice(0,4).map(v => ({ nombre:v.nombre, llave:v.llave, dias:99, dispo:0, horario:v.horario })),
+          sustitutos: vols.slice(4),
+          confirmado: false, sinLlave: !vols.some(v=>v.llave),
+          necesitaLlave: true, alertaLlave: !vols.some(v=>v.llave)
+        }));
+
+      plan.push({ fechaLabel: dia.fecha+' - '+dia.dia, fechaStr: dia.fecha,
+        fechaRaw: new Date(fechaISO).getTime(), semana: dia.semana, dia: dia.dia,
+        turnos, confirmado: false,
+        diagnostico: { aptos: disponibles.length, totalDisponibles: disponibles.length,
+          todos: disponibles, aviso: turnos.length === 0 ? 'Sin franjas con ≥3 voluntarios disponibles' : '' }
+      });
+    }
+  }
+  return plan;
+}
+
+function pad(n) { return String(n).padStart(2,'0'); }
 
 // ══════════════════════════════════════
 //  CUADRANTE
