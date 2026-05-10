@@ -570,10 +570,20 @@ function setTab(id) {
 // ══════════════════════════════════════
 //  API
 // ══════════════════════════════════════
-async function apiGet(p) {
-  const r = await fetch(API+'?'+new URLSearchParams(p), {redirect:'follow', headers:{Accept:'application/json'}});
-  const t = await r.text();
-  return JSON.parse(t.trim().replace(/^[^\[{]+/,''));
+async function apiGet(p, timeout=25000) {
+  const ctrl = new AbortController();
+  const tid  = setTimeout(() => ctrl.abort(), timeout);
+  try {
+    const r = await fetch(API+'?'+new URLSearchParams(p), {
+      redirect:'follow', signal:ctrl.signal,
+      headers:{Accept:'application/json'}
+    });
+    const t = await r.text();
+    return JSON.parse(t.trim().replace(/^[^\[{]+/,''));
+  } catch(e) {
+    if (e.name==='AbortError') throw new Error('Tiempo de espera agotado (>25s). Inténtalo de nuevo.');
+    throw e;
+  } finally { clearTimeout(tid); }
 }
 async function apiPost(body) {
   await fetch(API, {method:'POST', mode:'no-cors', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
