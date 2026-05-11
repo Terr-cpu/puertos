@@ -7,207 +7,160 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#f2f2f7; --surface:#fff; --surface2:#f5f7fa;
-  --navy:#0a1628; --blue:#0071e3; --blue-soft:#ddeeff;
-  --amber:#e07b00; --amber-soft:#fff3e0;
-  --gold:#c9a84c; --green:#34c759; --green-dark:#1a9648; --green-soft:#e6f7ed;
-  --red:#ff3b30; --red-dark:#c0392b; --red-soft:#fff0ef;
-  --purple:#af52de; --purple-soft:#f5eeff;
-  --label1:#1c1c1e; --label2:#48484a; --label3:#8e8e93; --label4:#c7c7cc;
+:root{
+  --bg:#f2f2f7;--surface:#fff;--surface2:#f5f7fa;
+  --navy:#0a1628;--blue:#0071e3;--blue-soft:#ddeeff;
+  --amber:#e07b00;--amber-soft:#fff3e0;
+  --gold:#c9a84c;--green:#34c759;--green-dark:#1a9648;--green-soft:#e6f7ed;
+  --red:#ff3b30;--red-dark:#c0392b;--red-soft:#fff0ef;
+  --purple:#af52de;--purple-soft:#f5eeff;
+  --label1:#1c1c1e;--label2:#48484a;--label3:#8e8e93;--label4:#c7c7cc;
   --sep:rgba(60,60,67,.12);
   --shadow-sm:0 1px 4px rgba(0,0,0,.07);
   --shadow-md:0 4px 20px rgba(0,0,0,.09);
   --shadow-lg:0 12px 40px rgba(0,0,0,.14);
-  --r-sm:10px; --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --r-sm:10px;--r-md:14px;--r-lg:20px;--r-xl:28px;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
-html{scroll-behavior:smooth}
 body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--label1);min-height:100vh;padding-bottom:env(safe-area-inset-bottom)}
 
-/* ── HERO ─────────────────────────────────────── */
 .hero{background:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);padding:3rem 1.5rem 5.5rem;text-align:center;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 100%,rgba(0,113,227,.18) 0%,transparent 70%),radial-gradient(ellipse 60% 50% at 80% 0%,rgba(201,168,76,.12) 0%,transparent 70%)}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 100%,rgba(0,113,227,.18) 0%,transparent 70%)}
 .hero-inner{position:relative}
-.hero-icon{width:60px;height:60px;margin:0 auto 1rem;background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.2);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;backdrop-filter:blur(12px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.hero-icon{width:60px;height:60px;margin:0 auto 1rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.6rem}
 .hero h1{font-size:clamp(1.4rem,4vw,1.9rem);font-weight:700;color:#fff;letter-spacing:-.02em}
 .hero p{color:rgba(255,255,255,.4);font-size:.75rem;font-weight:500;letter-spacing:.12em;text-transform:uppercase;margin-top:.4rem}
 .hero-line{width:32px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:.9rem auto 0;border-radius:2px}
 
-/* ── TABS ─────────────────────────────────────── */
 .tabs-wrap{position:sticky;top:0;z-index:200;padding:0 1rem;margin-top:-2.2rem}
-.tabs-pill{background:rgba(255,255,255,.88);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.6);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);padding:.45rem;display:flex;gap:.3rem}
-.tab-btn{flex:1;padding:.55rem .75rem;border:none;border-radius:var(--r-lg);font-family:inherit;font-size:.8rem;font-weight:600;color:var(--label3);cursor:pointer;background:transparent;transition:all .2s ease;display:flex;align-items:center;justify-content:center;gap:.35rem;white-space:nowrap}
+.tabs-pill{background:rgba(255,255,255,.88);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.6);border-radius:var(--r-xl);box-shadow:var(--shadow-lg);padding:.45rem;display:flex;gap:.3rem}
+.tab-btn{flex:1;padding:.55rem .75rem;border:none;border-radius:var(--r-lg);font-family:inherit;font-size:.8rem;font-weight:600;color:var(--label3);cursor:pointer;background:transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.35rem;white-space:nowrap}
 .tab-btn:hover{background:var(--surface2);color:var(--label1)}
 .tab-btn.active{background:var(--navy);color:#fff}
 
-/* ── LAYOUT ───────────────────────────────────── */
 .main{max-width:680px;margin:0 auto;padding:1.5rem 1rem 4rem}
 .sec{display:none}.sec.active{display:block}
 
-/* ── CARDS ────────────────────────────────────── */
 .card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);border:1px solid rgba(0,0,0,.04);padding:1.2rem;margin-bottom:.85rem;animation:fadeUp .3s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.section-label{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.75rem;display:block}
+.slbl{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.75rem;display:block}
 
-/* ── STEPPER ──────────────────────────────────── */
-.stepper{display:flex;align-items:center;gap:0;margin-bottom:1.25rem;background:var(--surface);border-radius:var(--r-xl);padding:.5rem;box-shadow:var(--shadow-sm);border:1px solid var(--sep)}
-.step-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.35rem .2rem;border-radius:var(--r-md);transition:all .2s ease}
-.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;background:var(--surface2);color:var(--label4);border:2px solid var(--label4);transition:all .25s ease}
+/* Stepper */
+.stepper{display:flex;align-items:center;margin-bottom:1.25rem;background:var(--surface);border-radius:var(--r-xl);padding:.5rem;box-shadow:var(--shadow-sm);border:1px solid var(--sep)}
+.step-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.35rem .2rem;border-radius:var(--r-md);transition:all .2s}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;background:var(--surface2);color:var(--label4);border:2px solid var(--label4);transition:all .25s}
 .step-txt{font-size:.62rem;font-weight:600;color:var(--label4);letter-spacing:.04em;text-transform:uppercase;transition:color .2s}
 .step-item.active .step-num{background:var(--navy);color:#fff;border-color:var(--navy);transform:scale(1.1)}
 .step-item.active .step-txt{color:var(--navy)}
 .step-item.done .step-num{background:var(--green-dark);color:#fff;border-color:var(--green-dark);font-size:0}
 .step-item.done .step-num::after{content:'✓';font-size:.72rem}
 .step-item.done .step-txt{color:var(--green-dark)}
-.step-connector{width:24px;height:2px;background:var(--label4);flex-shrink:0;border-radius:2px;transition:background .3s}
-.step-connector.done{background:var(--green-dark)}
+.step-con{width:24px;height:2px;background:var(--label4);flex-shrink:0;border-radius:2px;transition:background .3s}
+.step-con.done{background:var(--green-dark)}
 
-/* ── AUTOCOMPLETE ─────────────────────────────── */
+/* Autocomplete */
 .ac-wrap{position:relative}
 .ac-input{width:100%;border:1.5px solid var(--sep);border-radius:var(--r-md);padding:.7rem 2.5rem .7rem 1rem;font-family:inherit;font-size:.9rem;color:var(--label1);background:var(--surface2);transition:all .2s;outline:none}
 .ac-input:focus{border-color:var(--blue);background:var(--surface);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
-.ac-input.selected{border-color:var(--green-dark);background:var(--green-soft)}
+.ac-input.sel{border-color:var(--green-dark);background:var(--green-soft)}
 .ac-icon{position:absolute;right:.85rem;top:50%;transform:translateY(-50%);font-size:.9rem;pointer-events:none;opacity:0;transition:opacity .2s}
-.ac-input.selected ~ .ac-icon{opacity:1}
-.ac-suggestions{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-md);max-height:220px;overflow-y:auto;z-index:300;box-shadow:var(--shadow-lg);display:none}
-.ac-suggestions.open{display:block}
-.ac-sug{padding:.65rem 1rem;font-size:.85rem;color:var(--label1);cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:.5rem}
-.ac-sug:hover,.ac-sug.highlighted{background:var(--blue-soft)}
+.ac-input.sel ~ .ac-icon{opacity:1}
+.ac-sugs{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-md);max-height:220px;overflow-y:auto;z-index:300;box-shadow:var(--shadow-lg);display:none}
+.ac-sugs.open{display:block}
+.ac-sug{padding:.65rem 1rem;font-size:.85rem;cursor:pointer;transition:background .12s;display:flex;align-items:center;gap:.5rem}
+.ac-sug:hover,.ac-sug.hi{background:var(--blue-soft)}
 .ac-sug mark{background:transparent;color:var(--blue);font-weight:700}
-.ac-sug .sug-av{width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;text-transform:uppercase}
+.sug-av{width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0;text-transform:uppercase}
 
-/* ── BOTONES ──────────────────────────────────── */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:none;border-radius:var(--r-md);padding:.65rem 1.3rem;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
-.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+/* Botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;border:none;border-radius:var(--r-md);padding:.65rem 1.3rem;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
 .btn-full{width:100%;margin-top:.75rem}
 .btn-navy{background:var(--navy);color:#fff}
-.btn-navy:not(:disabled):hover{background:#152540;transform:translateY(-1px);box-shadow:0 4px 14px rgba(10,22,40,.3)}
+.btn-navy:not(:disabled):hover{background:#152540;transform:translateY(-1px)}
 .btn-green{background:var(--green-dark);color:#fff}
-.btn-green:not(:disabled):hover{background:#157a3a;transform:translateY(-1px);box-shadow:0 4px 12px rgba(26,150,72,.3)}
+.btn-green:not(:disabled):hover{background:#157a3a;transform:translateY(-1px)}
 .btn-red{background:var(--red-dark);color:#fff}
-.btn-red:not(:disabled):hover{background:#962d22;transform:translateY(-1px)}
 .btn-ghost{background:var(--surface2);color:var(--label2);border:1px solid var(--sep)}
-.btn-ghost:not(:disabled):hover{background:#eaedf2}
 .btn-sm{padding:.42rem .85rem;font-size:.75rem}
 
-/* ── INFO BAR ─────────────────────────────────── */
+/* User bar */
 .user-bar{display:flex;align-items:center;gap:.75rem;background:var(--navy);border-radius:var(--r-md);padding:.75rem 1rem;margin-bottom:.75rem}
-.user-bar-av{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(201,168,76,.4);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--gold);flex-shrink:0;text-transform:uppercase}
-.user-bar-name{font-size:.85rem;font-weight:600;color:#fff}
-.user-bar-sub{font-size:.68rem;color:rgba(255,255,255,.45);margin-top:.06rem}
-.user-bar-change{margin-left:auto;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:.32rem .7rem;border-radius:var(--r-sm);font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
-.user-bar-change:hover{background:rgba(255,255,255,.18);color:#fff}
+.ubar-av{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(201,168,76,.4);display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:700;color:var(--gold);flex-shrink:0;text-transform:uppercase}
+.ubar-name{font-size:.85rem;font-weight:600;color:#fff}
+.ubar-sub{font-size:.68rem;color:rgba(255,255,255,.45);margin-top:.06rem}
+.ubar-change{margin-left:auto;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);padding:.32rem .7rem;border-radius:var(--r-sm);font-size:.68rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.ubar-change:hover{background:rgba(255,255,255,.18);color:#fff}
 
-/* ── TURNO ITEM ───────────────────────────────── */
-.turno-item{display:flex;align-items:center;gap:.75rem;background:var(--surface2);border-radius:var(--r-md);padding:.7rem .9rem;margin-bottom:.4rem;border:1.5px solid transparent;cursor:pointer;transition:all .18s ease;user-select:none}
-.turno-item:hover{background:#ebebf0;border-color:var(--label4)}
-.turno-item.selected{background:var(--red-soft);border-color:var(--red-dark)}
-.turno-item.already-baja{background:var(--surface2);border-color:var(--label4);opacity:.65;cursor:default}
-.turno-item.confirmed{background:var(--green-soft);border-color:var(--green-dark);cursor:default}
+/* Turno item */
+.ti{display:flex;align-items:center;gap:.75rem;background:var(--surface2);border-radius:var(--r-md);padding:.7rem .9rem;margin-bottom:.4rem;border:1.5px solid transparent;cursor:pointer;transition:all .18s;user-select:none}
+.ti:hover{background:#ebebf0;border-color:var(--label4)}
+.ti.sel{background:var(--red-soft);border-color:var(--red-dark)}
+.ti.ya{background:var(--surface2);border-color:var(--label4);opacity:.65;cursor:default}
+.ti.conf{background:var(--green-soft);border-color:var(--green-dark);cursor:default}
 .ti-cb{width:22px;height:22px;border-radius:7px;border:2px solid var(--label4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .18s;background:var(--surface)}
-.turno-item.selected .ti-cb{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
-.turno-item.already-baja .ti-cb{background:var(--label3);border-color:var(--label3);color:#fff}
-.turno-item.confirmed .ti-cb{background:var(--green-dark);border-color:var(--green-dark);color:#fff}
-.ti-hora{font-size:.9rem;font-weight:700;color:var(--label1);letter-spacing:-.01em}
+.ti.sel .ti-cb{background:var(--red-dark);border-color:var(--red-dark);color:#fff}
+.ti.ya .ti-cb{background:var(--label3);border-color:var(--label3);color:#fff}
+.ti.conf .ti-cb{background:var(--green-dark);border-color:var(--green-dark);color:#fff}
+.ti-hora{font-size:.9rem;font-weight:700;color:var(--label1)}
 .ti-meta{font-size:.7rem;color:var(--label3);margin-top:.12rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
-.ti-pill{font-size:.6rem;font-weight:700;padding:.12rem .42rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase}
+.pill{font-size:.6rem;font-weight:700;padding:.12rem .42rem;border-radius:4px;letter-spacing:.06em;text-transform:uppercase}
 .pill-m{background:var(--blue-soft);color:var(--blue)}
 .pill-t{background:var(--amber-soft);color:var(--amber)}
-.pill-baja{background:var(--red-soft);color:var(--red-dark)}
+.pill-ya{background:var(--red-soft);color:var(--red-dark)}
 .pill-ok{background:var(--green-soft);color:var(--green-dark)}
 
-/* ── RESUMEN ──────────────────────────────────── */
-.resumen-box{background:linear-gradient(135deg,#fff8e1,#fff3cc);border:1.5px solid #ffe082;border-radius:var(--r-md);padding:.85rem 1rem;margin:.75rem 0;display:none;animation:fadeUp .2s ease}
-.resumen-box.visible{display:block}
-.resumen-title{font-size:.78rem;font-weight:700;color:#7a5c00;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
-.resumen-item{font-size:.78rem;color:#6b5000;padding:.25rem 0;border-bottom:1px solid rgba(255,224,82,.5);display:flex;align-items:center;gap:.4rem}
+/* Resumen */
+.resumen{background:linear-gradient(135deg,#fff8e1,#fff3cc);border:1.5px solid #ffe082;border-radius:var(--r-md);padding:.85rem 1rem;margin:.75rem 0;display:none;animation:fadeUp .2s ease}
+.resumen.vis{display:block}
+.resumen-title{font-size:.78rem;font-weight:700;color:#7a5c00;margin-bottom:.5rem}
+.resumen-item{font-size:.78rem;color:#6b5000;padding:.25rem 0;border-bottom:1px solid rgba(255,224,82,.5)}
 .resumen-item:last-child{border-bottom:none}
 
-/* ── FEEDBACK ─────────────────────────────────── */
-.feedback-ok{background:var(--green-soft);border:1.5px solid #b0dcc0;border-radius:var(--r-md);padding:.8rem 1rem;margin-top:.65rem;display:flex;align-items:center;gap:.65rem;animation:fadeUp .25s ease}
-.fok-icon{font-size:1.3rem;flex-shrink:0}
-.fok-txt{font-size:.82rem;font-weight:600;color:var(--green-dark)}
-.fok-sub{font-size:.72rem;color:var(--label3);margin-top:.1rem}
+/* Feedback */
+.fb-ok{background:var(--green-soft);border:1.5px solid #b0dcc0;border-radius:var(--r-md);padding:.8rem 1rem;margin-top:.65rem;display:flex;align-items:center;gap:.65rem;animation:fadeUp .25s ease}
 
-/* ── OFERTA CARDS ─────────────────────────────── */
-.fecha-grupo{margin-bottom:1.5rem}
-.fecha-hdr{display:flex;align-items:center;gap:.6rem;padding-bottom:.5rem;margin-bottom:.75rem;border-bottom:2px solid var(--navy)}
-.fecha-txt{font-size:.95rem;font-weight:700;color:var(--navy);letter-spacing:-.01em}
-.oc{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.65rem;transition:box-shadow .2s,transform .2s;animation:fadeUp .3s ease both}
-.oc:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
-.oc.dia-card{border-color:#d8b4fe}
-.oc-accent{height:3px}
-.oa-m{background:linear-gradient(90deg,var(--blue),#34aadc)}
-.oa-t{background:linear-gradient(90deg,var(--amber),#ffcc00)}
-.oa-d{background:linear-gradient(90deg,var(--purple),#c084fc)}
-.oc-head{padding:.9rem 1.1rem .4rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap}
-.oc-rango{font-size:1.1rem;font-weight:800;color:var(--label1);letter-spacing:-.02em}
-.oc-rango.dia{color:var(--purple)}
-.oc-type{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .48rem;border-radius:4px;margin-top:.28rem;display:inline-block}
-.ot-m{background:var(--blue-soft);color:var(--blue)}
-.ot-t{background:var(--amber-soft);color:var(--amber)}
-.ot-d{background:var(--purple-soft);color:var(--purple)}
-.prog-wrap{padding:.35rem 1.1rem .6rem}
-.prog-info{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}
-.prog-label{font-size:.68rem;font-weight:600;color:var(--label3)}
-.prog-track{height:5px;background:var(--sep);border-radius:3px;overflow:hidden}
-.prog-fill{height:100%;border-radius:3px;transition:width .45s ease}
-.pf-empty{background:var(--red-dark)}
-.pf-partial{background:var(--amber)}
-.pf-full{background:var(--green-dark)}
-.pf-dia{background:var(--purple)}
-.alerta-llave{margin:0 1.1rem .6rem;background:#fffbf0;border:1px solid #ffe082;border-radius:var(--r-sm);padding:.5rem .75rem;font-size:.75rem;color:#7a5000;display:flex;align-items:center;gap:.4rem}
-.oc-actions{padding:0 1.1rem 1rem}
-.ya-apuntado{display:flex;align-items:center;gap:.5rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.6rem .85rem;font-size:.8rem;font-weight:700;color:var(--green-dark)}
-.franja-label{font-size:.65rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);margin-bottom:.45rem}
-.franjas-grid{display:flex;flex-wrap:wrap;gap:.35rem}
-.franja-btn{background:var(--blue-soft);color:var(--blue);border:1.5px solid #b3ceef;border-radius:var(--r-sm);padding:.42rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s ease;display:flex;align-items:center;gap:.3rem}
+/* Oferta cards */
+.fg-sep{display:flex;align-items:center;gap:.6rem;padding-bottom:.5rem;margin-bottom:.75rem;border-bottom:2px solid var(--navy)}
+.fg-txt{font-size:.95rem;font-weight:700;color:var(--navy)}
+.oc{background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.65rem;transition:box-shadow .2s}
+.oc:hover{box-shadow:var(--shadow-md)}
+.oc.ya-apuntado-card{border-color:#b0dcc0}
+
+/* Barra progreso */
+.prog-track{height:5px;background:var(--sep);border-radius:3px;overflow:hidden;margin:.3rem 0}
+.prog-fill{height:100%;border-radius:3px;transition:width .45s}
+
+/* Franjas horarias */
+.franja-grid{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.franja-btn{background:var(--blue-soft);color:var(--blue);border:1.5px solid #b3ceef;border-radius:var(--r-sm);padding:.42rem .85rem;font-size:.78rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;display:flex;align-items:center;gap:.3rem}
+.franja-btn.sel{background:var(--navy);color:#fff;border-color:var(--navy)}
 .franja-btn.tarde{background:var(--amber-soft);color:var(--amber);border-color:#ffd59e}
-.franja-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.franja-btn:hover{transform:translateY(-1px);box-shadow:0 3px 10px rgba(0,0,0,.1)}
 
-/* ── NOMBRE REQUERIDO EN OFERTA ───────────────── */
-.oferta-locked{background:var(--surface);border:2px dashed var(--label4);border-radius:var(--r-lg);padding:2rem;text-align:center;margin-top:.5rem}
-.oferta-locked .ol-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.3}
-.oferta-locked h4{font-size:.9rem;font-weight:600;color:var(--label2);margin-bottom:.3rem}
-.oferta-locked p{font-size:.8rem;color:var(--label3)}
+/* Ya apuntado badge */
+.ya-apuntado{display:flex;align-items:center;gap:.5rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.6rem .85rem;font-size:.8rem;font-weight:700;color:var(--green-dark)}
+.llave-alert{margin:0 0 .55rem;background:#fffbf0;border:1px solid #ffe082;border-radius:var(--r-sm);padding:.45rem .75rem;font-size:.73rem;color:#7a5000;display:flex;align-items:center;gap:.35rem}
 
-/* ── OVERLAY APUNTARSE ───────────────────────── */
-.apuntar-overlay{
-  position:fixed;inset:0;z-index:1000;
-  display:none;align-items:center;justify-content:center;
-  background:rgba(10,22,40,.55);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  padding:1.5rem;
-}
-.apuntar-overlay.visible{display:flex;animation:overlayIn .25s ease}
-@keyframes overlayIn{from{opacity:0}to{opacity:1}}
-.apuntar-modal{
-  background:var(--surface);border-radius:var(--r-xl);
-  padding:2.5rem 2rem;max-width:380px;width:100%;text-align:center;
-  box-shadow:var(--shadow-lg);
-  animation:modalPop .35s cubic-bezier(.34,1.56,.64,1);
-}
+/* Overlay apuntarse */
+.overlay{position:fixed;inset:0;z-index:1000;display:none;align-items:center;justify-content:center;background:rgba(10,22,40,.55);backdrop-filter:blur(18px) saturate(160%);padding:1.5rem}
+.overlay.vis{display:flex;animation:fadeUp .25s ease}
+.ov-modal{background:var(--surface);border-radius:var(--r-xl);padding:2.5rem 2rem;max-width:380px;width:100%;text-align:center;box-shadow:var(--shadow-lg);animation:modalPop .35s cubic-bezier(.34,1.56,.64,1)}
 @keyframes modalPop{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
-.am-spinner{width:52px;height:52px;border:4px solid rgba(0,113,227,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1.25rem}
-.am-check{width:64px;height:64px;border-radius:50%;background:var(--green-soft);border:3px solid var(--green-dark);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 1.25rem;animation:checkPop .4s cubic-bezier(.34,1.56,.64,1)}
+.ov-spinner{width:52px;height:52px;border:4px solid rgba(0,113,227,.15);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 1.25rem}
+.ov-check{width:64px;height:64px;border-radius:50%;background:var(--green-soft);border:3px solid var(--green-dark);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 1.25rem;animation:checkPop .4s cubic-bezier(.34,1.56,.64,1)}
 @keyframes checkPop{from{transform:scale(0)}to{transform:scale(1)}}
-.am-title{font-size:1.05rem;font-weight:700;color:var(--label1);margin-bottom:.4rem}
-.am-sub{font-size:.82rem;color:var(--label3);line-height:1.5}
-.am-name{font-weight:700;color:var(--green-dark)}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── LOADING / EMPTY ──────────────────────────── */
-.loading-state{text-align:center;padding:3.5rem 0}
+/* Loading / Empty */
+.loading-s{text-align:center;padding:3.5rem 0}
 .spinner{width:40px;height:40px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto .9rem}
-.loading-state p{color:var(--label3);font-size:.85rem}
-.empty-state{text-align:center;padding:3.5rem 1rem}
-.empty-state .ei{font-size:2.8rem;display:block;opacity:.28;margin-bottom:.85rem}
-.empty-state h4{font-size:.92rem;font-weight:600;color:var(--label2);margin-bottom:.35rem}
-.empty-state p{font-size:.8rem;color:var(--label3)}
+.empty-s{text-align:center;padding:3.5rem 1rem}
+.empty-s .ei{font-size:2.8rem;display:block;opacity:.28;margin-bottom:.85rem}
+.empty-s h4{font-size:.92rem;font-weight:600;color:var(--label2);margin-bottom:.35rem}
+.empty-s p{font-size:.8rem;color:var(--label3)}
 
-/* ── TOAST ────────────────────────────────────── */
+/* Toast */
 .toast-stack{position:fixed;bottom:calc(1.4rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:.35rem;align-items:center;pointer-events:none}
 .toast{background:rgba(26,26,46,.93);backdrop-filter:blur(14px);color:#fff;padding:.65rem 1.2rem;border-radius:40px;font-size:.8rem;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .28s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:auto}
 .toast.ok{background:rgba(26,150,72,.93)}
@@ -218,16 +171,15 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 </head>
 <body>
 
-<!-- OVERLAY APUNTARSE -->
-<div class="apuntar-overlay" id="apuntar-overlay">
-  <div class="apuntar-modal" id="apuntar-modal">
-    <div class="am-spinner" id="am-spinner"></div>
-    <div class="am-title" id="am-title">Registrando…</div>
-    <div class="am-sub" id="am-sub">Por favor espera un momento</div>
+<!-- Overlay apuntarse -->
+<div class="overlay" id="overlay">
+  <div class="ov-modal" id="ov-modal">
+    <div class="ov-spinner" id="ov-spinner"></div>
+    <div style="font-size:1.05rem;font-weight:700;color:var(--label1)" id="ov-title">Registrando…</div>
+    <div style="font-size:.82rem;color:var(--label3);margin-top:.4rem" id="ov-sub">Por favor espera</div>
   </div>
 </div>
 
-<!-- HERO -->
 <header class="hero">
   <div class="hero-inner">
     <div class="hero-icon">🔄</div>
@@ -237,7 +189,6 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
   </div>
 </header>
 
-<!-- TABS -->
 <div class="tabs-wrap">
   <div class="tabs-pill">
     <button class="tab-btn active" onclick="cambiarTab('bajas')"><span>📤</span> Comunicar baja</button>
@@ -247,43 +198,41 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 
 <main class="main">
 
-  <!-- ══ TAB BAJAS ══════════════════════════════ -->
+  <!-- TAB BAJAS -->
   <div id="tab-bajas" class="sec active">
-    <div class="stepper" id="stepper">
-      <div class="step-item active" id="step-1"><div class="step-num" id="snum-1">1</div><span class="step-txt">Nombre</span></div>
-      <div class="step-connector" id="scon-1"></div>
-      <div class="step-item" id="step-2"><div class="step-num" id="snum-2">2</div><span class="step-txt">Turnos</span></div>
-      <div class="step-connector" id="scon-2"></div>
-      <div class="step-item" id="step-3"><div class="step-num" id="snum-3">3</div><span class="step-txt">Listo</span></div>
+    <div class="stepper">
+      <div class="step-item active" id="st1"><div class="step-num" id="sn1">1</div><span class="step-txt">Nombre</span></div>
+      <div class="step-con" id="sc1"></div>
+      <div class="step-item" id="st2"><div class="step-num" id="sn2">2</div><span class="step-txt">Turnos</span></div>
+      <div class="step-con" id="sc2"></div>
+      <div class="step-item" id="st3"><div class="step-num" id="sn3">3</div><span class="step-txt">Listo</span></div>
     </div>
 
-    <!-- Paso 1 -->
     <div class="card" id="card-nombre">
-      <span class="section-label">¿Quién eres?</span>
+      <span class="slbl">¿Quién eres?</span>
       <div class="ac-wrap">
         <input type="text" class="ac-input" id="inp-baja" placeholder="Escribe tu nombre…" autocomplete="off"
-               oninput="sugerir(this,'sg-baja','hid-baja')" onkeydown="navSug(event,'sg-baja','hid-baja')">
+          oninput="sugerir(this,'sg-baja','hid-baja')" onkeydown="navSug(event,'sg-baja','hid-baja')">
         <input type="hidden" id="hid-baja">
         <span class="ac-icon">✓</span>
-        <div class="ac-suggestions" id="sg-baja"></div>
+        <div class="ac-sugs" id="sg-baja"></div>
       </div>
       <button class="btn btn-navy btn-full" id="btn-buscar" disabled onclick="buscarTurnos()">
         🔍 Ver mis turnos asignados
       </button>
     </div>
 
-    <!-- Paso 2 -->
     <div id="card-turnos" style="display:none">
-      <div class="user-bar" id="uib">
-        <div class="user-bar-av" id="uib-av"></div>
-        <div><div class="user-bar-name" id="uib-name"></div><div class="user-bar-sub" id="uib-sub"></div></div>
-        <button class="user-bar-change" onclick="cambiarNombre()">Cambiar</button>
+      <div class="user-bar" id="ubar">
+        <div class="ubar-av" id="ubar-av"></div>
+        <div><div class="ubar-name" id="ubar-name"></div><div class="ubar-sub" id="ubar-sub"></div></div>
+        <button class="ubar-change" onclick="cambiarNombre()">Cambiar</button>
       </div>
       <div class="card" style="padding-bottom:.5rem">
-        <span class="section-label">Selecciona los turnos en los que no puedes asistir</span>
+        <span class="slbl">Selecciona los turnos en los que no puedes asistir</span>
         <div id="lista-turnos"></div>
       </div>
-      <div class="resumen-box" id="resumen">
+      <div class="resumen" id="resumen">
         <div class="resumen-title">📋 Darás de baja en estos turnos:</div>
         <div id="resumen-items"></div>
       </div>
@@ -292,30 +241,25 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
     </div>
   </div>
 
-  <!-- ══ TAB OFERTA ═════════════════════════════ -->
+  <!-- TAB OFERTA -->
   <div id="tab-oferta" class="sec">
-
-    <!-- PASO 1 OFERTA: introducir nombre PRIMERO -->
-    <div class="card" id="card-nombre-oferta">
-      <span class="section-label">Primero, ¿quién eres?</span>
+    <div class="card" id="card-nom-oferta">
+      <span class="slbl">Primero, ¿quién eres?</span>
       <p style="font-size:.78rem;color:var(--label3);margin-bottom:.85rem;line-height:1.5">
-        Introduce tu nombre para cargar los turnos disponibles y poder apuntarte correctamente.
+        Introduce tu nombre para ver los turnos disponibles y si ya estás apuntado en alguno.
       </p>
       <div class="ac-wrap">
         <input type="text" class="ac-input" id="inp-ref" placeholder="Escribe tu nombre…" autocomplete="off"
-               oninput="sugerir(this,'sg-ref','hid-ref')" onkeydown="navSug(event,'sg-ref','hid-ref')">
+          oninput="sugerir(this,'sg-ref','hid-ref')" onkeydown="navSug(event,'sg-ref','hid-ref')">
         <input type="hidden" id="hid-ref">
         <span class="ac-icon">✓</span>
-        <div class="ac-suggestions" id="sg-ref"></div>
+        <div class="ac-sugs" id="sg-ref"></div>
       </div>
-      <button class="btn btn-navy btn-full" id="btn-cargar-oferta" disabled onclick="cargarOferta()">
+      <button class="btn btn-navy btn-full" id="btn-cargar" disabled onclick="cargarOferta()">
         📋 Ver turnos disponibles
       </button>
     </div>
-
-    <!-- Lista de oferta (aparece tras confirmar nombre) -->
     <div id="oferta-wrap" style="display:none"></div>
-
   </div>
 
 </main>
@@ -325,374 +269,18 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 <script>
 const SUPA_URL = "https://inifdflvblnonzowbxie.supabase.co";
 const SUPA_KEY = "sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
-
-let voluntarios   = [];
-let turnosUsuario = [];
-let ofertaActual  = [];
-let nombreOferta  = '';   // nombre confirmado para la oferta
-
-// ══ INIT ═══════════════════════════════════════
-window.addEventListener('DOMContentLoaded', () => {
-  apiGet('getVoluntarios').then(d => { voluntarios = Array.isArray(d) ? d : []; }).catch(() => {});
-  document.getElementById('inp-baja').addEventListener('input', function() {
-    document.getElementById('btn-buscar').disabled = this.value.trim().length < 2;
-  });
-  document.getElementById('inp-ref').addEventListener('input', function() {
-    document.getElementById('btn-cargar-oferta').disabled = this.value.trim().length < 2;
-  });
-});
-
-// ══ TABS ═══════════════════════════════════════
-function cambiarTab(t) {
-  ['bajas','oferta'].forEach((id,i) => {
-    document.getElementById('tab-'+id).classList.toggle('active', id===t);
-    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',(i===0&&t==='bajas')||(i===1&&t==='oferta'));
-  });
-}
-
-// ══ AUTOCOMPLETE ═══════════════════════════════
-function sugerir(inp, sgId, hidId) {
-  const q   = inp.value.trim().toLowerCase();
-  const sg  = document.getElementById(sgId);
-  const hid = document.getElementById(hidId);
-  hid.value = ''; inp.classList.remove('selected');
-  if (q.length < 2) { sg.classList.remove('open'); sg.innerHTML=''; return; }
-  const matches = voluntarios.filter(v => v.toLowerCase().includes(q)).slice(0,8);
-  if (!matches.length) { sg.classList.remove('open'); return; }
-  const re = new RegExp('(' + q.replace(/[-[\]{}()*+?.,\\^$|#\s]/g,'\\$&') + ')','gi');
-  sg.innerHTML = matches.map(v => {
-    const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-    return `<div class="ac-sug" onclick="elegir('${esc(v)}','${inp.id}','${sgId}','${hidId}')">
-      <div class="sug-av">${ini}</div>
-      <span>${v.replace(re,'<mark>$1</mark>')}</span>
-    </div>`;
-  }).join('');
-  sg.classList.add('open');
-}
-
-function elegir(nombre, inpId, sgId, hidId) {
-  const inp = document.getElementById(inpId);
-  inp.value = nombre; inp.classList.add('selected');
-  document.getElementById(hidId).value = nombre;
-  document.getElementById(sgId).classList.remove('open');
-  document.getElementById(sgId).innerHTML = '';
-  if (inpId === 'inp-baja') document.getElementById('btn-buscar').disabled = false;
-  if (inpId === 'inp-ref')  document.getElementById('btn-cargar-oferta').disabled = false;
-}
-
-function navSug(e, sgId, hidId) {
-  const sg = document.getElementById(sgId);
-  const items = sg.querySelectorAll('.ac-sug');
-  const cur   = sg.querySelector('.highlighted');
-  if (e.key==='Escape') { sg.classList.remove('open'); return; }
-  if (e.key==='ArrowDown') { e.preventDefault(); const nx=cur?cur.nextElementSibling:items[0]; cur?.classList.remove('highlighted'); nx?.classList.add('highlighted'); nx?.scrollIntoView({block:'nearest'}); }
-  else if (e.key==='ArrowUp') { e.preventDefault(); const pv=cur?cur.previousElementSibling:items[items.length-1]; cur?.classList.remove('highlighted'); pv?.classList.add('highlighted'); pv?.scrollIntoView({block:'nearest'}); }
-  else if (e.key==='Enter') { e.preventDefault(); cur?.click(); }
-}
-document.addEventListener('click', e => {
-  if (!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-suggestions').forEach(s=>s.classList.remove('open'));
-});
-
-// ══ STEPPER ════════════════════════════════════
-function setStep(n) {
-  [1,2,3].forEach(i => {
-    document.getElementById(`step-${i}`).className='step-item'+(i<n?' done':i===n?' active':'');
-    const con=document.getElementById(`scon-${i}`);
-    if(con) con.className='step-connector'+(i<n?' done':'');
-  });
-}
-
-// ══ BAJAS — BUSCAR TURNOS ══════════════════════
-async function buscarTurnos() {
-  const nombre = document.getElementById('hid-baja').value.trim();
-  if (!nombre) { toast('Selecciona tu nombre de la lista desplegable','err'); return; }
-  const btn = document.getElementById('btn-buscar');
-  btn.disabled = true; btn.innerHTML = `<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Buscando…`;
-  try {
-    const res = await apiGet('getTurnosVoluntario&nombre='+encodeURIComponent(nombre));
-    turnosUsuario = res.turnos || [];
-    if (!turnosUsuario.length) { toast(`No hay turnos confirmados para "${nombre}"`,'err'); }
-    else {
-      // Mostrar barra de usuario
-      const ini = nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-      const activos = turnosUsuario.filter(t=>!t.yaBaja).length;
-      document.getElementById('uib-av').textContent = ini;
-      document.getElementById('uib-name').textContent = nombre;
-      document.getElementById('uib-sub').textContent = `${turnosUsuario.length} turno${turnosUsuario.length!==1?'s':''} · ${activos} activo${activos!==1?'s':''}`;
-      document.getElementById('lista-turnos').innerHTML = turnosUsuario.map((t,i) => {
-        const h=t.rango?parseInt(t.rango):0, tard=h>=14;
-        const cls=t.yaBaja?'already-baja':'';
-        return `<div class="turno-item ${cls}" id="ti-${i}" ${t.yaBaja?'':'onclick="toggleTurno('+i+')"'}>
-          <div class="ti-cb" id="chk-${i}">${t.yaBaja?'✓':''}</div>
-          <div>
-            <div class="ti-hora">🕒 ${t.rango}</div>
-            <div class="ti-meta">
-              <span class="ti-pill ${tard?'pill-t':'pill-m'}">${tard?'TARDE':'MAÑANA'}</span>
-              <span>${t.dia}</span><span>·</span><span>${t.fecha}</span>
-              ${t.yaBaja?'<span class="ti-pill pill-baja">Baja registrada</span>':''}
-            </div>
-          </div>
-        </div>`;
-      }).join('');
-      document.getElementById('card-turnos').style.display='block';
-      setStep(2);
-      setTimeout(()=>document.getElementById('card-turnos').scrollIntoView({behavior:'smooth',block:'start'}),100);
-    }
-  } catch(e) { toast('Error al buscar turnos. Inténtalo de nuevo.','err'); }
-  finally { btn.disabled=false; btn.innerHTML='🔍 Ver mis turnos asignados'; }
-}
-
-function cambiarNombre() {
-  document.getElementById('card-turnos').style.display='none';
-  document.getElementById('inp-baja').value='';
-  document.getElementById('hid-baja').value='';
-  document.getElementById('inp-baja').classList.remove('selected');
-  document.getElementById('btn-buscar').disabled=true;
-  document.getElementById('resumen').classList.remove('visible');
-  document.getElementById('btn-baja').disabled=true;
-  document.getElementById('fb-baja').style.display='none';
-  turnosUsuario=[];
-  setStep(1);
-}
-
-function toggleTurno(i) {
-  const ti=document.getElementById(`ti-${i}`), chk=document.getElementById(`chk-${i}`);
-  const sel=ti.classList.toggle('selected'); chk.textContent=sel?'✓':'';
-  actualizarResumen();
-}
-
-function actualizarResumen() {
-  const selIdx=turnosUsuario.map((_,i)=>i).filter(i=>document.getElementById(`ti-${i}`)?.classList.contains('selected'));
-  const btnBaja=document.getElementById('btn-baja'), resumen=document.getElementById('resumen');
-  btnBaja.disabled=selIdx.length===0;
-  if(!selIdx.length){resumen.classList.remove('visible');return;}
-  resumen.classList.add('visible');
-  document.getElementById('resumen-items').innerHTML=selIdx.map(i=>{
-    const t=turnosUsuario[i];
-    return `<div class="resumen-item">🕒 <strong>${t.rango}</strong> · ${t.dia} ${t.fecha}</div>`;
-  }).join('');
-  setStep(2);
-  btnBaja.scrollIntoView({behavior:'smooth',block:'nearest'});
-}
-
-async function registrarBaja() {
-  const nombre=document.getElementById('hid-baja').value.trim();
-  const selIdx=turnosUsuario.map((_,i)=>i).filter(i=>document.getElementById(`ti-${i}`)?.classList.contains('selected'));
-  if(!selIdx.length||!nombre) return;
-  const seleccionados=selIdx.map(i=>turnosUsuario[i]);
-  const btn=document.getElementById('btn-baja');
-  btn.disabled=true; btn.innerHTML=`<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Registrando…`;
-  // Feedback optimista
-  selIdx.forEach(i=>{ const ti=document.getElementById(`ti-${i}`),chk=document.getElementById(`chk-${i}`); if(ti){ti.className='turno-item confirmed';ti.onclick=null;} if(chk) chk.textContent='✓'; });
-  document.getElementById('resumen').classList.remove('visible');
-  btn.innerHTML='✓ Baja registrada'; btn.className='btn btn-green btn-full';
-  const fb=document.getElementById('fb-baja'); fb.style.display='block';
-  fb.innerHTML=`<div class="feedback-ok"><div class="fok-icon">✅</div><div><div class="fok-txt">Baja registrada correctamente</div><div class="fok-sub">${seleccionados.length} turno${seleccionados.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
-  setStep(3);
-  try { await apiPost({accion:'registrarBaja',nombre,turnos:seleccionados}); ofertaActual=[]; }
-  catch(e) { console.warn('Error servidor:',e); }
-}
-
-// ══ OFERTA — CARGAR CON NOMBRE OBLIGATORIO ═════
-async function cargarOferta() {
-  const nombre = document.getElementById('hid-ref').value.trim();
-  if (!nombre) { toast('Selecciona tu nombre de la lista desplegable','err'); return; }
-  nombreOferta = nombre;
-  const btn = document.getElementById('btn-cargar-oferta');
-  btn.disabled = true; btn.innerHTML = `<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Cargando…`;
-
-  const wrap = document.getElementById('oferta-wrap');
-  wrap.style.display = 'block';
-  wrap.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
-
-  // Mostrar barra de usuario en oferta si existe, o añadirla
-  let uibOferta = document.getElementById('uib-oferta');
-  if (!uibOferta) {
-    uibOferta = document.createElement('div');
-    uibOferta.id = 'uib-oferta';
-    uibOferta.className = 'user-bar';
-    uibOferta.style.marginBottom = '1rem';
-    const ini = nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-    uibOferta.innerHTML = `
-      <div class="user-bar-av">${ini}</div>
-      <div><div class="user-bar-name">${nombre}</div><div class="user-bar-sub">Viendo disponibilidad personalizada</div></div>
-      <button class="user-bar-change" onclick="resetOferta()">Cambiar</button>`;
-    wrap.parentElement.insertBefore(uibOferta, wrap);
-  }
-
-  try {
-    const res = await apiGet('getOfertaTurnos');
-    ofertaActual = res.turnos || [];
-    renderOferta();
-  } catch(e) {
-    wrap.innerHTML = `<div class="empty-state"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p></div>`;
-  } finally {
-    btn.disabled = false; btn.innerHTML = '📋 Actualizar turnos';
-  }
-}
-
-function resetOferta() {
-  nombreOferta = '';
-  ofertaActual = [];
-  document.getElementById('inp-ref').value = '';
-  document.getElementById('hid-ref').value = '';
-  document.getElementById('inp-ref').classList.remove('selected');
-  document.getElementById('btn-cargar-oferta').disabled = true;
-  document.getElementById('btn-cargar-oferta').innerHTML = '📋 Ver turnos disponibles';
-  document.getElementById('oferta-wrap').style.display = 'none';
-  document.getElementById('oferta-wrap').innerHTML = '';
-  const uibOferta = document.getElementById('uib-oferta');
-  if (uibOferta) uibOferta.remove();
-}
-
-function renderOferta() {
-  const wrap = document.getElementById('oferta-wrap');
-  const nRef = nombreOferta.toUpperCase().trim();
-  if (!ofertaActual.length) {
-    wrap.innerHTML = `<div class="empty-state"><span class="ei">✅</span><h4>¡Todo cubierto!</h4><p>No hay turnos que necesiten voluntarios en este momento.</p></div>`;
-    return;
-  }
-  const porFecha = {};
-  ofertaActual.forEach(t => { const k=t.fecha+'|'+t.dia; if(!porFecha[k]) porFecha[k]=[]; porFecha[k].push(t); });
-  wrap.innerHTML = '';
-  Object.keys(porFecha).sort().forEach((fk,gi) => {
-    const [fecha,dia] = fk.split('|');
-    const grupo = document.createElement('div'); grupo.className='fecha-grupo'; grupo.style.animationDelay=(gi*.06)+'s';
-    grupo.innerHTML = `<div class="fecha-hdr"><span class="fecha-txt">📅 ${dia} · ${fecha}</span></div>`;
-    porFecha[fk].forEach(t => grupo.appendChild(buildOfertaCard(t, nRef)));
-    wrap.appendChild(grupo);
-  });
-}
-
-function buildOfertaCard(t, nRef) {
-  const esDia = t.esDia||t.rango==='DIA_COMPLETO';
-  const h = !esDia&&t.rango?parseInt(t.rango):0, tarde=!esDia&&h>=14;
-  const pct = Math.min(100,Math.round((t.equipoActual/4)*100));
-  const accentCls = esDia?'oa-d':tarde?'oa-t':'oa-m';
-  const typeCls   = esDia?'ot-d':tarde?'ot-t':'ot-m';
-  const typeTxt   = esDia?'DÍA COMPLETO':tarde?'TARDE':'MAÑANA';
-  const pfCls     = esDia?'pf-dia':pct===0?'pf-empty':pct>=75?'pf-full':'pf-partial';
-  const rangoTxt  = esDia?`<div class="oc-rango dia">📅 Día sin cuadrante</div>`:`<div class="oc-rango">🕒 ${t.rango}</div>`;
-  const cntTxt    = esDia?`Interesados: <strong>${t.equipoActual}</strong> · Mín: <strong>3</strong>`:`Equipo: <strong>${t.equipoActual} / 4</strong> · Faltan: <strong>${t.necesitan}</strong>`;
-  const yaApuntado = nRef && t.equipoNombres.some(n=>n.toUpperCase()===nRef);
-  const alertaLlave = !t.tieneLlave?`<div class="alerta-llave">🔑 ${esDia?'Necesita portador de llave.':'Este turno necesita portador de llave.'}</div>`:'';
-
-  let acciones = '';
-  if (yaApuntado) {
-    acciones = `<div class="ya-apuntado">✓ Ya estás apuntado en este turno.</div>`;
-  } else if (esDia) {
-    const franjas = t.franjasCalculadas||[];
-    acciones = franjas.length
-      ? `<div class="franja-label">Elige la franja horaria:</div><div class="franjas-grid">${franjas.map(fr=>`<button class="franja-btn${parseInt(fr)>=14?' tarde':''}" onclick="apuntarFranja('${esc(t.key)}','${esc(t.fecha)}','${esc(fr)}')">🕒 ${fr}</button>`).join('')}</div>`
-      : `<button class="btn btn-green btn-sm" onclick="apuntarFranja('${esc(t.key)}','${esc(t.fecha)}','')">✋ Apuntarme</button>`;
-  } else {
-    acciones = `<button class="btn btn-green btn-sm" onclick="apuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
-  }
-
-  const card = document.createElement('div');
-  card.className = `oc${esDia?' dia-card':''}`;
-  card.innerHTML = `
-    <div class="oc-accent ${accentCls}"></div>
-    <div class="oc-head"><div>${rangoTxt}<span class="oc-type ${typeCls}">${typeTxt}</span></div></div>
-    <div class="prog-wrap">
-      <div class="prog-info"><span class="prog-label">${cntTxt}</span></div>
-      <div class="prog-track"><div class="prog-fill ${pfCls}" style="width:${pct}%"></div></div>
-    </div>
-    ${alertaLlave}
-    <div class="oc-actions">${acciones}</div>`;
-  return card;
-}
-
-// ══ APUNTARSE ══════════════════════════════════
-async function apuntar(key, fecha) {
-  if (!validarNombreOferta()) return;
-  await enviarRefuerzo({accion:'registrarRefuerzo', nombre:nombreOferta, key, fecha});
-}
-async function apuntarFranja(key, fecha, franja) {
-  if (!validarNombreOferta()) return;
-  await enviarRefuerzo({accion:'registrarRefuerzo', nombre:nombreOferta, key, fecha, franja, esDia:true});
-}
-
-function validarNombreOferta() {
-  if (!nombreOferta || nombreOferta.trim().length < 2) {
-    toast('Introduce tu nombre primero para poder apuntarte','err');
-    document.getElementById('inp-ref').focus();
-    return false;
-  }
-  return true;
-}
-
-async function enviarRefuerzo(data) {
-  mostrarOverlay('cargando', data.nombre);
-  // Feedback optimista
-  const nUp = (data.nombre||'').toUpperCase().trim();
-  ofertaActual.forEach(t => {
-    if (t.key===data.key && !t.equipoNombres.some(n=>n.toUpperCase()===nUp)) {
-      t.equipoNombres.push(data.nombre); t.equipoActual=t.equipoNombres.length; t.necesitan=Math.max(0,4-t.equipoActual);
-    }
-  });
-  renderOferta();
-  try {
-    await apiPost(data);
-    mostrarOverlay('exito', data.nombre);
-    setTimeout(()=>{ ocultarOverlay(); ofertaActual=[]; cargarOferta(); }, 2200);
-  } catch(e) {
-    ocultarOverlay();
-    toast('Error al apuntarse. Inténtalo de nuevo.','err');
-    ofertaActual=[]; cargarOferta();
-  }
-}
-
-// ══ OVERLAY ════════════════════════════════════
-function mostrarOverlay(estado, nombre) {
-  const ov  = document.getElementById('apuntar-overlay');
-  const sp  = document.getElementById('am-spinner');
-  const tit = document.getElementById('am-title');
-  const sub = document.getElementById('am-sub');
-  const mod = document.getElementById('apuntar-modal');
-
-  if (estado === 'cargando') {
-    sp.style.display = 'block';
-    // Quitar check si hubiera
-    const chk = mod.querySelector('.am-check');
-    if (chk) chk.remove();
-    tit.textContent = 'Registrando…';
-    sub.textContent = 'Por favor espera un momento';
-    tit.style.color = 'var(--label1)';
-  } else {
-    sp.style.display = 'none';
-    const check = document.createElement('div');
-    check.className = 'am-check';
-    check.textContent = '✓';
-    mod.insertBefore(check, sp);
-    tit.textContent = '¡Apuntado con éxito!';
-    tit.style.color = 'var(--green-dark)';
-    sub.innerHTML = `<span class="am-name">${nombre}</span> ha sido registrado en el turno correctamente.`;
-  }
-  ov.classList.add('visible');
-}
-function ocultarOverlay() {
-  document.getElementById('apuntar-overlay').classList.remove('visible');
-  // Limpiar check para próxima vez
-  const chk = document.getElementById('apuntar-modal').querySelector('.am-check');
-  if (chk) chk.remove();
-  document.getElementById('am-spinner').style.display = 'block';
-}
-// Cerrar overlay al pulsar fuera
-document.getElementById('apuntar-overlay').addEventListener('click', e => {
-  if (e.target === e.currentTarget) ocultarOverlay();
-});
-
-// ══ API — Supabase ══════════════════════════════
 const SB_H = {
-  'apikey': SUPA_KEY,
-  'Authorization': 'Bearer '+SUPA_KEY,
-  'Content-Type': 'application/json',
-  'Accept': 'application/json'
+  'apikey': SUPA_KEY, 'Authorization': 'Bearer '+SUPA_KEY,
+  'Content-Type': 'application/json', 'Accept': 'application/json'
 };
+
+let voluntarios = [], turnosU = [], ofertaActual = [], nombreOferta = '';
+const DESC_OK = 5, DESC_MIN = 2, IDEAL = 4, MIN_EQ = 3, DUR = 2;
+
+// ── SUPABASE ──────────────────────────────────────────────────
 async function sbGet(tabla, params='') {
-  const r = await fetch(SUPA_URL+'/rest/v1/'+tabla+(params?'?'+params:''), { headers: SB_H });
-  if (!r.ok) throw new Error('Error '+r.status);
+  const r = await fetch(SUPA_URL+'/rest/v1/'+tabla+(params?'?'+params:''), {headers:SB_H});
+  if (!r.ok) throw new Error('Error '+r.status+' en '+tabla);
   return r.json();
 }
 async function sbPost(tabla, body, prefer='return=minimal') {
@@ -713,85 +301,389 @@ async function rpc(fn, params={}) {
   const r = await fetch(SUPA_URL+'/rest/v1/rpc/'+fn, {
     method:'POST', headers:SB_H, body:JSON.stringify(params)
   });
-  if (!r.ok) { const t=await r.text(); throw new Error('RPC error '+r.status+': '+t.substring(0,80)); }
+  if (!r.ok) { const t=await r.text(); throw new Error('RPC '+fn+' error '+r.status+': '+t.substring(0,80)); }
   return r.json();
 }
-
 function isoADMY(iso) { if(!iso) return ''; const p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 function dmyAIso(dmy) { if(!dmy) return ''; const p=dmy.split('/'); return p[2]+'-'+p[1]+'-'+p[0]; }
+function normDia(d) {
+  if (!d) return '';
+  return d.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+    .replace(/^./,c=>c.toUpperCase()).trim();
+}
+function PH(s) {
+  if (!s) return null;
+  const clean = s.replace(/:\d\d/g,'').trim();
+  const m = clean.match(/(\d+)\s+a\s+(\d+)/i);
+  if (!m) return null;
+  const a=parseInt(m[1]), b=parseInt(m[2]);
+  if (isNaN(a)||isNaN(b)||b<=a||b-a<DUR) return null;
+  return {a,b};
+}
+function HP(h) { return String(h).padStart(2,'0'); }
 
-async function apiGet(action) {
-  if (action === 'getVoluntarios') {
-    const rows = await sbGet('voluntarios', 'select=nombre&activo=eq.true&order=nombre');
-    return rows.map(r => r.nombre);
-  }
-  if (action.startsWith('getTurnosVoluntario&nombre=')) {
-    const nombre = decodeURIComponent(action.split('nombre=')[1]);
-    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
-    if (!vols.length) return { turnos: [] };
-    const volId = vols[0].id;
-    const [rows, bajasR] = await Promise.all([
-      sbGet('historial', 'voluntario_id=eq.'+volId+'&select=fecha,semana,dia,rango&order=fecha,rango'),
-      sbGet('bajas', 'voluntario_id=eq.'+volId+'&activa=eq.true&select=fecha,rango')
+// ── INIT ─────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  sbGet('voluntarios','select=nombre&activo=eq.true&order=nombre')
+    .then(d => { voluntarios = d.map(r=>r.nombre); }).catch(()=>{});
+  document.getElementById('inp-baja').addEventListener('input', function() {
+    document.getElementById('btn-buscar').disabled = this.value.trim().length < 2;
+  });
+  document.getElementById('inp-ref').addEventListener('input', function() {
+    document.getElementById('btn-cargar').disabled = this.value.trim().length < 2;
+  });
+});
+
+// ── TABS ─────────────────────────────────────────────────────
+function cambiarTab(t) {
+  ['bajas','oferta'].forEach((id,i) => {
+    document.getElementById('tab-'+id).classList.toggle('active', id===t);
+    document.querySelectorAll('.tab-btn')[i].classList.toggle('active',(i===0&&t==='bajas')||(i===1&&t==='oferta'));
+  });
+  if (t==='oferta' && !document.getElementById('oferta-wrap').style.display.includes('block')
+      && document.getElementById('hid-ref').value) cargarOferta();
+}
+
+// ── AUTOCOMPLETE ──────────────────────────────────────────────
+function sugerir(inp, sgId, hidId) {
+  const q=inp.value.trim().toLowerCase(), sg=document.getElementById(sgId), hid=document.getElementById(hidId);
+  hid.value=''; inp.classList.remove('sel');
+  if (q.length<2) { sg.classList.remove('open'); sg.innerHTML=''; return; }
+  const matches=voluntarios.filter(v=>v.toLowerCase().includes(q)).slice(0,8);
+  if (!matches.length) { sg.classList.remove('open'); return; }
+  const re=new RegExp('('+q.replace(/[-[\]{}()*+?.,\\^$|#]/g,'\\$&')+')','gi');
+  sg.innerHTML=matches.map(v=>{
+    const ini=v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    return `<div class="ac-sug" onclick="elegir('${esc(v)}','${inp.id}','${sgId}','${hidId}')">
+      <div class="sug-av">${ini}</div>
+      <span>${v.replace(re,'<mark>$1</mark>')}</span>
+    </div>`;
+  }).join('');
+  sg.classList.add('open');
+}
+function elegir(nombre, inpId, sgId, hidId) {
+  const inp=document.getElementById(inpId);
+  inp.value=nombre; inp.classList.add('sel');
+  document.getElementById(hidId).value=nombre;
+  document.getElementById(sgId).classList.remove('open');
+  if (inpId==='inp-baja') document.getElementById('btn-buscar').disabled=false;
+  if (inpId==='inp-ref')  document.getElementById('btn-cargar').disabled=false;
+}
+function navSug(e, sgId, hidId) {
+  const sg=document.getElementById(sgId), items=sg.querySelectorAll('.ac-sug'), cur=sg.querySelector('.hi');
+  if (e.key==='Escape') { sg.classList.remove('open'); return; }
+  if (e.key==='ArrowDown') { e.preventDefault(); const nx=cur?cur.nextElementSibling:items[0]; cur?.classList.remove('hi'); nx?.classList.add('hi'); nx?.scrollIntoView({block:'nearest'}); }
+  else if (e.key==='ArrowUp') { e.preventDefault(); const pv=cur?cur.previousElementSibling:items[items.length-1]; cur?.classList.remove('hi'); pv?.classList.add('hi'); pv?.scrollIntoView({block:'nearest'}); }
+  else if (e.key==='Enter') { e.preventDefault(); cur?.click(); }
+}
+document.addEventListener('click', e => { if (!e.target.closest('.ac-wrap')) document.querySelectorAll('.ac-sugs').forEach(s=>s.classList.remove('open')); });
+
+// ── STEPPER ───────────────────────────────────────────────────
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    document.getElementById('st'+i).className='step-item'+(i<n?' done':i===n?' active':'');
+    const c=document.getElementById('sc'+i); if(c) c.className='step-con'+(i<n?' done':'');
+  });
+}
+
+// ── BAJAS ─────────────────────────────────────────────────────
+async function buscarTurnos() {
+  const nombre=document.getElementById('hid-baja').value.trim();
+  if (!nombre) { toast('Selecciona tu nombre de la lista','err'); return; }
+  const btn=document.getElementById('btn-buscar');
+  btn.disabled=true; btn.innerHTML=`<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Buscando…`;
+  try {
+    const vols=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if (!vols.length) { toast('Voluntario no encontrado','err'); return; }
+    const volId=vols[0].id;
+    const [rows, bajasR]=await Promise.all([
+      sbGet('historial','voluntario_id=eq.'+volId+'&select=fecha,semana,dia,rango&order=fecha,rango'),
+      sbGet('bajas','voluntario_id=eq.'+volId+'&activa=eq.true&select=fecha,rango')
     ]);
-    const bajasSet = new Set(bajasR.map(b => b.fecha+'|'+b.rango));
-    return { turnos: rows.map(r => ({
-      semana: r.semana, dia: r.dia,
-      fecha: isoADMY(r.fecha), rango: r.rango,
-      yaBaja: bajasSet.has(r.fecha+'|'+r.rango)
-    }))};
-  }
-  if (action === 'getOfertaTurnos') {
-    const data = await rpc('get_oferta_simple');
-    return { turnos: data || [] };
-  }
-  throw new Error('Acción no reconocida: '+action);
-}
-
-async function apiPost(data) {
-  const d = data;
-  if (d.accion === 'registrarBaja') {
-    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
-    if (!vols.length) throw new Error('Voluntario no encontrado');
-    const volId = vols[0].id;
-    const rows = (d.turnos||[]).map(t => ({
-      voluntario_id: volId,
-      fecha: dmyAIso(t.fecha), semana: parseInt(t.semana),
-      dia: t.dia, rango: t.rango, activa: true
+    turnosU=rows.map(r=>({
+      semana:r.semana, dia:r.dia, fecha:isoADMY(r.fecha), rango:r.rango,
+      yaBaja: bajasR.some(b=>b.fecha===r.fecha&&b.rango===r.rango)
     }));
-    await sbPost('bajas', rows, 'resolution=merge-duplicates,return=minimal');
-    return { status:'success' };
-  }
-  if (d.accion === 'registrarRefuerzo') {
-    const nombre = d.nombre;
-    const [sem, dia, ...rp] = (d.key||'').split('|');
-    const rango = rp.join('|') || d.rango || '';
-    const fechaISO = dmyAIso(d.fecha||'');
-    const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
-    if (!vols.length) throw new Error('Voluntario no encontrado');
-    const volId = vols[0].id;
-    // Neutralizar baja si existe
-    await sbPatch('bajas',
-      'voluntario_id=eq.'+volId+'&fecha=eq.'+fechaISO+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',
-      { activa: false });
-    await sbPost('refuerzos', [{
-      voluntario_id: volId, fecha: fechaISO,
-      semana: parseInt(sem||1), dia: dia||'', rango,
-      es_dia_completo: !!d.esDia, franja: d.franja||null
-    }], 'resolution=merge-duplicates,return=minimal');
-    return { status:'success' };
-  }
-  throw new Error('Acción no reconocida: '+d.accion);
+    if (!turnosU.length) { toast('No hay turnos confirmados para "'+nombre+'"','err'); return; }
+    const ini=nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    const activos=turnosU.filter(t=>!t.yaBaja).length;
+    document.getElementById('ubar-av').textContent=ini;
+    document.getElementById('ubar-name').textContent=nombre;
+    document.getElementById('ubar-sub').textContent=turnosU.length+' turno'+(turnosU.length!==1?'s':'')+' · '+activos+' activo'+(activos!==1?'s':'');
+    document.getElementById('lista-turnos').innerHTML=turnosU.map((t,i)=>{
+      const tard=parseInt(t.rango)>=14;
+      const cls=t.yaBaja?'ya':'';
+      return `<div class="ti ${cls}" id="ti-${i}" ${t.yaBaja?'':'onclick="toggleTurno('+i+')"'}>
+        <div class="ti-cb" id="chk-${i}">${t.yaBaja?'✓':''}</div>
+        <div>
+          <div class="ti-hora">🕒 ${t.rango}</div>
+          <div class="ti-meta">
+            <span class="pill ${tard?'pill-t':'pill-m'}">${tard?'TARDE':'MAÑANA'}</span>
+            <span>${t.dia}</span><span>·</span><span>${t.fecha}</span>
+            ${t.yaBaja?'<span class="pill pill-ya">Baja registrada</span>':''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('card-turnos').style.display='block';
+    setStep(2);
+    setTimeout(()=>document.getElementById('card-turnos').scrollIntoView({behavior:'smooth',block:'start'}),100);
+  } catch(e) { toast('Error al buscar: '+e.message,'err'); }
+  finally { btn.disabled=false; btn.innerHTML='🔍 Ver mis turnos asignados'; }
 }
 
-// ══ TOAST ══════════════════════════════════════
+function cambiarNombre() {
+  document.getElementById('card-turnos').style.display='none';
+  document.getElementById('inp-baja').value=''; document.getElementById('hid-baja').value='';
+  document.getElementById('inp-baja').classList.remove('sel');
+  document.getElementById('btn-buscar').disabled=true;
+  document.getElementById('resumen').classList.remove('vis');
+  document.getElementById('btn-baja').disabled=true;
+  document.getElementById('fb-baja').style.display='none';
+  turnosU=[]; setStep(1);
+}
+
+function toggleTurno(i) {
+  const ti=document.getElementById('ti-'+i), chk=document.getElementById('chk-'+i);
+  const sel=ti.classList.toggle('sel'); chk.textContent=sel?'✓':'';
+  actualizarResumen();
+}
+
+function actualizarResumen() {
+  const selIdx=turnosU.map((_,i)=>i).filter(i=>document.getElementById('ti-'+i)?.classList.contains('sel'));
+  const btn=document.getElementById('btn-baja'), res=document.getElementById('resumen');
+  btn.disabled=selIdx.length===0;
+  if (!selIdx.length) { res.classList.remove('vis'); return; }
+  res.classList.add('vis');
+  document.getElementById('resumen-items').innerHTML=selIdx.map(i=>{
+    const t=turnosU[i]; return `<div class="resumen-item">🕒 <strong>${t.rango}</strong> · ${t.dia} ${t.fecha}</div>`;
+  }).join('');
+  setStep(2);
+  btn.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+async function registrarBaja() {
+  const nombre=document.getElementById('hid-baja').value.trim();
+  const selIdx=turnosU.map((_,i)=>i).filter(i=>document.getElementById('ti-'+i)?.classList.contains('sel'));
+  if (!selIdx.length||!nombre) return;
+  const seleccionados=selIdx.map(i=>turnosU[i]);
+  const btn=document.getElementById('btn-baja');
+  btn.disabled=true; btn.innerHTML=`<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Registrando…`;
+  selIdx.forEach(i=>{
+    const ti=document.getElementById('ti-'+i), chk=document.getElementById('chk-'+i);
+    if (ti) { ti.className='ti conf'; ti.onclick=null; } if (chk) chk.textContent='✓';
+  });
+  document.getElementById('resumen').classList.remove('vis');
+  btn.innerHTML='✓ Baja registrada'; btn.className='btn btn-green btn-full';
+  const fb=document.getElementById('fb-baja'); fb.style.display='block';
+  fb.innerHTML=`<div class="fb-ok"><div style="font-size:1.3rem">✅</div><div><div style="font-size:.82rem;font-weight:600;color:var(--green-dark)">Baja registrada correctamente</div><div style="font-size:.72rem;color:var(--label3)">${seleccionados.length} turno${seleccionados.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
+  setStep(3);
+  try {
+    const vols=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if (vols.length) {
+      const volId=vols[0].id;
+      const rows=seleccionados.map(t=>({voluntario_id:volId,fecha:dmyAIso(t.fecha),semana:parseInt(t.semana),dia:t.dia,rango:t.rango,activa:true}));
+      await sbPost('bajas',rows,'resolution=merge-duplicates,return=minimal');
+    }
+  } catch(e) { console.warn('Error servidor:',e); }
+}
+
+// ── OFERTA ────────────────────────────────────────────────────
+async function cargarOferta() {
+  const nombre=document.getElementById('hid-ref').value.trim();
+  if (!nombre) { toast('Selecciona tu nombre de la lista','err'); return; }
+  nombreOferta=nombre;
+  const btn=document.getElementById('btn-cargar');
+  btn.disabled=true; btn.innerHTML=`<div style="width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.4rem"></div> Cargando…`;
+  const wrap=document.getElementById('oferta-wrap');
+  wrap.style.display='block';
+  wrap.innerHTML=`<div class="loading-s"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
+
+  // Barra de usuario en oferta
+  let uibO=document.getElementById('uib-oferta');
+  if (!uibO) {
+    uibO=document.createElement('div'); uibO.id='uib-oferta'; uibO.className='user-bar'; uibO.style.marginBottom='1rem';
+    const ini=nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    uibO.innerHTML=`<div class="ubar-av">${ini}</div><div><div class="ubar-name">${nombre}</div><div class="ubar-sub">Turnos personalizados</div></div><button class="ubar-change" onclick="resetOferta()">Cambiar</button>`;
+    wrap.parentElement.insertBefore(uibO, wrap);
+  }
+
+  try {
+    // Obtener oferta + turnos en los que ya está apuntado este voluntario
+    const [ofertaRaw, vols]=await Promise.all([
+      rpc('get_oferta_simple'),
+      sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id')
+    ]);
+    ofertaActual=Array.isArray(ofertaRaw)?ofertaRaw:(ofertaRaw||[]);
+
+    // Marcar si ya está apuntado
+    if (vols.length) {
+      const volId=vols[0].id;
+      const refRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango');
+      const refSet=new Set(refRows.map(r=>r.fecha+'|'+r.rango));
+      ofertaActual=ofertaActual.map(t=>{
+        const fiso=dmyAIso(t.fecha);
+        return {...t, yaApuntado: refSet.has(fiso+'|'+t.rango) || (t.equipoNombres||[]).some(n=>n.toUpperCase()===nombre.toUpperCase())};
+      });
+    }
+    renderOferta();
+  } catch(e) {
+    wrap.innerHTML=`<div class="empty-s"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;
+  } finally {
+    btn.disabled=false; btn.innerHTML='📋 Actualizar turnos';
+  }
+}
+
+function resetOferta() {
+  nombreOferta=''; ofertaActual=[];
+  document.getElementById('inp-ref').value=''; document.getElementById('hid-ref').value='';
+  document.getElementById('inp-ref').classList.remove('sel');
+  document.getElementById('btn-cargar').disabled=true;
+  document.getElementById('btn-cargar').innerHTML='📋 Ver turnos disponibles';
+  document.getElementById('oferta-wrap').style.display='none';
+  document.getElementById('oferta-wrap').innerHTML='';
+  document.getElementById('uib-oferta')?.remove();
+}
+
+function renderOferta() {
+  const wrap=document.getElementById('oferta-wrap');
+  if (!ofertaActual.length) {
+    wrap.innerHTML=`<div class="empty-s"><span class="ei">✅</span><h4>¡Todo cubierto!</h4><p>No hay turnos que necesiten voluntarios ahora.</p></div>`;
+    return;
+  }
+  const porFecha={};
+  ofertaActual.forEach(t=>{ const k=t.fecha+'|'+t.dia; if(!porFecha[k]) porFecha[k]=[]; porFecha[k].push(t); });
+  wrap.innerHTML='';
+  Object.keys(porFecha).sort().forEach((fk,gi) => {
+    const [fecha,dia]=fk.split('|');
+    const grupo=document.createElement('div');
+    grupo.style.cssText=`margin-bottom:1.5rem;animation:fadeUp .3s ease both;animation-delay:${gi*.06}s`;
+    grupo.innerHTML=`<div class="fg-sep"><span class="fg-txt">📅 ${dia} · ${fecha}</span></div>`;
+    porFecha[fk].forEach(t=>grupo.appendChild(buildOfertaCard(t)));
+    wrap.appendChild(grupo);
+  });
+}
+
+function buildOfertaCard(t) {
+  const tard=parseInt((t.rango||'0').split(':')[0])>=14;
+  const pct=Math.min(100,Math.round((t.equipoActual/4)*100));
+  const pfColor=pct===0?'var(--red)':pct>=75?'var(--green-dark)':'var(--amber)';
+  const accentBg=tard?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)';
+  const typeLbl=tard?'TARDE':'MAÑANA';
+  const typeBg=tard?'var(--amber-soft)':'var(--blue-soft)';
+  const typeCol=tard?'var(--amber)':'var(--blue)';
+
+  // Franjas de 2h disponibles para este turno (basadas en el rango del turno)
+  const ph=PH(t.rango);
+  const franjas=[];
+  if (ph) {
+    for (let h=ph.a; h+DUR<=ph.b+DUR && h+DUR<=22; h++) {
+      // Solo la franja exacta del turno o sub-franjas si el rango es grande
+      if (h===ph.a) franjas.push({ h, label: HP(h)+':00 a '+HP(h+DUR)+':00', tard: h>=14 });
+    }
+  }
+
+  // Necesita llave
+  const llaveAlert=!t.tieneLlave
+    ? `<div class="llave-alert">🔑 Este turno necesita portador de llave. Si tienes llave, apúntate.</div>` : '';
+
+  // Ya apuntado
+  let accion='';
+  if (t.yaApuntado) {
+    accion=`<div class="ya-apuntado">✓ Ya estás apuntado en este turno</div>`;
+  } else if (nombreOferta) {
+    accion=`<button class="btn btn-green btn-sm" onclick="apuntar('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme a este turno</button>`;
+  } else {
+    accion=`<span style="font-size:.75rem;color:var(--label3)">Introduce tu nombre para apuntarte</span>`;
+  }
+
+  const card=document.createElement('div');
+  card.className='oc'+(t.yaApuntado?' ya-apuntado-card':'');
+  card.innerHTML=`
+    <div style="height:3px;background:${accentBg}"></div>
+    <div style="padding:.85rem 1rem .4rem;display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
+      <div>
+        <div style="font-size:1.05rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
+        <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;margin-top:.28rem;display:inline-block;background:${typeBg};color:${typeCol}">${typeLbl}</span>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:.78rem;font-weight:700;color:var(--label2)">${t.equipoActual}/4 <span style="font-weight:400;color:var(--label3)">voluntarios</span></div>
+        ${t.necesitan>0?`<div style="font-size:.68rem;color:var(--red);font-weight:600">Faltan ${t.necesitan}</div>`:''}
+      </div>
+    </div>
+    <div style="padding:0 1rem .6rem">
+      <div class="prog-track"><div class="prog-fill" style="width:${pct}%;background:${pfColor}"></div></div>
+    </div>
+    ${llaveAlert}
+    <div style="padding:0 1rem .5rem">
+      <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.35rem">Voluntarios apuntados (${(t.equipoNombres||[]).length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.28rem">
+        ${(t.equipoNombres||[]).map(n=>{
+          const esYo=n.toUpperCase()===nombreOferta.toUpperCase();
+          return `<span style="background:${esYo?'var(--green-soft)':'var(--surface2)'};border:1px solid ${esYo?'#b0dcc0':'var(--sep)'};border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:${esYo?700:500};color:${esYo?'var(--green-dark)':'var(--label1)'}">${esYo?'✓ ':''}${n}</span>`;
+        }).join('')||'<span style="font-size:.72rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>'}
+      </div>
+    </div>
+    <div style="padding:0 1rem .9rem">${accion}</div>`;
+  return card;
+}
+
+// ── APUNTARSE ─────────────────────────────────────────────────
+async function apuntar(key, fecha, rango) {
+  if (!nombreOferta) { toast('Selecciona tu nombre primero','err'); return; }
+  mostrarOverlay('cargando', nombreOferta);
+  const fiso=dmyAIso(fecha);
+  try {
+    const vols=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombreOferta)+'&select=id');
+    if (!vols.length) throw new Error('Voluntario no encontrado');
+    const volId=vols[0].id;
+    const [sem,dia]=key.split('|');
+    // Neutralizar baja si existe
+    await sbPatch('bajas','voluntario_id=eq.'+volId+'&fecha=eq.'+fiso+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',{activa:false});
+    // Registrar refuerzo
+    await sbPost('refuerzos',[{voluntario_id:volId,fecha:fiso,semana:parseInt(sem),dia,rango,es_dia_completo:false}],'resolution=merge-duplicates,return=minimal');
+    // Actualizar estado local
+    ofertaActual=ofertaActual.map(t=>t.key===key?{...t,yaApuntado:true,equipoActual:t.equipoActual+1,necesitan:Math.max(0,t.necesitan-1)}:t);
+    mostrarOverlay('exito', nombreOferta);
+    setTimeout(()=>{ ocultarOverlay(); renderOferta(); }, 2200);
+  } catch(e) {
+    ocultarOverlay(); toast('Error: '+e.message,'err');
+  }
+}
+
+// ── OVERLAY ───────────────────────────────────────────────────
+function mostrarOverlay(estado, nombre) {
+  const ov=document.getElementById('overlay');
+  const mod=document.getElementById('ov-modal');
+  const sp=document.getElementById('ov-spinner');
+  const tit=document.getElementById('ov-title');
+  const sub=document.getElementById('ov-sub');
+  mod.querySelector('.ov-check')?.remove();
+  if (estado==='cargando') {
+    sp.style.display='block'; tit.textContent='Registrando…'; sub.textContent='Por favor espera';
+    tit.style.color='var(--label1)';
+  } else {
+    sp.style.display='none';
+    const chk=document.createElement('div'); chk.className='ov-check'; chk.textContent='✓';
+    mod.insertBefore(chk,sp);
+    tit.textContent='¡Apuntado con éxito!'; tit.style.color='var(--green-dark)';
+    sub.innerHTML=`<strong style="color:var(--green-dark)">${nombre}</strong> ha sido registrado correctamente.`;
+  }
+  ov.classList.add('vis');
+}
+function ocultarOverlay() {
+  document.getElementById('overlay').classList.remove('vis');
+  document.getElementById('ov-modal').querySelector('.ov-check')?.remove();
+  document.getElementById('ov-spinner').style.display='block';
+}
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target===e.currentTarget) ocultarOverlay(); });
+
+// ── UTILS ─────────────────────────────────────────────────────
 function toast(msg, tipo='ok') {
-  const el = document.createElement('div');
-  el.className = `toast ${tipo}`; el.textContent = msg;
+  const el=document.createElement('div'); el.className='toast '+tipo; el.textContent=msg;
   document.getElementById('toasts').appendChild(el);
   setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); },3500);
 }
-
 function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 </script>
 </body>
