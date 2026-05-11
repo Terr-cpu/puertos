@@ -628,6 +628,20 @@ async function cached(key, ttlMs, fn) {
 function invalidar(...keys) { keys.forEach(k => delete _cache[k]); }
 
 // Helpers de fecha
+
+// ── NORMALIZACIÓN DE DÍAS ─────────────────────────────────────────
+// Supabase puede devolver distintos formatos: "Sabado", "SÁBADO", "martes"
+// normDia() convierte todo al formato canónico sin tilde, primera letra mayúscula
+function normDia(d) {
+  if (!d) return '';
+  return d.normalize('NFD').replace(/[̀-ͯ]/g,'')  // quitar tildes
+    .toLowerCase()
+    .replace(/^./, c => c.toUpperCase())  // primera mayúscula
+    .trim();
+}
+// Compara dos nombres de día ignorando tildes y mayúsculas
+function mismodia(a, b) { return normDia(a) === normDia(b); }
+
 function isoADMY(iso) { if (!iso) return ''; const p=iso.split('-'); return p[2]+'/'+p[1]+'/'+p[0]; }
 function dmyAIso(dmy) { if (!dmy) return ''; const p=dmy.split('/'); return p[2]+'-'+p[1]+'-'+p[0]; }
 
@@ -728,7 +742,9 @@ async function apiGet(p) {
     case 'getOfertaSimple': {
       const data = await rpc('get_oferta_simple');
       // get_oferta_simple devuelve un array JSON directamente
-      const arr = Array.isArray(data) ? data : (data || []);
+      const raw = Array.isArray(data) ? data : (data || []);
+      // Normalizar el campo dia que puede venir en mayúsculas con tildes
+      const arr = raw.map(t => ({ ...t, dia: normDia(t.dia) }));
       return { turnos: arr };
     }
 
@@ -769,17 +785,46 @@ async function apiGet(p) {
     }
 
     case 'buscarDia': {
-      return rpc('quien_puede_cubrir', {
-        p_semana: parseInt(p.semana), p_dia: p.dia,
-        p_rango: p.hora ? p.hora+':00 a '+(parseInt(p.hora)+2)+':00' : '',
-        p_fecha: null
-      }).then(data => ({
-        semana: p.semana, dia: p.dia, hora: p.hora||null,
-        candidatos: data.candidatos||[],
-        totalDisponibles: (data.candidatos||[]).length,
-        aptos: (data.candidatos||[]).filter(c=>c.estado!=='bloqueado').length,
-        historialDia: []
+      const semBusq  = parseInt(p.semana);
+      const diaBusq  = normDia(p.dia); // normalizar para que coincida con BD
+      const rangoBusq = p.hora
+        ? pad(parseInt(p.hora))+':00 a '+pad(parseInt(p.hora)+2)+':00'
+        : null;
+      // Buscar en disponibilidad para ese semana+día
+      const dispRows = await sbGet('v_disponibilidad',
+        'semana=eq.'+semBusq+'&horario=not.is.null&order=nombre');
+      // Filtrar por día normalizado (por si BD tiene tildes)
+      const dispDia = dispRows.filter(r => normDia(r.dia) === diaBusq);
+      // Si hay rango, filtrar por horario compatible
+      const candidatos = dispDia.filter(r => {
+        if (!rangoBusq) return true;
+        const hor   = (r.horario||'').replace(/:\d\d/g,'');
+        const parts = hor.split(/\s+a\s+/i);
+        const hIni  = parseInt(parts[0])||0;
+        const hFin  = parseInt(parts[1])||(hIni+2);
+        const hTur  = parseInt(rangoBusq.split(':')[0])||0;
+        return hIni <= hTur && hFin >= hTur + 2;
+      }).map(r => ({
+        nombre:  r.nombre,
+        llave:   r.tiene_llave,
+        horario: r.horario,
+        dias:    99,
+        dispo:   0,
+        estado:  'disponible'
       }));
+      // Historial del día para contexto
+      const histDia = await sbGet('v_historial',
+        'semana=eq.'+semBusq+'&order=fecha,rango');
+      const histFiltered = histDia
+        .filter(h => normDia(h.dia) === diaBusq)
+        .map(h => ({ nombre: h.nombre, rango: h.rango, fecha: isoADMY(h.fecha) }));
+      return {
+        semana: p.semana, dia: p.dia, hora: p.hora||null,
+        candidatos,
+        totalDisponibles: candidatos.length,
+        aptos: candidatos.length,
+        historialDia: histFiltered
+      };
     }
 
     default:
@@ -935,14 +980,21 @@ async function apiPost(body) {
 async function getCalendarioConfig() {
   return cached('calendario', 5*60000, async () => {
     const rows = await sbGet('v_calendario', 'order=fecha');
+    const DIAS_ES = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
     return { dias: rows.map(r => {
-      const f = new Date(r.fecha);
+      // Calcular semana y día real desde la fecha ISO (fuente de verdad)
+      const f      = new Date(r.fecha + 'T12:00:00Z'); // mediodía UTC evita desfase
       const diaNum = f.getUTCDate();
-      const semanaReal = diaNum<=7?1:diaNum<=14?2:diaNum<=21?3:diaNum<=28?4:5;
+      const semana = diaNum<=7?1:diaNum<=14?2:diaNum<=21?3:diaNum<=28?4:5;
+      const diaReal = DIAS_ES[f.getUTCDay()]; // siempre sin tilde, sin mayúsculas raras
       return {
-        fecha: isoADMY(r.fecha), fechaISO: r.fecha,
-        semana: semanaReal, dia: r.dia, activo: r.activo,
-        navieras: r.navieras||[], estancia: r.estancia||''
+        fecha:    isoADMY(r.fecha),
+        fechaISO: r.fecha,
+        semana,
+        dia:      diaReal,   // canónico: "Sabado", "Martes"...
+        activo:   r.activo,
+        navieras: Array.isArray(r.navieras) ? r.navieras : [],
+        estancia: r.estancia || ''
       };
     })};
   });
@@ -1042,92 +1094,115 @@ async function getAlertasLlave() {
 }
 
 async function getCuadranteMensual() {
+  // Cargar todo en paralelo
   const [calData, hist, vDisp] = await Promise.all([
     getCalendarioConfig(),
     sbGet('v_historial', 'order=fecha,rango'),
     sbGet('v_disponibilidad', 'order=nombre,semana,dia')
   ]);
-  const vols = await sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true');
-  const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase()));
 
-  // Agrupar historial por fecha+rango
-  const histMap = {};
+  // Mapa historial: fechaISO → { rango → [voluntarios] }
+  // h.fecha viene como "2026-05-11" (ISO) desde la vista
+  const histPorFecha = {};
   hist.forEach(h => {
-    const k = h.fecha+'|'+h.rango;
-    if (!histMap[k]) histMap[k] = [];
-    histMap[k].push({ nombre: h.nombre, llave: h.tiene_llave, dias:0, dispo:0, horario:'' });
+    const fiso = h.fecha; // ya es ISO de la vista
+    if (!histPorFecha[fiso]) histPorFecha[fiso] = {};
+    if (!histPorFecha[fiso][h.rango]) histPorFecha[fiso][h.rango] = [];
+    histPorFecha[fiso][h.rango].push({
+      nombre: h.nombre, llave: h.tiene_llave, dias:0, dispo:0, horario:''
+    });
   });
 
-  // Agrupar disponibilidad por voluntario+semana+dia
-  const dispoMap = {};
+  // Disponibilidad normalizada: semana + normDia → [voluntarios]
+  // normDia() quita tildes y capitaliza — "SÁBADO"→"Sabado", "Martes"→"Martes"
+  const dispoPorSemDia = {};
   vDisp.forEach(d => {
-    if (!d.semana) return;
-    const k = (d.nombre||'').toUpperCase()+'|'+d.semana+'|'+d.dia;
-    dispoMap[k] = d.horario;
+    if (!d.semana || !d.horario) return;
+    const k = d.semana + '|' + normDia(d.dia);
+    if (!dispoPorSemDia[k]) dispoPorSemDia[k] = [];
+    dispoPorSemDia[k].push({
+      nombre: d.nombre, llave: d.tiene_llave, horario: d.horario
+    });
   });
 
   const plan = [];
-  for (const dia of (calData.dias||[]).filter(d=>d.activo)) {
-    const fechaISO = dia.fechaISO;
-    const turnosConf = {};
-    Object.keys(histMap).forEach(k => {
-      const [f, ...rp] = k.split('|');
-      if (f === fechaISO) turnosConf[rp.join('|')] = histMap[k];
-    });
+  for (const dia of (calData.dias || []).filter(d => d.activo)) {
+    const fiso    = dia.fechaISO;   // "2026-05-11"
+    const semana  = dia.semana;
+    const diaNorm = normDia(dia.dia); // canónico sin tildes
 
-    if (Object.keys(turnosConf).length) {
-      // Día con turnos confirmados
-      const turnos = Object.entries(turnosConf).sort((a,b)=>a[0]<b[0]?-1:1).map(([rango, equipo]) => ({
-        rango, equipo, confirmado: true, sustitutos: [], sinLlave: false,
-        necesitaLlave: false, alertaLlave: false
-      }));
-      plan.push({ fechaLabel: dia.fecha+' - '+dia.dia, fechaStr: dia.fecha,
-        fechaRaw: new Date(fechaISO).getTime(), semana: dia.semana, dia: dia.diaNombre||dia.dia,
+    const turnosConfirmados = histPorFecha[fiso] || {};
+    const tieneConfirmados  = Object.keys(turnosConfirmados).length > 0;
+
+    if (tieneConfirmados) {
+      // ── Día CON turnos confirmados en historial ──────────────
+      const turnos = Object.entries(turnosConfirmados)
+        .sort((a,b) => a[0] < b[0] ? -1 : 1)
+        .map(([rango, equipo]) => ({
+          rango, equipo, confirmado: true,
+          sustitutos: [], sinLlave: false,
+          necesitaLlave: false, alertaLlave: false
+        }));
+
+      plan.push({
+        fechaLabel: dia.fecha + ' - ' + dia.dia,
+        fechaStr:   dia.fecha,
+        fechaRaw:   new Date(fiso + 'T12:00:00Z').getTime(),
+        semana, dia: dia.dia,
         turnos, confirmado: true,
-        diagnostico: { aptos:0, totalDisponibles:0, todos:[], aviso:'' } });
+        diagnostico: { aptos:0, totalDisponibles:0, todos:[], aviso:'' }
+      });
+
     } else {
-      // Día sin confirmar: calcular disponibles para ese semana+dia
-      const disponibles = vDisp.filter(d =>
-        d.semana === dia.semana && d.dia === dia.dia && d.horario
-      ).map(d => ({
-        nombre: d.nombre, llave: d.tiene_llave,
-        horario: d.horario, dias: 99, estado:'ok', dispo:0
+      // ── Día SIN confirmar: calcular desde disponibilidad ─────
+      const dispKey    = semana + '|' + diaNorm;
+      const disponibles = (dispoPorSemDia[dispKey] || []).map(v => ({
+        nombre: v.nombre, llave: v.llave,
+        horario: v.horario, dias: 99, estado: 'ok', dispo: 0
       }));
 
-      // Generar franjas de 2h basadas en disponibilidad real
-      // Horario formato: "9 a 14" → inicio=9, fin=14
+      // Franjas de 2h: horario "10:00 a 14:00" → hIni=10, hFin=14
       const franjas = {};
       disponibles.forEach(v => {
-        const hor = v.horario || '';
+        const hor   = (v.horario || '').replace(/:\d\d/g, ''); // "10 a 14"
         const parts = hor.split(/\s+a\s+/i);
-        const hIni = parseInt(parts[0]) || 0;
-        const hFin = parseInt(parts[1]) || (hIni + 2);
-        // Generar todas las franjas de 2h que caben en el horario
+        const hIni  = parseInt(parts[0]) || 0;
+        const hFin  = parseInt(parts[1]) || (hIni + 2);
         for (let s = hIni; s + 2 <= hFin; s++) {
-          const rango = pad(s)+':00 a '+pad(s+2)+':00';
+          const rango = pad(s) + ':00 a ' + pad(s+2) + ':00';
           if (!franjas[rango]) franjas[rango] = [];
           franjas[rango].push(v);
         }
       });
 
       const turnos = Object.entries(franjas)
-        .filter(([,vs]) => vs.length >= 3)
-        .sort((a,b)=>a[0]<b[0]?-1:1).slice(0,3)
+        .filter(([, vs]) => vs.length >= 3)
+        .sort((a,b) => a[0] < b[0] ? -1 : 1)
+        .slice(0, 3)
         .map(([rango, vs]) => ({
           rango,
-          equipo: vs.slice(0,4).map(v => ({ nombre:v.nombre, llave:v.llave, dias:99, dispo:0, horario:v.horario })),
+          equipo:    vs.slice(0, 4).map(v => ({
+            nombre: v.nombre, llave: v.llave, dias: 99, dispo: 0, horario: v.horario
+          })),
           sustitutos: vs.slice(4),
           confirmado: false,
-          sinLlave: !vs.some(v=>v.llave),
+          sinLlave:   !vs.some(v => v.llave),
           necesitaLlave: true,
-          alertaLlave: !vs.some(v=>v.llave)
+          alertaLlave:   !vs.some(v => v.llave)
         }));
 
-      plan.push({ fechaLabel: dia.fecha+' - '+dia.dia, fechaStr: dia.fecha,
-        fechaRaw: new Date(fechaISO).getTime(), semana: dia.semana, dia: dia.dia,
+      plan.push({
+        fechaLabel: dia.fecha + ' - ' + dia.dia,
+        fechaStr:   dia.fecha,
+        fechaRaw:   new Date(fiso + 'T12:00:00Z').getTime(),
+        semana, dia: dia.dia,
         turnos, confirmado: false,
-        diagnostico: { aptos: disponibles.length, totalDisponibles: disponibles.length,
-          todos: disponibles, aviso: turnos.length === 0 ? 'Sin franjas con ≥3 voluntarios disponibles' : '' }
+        diagnostico: {
+          aptos: disponibles.length,
+          totalDisponibles: disponibles.length,
+          todos: disponibles,
+          aviso: turnos.length === 0 ? 'Sin franjas con ≥3 voluntarios disponibles' : ''
+        }
       });
     }
   }
