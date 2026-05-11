@@ -965,17 +965,17 @@ async function apiGet(p) {
 async function getCalendarioConfig() {
   return cached('calendario', 5*60000, async () => {
     const rows = await sbGet('v_calendario', 'order=fecha');
-    const DIAS_ES = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
     return { dias: rows.map(r => {
-      // SIEMPRE calcular día y semana desde la fecha — ignorar el campo dia de la BD
-      // que puede estar desfasado. Usar mediodía UTC para evitar problemas de timezone.
-      const f      = new Date(r.fecha + 'T12:00:00Z');
-      const diaNum = f.getUTCDate();
+      // Usar la fecha ISO directamente de la BD — es la fuente de verdad
+      // para que coincida con las fechas del historial
+      const diaNum = parseInt(r.fecha.split('-')[2]);
       const semana = diaNum<=7?1 : diaNum<=14?2 : diaNum<=21?3 : diaNum<=28?4 : 5;
-      const dia    = DIAS_ES[f.getUTCDay()];
       return {
-        fecha: isoADMY(r.fecha), fechaISO: r.fecha,
-        semana, dia, activo: r.activo,
+        fecha:    isoADMY(r.fecha),
+        fechaISO: r.fecha,           // "2026-05-08" — mismo formato que historial
+        semana,
+        dia:      normDia(r.dia),    // normalizar: "Sabado", "Martes"...
+        activo:   r.activo,
         navieras: Array.isArray(r.navieras) ? r.navieras : [],
         estancia: r.estancia || ''
       };
@@ -2911,38 +2911,61 @@ function abrirCubre(semana, dia, rango) { openCubre(semana, dia, rango); }
 async function cargarCandidatosInline(idx, semana, dia, rango) {
   const el = document.getElementById(`cands-${idx}`);
   if (!el) return;
-  el.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div> Buscando candidatos…</div>`;
+  el.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div> Buscando…</div>`;
   try {
-    const data = await apiGet({action:'quienCubre', semana: String(semana), dia: String(dia), rango: String(rango)});
+    const data  = await apiGet({action:'quienCubre', semana:String(semana), dia:String(dia), rango:String(rango)});
     const cands = data.candidatos || [];
-    const disponibles = cands.filter(c => c.estado !== 'bloqueado');
-    const bloqueados  = cands.filter(c => c.estado === 'bloqueado');
 
     if (!cands.length) {
-      el.innerHTML = `<div style="font-size:.77rem;color:var(--label3);padding:.4rem 0">😔 Sin candidatos disponibles para este turno.</div>`;
+      el.innerHTML = `<div style="font-size:.77rem;color:var(--label3);padding:.4rem 0">😔 Sin candidatos disponibles.</div>`;
       return;
     }
 
+    const disponibles = cands.filter(c => c.estado === 'disponible' || c.estado === 'ok');
+    const reducidos   = cands.filter(c => c.estado === 'reducido');
+    const bloqueados  = cands.filter(c => c.estado === 'bloqueado');
+
+    // ── Función para construir cada chip de candidato
+    const buildCand = (c) => {
+      const esBloq  = c.estado === 'bloqueado';
+      // Colores del cuadrante: verde=ok, ámbar=reducido, gris=bloqueado
+      const dotCol  = c.estado==='reducido' ? 'var(--amber)' : esBloq ? 'var(--label4)' : 'var(--green-dark)';
+      const bgCol   = c.estado==='reducido' ? 'var(--amber-soft)' : esBloq ? 'var(--surface2)' : 'var(--green-soft)';
+      const txtCol  = c.estado==='reducido' ? 'var(--amber)' : esBloq ? 'var(--label3)' : 'var(--green-dark)';
+      const label   = c.estado==='reducido' ? 'Descanso reducido' : esBloq ? 'Bloqueado' : 'Disponible';
+      return `<div style="display:flex;align-items:center;gap:.55rem;background:${bgCol};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.25rem;opacity:${esBloq?.6:1}">
+        <div style="width:8px;height:8px;border-radius:50%;background:${dotCol};flex-shrink:0"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:600;color:var(--label1)">${c.llave?'🔑 ':''}${c.nombre}</div>
+          <div style="font-size:.65rem;color:${txtCol};font-weight:600">${label}</div>
+          <div style="font-size:.63rem;color:var(--label3)">🕐 ${c.horario} · ${c.dias>=99?'Voluntario nuevo':c.dias+'d descanso'}</div>
+        </div>
+        ${!esBloq?`<button style="background:var(--green-dark);color:#fff;border:none;padding:.32rem .7rem;border-radius:var(--r-sm);font-family:inherit;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${idx}',this)">✓ Asignar</button>`:''}
+      </div>`;
+    };
+
+    // ── Desplegable — disponibles visibles, bloqueados colapsados
     let html = '';
-    if (disponibles.length) {
-      disponibles.forEach(c => {
-        const col = c.estado==='disponible' ? 'var(--green-dark)' : 'var(--amber)';
-        html += `<div style="display:flex;align-items:center;gap:.55rem;background:var(--surface2);border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.25rem">
-          <div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:.8rem;font-weight:600;color:var(--label1)">${c.llave?'🔑 ':''}${c.nombre}</div>
-            <div style="font-size:.65rem;color:var(--label3)">🕐 ${c.horario} · ${c.dias>=99?'Nuevo':c.dias+'d'}</div>
-          </div>
-          <button style="background:var(--green-dark);color:#fff;border:none;padding:.3rem .7rem;border-radius:var(--r-sm);font-family:inherit;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${idx}',this)">✓ Asignar</button>
-        </div>`;
-      });
+
+    if (disponibles.length || reducidos.length) {
+      [...disponibles, ...reducidos].forEach(c => { html += buildCand(c); });
+    } else {
+      html += `<div style="font-size:.77rem;color:var(--label3);padding:.3rem 0">Sin candidatos disponibles.</div>`;
     }
 
     if (bloqueados.length) {
-      html += `<div style="font-size:.65rem;color:var(--label4);margin-top:.35rem">🔒 ${bloqueados.length} bloqueado${bloqueados.length!==1?'s':''} por descanso (no se pueden asignar)</div>`;
+      const bid = 'blq-' + idx;
+      html += `
+        <button onclick="toggleBlock('${bid}',this)" class="dtoggle" style="font-size:.68rem;padding:.3rem .5rem;margin-top:.3rem;width:100%">
+          <span>🔒 ${bloqueados.length} bloqueado${bloqueados.length!==1?'s':''} por descanso</span>
+          <span class="darrow" style="font-size:.6rem">▼</span>
+        </button>
+        <div id="${bid}" style="display:none">
+          ${bloqueados.map(buildCand).join('')}
+        </div>`;
     }
 
-    el.innerHTML = html || `<p style="font-size:.77rem;color:var(--label3)">Sin candidatos.</p>`;
+    el.innerHTML = html;
   } catch(e) {
     el.innerHTML = `<div style="color:var(--red);font-size:.75rem">⚠️ Error: ${e.message}</div>`;
   }
