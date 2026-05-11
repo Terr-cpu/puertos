@@ -2627,7 +2627,14 @@ function renderResultadoBusqueda(c, data, sem, dia, hora) {
 
   // Separar por estado
   const grupos = { ok:[], reducido:[], bloqueado:[] };
-  data.candidatos.forEach(v => grupos[v.estado].push(v));
+  data.candidatos.forEach(v => {
+    // normalizar: 'disponible'→'ok', cualquier otro→'bloqueado'
+    const key = v.estado === 'disponible' ? 'ok'
+               : v.estado === 'reducido'  ? 'reducido'
+               : v.estado === 'ok'        ? 'ok'
+               : 'bloqueado';
+    grupos[key].push(v);
+  });
 
   [['ok','✅ Disponibles (descanso completo)','var(--green-dark)'],
    ['reducido','⚡ Disponibles (descanso reducido)','var(--amber)'],
@@ -2802,6 +2809,340 @@ function normRangoJS(r) {
 
 // ya no necesaria — getDashboard trae todo junto
 function recargarOfertaBajas() { /* noop */ }
+
+// ══════════════════════════════════════
+//  CALENDARIO — render
+// ══════════════════════════════════════
+const DIAS_SEM_LABEL = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+function diaRealDesdeFecha(fechaStr) {
+  const p = fechaStr.split('/');
+  if (p.length === 3) {
+    const f = new Date(+p[2], +p[1]-1, +p[0], 12, 0, 0);
+    return DIAS_SEM_LABEL[f.getDay()];
+  }
+  return fechaStr;
+}
+
+function renderCalendario(c, dias) {
+  c.innerHTML = '';
+
+  const hdr = document.createElement('div');
+  hdr.style = 'margin-bottom:1.1rem';
+  hdr.innerHTML = `
+    <p style="font-size:.82rem;color:var(--label3);margin-bottom:.75rem">Configura los días del mes, navieras y estancias. El día se calcula automáticamente desde la fecha.</p>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep)">
+      <div class="fg" style="margin:0">
+        <label>Añadir nuevo día</label>
+        <input type="date" class="fc" id="cal-new-fecha" style="width:auto">
+      </div>
+      <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
+    </div>`;
+  c.appendChild(hdr);
+
+  if (!dias.length) {
+    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">📅</span><h4>Sin días configurados</h4><p>Añade el primer día con el formulario superior.</p></div>`);
+    return;
+  }
+
+  const activos = dias.filter(d=>d.activo).length;
+  c.insertAdjacentHTML('beforeend', `<p style="font-size:.78rem;color:var(--label3);margin-bottom:.65rem">${dias.length} días · <strong>${activos} activos</strong></p>`);
+
+  dias.forEach((d, i) => {
+    const diaReal = diaRealDesdeFecha(d.fecha);
+    const naviTagsHTML = (d.navieras||[]).map((n,ni) =>
+      `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`
+    ).join('');
+
+    const row = document.createElement('div');
+    row.className = 'cal-row';
+    row.style.opacity = d.activo ? '1' : '0.5';
+    row.innerHTML = `
+      <div style="min-width:105px;flex-shrink:0">
+        <div class="cal-fecha">${d.fecha}</div>
+        <div class="cal-dia" style="color:var(--blue);font-weight:600;font-size:.75rem">${diaReal}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+        <label class="toggle-sw">
+          <input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})">
+          <span class="toggle-sl"></span>
+        </label>
+        <span style="font-size:.72rem;color:var(--label3);min-width:48px" id="cal-act-lbl-${i}">${d.activo?'Activo':'Inactivo'}</span>
+      </div>
+      <div class="cal-navieras" id="cal-nv-${i}">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.28rem" id="cal-tags-${i}">${naviTagsHTML}</div>
+        <div style="display:flex;gap:.3rem">
+          <input class="fc" id="cal-ninput-${i}" placeholder="🚢 Naviera…" style="font-size:.72rem;padding:.28rem .5rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
+          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
+        </div>
+      </div>
+      <div class="cal-estancia" style="min-width:140px">
+        <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
+          <option value="">Sin estancia</option>
+          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
+          <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
+          <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
+          <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
+        </select>
+      </div>
+      <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
+    c.appendChild(row);
+  });
+}
+
+function toggleCalDia(i) {
+  S.calConfig[i].activo = document.getElementById('cal-act-'+i).checked;
+  const lbl = document.getElementById('cal-act-lbl-'+i);
+  if (lbl) lbl.textContent = S.calConfig[i].activo ? 'Activo' : 'Inactivo';
+  const row = document.getElementById('cal-act-'+i).closest('.cal-row');
+  if (row) row.style.opacity = S.calConfig[i].activo ? '1' : '0.5';
+}
+
+function addDiaCalendario() {
+  const fechaVal = document.getElementById('cal-new-fecha')?.value;
+  if (!fechaVal) { toast('Selecciona una fecha', 'err'); return; }
+  const f = new Date(fechaVal + 'T12:00:00Z');
+  const DIAS_SEM = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  const diaReal = DIAS_SEM[f.getUTCDay()];
+  const diaNum  = f.getUTCDate();
+  const semana  = diaNum<=7?1:diaNum<=14?2:diaNum<=21?3:diaNum<=28?4:5;
+  const dd = String(f.getUTCDate()).padStart(2,'0');
+  const mm = String(f.getUTCMonth()+1).padStart(2,'0');
+  const yyyy = f.getUTCFullYear();
+  const fechaFmt = `${dd}/${mm}/${yyyy}`;
+  if (S.calConfig.some(d => d.fecha === fechaFmt)) { toast('Esta fecha ya existe','err'); return; }
+  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, semana, dia:diaReal, activo:true, navieras:[], estancia:'' });
+  S.calConfig.sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
+  const c = document.getElementById('tab-calendario');
+  renderCalendario(c, S.calConfig);
+  toast(`${fechaFmt} (${diaReal}) añadido`, 'ok');
+}
+
+function removeDiaCalendario(i) {
+  if (!confirm(`¿Eliminar ${S.calConfig[i].fecha}?`)) return;
+  S.calConfig.splice(i, 1);
+  renderCalendario(document.getElementById('tab-calendario'), S.calConfig);
+  toast('Día eliminado', 'ok');
+}
+
+function añadirNaviera(i) {
+  const inp = document.getElementById('cal-ninput-'+i);
+  const nombre = inp?.value.trim();
+  if (!nombre) return;
+  if (!S.calConfig[i].navieras) S.calConfig[i].navieras = [];
+  const ni = S.calConfig[i].navieras.length;
+  S.calConfig[i].navieras.push(nombre);
+  inp.value = '';
+  const tags = document.getElementById('cal-tags-'+i);
+  if (tags) tags.insertAdjacentHTML('beforeend',
+    `<span class="navi-tag">${nombre}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`);
+}
+
+function quitarNaviera(i, ni) {
+  S.calConfig[i].navieras.splice(ni, 1);
+  const tags = document.getElementById('cal-tags-'+i);
+  if (tags) tags.innerHTML = S.calConfig[i].navieras.map((n,j) =>
+    `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${j})">×</button></span>`).join('');
+}
+
+async function guardarCalendario() {
+  try {
+    S.calConfig.forEach((d,i) => {
+      const sel = document.getElementById('cal-est-'+i);
+      if (sel) d.estancia = sel.value;
+      d.dia = normDia(diaRealDesdeFecha(d.fecha));
+    });
+    await apiPost({accion:'guardarCalendarioConfig', dias: S.calConfig});
+    window._calOk = false;
+    invalidar('calendario');
+    toast('Calendario guardado ✓', 'ok');
+  } catch(e) { toast('Error: '+e.message, 'err'); }
+}
+
+// ══════════════════════════════════════
+//  OFERTA — render panel
+// ══════════════════════════════════════
+function renderOfertaPanel(c) {
+  const turnos   = window._ofertaData   || [];
+  const vols     = window._ofertaVols   || [];
+  const volSel   = window._ofertaVolSel || '';
+  const nRef     = volSel.toUpperCase().trim();
+
+  c.innerHTML = '';
+
+  // Stats
+  const pendientes = turnos.filter(t => t.necesitan > 0);
+  const sinLlave   = turnos.filter(t => !t.tieneLlave);
+  const sr = document.createElement('div'); sr.className = 'stats-row';
+  sr.innerHTML = `
+    <div class="sbox"><div class="sv">${turnos.length}</div><div class="sl">Con plazas</div></div>
+    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Faltan vols.</div></div>
+    <div class="sbox" style="border-left:3px solid var(--amber)"><div class="sv" style="color:var(--amber)">${sinLlave.length}</div><div class="sl">Sin llave</div></div>`;
+  c.appendChild(sr);
+
+  // Selector de voluntario
+  const selWrap = document.createElement('div');
+  selWrap.className = 'card';
+  selWrap.style.marginBottom = '1.25rem';
+  selWrap.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem">
+      <span style="font-size:.7rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3)">Voluntario (para apuntarse)</span>
+    </div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <div class="of-ac-wrap" style="flex:1;min-width:180px;position:relative">
+        <input type="text" class="fc" id="of-inp-vol"
+          placeholder="Busca un voluntario…" value="${volSel}"
+          autocomplete="off" oninput="ofSugerir(this)"
+          style="background:var(--surface2)"
+          onkeydown="ofNavSug(event)">
+        <div id="of-sug" style="position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-md);max-height:200px;overflow-y:auto;z-index:300;box-shadow:var(--shadow-lg);display:none"></div>
+      </div>
+      ${volSel ? `<button class="btn btn-ghost btn-sm" onclick="ofLimpiarVol()">✕ Limpiar</button>` : ''}
+    </div>
+    ${volSel ? `<div style="margin-top:.6rem;font-size:.78rem;color:var(--green-dark);font-weight:600">✓ Mostrando para <strong>${volSel}</strong></div>` : ''}`;
+  c.appendChild(selWrap);
+
+  if (!turnos.length) {
+    c.insertAdjacentHTML('beforeend', `<div class="empty"><span class="ei">✅</span><h4>Todo cubierto</h4><p>No hay turnos que necesiten más voluntarios.</p></div>`);
+    return;
+  }
+
+  // Agrupar por fecha
+  const porFecha = {};
+  turnos.forEach(t => {
+    const k = t.fecha + '|' + t.dia;
+    if (!porFecha[k]) porFecha[k] = [];
+    porFecha[k].push(t);
+  });
+
+  Object.keys(porFecha).sort().forEach((fk, gi) => {
+    const [fecha, dia] = fk.split('|');
+    const grupo = document.createElement('div');
+    grupo.style.marginBottom = '1.5rem';
+    grupo.style.animation = 'fadeUp .3s ease both';
+    grupo.style.animationDelay = (gi * .05) + 's';
+    grupo.innerHTML = `<div style="display:flex;align-items:center;gap:.65rem;padding-bottom:.5rem;margin-bottom:.65rem;border-bottom:2px solid var(--navy)">
+      <span style="font-size:.95rem;font-weight:700;color:var(--navy)">📅 ${dia} · ${fecha}</span>
+    </div>`;
+
+    porFecha[fk].forEach(t => {
+      const tarde = parseInt((t.rango||'0').split(':')[0]) >= 14;
+      const pct   = Math.min(100, Math.round((t.equipoActual/4)*100));
+      const pfColor = pct===0?'var(--red)':pct>=75?'var(--green-dark)':'var(--amber)';
+      const yaApuntado = nRef && (t.equipoNombres||[]).some(n => n.toUpperCase() === nRef);
+
+      let accionHTML = '';
+      if (yaApuntado) {
+        accionHTML = `<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.55rem .8rem;font-size:.78rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`;
+      } else if (volSel) {
+        accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
+      } else {
+        accionHTML = `<span style="font-size:.75rem;color:var(--label3)">Selecciona un voluntario arriba para apuntarse</span>`;
+      }
+
+      const card = document.createElement('div');
+      card.className = 'tc';
+      card.style.marginBottom = '.6rem';
+      card.innerHTML = `
+        <div style="height:3px;background:${tarde?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+        <div style="padding:.75rem 1rem .35rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+          <div>
+            <div style="font-size:1rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
+            <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:.78rem;font-weight:700;color:var(--label2)">${t.equipoActual}/4</div>
+            ${t.necesitan>0?`<div style="font-size:.68rem;color:var(--red);font-weight:600">Faltan ${t.necesitan}</div>`:''}
+          </div>
+        </div>
+        <div style="padding:0 1rem .6rem">
+          <div style="height:4px;background:var(--sep);border-radius:2px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pfColor};border-radius:2px"></div>
+          </div>
+          ${!t.tieneLlave?`<div style="font-size:.7rem;color:var(--amber);font-weight:600;margin-top:.3rem">🔑 Necesita portador de llave</div>`:''}
+        </div>
+        <div style="padding:0 1rem .85rem">
+          <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.35rem">Voluntarios apuntados</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem">
+            ${(t.equipoNombres||[]).map(n=>`<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">${n}</span>`).join('')||'<span style="font-size:.72rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>'}
+          </div>
+          <div style="margin-top:.55rem">${accionHTML}</div>
+        </div>`;
+      grupo.appendChild(card);
+    });
+    c.appendChild(grupo);
+  });
+}
+
+function ofSugerir(inp) {
+  const q   = inp.value.trim().toLowerCase();
+  const sg  = document.getElementById('of-sug');
+  if (q.length < 1) { sg.style.display='none'; sg.innerHTML=''; return; }
+  const vols = window._ofertaVols || [];
+  const matches = vols.filter(v => v.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { sg.style.display='none'; return; }
+  const re = new RegExp('(' + q.replace(/[-[\]{}()*+?.,\\^$|#]/g,'\\$&') + ')','gi');
+  sg.innerHTML = matches.map(v => {
+    const ini = v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    return `<div onclick="ofElegirVol('${esc(v)}')" style="padding:.6rem .9rem;font-size:.83rem;cursor:pointer;display:flex;align-items:center;gap:.5rem" onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
+      <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${ini}</div>
+      <span>${v.replace(re,'<mark style="background:transparent;color:var(--blue);font-weight:700">$1</mark>')}</span>
+    </div>`;
+  }).join('');
+  sg.style.display = 'block';
+}
+
+function ofNavSug(e) {
+  if (e.key === 'Escape') { document.getElementById('of-sug').style.display='none'; }
+}
+
+function ofElegirVol(nombre) {
+  window._ofertaVolSel = nombre;
+  document.getElementById('of-inp-vol').value = nombre;
+  document.getElementById('of-sug').style.display = 'none';
+  renderOfertaPanel(document.getElementById('tab-oferta'));
+}
+
+function ofLimpiarVol() {
+  window._ofertaVolSel = '';
+  renderOfertaPanel(document.getElementById('tab-oferta'));
+}
+
+function ofNombreSeleccionado() {
+  const n = window._ofertaVolSel || document.getElementById('of-inp-vol')?.value.trim();
+  if (!n || n.length < 2) { toast('Selecciona un voluntario de la lista primero','err'); return null; }
+  const vols = window._ofertaVols || [];
+  return vols.find(v => v.toLowerCase() === n.toLowerCase()) || n;
+}
+
+async function ofApuntar(key, fecha) {
+  const nombre = ofNombreSeleccionado();
+  if (!nombre) return;
+  await ofEnviarRefuerzo({ accion:'registrarRefuerzo', nombre, key, fecha });
+}
+
+async function ofEnviarRefuerzo(data) {
+  toast('Apuntando…','ok');
+  const nUp = (data.nombre||'').toUpperCase().trim();
+  (window._ofertaData||[]).forEach(t => {
+    if (t.key === data.key && !(t.equipoNombres||[]).some(n=>n.toUpperCase()===nUp)) {
+      t.equipoNombres = [...(t.equipoNombres||[]), data.nombre];
+      t.equipoActual  = t.equipoNombres.length;
+      t.necesitan     = Math.max(0, 4 - t.equipoActual);
+    }
+  });
+  renderOfertaPanel(document.getElementById('tab-oferta'));
+  try {
+    await apiPost(data);
+    toast('✓ ' + data.nombre + ' apuntado correctamente','ok');
+    setTimeout(() => { window._oOk=false; loadOferta(true); }, 2000);
+  } catch(e) {
+    toast('Error: '+e.message,'err');
+    window._oOk = false; loadOferta(true);
+  }
+}
+
+function esc(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 
 // ══════════════════════════════════════
 //  OFERTA (tab independiente)
