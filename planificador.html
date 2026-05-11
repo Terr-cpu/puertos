@@ -2803,6 +2803,47 @@ function normRangoJS(r) {
 // ya no necesaria — getDashboard trae todo junto
 function recargarOfertaBajas() { /* noop */ }
 
+// ══════════════════════════════════════
+//  OFERTA (tab independiente)
+// ══════════════════════════════════════
+async function loadOferta(force) {
+  if (window._oOk && !force) return;
+  const c = document.getElementById('tab-oferta');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando turnos disponibles…</p></div>`;
+  try {
+    const data = await apiGet({action:'getOfertaSimple'});
+    const turnos = (data.turnos || []).map(t => ({...t, dia: normDia(t.dia)}));
+    const vols   = await apiGet({action:'getVoluntarios'});
+    window._ofertaData = turnos;
+    window._ofertaVols = vols;
+    window._ofertaVolSel = window._ofertaVolSel || '';
+    renderOfertaPanel(c);
+    window._oOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadOferta(true)">↻ Reintentar</button></div>`;
+  }
+}
+
+// ══════════════════════════════════════
+//  CALENDARIO
+// ══════════════════════════════════════
+async function loadCalendario(force) {
+  if (window._calOk && !force) return;
+  const c = document.getElementById('tab-calendario');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div>`;
+  try {
+    // Invalidar caché para forzar recarga desde BD
+    invalidar('calendario');
+    const data = await apiGet({action:'getCalendarioConfig'});
+    if (data.error) throw new Error(data.error);
+    S.calConfig = data.dias || [];
+    renderCalendario(c, S.calConfig);
+    window._calOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadCalendario(true)">↻ Reintentar</button></div>`;
+  }
+}
+
 // ── INIT
 loadCuadrante();
 // Cargar config calendario en background para tenerlo disponible en el cuadrante
