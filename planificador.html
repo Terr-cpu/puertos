@@ -694,13 +694,12 @@ async function apiGet(p) {
 
     case 'getBajas': {
       const data = await rpc('get_bajas_dashboard');
-      const arr = data || [];
+      const arr = Array.isArray(data) ? data : (data || []);
       return {
-        turnos: arr,
-        total: arr.length,
-        pendientes: arr.filter(t => !t.cubierto).length,
-        totalBajas: arr.reduce((a,t) => a+(t.bajas?.length||0), 0),
-        totalAltas: arr.reduce((a,t) => a+(t.refuerzos?.length||0), 0)
+        turnos: arr, total: arr.length,
+        pendientes: arr.filter(t=>!t.cubierto).length,
+        totalBajas: arr.reduce((a,t)=>a+(Array.isArray(t.bajas)?t.bajas.length:0),0),
+        totalAltas: arr.reduce((a,t)=>a+(Array.isArray(t.refuerzos)?t.refuerzos.length:0),0)
       };
     }
 
@@ -710,15 +709,17 @@ async function apiGet(p) {
         rpc('get_oferta_simple'),
         sbGet('voluntarios', 'select=nombre&activo=eq.true&order=nombre')
       ]);
-      const arr = bajasRaw || [];
+      // Ambas RPCs devuelven arrays JSON directamente
+      const arr  = Array.isArray(bajasRaw) ? bajasRaw : (bajasRaw || []);
+      const oarr = Array.isArray(ofertaRaw) ? ofertaRaw : (ofertaRaw || []);
       return {
         bajas: {
           turnos: arr, total: arr.length,
           pendientes: arr.filter(t=>!t.cubierto).length,
-          totalBajas: arr.reduce((a,t)=>a+(t.bajas?.length||0),0),
-          totalAltas: arr.reduce((a,t)=>a+(t.refuerzos?.length||0),0)
+          totalBajas: arr.reduce((a,t)=>a+(Array.isArray(t.bajas)?t.bajas.length:0),0),
+          totalAltas: arr.reduce((a,t)=>a+(Array.isArray(t.refuerzos)?t.refuerzos.length:0),0)
         },
-        oferta: { turnos: ofertaRaw || [] },
+        oferta: { turnos: oarr },
         voluntarios: volsRaw.map(r=>r.nombre)
       };
     }
@@ -726,7 +727,9 @@ async function apiGet(p) {
     case 'getOfertaTurnos':
     case 'getOfertaSimple': {
       const data = await rpc('get_oferta_simple');
-      return { turnos: data || [] };
+      // get_oferta_simple devuelve un array JSON directamente
+      const arr = Array.isArray(data) ? data : (data || []);
+      return { turnos: arr };
     }
 
     case 'getLlaves': {
@@ -794,12 +797,22 @@ async function apiPost(body) {
         'nombre=in.(' + d.asignados.map(n=>`"${n}"`).join(',') + ')&select=id,nombre');
       const idMap = {};
       vols.forEach(v => { idMap[v.nombre.toUpperCase()] = v.id; });
+      // d.fecha puede llegar como timestamp (number), ISO string o dd/mm/yyyy
+      let fechaISO = '';
+      if (d.fecha) {
+        if (typeof d.fecha === 'number') {
+          fechaISO = new Date(d.fecha).toISOString().split('T')[0];
+        } else if (String(d.fecha).includes('/')) {
+          fechaISO = dmyAIso(String(d.fecha));
+        } else {
+          fechaISO = String(d.fecha).split('T')[0];
+        }
+      }
       const rows = d.asignados.map(n => ({
         voluntario_id: idMap[n.toUpperCase()],
-        fecha: dmyAIso(isoADMY(d.fecha || '')),
-        semana: parseInt(d.semana), dia: d.dia, rango: d.rango
+        fecha: fechaISO, semana: parseInt(d.semana), dia: d.dia, rango: d.rango
       })).filter(r => r.voluntario_id && r.fecha);
-      await sbPost('historial', rows, 'resolution=merge-duplicates,return=minimal');
+      if (rows.length) await sbPost('historial', rows, 'resolution=merge-duplicates,return=minimal');
       invalidar('historial','oferta','carga');
       break;
     }
@@ -922,11 +935,16 @@ async function apiPost(body) {
 async function getCalendarioConfig() {
   return cached('calendario', 5*60000, async () => {
     const rows = await sbGet('v_calendario', 'order=fecha');
-    return { dias: rows.map(r => ({
-      fecha: isoADMY(r.fecha), fechaISO: r.fecha,
-      semana: r.semana, dia: r.dia, activo: r.activo,
-      navieras: r.navieras||[], estancia: r.estancia||''
-    }))};
+    return { dias: rows.map(r => {
+      const f = new Date(r.fecha);
+      const diaNum = f.getUTCDate();
+      const semanaReal = diaNum<=7?1:diaNum<=14?2:diaNum<=21?3:diaNum<=28?4:5;
+      return {
+        fecha: isoADMY(r.fecha), fechaISO: r.fecha,
+        semana: semanaReal, dia: r.dia, activo: r.activo,
+        navieras: r.navieras||[], estancia: r.estancia||''
+      };
+    })};
   });
 }
 
@@ -943,12 +961,21 @@ async function guardarCalendarioConfig(dias) {
     };
   }).sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
 
-  // Borrar y reinsertar (más simple que upsert con navieras)
-  const calActual = await sbGet('calendario', 'select=id,fecha');
-  for (const c of calActual) {
-    await sbDelete('navieras', 'calendario_id=eq.'+c.id);
+  // Borrar todo y reinsertar
+  // Primero borrar navieras (FK), luego calendario
+  const calActual = await sbGet('calendario', 'select=id');
+  if (calActual.length) {
+    const ids = calActual.map(c=>c.id);
+    // Borrar en lotes de 50 para no superar límite de URL
+    for (let i=0; i<ids.length; i+=50) {
+      const lote = ids.slice(i, i+50);
+      await sbDelete('navieras', 'calendario_id=in.('+lote.join(',')+')');
+    }
+    for (let i=0; i<ids.length; i+=50) {
+      const lote = ids.slice(i, i+50);
+      await sbDelete('calendario', 'id=in.('+lote.join(',')+')');
+    }
   }
-  if (calActual.length) await sbDelete('calendario', 'id=in.('+calActual.map(c=>c.id).join(',')+')');
 
   const calRows = procesados.map(d => ({
     fecha: d.fechaISO, semana: d.semana, dia: d.dia,
@@ -966,8 +993,14 @@ async function guardarCalendarioConfig(dias) {
 }
 
 function calcSemana(dias, idx) {
-  const activos = dias.slice(0, idx+1).filter(d=>d.activo).length;
-  return Math.max(1, Math.ceil(activos/7));
+  const d = dias[idx];
+  const f = new Date(d.fechaISO || dmyAIso(d.fecha));
+  const dia = f.getDate();
+  if (dia <= 7)  return 1;
+  if (dia <= 14) return 2;
+  if (dia <= 21) return 3;
+  if (dia <= 28) return 4;
+  return 5;
 }
 
 async function getAlertasLlave() {
@@ -1061,11 +1094,16 @@ async function getCuadranteMensual() {
         horario: d.horario, dias: 99, estado:'ok', dispo:0
       }));
 
-      // Generar franjas de 2h simples
+      // Generar franjas de 2h basadas en disponibilidad real
+      // Horario formato: "9 a 14" → inicio=9, fin=14
       const franjas = {};
       disponibles.forEach(v => {
-        const h = parseInt((v.horario||'0'));
-        for (let s = h; s <= h+4; s += 1) {
+        const hor = v.horario || '';
+        const parts = hor.split(/\s+a\s+/i);
+        const hIni = parseInt(parts[0]) || 0;
+        const hFin = parseInt(parts[1]) || (hIni + 2);
+        // Generar todas las franjas de 2h que caben en el horario
+        for (let s = hIni; s + 2 <= hFin; s++) {
           const rango = pad(s)+':00 a '+pad(s+2)+':00';
           if (!franjas[rango]) franjas[rango] = [];
           franjas[rango].push(v);
@@ -1073,14 +1111,16 @@ async function getCuadranteMensual() {
       });
 
       const turnos = Object.entries(franjas)
-        .filter(([,vols]) => vols.length >= 3)
+        .filter(([,vs]) => vs.length >= 3)
         .sort((a,b)=>a[0]<b[0]?-1:1).slice(0,3)
-        .map(([rango, vols]) => ({
+        .map(([rango, vs]) => ({
           rango,
-          equipo: vols.slice(0,4).map(v => ({ nombre:v.nombre, llave:v.llave, dias:99, dispo:0, horario:v.horario })),
-          sustitutos: vols.slice(4),
-          confirmado: false, sinLlave: !vols.some(v=>v.llave),
-          necesitaLlave: true, alertaLlave: !vols.some(v=>v.llave)
+          equipo: vs.slice(0,4).map(v => ({ nombre:v.nombre, llave:v.llave, dias:99, dispo:0, horario:v.horario })),
+          sustitutos: vs.slice(4),
+          confirmado: false,
+          sinLlave: !vs.some(v=>v.llave),
+          necesitaLlave: true,
+          alertaLlave: !vs.some(v=>v.llave)
         }));
 
       plan.push({ fechaLabel: dia.fecha+' - '+dia.dia, fechaStr: dia.fecha,
@@ -1818,39 +1858,56 @@ function buildTurnoActividad(t, idx, resuelto) {
   const card  = document.createElement('div');
   card.style  = `background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);margin-bottom:.65rem;overflow:hidden;border:1px solid ${resuelto?'#b0dcc0':'#f5b8b5'};animation:fadeUp .3s ease both;animation-delay:${idx*.05}s`;
 
-  // Cabecera del turno
-  const headerColor = resuelto ? 'var(--green-dark)' : 'var(--red)';
-  const headerBg    = resuelto ? 'linear-gradient(90deg,var(--green-dark),#34c759)' : 'linear-gradient(90deg,var(--red),#ff7061)';
+  const headerBg = resuelto
+    ? 'linear-gradient(90deg,var(--green-dark),#34c759)'
+    : 'linear-gradient(90deg,var(--red),#ff7061)';
 
-  // Estado de cada persona en el equipo
-  const estadosHTML = Object.values(t.estados||{}).map(e => {
+  // Supabase devuelve arrays de strings: t.equipo, t.bajas, t.refuerzos
+  const equipo    = Array.isArray(t.equipo)    ? t.equipo    : [];
+  const bajas     = Array.isArray(t.bajas)     ? t.bajas     : [];
+  const refuerzos = Array.isArray(t.refuerzos) ? t.refuerzos : [];
+  const bajasUp   = bajas.map(n => (n||'').toUpperCase());
+  const refUp     = refuerzos.map(n => (n||'').toUpperCase());
+
+  // Construir estado de cada persona
+  const todasPersonas = new Map();
+  equipo.forEach(n => { if(n) todasPersonas.set(n.toUpperCase(), {nombre:n, estado:'original'}); });
+  bajas.forEach(n => { if(n) { const k=n.toUpperCase(); todasPersonas.set(k, {nombre:n, estado: refUp.includes(k)?'original':'baja'}); }});
+  refuerzos.forEach(n => { if(n) { const k=n.toUpperCase(); if(!todasPersonas.has(k)) todasPersonas.set(k,{nombre:n,estado:'alta'}); }});
+
+  const estadosHTML = [...todasPersonas.values()].map(e => {
     let bg, color, icon;
-    if (e.estado === 'original') { bg='var(--green-soft)'; color=`var(--green-dark)`; icon='✓'; }
-    else if (e.estado === 'baja') { bg='var(--red-soft)'; color='var(--red)'; icon='🏥'; }
-    else { bg='var(--blue-soft)'; color='var(--blue)'; icon='🔄'; }
-    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:var(--r-sm);background:${bg};border:1px solid ${bg}">
-      <span style="font-size:.8rem">${icon}</span>
+    if      (e.estado === 'original') { bg='var(--green-soft)'; color='var(--green-dark)'; icon='✓'; }
+    else if (e.estado === 'baja')     { bg='var(--red-soft)';   color='var(--red)';        icon='🏥'; }
+    else                              { bg='var(--blue-soft)';  color='var(--blue)';       icon='🔄'; }
+    const label = e.estado==='original'?'Confirmado': e.estado==='baja'?'Baja pendiente':'Alta / refuerzo';
+    return `<div style="display:flex;align-items:center;gap:.5rem;padding:.38rem .6rem;border-radius:var(--r-sm);background:${bg}">
+      <span>${icon}</span>
       <div style="flex:1">
-        <div style="font-size:.78rem;font-weight:600;color:var(--label1)">${e.nombre}</div>
-        <div style="font-size:.63rem;color:${color};font-weight:600;margin-top:.05rem">
-          ${e.estado==='original'?'Confirmado':e.estado==='baja'?'Baja pendiente':'Alta / refuerzo'}
-        </div>
+        <div style="font-size:.78rem;font-weight:600;color:var(--label1)">${e.nombre||'—'}</div>
+        <div style="font-size:.63rem;color:${color};font-weight:600">${label}</div>
       </div>
     </div>`;
   }).join('');
 
-  // Historial de actividad del turno cronológico
+  // Actividad — Supabase devuelve {tipo, nombre, fechaRegistro}
   const actividadHTML = (t.actividad||[]).map(ev => {
     const esBaja = ev.tipo === 'baja';
+    const nomEv  = ev.nombre || ev.voluntario || '—';
     return `<div style="display:flex;align-items:center;gap:.6rem;padding:.3rem 0;border-bottom:1px solid var(--sep)">
       <div style="width:8px;height:8px;border-radius:50%;background:${esBaja?'var(--red)':'var(--green-dark)'};flex-shrink:0"></div>
       <div style="flex:1;font-size:.75rem;color:var(--label2)">
-        <strong>${ev.voluntario}</strong>
-        ${esBaja ? 'registró una <strong style="color:var(--red)">baja</strong>' : 'se volvió a <strong style="color:var(--green-dark)">apuntar</strong>'}
+        <strong>${nomEv}</strong>
+        ${esBaja
+          ? ' registró una <strong style="color:var(--red)">baja</strong>'
+          : ' se volvió a <strong style="color:var(--green-dark)">apuntar</strong>'}
       </div>
       <div style="font-size:.65rem;color:var(--label3)">${ev.fechaRegistro||''}</div>
     </div>`;
   }).join('');
+
+  // Bajasactivas = bajas que no fueron neutralizadas
+  const bajasActivas = bajas.filter(n => !refUp.includes((n||'').toUpperCase()));
 
   card.innerHTML = `
     <div style="height:3px;background:${headerBg}"></div>
@@ -1863,7 +1920,7 @@ function buildTurnoActividad(t, idx, resuelto) {
         </div>
       </div>
       <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;background:${resuelto?'var(--green-soft)':'var(--red-soft)'};color:${resuelto?'var(--green-dark)':'var(--red)'}">
-        ${resuelto ? '✓ Resuelto' : `⚠️ ${t.bajasActivas?.length||0} baja${(t.bajasActivas?.length||0)!==1?'s':''} pendiente${(t.bajasActivas?.length||0)!==1?'s':''}`}
+        ${resuelto ? '✓ Resuelto' : '⚠️ ' + bajasActivas.length + ' baja' + (bajasActivas.length!==1?'s':'') + ' pendiente' + (bajasActivas.length!==1?'s':'')}
       </span>
     </div>
 
@@ -2582,7 +2639,7 @@ async function openCubre(semana, dia, rango) {
   body.innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando candidatos…</p></div>`;
   openModal('mcubre');
   try {
-    const data = await apiGet({action:'quienCubre', semana, dia, rango});
+    const data = await apiGet({action:'quienCubre', semana: String(semana), dia: String(dia), rango: String(rango)});
     if (!data.candidatos?.length) {
       body.innerHTML = `<div class="empty" style="padding:1.5rem"><span class="ei">😔</span><h4>Sin candidatos</h4><p>Ningún voluntario tiene disponibilidad horaria para este turno.</p></div>`;
       return;
@@ -2621,7 +2678,7 @@ async function cargarCandidatosInline(idx, semana, dia, rango) {
   if (!el) return;
   el.innerHTML = `<div style="display:flex;align-items:center;gap:.5rem;color:var(--label3);font-size:.75rem"><div class="spinner" style="width:14px;height:14px;border-width:2px;flex-shrink:0"></div> Buscando candidatos…</div>`;
   try {
-    const data = await apiGet({action:'quienCubre', semana, dia, rango});
+    const data = await apiGet({action:'quienCubre', semana: String(semana), dia: String(dia), rango: String(rango)});
     const cands = data.candidatos || [];
     const disponibles = cands.filter(c => c.estado !== 'bloqueado');
     const bloqueados  = cands.filter(c => c.estado === 'bloqueado');
