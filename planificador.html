@@ -434,6 +434,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
     <button class="nav-item" onclick="setTab('oferta')" id="nav-oferta"><span class="ni">✋</span> Turnos disponibles</button>
     <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Historial</button>
+    <button class="nav-item" onclick="setTab('apuntes')" id="nav-apuntes"><span class="ni">✋</span> Apuntes</button>
     <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo meses</button>
     <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
@@ -463,6 +464,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
     <div id="tab-oferta" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div></div>
     <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div></div>
+    <div id="tab-apuntes" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando apuntes…</p></div></div>
     <div id="tab-archivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando archivo…</p></div></div>
     <div id="tab-busqueda" class="tab-pane"><div class="empty"><span class="ei">🔎</span><h4>Búsqueda manual</h4><p>Configura los filtros para buscar.</p></div></div>
     <div id="tab-calendario" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div></div>
@@ -520,13 +522,13 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','archivo','busqueda','calendario'];
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','apuntes','archivo','busqueda','calendario'];
 const TAB_TITLES = {
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
   oferta:'✋ Turnos disponibles',
-  historial:'📋 Historial', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
+  historial:'📋 Historial', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
   calendario:'⚙️ Configurar calendario',
 };
 const TAB_ACTS = {
@@ -540,6 +542,7 @@ const TAB_ACTS = {
   bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
   oferta:`<button class="btn btn-ghost btn-sm" onclick="loadOferta(true)">↻ Actualizar</button>`,
   historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
+  apuntes:`<button class="btn btn-ghost btn-sm" onclick="loadApuntes(true)">↻ Actualizar</button>`,
   archivo:`<button class="btn btn-ghost btn-sm" onclick="loadArchivo(true)">↻ Actualizar</button>`,
   busqueda:``,
   calendario:`<button class="btn btn-green btn-sm" onclick="guardarCalendario()">💾 Guardar cambios</button>`,
@@ -563,6 +566,7 @@ function setTab(id) {
   if (id==='bajas'          && !window._bOk)    loadBajas();
   if (id==='oferta'         && !window._oOk)    loadOferta();
   if (id==='historial'      && !window._hOk)    loadHistorial();
+  if (id==='apuntes'        && !window._apOk)   loadApuntes();
   if (id==='archivo'        && !window._arOk)   loadArchivo();
   if (id==='busqueda')                          initBusqueda();
   if (id==='calendario'     && !window._calOk)  loadCalendario();
@@ -626,6 +630,149 @@ async function cached(key, ttlMs, fn) {
   return data;
 }
 function invalidar(...keys) { keys.forEach(k => delete _cache[k]); }
+
+// ── apiPost — traduce {accion:'xxx', ...} a escrituras Supabase ──────────
+async function apiPost(body) {
+  const d = body;
+  switch(d.accion) {
+
+    case 'confirmarTurno': {
+      const vols = await sbGet('voluntarios',
+        'nombre=in.('+d.asignados.map(n=>'"'+n+'"').join(',')+')'+'&select=id,nombre');
+      const idMap = {};
+      vols.forEach(v => { idMap[v.nombre.toUpperCase()] = v.id; });
+      let fechaISO = '';
+      if (d.fecha) {
+        if (typeof d.fecha === 'number') fechaISO = new Date(d.fecha).toISOString().split('T')[0];
+        else if (String(d.fecha).includes('/')) fechaISO = dmyAIso(String(d.fecha));
+        else fechaISO = String(d.fecha).split('T')[0];
+      }
+      const rows = d.asignados.map(n => ({
+        voluntario_id: idMap[n.toUpperCase()],
+        fecha: fechaISO, semana: parseInt(d.semana), dia: d.dia, rango: d.rango
+      })).filter(r => r.voluntario_id && r.fecha);
+      if (rows.length) await sbPost('historial', rows, 'resolution=merge-duplicates,return=minimal');
+      invalidar('historial','oferta','carga');
+      return { status:'success' };
+    }
+
+    case 'registrarBaja': {
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) throw new Error('Voluntario no encontrado: '+d.nombre);
+      const volId = vols[0].id;
+      const rows = (d.turnos||[]).map(t => ({
+        voluntario_id: volId,
+        fecha: dmyAIso(t.fecha), semana: parseInt(t.semana), dia: t.dia, rango: t.rango, activa: true
+      }));
+      if (rows.length) await sbPost('bajas', rows, 'resolution=merge-duplicates,return=minimal');
+      invalidar('bajas','oferta');
+      return { status:'success' };
+    }
+
+    case 'registrarRefuerzo':
+    case 'confirmarSustituto': {
+      const nombre = d.nombre;
+      const partes = (d.key||'').split('|');
+      const sem    = partes[0] || d.semana || '1';
+      const dia    = partes[1] || d.dia || '';
+      const rango  = partes.slice(2).join('|') || d.rango || '';
+      let fechaISO = '';
+      if (d.fecha) {
+        if (String(d.fecha).includes('/')) fechaISO = dmyAIso(String(d.fecha));
+        else if (typeof d.fecha === 'number') fechaISO = new Date(d.fecha).toISOString().split('T')[0];
+        else fechaISO = String(d.fecha).split('T')[0];
+      }
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+      if (!vols.length) throw new Error('Voluntario no encontrado: '+nombre);
+      const volId = vols[0].id;
+      // Neutralizar baja activa si existe
+      if (fechaISO && rango) {
+        await sbPatch('bajas',
+          'voluntario_id=eq.'+volId+'&fecha=eq.'+fechaISO+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',
+          { activa: false });
+      }
+      // Registrar como refuerzo
+      await sbPost('refuerzos', [{
+        voluntario_id: volId,
+        fecha: fechaISO, semana: parseInt(sem), dia: dia, rango: rango,
+        es_dia_completo: !!d.esDia, franja: d.franja||null
+      }], 'resolution=merge-duplicates,return=minimal');
+      invalidar('bajas','oferta','historial');
+      return { status:'success' };
+    }
+
+    case 'guardarCalendarioConfig': {
+      await guardarCalendarioConfig(d.dias);
+      return { status:'success' };
+    }
+
+    case 'guardarDisponibilidadVoluntario': {
+      let vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) {
+        vols = await sbPost('voluntarios', [{nombre:d.nombre, tiene_llave:!!d.llave, activo:true}], 'return=representation');
+      } else {
+        await sbPatch('voluntarios', 'id=eq.'+vols[0].id, {tiene_llave:!!d.llave});
+      }
+      const volId = vols[0].id;
+      await sbDelete('disponibilidad', 'voluntario_id=eq.'+volId);
+      const rows = (d.disponibilidad||[]).filter(x=>x.horario).map(x=>({
+        voluntario_id:volId, semana:x.semana, dia:x.dia, horario:x.horario
+      }));
+      if (rows.length) await sbPost('disponibilidad', rows);
+      invalidar('voluntarios','disponibilidad');
+      return { status:'success' };
+    }
+
+    case 'eliminarTurnoHistorial': {
+      const vols = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombre)+'&select=id');
+      if (!vols.length) return { status:'error' };
+      await sbDelete('historial',
+        'voluntario_id=eq.'+vols[0].id+'&rango=eq.'+encodeURIComponent(d.rango)+'&fecha=eq.'+dmyAIso(d.fecha));
+      invalidar('historial','oferta','carga');
+      return { status:'success' };
+    }
+
+    case 'editarTurnoHistorial': {
+      const vOrig = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nombreOriginal)+'&select=id');
+      if (!vOrig.length) return { status:'error' };
+      await sbDelete('historial',
+        'voluntario_id=eq.'+vOrig[0].id+'&rango=eq.'+encodeURIComponent(d.rangoOriginal)+'&fecha=eq.'+dmyAIso(d.fecha));
+      if (d.nuevoNombre) {
+        const vNew = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nuevoNombre)+'&select=id');
+        if (vNew.length) {
+          await sbPost('historial', [{
+            voluntario_id:vNew[0].id, fecha:dmyAIso(d.fecha),
+            semana:parseInt(d.semana), dia:d.dia, rango:d.nuevoRango||d.rangoOriginal
+          }], 'resolution=merge-duplicates,return=minimal');
+        }
+      }
+      invalidar('historial','carga');
+      return { status:'success' };
+    }
+
+    case 'archivarMes': {
+      const [anio, numMes] = d.mes.split('-');
+      const ini = anio+'-'+numMes+'-01';
+      const fin = anio+'-'+numMes+'-31';
+      const rows = await sbGet('v_historial', 'fecha=gte.'+ini+'&fecha=lte.'+fin+'&order=fecha,rango');
+      if (rows.length) {
+        await sbPost('historial_archivo', rows.map(r=>({
+          voluntario_id:r.voluntario_id||null, nombre_snap:r.nombre,
+          fecha:r.fecha, semana:r.semana, dia:r.dia, rango:r.rango, mes_archivo:d.mes
+        })));
+        const ids = rows.map(r=>r.id).filter(Boolean);
+        if (ids.length) await sbDelete('historial', 'id=in.('+ids.join(',')+')');
+      }
+      invalidar('historial','carga');
+      return { status:'success' };
+    }
+
+    default:
+      console.warn('apiPost: acción desconocida:', d.accion);
+      return { status:'error', message:'Acción desconocida: '+d.accion };
+  }
+}
+
 
 // Helpers de fecha
 
@@ -3386,6 +3533,142 @@ async function loadCalendario(force) {
   } catch(e) {
     c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error al cargar</h4><p>${e.message}</p><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadCalendario(true)">↻ Reintentar</button></div>`;
   }
+}
+
+// ══════════════════════════════════════
+//  APUNTES DE VOLUNTARIOS
+//  Registro centralizado de refuerzos:
+//  quién se apuntó, a qué turno, cuándo
+// ══════════════════════════════════════
+async function loadApuntes(force) {
+  if (window._apOk && !force) return;
+  const c = document.getElementById('tab-apuntes');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando apuntes…</p></div>`;
+  try {
+    const refs = await sbGet('v_refuerzos',
+      'order=registrado_en.desc&limit=200');
+    c.innerHTML = '';
+
+    // Stats
+    const hoy = new Date().toISOString().split('T')[0];
+    const hoy7 = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+    const recientes = refs.filter(r => r.registrado_en >= hoy7);
+    const sr = document.createElement('div'); sr.className = 'stats-row';
+    sr.innerHTML = `
+      <div class="sbox"><div class="sv">${refs.length}</div><div class="sl">Total apuntes</div></div>
+      <div class="sbox" style="border-left:3px solid var(--blue)"><div class="sv" style="color:var(--blue)">${recientes.length}</div><div class="sl">Últimos 7 días</div></div>`;
+    c.appendChild(sr);
+
+    // Controles
+    const ctrl = document.createElement('div');
+    ctrl.style = 'display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
+    ctrl.innerHTML = `
+      <input class="fc" id="ap-busca" placeholder="🔍 Buscar voluntario…" oninput="filtApuntes()"
+        style="max-width:210px">
+      <select class="fc" id="ap-tipo" onchange="filtApuntes()" style="max-width:160px">
+        <option value="">Todos</option>
+        <option value="refuerzo">Solo refuerzos</option>
+        <option value="sustituto">Solo sustitutos de baja</option>
+      </select>`;
+    c.appendChild(ctrl);
+
+    if (!refs.length) {
+      c.insertAdjacentHTML('beforeend',
+        `<div class="empty"><span class="ei">✋</span><h4>Sin apuntes</h4>
+         <p>Aquí aparecerán los voluntarios que se apunten a turnos disponibles.</p></div>`);
+      window._apOk = true; return;
+    }
+
+    window._apuntesData = refs;
+    renderApuntes(c, refs);
+    window._apOk = true;
+  } catch(e) {
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4>
+      <p>${e.message}</p>
+      <button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadApuntes(true)">↻ Reintentar</button></div>`;
+  }
+}
+
+function filtApuntes() {
+  const b  = (document.getElementById('ap-busca')?.value||'').toLowerCase();
+  const c  = document.getElementById('tab-apuntes');
+  const data = window._apuntesData || [];
+  const filt = data.filter(r =>
+    (!b || r.nombre.toLowerCase().includes(b))
+  );
+  const wrap = c.querySelector('.ap-table-wrap');
+  if (wrap) wrap.remove();
+  renderApuntes(c, filt);
+}
+
+function renderApuntes(c, refs) {
+  // Eliminar tabla previa
+  const old = c.querySelector('.ap-table-wrap');
+  if (old) old.remove();
+
+  const wrap = document.createElement('div'); wrap.className = 'ap-table-wrap';
+
+  if (!refs.length) {
+    wrap.innerHTML = `<div class="empty"><span class="ei">🔍</span><h4>Sin resultados</h4></div>`;
+    c.appendChild(wrap); return;
+  }
+
+  const card = document.createElement('div'); card.className = 'card'; card.style.padding='0';
+  card.innerHTML = `
+    <table class="htable" style="font-size:.78rem">
+      <thead><tr>
+        <th>Voluntario</th>
+        <th>Fecha turno</th>
+        <th>Día</th>
+        <th>Franja horaria</th>
+        <th>Registrado</th>
+        <th style="text-align:right;padding-right:.9rem">Acción</th>
+      </tr></thead>
+      <tbody>
+        ${refs.map(r => {
+          const tarde = parseInt((r.rango||'0').split(':')[0]) >= 14;
+          const ini = r.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+          const fechaReg = r.registrado_en ? r.registrado_en.split('T')[0].split('-').reverse().join('/') : '—';
+          return `<tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:.5rem">
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${ini}</div>
+                <div>
+                  <div style="font-weight:600">${r.nombre}${r.tiene_llave?'&nbsp;🔑':''}</div>
+                </div>
+              </div>
+            </td>
+            <td style="font-weight:600">${isoADMY(r.fecha)}</td>
+            <td>${normDia(r.dia)}</td>
+            <td>
+              <span style="font-size:.7rem;padding:.15rem .45rem;border-radius:4px;font-weight:700;
+                background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};
+                color:${tarde?'var(--amber)':'var(--blue)'}">
+                🕒 ${r.rango}
+              </span>
+            </td>
+            <td style="color:var(--label3);font-size:.73rem">${fechaReg}</td>
+            <td style="text-align:right;padding-right:.65rem">
+              <button class="btn btn-red btn-sm" style="padding:.25rem .55rem;font-size:.68rem"
+                onclick="eliminarApunte('${r.id}','${esc(r.nombre)}','${r.rango}')"
+                title="Eliminar apunte">🗑️</button>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+  wrap.appendChild(card);
+  c.appendChild(wrap);
+}
+
+async function eliminarApunte(id, nombre, rango) {
+  if (!confirm(`¿Eliminar el apunte de ${nombre} al turno ${rango}?`)) return;
+  try {
+    await sbDelete('refuerzos', 'id=eq.'+id);
+    window._apOk = false; window._bOk = false; window._oOk = false;
+    toast('Apunte eliminado ✓', 'ok');
+    loadApuntes(true);
+  } catch(e) { toast('Error: '+e.message, 'err'); }
 }
 
 // ── INIT
