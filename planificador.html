@@ -2148,11 +2148,7 @@ function renderBajasPanel(c) {
   tabsBar.innerHTML = `
     <button id="btab-actividad" onclick="setBajaTab('actividad')"
       style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;transition:all .18s">
-      📋 Actividad
-    </button>
-    <button id="btab-turnos" onclick="setBajaTab('turnos')"
-      style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:var(--label3);transition:all .18s">
-      ✋ Turnos disponibles
+      📋 Actividad de bajas
     </button>`;
   c.appendChild(tabsBar);
 
@@ -3094,7 +3090,7 @@ async function cargarCandidatosInline(candsId, semana, dia, rango) {
           <div style="font-size:.65rem;color:${txtCol};font-weight:600">${label}</div>
           <div style="font-size:.63rem;color:var(--label3)">🕐 ${c.horario} · ${c.dias>=99?'Voluntario nuevo':c.dias+'d descanso'}</div>
         </div>
-        ${!esBloq?`<button style="background:var(--green-dark);color:#fff;border:none;padding:.32rem .7rem;border-radius:var(--r-sm);font-family:inherit;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${idx}',this)">✓ Asignar</button>`:''}
+        ${!esBloq?`<button style="background:var(--green-dark);color:#fff;border:none;padding:.32rem .7rem;border-radius:var(--r-sm);font-family:inherit;font-size:.7rem;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0" onclick="asignarSustituto('${semana}','${dia}','${rango}','${c.nombre}','${candsId}',this)">✓ Asignar</button>`:''}
       </div>`;
     };
 
@@ -3108,7 +3104,7 @@ async function cargarCandidatosInline(candsId, semana, dia, rango) {
     }
 
     if (bloqueados.length) {
-      const bid = 'blq-' + idx;
+      const bid = 'blq-' + candsId;
       html += `
         <button onclick="toggleBlock('${bid}',this)" class="dtoggle" style="font-size:.68rem;padding:.3rem .5rem;margin-top:.3rem;width:100%">
           <span>🔒 ${bloqueados.length} bloqueado${bloqueados.length!==1?'s':''} por descanso</span>
@@ -3320,13 +3316,17 @@ function renderOfertaPanel(c) {
 
   c.innerHTML = '';
 
-  // Stats
-  const pendientes = turnos.filter(t => t.necesitan > 0);
+  // Separar: turnos con equipo parcial vs completamente nuevos
+  const conEquipo  = turnos.filter(t => t.equipoActual > 0 && t.necesitan > 0);
+  const sinEquipo  = turnos.filter(t => t.equipoActual === 0);
+  const completos  = turnos.filter(t => t.necesitan === 0 && !t.tieneLlave);
   const sinLlave   = turnos.filter(t => !t.tieneLlave);
+
+  // Stats
   const sr = document.createElement('div'); sr.className = 'stats-row';
   sr.innerHTML = `
-    <div class="sbox"><div class="sv">${turnos.length}</div><div class="sl">Con plazas</div></div>
-    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${pendientes.length}</div><div class="sl">Faltan vols.</div></div>
+    <div class="sbox"><div class="sv">${conEquipo.length}</div><div class="sl">Faltan vols.</div></div>
+    <div class="sbox"><div class="sv">${sinEquipo.length}</div><div class="sl">Sin equipo</div></div>
     <div class="sbox" style="border-left:3px solid var(--amber)"><div class="sv" style="color:var(--amber)">${sinLlave.length}</div><div class="sl">Sin llave</div></div>`;
   c.appendChild(sr);
 
@@ -3390,6 +3390,9 @@ function renderOfertaPanel(c) {
         accionHTML = `<span style="font-size:.75rem;color:var(--label3)">Selecciona un voluntario arriba para apuntarse</span>`;
       }
 
+      // Key única para el panel de configuración
+      const cfgKey = (t.key||'').replace(/[^a-z0-9]/gi,'_');
+
       const card = document.createElement('div');
       card.className = 'tc';
       card.style.marginBottom = '.6rem';
@@ -3400,9 +3403,15 @@ function renderOfertaPanel(c) {
             <div style="font-size:1rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
             <span style="font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.14rem .46rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${tarde?'TARDE':'MAÑANA'}</span>
           </div>
-          <div style="text-align:right">
-            <div style="font-size:.78rem;font-weight:700;color:var(--label2)">${t.equipoActual}/4</div>
-            ${t.necesitan>0?`<div style="font-size:.68rem;color:var(--red);font-weight:600">Faltan ${t.necesitan}</div>`:''}
+          <div style="text-align:right;display:flex;align-items:center;gap:.5rem">
+            <div>
+              <div style="font-size:.78rem;font-weight:700;color:var(--label2)">${t.equipoActual}/4</div>
+              ${t.necesitan>0?`<div style="font-size:.68rem;color:var(--red);font-weight:600">Faltan ${t.necesitan}</div>`:''}
+            </div>
+            <button onclick="ofToggleCfg('${cfgKey}')" title="Configurar turno"
+              style="background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-sm);padding:.3rem .55rem;font-size:.75rem;cursor:pointer;color:var(--label3);transition:all .15s"
+              onmouseover="this.style.background='var(--blue-soft)';this.style.color='var(--blue)'"
+              onmouseout="this.style.background='var(--surface2)';this.style.color='var(--label3)'">⚙️</button>
           </div>
         </div>
         <div style="padding:0 1rem .6rem">
@@ -3410,6 +3419,37 @@ function renderOfertaPanel(c) {
             <div style="height:100%;width:${pct}%;background:${pfColor};border-radius:2px"></div>
           </div>
           ${!t.tieneLlave?`<div style="font-size:.7rem;color:var(--amber);font-weight:600;margin-top:.3rem">🔑 Necesita portador de llave</div>`:''}
+        </div>
+        <!-- Panel de configuración del turno (colapsable) -->
+        <div id="cfg-${cfgKey}" style="display:none;margin:0 1rem .7rem;background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.7rem .85rem">
+          <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.6rem">⚙️ Configuración del turno</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.55rem">
+            <div>
+              <label style="font-size:.68rem;font-weight:600;color:var(--label2);display:block;margin-bottom:.25rem">Hora inicio</label>
+              <select id="cfg-ini-${cfgKey}" class="fc" style="width:100%;padding:.35rem .5rem;font-size:.78rem">
+                ${[8,9,10,11,12,13,14,15,16,17,18,19,20].map(h=>`<option value="${h}" ${parseInt((t.rango||'0').split(':')[0])===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:.68rem;font-weight:600;color:var(--label2);display:block;margin-bottom:.25rem">Hora fin</label>
+              <select id="cfg-fin-${cfgKey}" class="fc" style="width:100%;padding:.35rem .5rem;font-size:.78rem">
+                ${[9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(h=>{
+                  const ph=t.rango?t.rango.match(/a\s*(\d+)/):null;
+                  const hfin=ph?parseInt(ph[1]):(parseInt((t.rango||'0').split(':')[0])+2);
+                  return `<option value="${h}" ${hfin===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`;
+                }).join('')}
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.55rem">
+            <label style="display:flex;align-items:center;gap:.4rem;font-size:.78rem;font-weight:500;color:var(--label2);cursor:pointer">
+              <input type="checkbox" id="cfg-llave-${cfgKey}" ${!t.tieneLlave?'checked':''} style="accent-color:var(--amber);width:15px;height:15px">
+              🔑 Requiere portador de llave
+            </label>
+          </div>
+          <button class="btn btn-navy btn-sm" onclick="ofGuardarCfg('${cfgKey}','${esc(t.key)}','${esc(t.fecha)}')" style="width:100%">
+            💾 Aplicar configuración
+          </button>
         </div>
         <div style="padding:0 1rem .85rem">
           <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.35rem">Voluntarios apuntados</div>
@@ -3602,63 +3642,140 @@ function filtApuntes() {
 }
 
 function renderApuntes(c, refs) {
-  // Eliminar tabla previa
   const old = c.querySelector('.ap-table-wrap');
   if (old) old.remove();
-
   const wrap = document.createElement('div'); wrap.className = 'ap-table-wrap';
-
   if (!refs.length) {
     wrap.innerHTML = `<div class="empty"><span class="ei">🔍</span><h4>Sin resultados</h4></div>`;
     c.appendChild(wrap); return;
   }
 
-  const card = document.createElement('div'); card.className = 'card'; card.style.padding='0';
-  card.innerHTML = `
-    <table class="htable" style="font-size:.78rem">
-      <thead><tr>
-        <th>Voluntario</th>
-        <th>Fecha turno</th>
-        <th>Día</th>
-        <th>Franja horaria</th>
-        <th>Registrado</th>
-        <th style="text-align:right;padding-right:.9rem">Acción</th>
-      </tr></thead>
-      <tbody>
-        ${refs.map(r => {
-          const tarde = parseInt((r.rango||'0').split(':')[0]) >= 14;
-          const ini = r.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-          const fechaReg = r.registrado_en ? r.registrado_en.split('T')[0].split('-').reverse().join('/') : '—';
-          return `<tr>
-            <td>
-              <div style="display:flex;align-items:center;gap:.5rem">
-                <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:700;flex-shrink:0">${ini}</div>
-                <div>
-                  <div style="font-weight:600">${r.nombre}${r.tiene_llave?'&nbsp;🔑':''}</div>
-                </div>
-              </div>
-            </td>
-            <td style="font-weight:600">${isoADMY(r.fecha)}</td>
-            <td>${normDia(r.dia)}</td>
-            <td>
-              <span style="font-size:.7rem;padding:.15rem .45rem;border-radius:4px;font-weight:700;
-                background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};
-                color:${tarde?'var(--amber)':'var(--blue)'}">
-                🕒 ${r.rango}
-              </span>
-            </td>
-            <td style="color:var(--label3);font-size:.73rem">${fechaReg}</td>
-            <td style="text-align:right;padding-right:.65rem">
-              <button class="btn btn-red btn-sm" style="padding:.25rem .55rem;font-size:.68rem"
-                onclick="eliminarApunte('${r.id}','${esc(r.nombre)}','${r.rango}')"
-                title="Eliminar apunte">🗑️</button>
-            </td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>`;
-  wrap.appendChild(card);
+  // Agrupar por fecha+rango (turno)
+  const grupos = {};
+  refs.forEach(r => {
+    const k = r.fecha + '|' + r.rango;
+    if (!grupos[k]) grupos[k] = { fecha:r.fecha, dia:r.dia, rango:r.rango, voluntarios:[] };
+    grupos[k].voluntarios.push(r);
+  });
+
+  // Ordenar turnos por fecha desc
+  const turnos = Object.values(grupos).sort((a,b) => b.fecha < a.fecha ? -1 : 1);
+
+  turnos.forEach((t, ti) => {
+    const tarde = parseInt((t.rango||'0').split(':')[0]) >= 14;
+    const card  = document.createElement('div');
+    card.style  = `background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);
+      margin-bottom:.75rem;overflow:hidden;border:1px solid var(--sep);
+      animation:fadeUp .3s ease both;animation-delay:${ti*.04}s`;
+
+    // Cabecera del turno
+    const apuntadosHtml = t.voluntarios.map(v => {
+      const ini = v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+      const fechaReg = v.registrado_en ? v.registrado_en.split('T')[0].split('-').reverse().join('/') : '—';
+      return `<div style="display:flex;align-items:center;gap:.55rem;background:var(--green-soft);
+        border-radius:var(--r-sm);padding:.38rem .65rem">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--gold);
+          display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0">
+          ${ini}
+        </div>
+        <div style="flex:1">
+          <div style="font-size:.8rem;font-weight:600">${v.nombre}${v.tiene_llave?' 🔑':''}</div>
+          <div style="font-size:.65rem;color:var(--label3)">Registrado: ${fechaReg}</div>
+        </div>
+        <button onclick="eliminarApunte('${v.id}','${esc(v.nombre)}','${t.rango}')"
+          style="background:none;border:none;cursor:pointer;color:var(--label4);font-size:.85rem;
+          padding:.1rem .3rem;transition:color .15s" onmouseover="this.style.color='var(--red)'"
+          onmouseout="this.style.color='var(--label4)'" title="Eliminar">🗑️</button>
+      </div>`;
+    }).join('');
+
+    card.innerHTML = `
+      <div style="height:3px;background:${tarde?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+      <div style="padding:.75rem 1rem .5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-size:.95rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">
+            📅 ${isoADMY(t.fecha)} · ${normDia(t.dia)}
+            <span style="margin-left:.4rem;font-size:.63rem;padding:.1rem .38rem;border-radius:4px;font-weight:700;
+              background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">
+              ${tarde?'TARDE':'MAÑANA'}
+            </span>
+          </div>
+        </div>
+        <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;
+          background:var(--green-soft);color:var(--green-dark)">
+          ✋ ${t.voluntarios.length} apuntado${t.voluntarios.length!==1?'s':''}
+        </span>
+      </div>
+      <div style="padding:0 1rem .5rem">
+        <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.45rem">
+          Voluntarios apuntados
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.28rem">
+          ${apuntadosHtml}
+        </div>
+      </div>
+      <div style="padding:.4rem 1rem .85rem">
+        <button onclick="apAbrirCandidatos(this,'${t.fecha}','${esc(t.rango)}','${esc(t.dia)}')"
+          style="font-size:.72rem;font-weight:600;color:var(--blue);background:none;border:none;cursor:pointer;
+          display:flex;align-items:center;gap:.3rem;padding:.3rem 0">
+          <span style="font-size:.8rem">👥</span> Ver candidatos que cumplen criterios
+          <span class="ap-caret" style="font-size:.65rem;transition:transform .2s">▼</span>
+        </button>
+        <div class="ap-cands" style="display:none;margin-top:.5rem"></div>
+      </div>`;
+    wrap.appendChild(card);
+  });
   c.appendChild(wrap);
+}
+
+async function apAbrirCandidatos(btn, fecha, rango, dia) {
+  const caret = btn.querySelector('.ap-caret');
+  const panel = btn.nextElementSibling;
+  const abierto = panel.style.display === 'block';
+  panel.style.display = abierto ? 'none' : 'block';
+  caret.style.transform = abierto ? '' : 'rotate(180deg)';
+  if (abierto || panel.dataset.loaded) return;
+  panel.dataset.loaded = '1';
+  panel.innerHTML = `<div style="text-align:center;padding:.75rem"><div style="width:22px;height:22px;border:2px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto"></div></div>`;
+  try {
+    // Calcular semana a partir de la fecha ISO
+    const fiso = fecha; // ya está en formato YYYY-MM-DD desde BD
+    const dNum = parseInt(fiso.split('-')[2]);
+    const semana = dNum<=7?1:dNum<=14?2:dNum<=21?3:dNum<=28?4:5;
+    const data = await rpc('quien_puede_cubrir', {
+      p_semana: semana, p_dia: normDia(dia), p_rango: rango, p_fecha: fiso
+    });
+    const cands = Array.isArray(data) ? data : [];
+    if (!cands.length) {
+      panel.innerHTML = `<div style="font-size:.78rem;color:var(--label3);font-style:italic;padding:.3rem 0">Sin candidatos disponibles para este turno.</div>`;
+      return;
+    }
+    panel.innerHTML = `
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.38rem">
+        Candidatos disponibles (${cands.length})
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.25rem">
+        ${cands.slice(0,8).map((v,i) => {
+          const ini = (v.nombre||'?').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+          const descanso = v.dias_descanso != null ? v.dias_descanso+'d descanso' : '';
+          const urgente = v.dias_descanso != null && v.dias_descanso < 5;
+          return `<div style="display:flex;align-items:center;gap:.5rem;padding:.32rem .55rem;
+            border-radius:var(--r-sm);background:${i===0?'var(--blue-soft)':'var(--surface2)'};
+            border:1px solid ${i===0?'rgba(0,113,227,.2)':'var(--sep)'}">
+            <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);
+              display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;flex-shrink:0">${ini}</div>
+            <div style="flex:1">
+              <div style="font-size:.78rem;font-weight:600">${v.nombre}${v.tiene_llave?' 🔑':''}</div>
+              ${descanso?`<div style="font-size:.62rem;color:${urgente?'var(--amber)':'var(--label3)'}">${descanso}</div>`:''}
+            </div>
+            ${i===0?`<span style="font-size:.58rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;background:var(--blue);color:#fff">Mejor opción</span>`:''}
+          </div>`;
+        }).join('')}
+      </div>`;
+  } catch(e) {
+    panel.innerHTML = `<div style="font-size:.78rem;color:var(--red)">Error: ${e.message}</div>`;
+  }
 }
 
 async function eliminarApunte(id, nombre, rango) {
@@ -3669,6 +3786,38 @@ async function eliminarApunte(id, nombre, rango) {
     toast('Apunte eliminado ✓', 'ok');
     loadApuntes(true);
   } catch(e) { toast('Error: '+e.message, 'err'); }
+}
+
+// ── OFERTA — configurar turno (horas y llave) ─────────────────
+function ofToggleCfg(cfgKey) {
+  const panel = document.getElementById('cfg-'+cfgKey);
+  if (!panel) return;
+  const abierto = panel.style.display === 'block';
+  panel.style.display = abierto ? 'none' : 'block';
+}
+
+async function ofGuardarCfg(cfgKey, turnoKey, fecha) {
+  const ini   = parseInt(document.getElementById('cfg-ini-'+cfgKey)?.value||0);
+  const fin   = parseInt(document.getElementById('cfg-fin-'+cfgKey)?.value||0);
+  const llave = document.getElementById('cfg-llave-'+cfgKey)?.checked;
+  if (!ini || !fin || fin <= ini) { toast('Revisa las horas: el fin debe ser mayor que el inicio', 'err'); return; }
+  const nuevoRango = `${String(ini).padStart(2,'0')}:00 a ${String(fin).padStart(2,'0')}:00`;
+  // Actualizar en el estado local de oferta
+  const partes = turnoKey.split('|');
+  const [sem, dia, ...rp] = partes;
+  const rangoAntiguo = rp.join('|');
+  (window._ofertaData||[]).forEach(t => {
+    if (t.key === turnoKey) {
+      t.rango = nuevoRango;
+      t.key   = `${sem}|${dia}|${nuevoRango}`;
+      t.tieneLlave = !llave; // checkbox = "requiere llave" → si está marcado, tieneLlave=false
+    }
+  });
+  // Si hay filas en historial con este rango, actualizar sus rangos vía PATCH
+  // (solo aplica al estado local; el cuadrante se regenerará)
+  toast(`Turno actualizado: ${nuevoRango}${llave?' · Requiere llave':''}`, 'ok');
+  document.getElementById('cfg-'+cfgKey).style.display = 'none';
+  renderOfertaPanel(document.getElementById('tab-oferta'));
 }
 
 // ── INIT
