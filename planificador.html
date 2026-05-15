@@ -1744,31 +1744,58 @@ function buildDChip(s, turnoKey, source) {
   return `<span class="dchip ${cls}" ${drag} title="${s.horario?'🕐 '+s.horario:''}" ${!blq?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${s.llave?'🔑 ':''}${s.nombre}${s.horario?`<span class="dh">🕐${s.horario}</span>`:''}</span>`;
 }
 
-function activateSlots(key, tOrig, d, conf) {
-  if (conf || tOrig.confirmado) return;
-  const equipo = S.edits[key] || tOrig.equipo || [];
-  equipo.forEach((_,i) => {
-    const sl = document.getElementById(`sl-${key.replace(/[|: ]/g,'-')}-${i}`);
-    if (!sl) return;
-    sl.ondragover = e => { e.preventDefault(); sl.classList.add('drop-active'); };
-    sl.ondragleave = () => sl.classList.remove('drop-active');
-    sl.ondrop = e => dDrop(e, key, i, tOrig, d);
-  });
-}
 
 // ══════════════════════════════════════
-//  DRAG & DROP (desktop + touch)
+//  DRAG & DROP — táctil + ratón
+//  Funciona con mouse (desktop) y touch (móvil/tablet)
 // ══════════════════════════════════════
 const ghost = document.getElementById('drag-ghost');
 
+// ── Estado compartido ──────────────────────────────────────────
+let _touchDrag = null;       // datos del chip que se arrastra en touch
+let _touchGhostEl = null;    // elemento visual que sigue el dedo
+let _lastDropTarget = null;  // último slot bajo el dedo
+
+// ── UTILIDADES ────────────────────────────────────────────────
+function chipDataFrom(el) {
+  return {
+    nombre:  el.dataset.nombre,
+    llave:   el.dataset.llave === 'true',
+    dias:    +el.dataset.dias,
+    dispo:   +el.dataset.dispo,
+    horario: el.dataset.horario || '',
+    key:     el.dataset.key     || '',
+    source:  el.dataset.source  || '',
+  };
+}
+
+function encontrarSlotBajo(x, y) {
+  // Ocultar el ghost para que elementFromPoint no lo intercepte
+  if (_touchGhostEl) _touchGhostEl.style.display = 'none';
+  const el = document.elementFromPoint(x, y);
+  if (_touchGhostEl) _touchGhostEl.style.display = '';
+  if (!el) return null;
+  return el.closest('.vslot');
+}
+
+function crearGhostTactil(text) {
+  const g = document.createElement('div');
+  g.textContent = text;
+  g.style.cssText = `
+    position:fixed; z-index:9999; pointer-events:none;
+    background:var(--navy); color:#fff; font-family:'Sora',sans-serif;
+    font-size:.8rem; font-weight:700; padding:.4rem .85rem;
+    border-radius:20px; box-shadow:0 8px 24px rgba(0,0,0,.3);
+    opacity:.92; white-space:nowrap; transform:translate(-50%,-140%);
+    transition:transform .1s;`;
+  document.body.appendChild(g);
+  return g;
+}
+
+// ── MOUSE EVENTS ──────────────────────────────────────────────
 function dStart(e) {
   const chip = e.currentTarget;
-  S.drag = {
-    nombre: chip.dataset.nombre, llave: chip.dataset.llave==='true',
-    dias: +chip.dataset.dias, dispo: +chip.dataset.dispo,
-    horario: chip.dataset.horario, key: chip.dataset.key,
-    source: chip.dataset.source,
-  };
+  S.drag = chipDataFrom(chip);
   chip.classList.add('dragging');
   ghost.textContent = chip.dataset.nombre;
   ghost.style.display = 'block';
@@ -1781,45 +1808,148 @@ function dEnd(e) {
   S.drag = null;
 }
 document.addEventListener('dragover', e => {
-  ghost.style.left = e.clientX+'px';
-  ghost.style.top  = e.clientY+'px';
+  ghost.style.left = e.clientX + 'px';
+  ghost.style.top  = e.clientY + 'px';
 });
 
+// ── TOUCH EVENTS ──────────────────────────────────────────────
+function tStart(e) {
+  if (e.touches.length !== 1) return;
+  const chip = e.currentTarget;
+  _touchDrag = { data: chipDataFrom(chip), chip };
+  chip.classList.add('dragging');
+
+  const t = e.touches[0];
+  _touchGhostEl = crearGhostTactil(chip.dataset.nombre);
+  _touchGhostEl.style.left = t.clientX + 'px';
+  _touchGhostEl.style.top  = t.clientY + 'px';
+
+  // Vibración táctil si disponible
+  if (navigator.vibrate) navigator.vibrate(30);
+  e.preventDefault(); // evitar scroll mientras arrastra
+}
+
+function tMove(e) {
+  if (!_touchDrag || e.touches.length !== 1) return;
+  e.preventDefault();
+  const t = e.touches[0];
+
+  // Mover ghost
+  if (_touchGhostEl) {
+    _touchGhostEl.style.left = t.clientX + 'px';
+    _touchGhostEl.style.top  = t.clientY + 'px';
+  }
+
+  // Detectar slot bajo el dedo
+  const slot = encontrarSlotBajo(t.clientX, t.clientY);
+  if (slot !== _lastDropTarget) {
+    if (_lastDropTarget) _lastDropTarget.classList.remove('drop-active');
+    if (slot) slot.classList.add('drop-active');
+    _lastDropTarget = slot;
+  }
+}
+
+function tEnd(e) {
+  if (!_touchDrag) return;
+  const t = e.changedTouches[0];
+
+  // Limpiar ghost
+  if (_touchGhostEl) { _touchGhostEl.remove(); _touchGhostEl = null; }
+  if (_lastDropTarget) _lastDropTarget.classList.remove('drop-active');
+  _touchDrag.chip.classList.remove('dragging');
+
+  // Encontrar el slot destino
+  const slot = encontrarSlotBajo(t.clientX, t.clientY);
+  if (slot && slot._dropData) {
+    const { turnoKey, slotIdx, tOrig, dData } = slot._dropData;
+    S.drag = _touchDrag.data;
+    _ejecutarDrop(turnoKey, slotIdx, tOrig, dData, slot);
+    S.drag = null;
+  }
+
+  _touchDrag = null;
+  _lastDropTarget = null;
+}
+
+// ── DROP LOGIC (compartido ratón + touch) ─────────────────────
 function dDrop(e, turnoKey, slotIdx, tOrig, dData) {
   e.preventDefault();
   const sl = e.currentTarget;
   sl.classList.remove('drop-active');
   if (!S.drag) return;
+  _ejecutarDrop(turnoKey, slotIdx, tOrig, dData, sl);
+}
+
+function _ejecutarDrop(turnoKey, slotIdx, tOrig, dData, sl) {
   const nuevo = S.drag;
+  if (!nuevo) return;
 
   const equipoBase = S.edits[turnoKey] ? [...S.edits[turnoKey]] : [...(tOrig.equipo||[])];
-  if (equipoBase.some(v => v.nombre === nuevo.nombre)) { toast('Ya está en el equipo','err'); return; }
+  if (equipoBase.some(v => v.nombre === nuevo.nombre)) {
+    toast('Ya está en el equipo', 'err');
+    return;
+  }
 
   const sustituido = equipoBase[slotIdx];
   equipoBase[slotIdx] = { nombre:nuevo.nombre, llave:nuevo.llave, dias:nuevo.dias, dispo:nuevo.dispo, horario:nuevo.horario };
   S.edits[turnoKey] = equipoBase;
 
-  // Re-render slots
   sl.classList.add('drop-done');
   const eqEl = document.getElementById(`eq-${turnoKey.replace(/[|: ]/g,'-')}`);
   if (eqEl) {
-    eqEl.innerHTML = equipoBase.map((v,i) => buildSlot(v,turnoKey,i,false)).join('');
+    eqEl.innerHTML = equipoBase.map((v,i) => buildSlot(v, turnoKey, i, false)).join('');
     activateSlots(turnoKey, tOrig, dData, false);
   }
 
-  // Actualizar chips disponibles: quitar el nuevo, añadir sustituido
   const sustEl = document.getElementById(`sust-${turnoKey.replace(/[|: ]/g,'-')}`);
   if (sustEl) {
     const chipViejo = sustEl.querySelector(`[data-nombre="${nuevo.nombre}"]`);
     if (chipViejo) chipViejo.remove();
     if (sustituido) {
-      sustEl.insertAdjacentHTML('beforeend', buildDChip({...sustituido, dias:sustituido.dias||99}, turnoKey,'turno'));
+      sustEl.insertAdjacentHTML('beforeend', buildDChip({...sustituido, dias:sustituido.dias||99}, turnoKey, 'turno'));
     }
   }
 
-  // Si vino del panel de todos disponibles, también actualizar ahí
+  if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
   toast(`${nuevo.nombre} sustituye a ${sustituido?.nombre||'?'}`, 'ok');
 }
+
+// ── ACTIVAR SLOTS (ratón + touch) ────────────────────────────
+function activateSlots(key, tOrig, dData, confirmado) {
+  const equipo = S.edits[key] ? [...S.edits[key]] : [...(tOrig.equipo||[])];
+  equipo.forEach((_, i) => {
+    const sl = document.getElementById(`sl-${key.replace(/[|: ]/g,'-')}-${i}`);
+    if (!sl) return;
+
+    // Guardar datos para el touch handler
+    sl._dropData = { turnoKey: key, slotIdx: i, tOrig, dData };
+
+    // Mouse
+    sl.ondragover  = e => { e.preventDefault(); sl.classList.add('drop-active'); };
+    sl.ondragleave = () => sl.classList.remove('drop-active');
+    sl.ondrop      = e => dDrop(e, key, i, tOrig, dData);
+  });
+}
+
+// ── CHIPS CON SOPORTE TOUCH ──────────────────────────────────
+// Añadir touch events a cualquier chip arrastrable
+function addTouchToDChip(el) {
+  if (!el || el.dataset.noTouch) return;
+  el.dataset.noTouch = '1';
+  el.addEventListener('touchstart', tStart, { passive: false });
+  el.addEventListener('touchmove',  tMove,  { passive: false });
+  el.addEventListener('touchend',   tEnd,   { passive: false });
+}
+
+// Observer para añadir touch a chips que se inserten dinámicamente
+const _chipObserver = new MutationObserver(mutations => {
+  mutations.forEach(m => m.addedNodes.forEach(n => {
+    if (n.nodeType !== 1) return;
+    if (n.classList?.contains('dchip') && n.draggable) addTouchToDChip(n);
+    n.querySelectorAll?.('.dchip[draggable="true"]').forEach(addTouchToDChip);
+  }));
+});
+_chipObserver.observe(document.body, { childList: true, subtree: true });
 
 // ══════════════════════════════════════
 //  PANEL DISPONIBILIDAD (con drag!)
@@ -1837,9 +1967,7 @@ function buildDispoPanel(todos, d) {
   const chipsHTML = todos.map(v => {
     const cls = {ok:'dc-ok',reducido:'dc-red',reservado:'dc-res',bloqueado:'dc-blq'}[v.estado]||'dc-blq';
     const drag = v.dias >= 2 ? `draggable="true" data-nombre="${v.nombre}" data-llave="${v.llave||false}" data-dias="${v.dias}" data-dispo="${0}" data-horario="${v.horario||''}" data-key="" data-source="panel"` : '';
-    return `<span class="dchip ${cls}" ${drag} title="🕐 ${v.horario}" ${v.dias>=2?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>
-      ${v.llave?'🔑 ':''}${v.nombre}<span class="dh"> 🕐${v.horario}</span>
-    </span>`;
+    return `<span class="dchip ${cls}" ${drag} title="🕐 ${v.horario}" ${v.dias>=2?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${v.llave?'🔑 ':''}${v.nombre}<span class="dh"> 🕐${v.horario}</span></span>`;
   }).join('');
 
   wrap.innerHTML = `
@@ -2059,7 +2187,7 @@ async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
 
   const DIAS = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
   const DIAS_LABEL = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
-  const HORAS = Array.from({length:15},(_,i)=>i+7).map(h=>h.toString().padStart(2,'0')+':00');
+  const HORAS = Array.from({length:16},(_,i)=>i+7).map(h=>h.toString().padStart(2,'0')+':00');
 
   let html = `
     <div class="form-row full" style="margin-bottom:.85rem">
@@ -3330,7 +3458,7 @@ function renderCalendario(c, dias) {
     const FRANJAS_DISPONIBLES = [
       '08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00',
       '12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00',
-      '16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00'
+      '16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00','20:00 a 22:00'
     ];
 
     row.innerHTML = `
@@ -3588,7 +3716,7 @@ function renderOfertaPanel(c) {
             <div>
               <label style="font-size:.68rem;font-weight:600;color:var(--label2);display:block;margin-bottom:.25rem">Hora inicio</label>
               <select id="cfg-ini-${cfgKey}" class="fc" style="width:100%;padding:.35rem .5rem;font-size:.78rem">
-                ${[8,9,10,11,12,13,14,15,16,17,18,19,20].map(h=>`<option value="${h}" ${parseInt((t.rango||'0').split(':')[0])===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+                ${[7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(h=>`<option value="${h}" ${parseInt((t.rango||'0').split(':')[0])===h?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
               </select>
             </div>
             <div>
