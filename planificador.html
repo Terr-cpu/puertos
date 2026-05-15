@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Puerto de Sevilla · Turnos</title>
+<meta name="description" content="Sistema de planificación de turnos para el Puerto de Sevilla">
+<meta name="theme-color" content="#0a1628">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Turnos Puerto">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a1628'/><text y='.9em' font-size='72' x='14'>⚓</text></svg>">
+<link rel="manifest" id="pwa-manifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -449,6 +456,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
     <div class="topbar-title" id="topbar-title">📅 Cuadrante mensual</div>
     <div class="topbar-actions" id="topbar-acts">
+      <button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
       <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
       <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
       <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>
@@ -3653,9 +3661,11 @@ function renderApuntes(c, refs) {
   // Agrupar por fecha+rango (turno)
   const grupos = {};
   refs.forEach(r => {
-    const k = r.fecha + '|' + r.rango;
-    if (!grupos[k]) grupos[k] = { fecha:r.fecha, dia:r.dia, rango:r.rango, voluntarios:[] };
-    grupos[k].voluntarios.push(r);
+    // Diferenciar: refuerzo a turno confirmado vs apunte a día nuevo (es_dia_completo o rango vacío)
+    const esNuevo = r.es_dia_completo || !r.rango || r.rango.trim() === '';
+    const k = r.fecha + '|' + (esNuevo ? '__nuevo__' : r.rango);
+    if (!grupos[k]) grupos[k] = { fecha:r.fecha, dia:r.dia, rango:r.rango, esNuevo, voluntarios:[] };
+    grupos[k].voluntarios.push({...r, esNuevo});
   });
 
   // Ordenar turnos por fecha desc
@@ -3690,20 +3700,21 @@ function renderApuntes(c, refs) {
     }).join('');
 
     card.innerHTML = `
-      <div style="height:3px;background:${tarde?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+      <div style="height:3px;background:${t.esNuevo?'linear-gradient(90deg,var(--green-dark),#34c759)':tarde?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
       <div style="padding:.75rem 1rem .5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
         <div>
-          <div style="font-size:.95rem;font-weight:800;letter-spacing:-.02em">🕒 ${t.rango}</div>
+          <div style="font-size:.95rem;font-weight:800;letter-spacing:-.02em">${t.esNuevo?'📅 Día nuevo':('🕒 '+t.rango)}</div>
           <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">
             📅 ${isoADMY(t.fecha)} · ${normDia(t.dia)}
-            <span style="margin-left:.4rem;font-size:.63rem;padding:.1rem .38rem;border-radius:4px;font-weight:700;
-              background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">
-              ${tarde?'TARDE':'MAÑANA'}
+            <span style="margin-left:.4rem;font-size:.62rem;padding:.09rem .36rem;border-radius:4px;font-weight:700;
+              background:${t.esNuevo?'var(--green-soft)':tarde?'var(--amber-soft)':'var(--blue-soft)'};
+              color:${t.esNuevo?'var(--green-dark)':tarde?'var(--amber)':'var(--blue)'}">
+              ${t.esNuevo?'NUEVO DÍA':tarde?'TARDE':'MAÑANA'}
             </span>
           </div>
         </div>
         <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;
-          background:var(--green-soft);color:var(--green-dark)">
+          background:${t.esNuevo?'var(--green-soft)':'var(--green-soft)'};color:var(--green-dark)">
           ✋ ${t.voluntarios.length} apuntado${t.voluntarios.length!==1?'s':''}
         </span>
       </div>
@@ -3819,6 +3830,22 @@ async function ofGuardarCfg(cfgKey, turnoKey, fecha) {
   document.getElementById('cfg-'+cfgKey).style.display = 'none';
   renderOfertaPanel(document.getElementById('tab-oferta'));
 }
+
+// ── PWA ─────────────────────────────────────────────────────
+(function initPWA(){
+  const m={name:'Turnos Puerto de Sevilla',short_name:'Turnos Puerto',start_url:'./',display:'standalone',background_color:'#0a1628',theme_color:'#0a1628',icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a1628'/><text y='.85em' font-size='140' x='22'>⚓</text></svg>",sizes:'192x192',type:'image/svg+xml'},{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a1628'/><text y='.85em' font-size='380' x='56'>⚓</text></svg>",sizes:'512x512',type:'image/svg+xml'}]};
+  const bl=new Blob([JSON.stringify(m)],{type:'application/json'});
+  const el=document.getElementById('pwa-manifest');if(el) el.href=URL.createObjectURL(bl);
+  if('serviceWorker' in navigator){
+    const sw=`const C='plan-v1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])).catch(()=>{})));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
+    navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'})),{scope:'./'}).catch(()=>{});
+  }
+  let dp=null;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;
+    // Mostrar botón instalar en topbar si existe
+    const btn=document.getElementById('pwa-install-topbar');if(btn){btn.style.display='flex';btn.onclick=()=>{dp?.prompt();dp?.userChoice.then(()=>{dp=null;btn.style.display='none';});};}
+  });
+})();
 
 // ── INIT
 loadCuadrante();
