@@ -315,6 +315,9 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 /* Naviera tag */
 .navi-tag{display:inline-flex;align-items:center;gap:.3rem;background:var(--blue-soft);color:var(--blue);font-size:.68rem;font-weight:600;padding:.18rem .5rem;border-radius:4px;margin:.15rem}
 .navi-tag button{background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;line-height:1;padding:0}
+.cal-franja-btn{background:var(--surface2);border:1.5px solid var(--sep);border-radius:7px;padding:.18rem .42rem;font-size:.63rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--label3);transition:all .14s;white-space:nowrap}
+.cal-franja-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
+.cal-franja-btn.hab{background:var(--navy);border-color:var(--navy);color:#fff}
 
 /* ══════════════════════════════════════
    HISTORIAL TABLE
@@ -439,8 +442,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios"><span class="ni">👥</span> Voluntarios</button>
     <button class="nav-item" onclick="setTab('disponibilidad')" id="nav-disponibilidad"><span class="ni">🗓️</span> Disponibilidad</button>
     <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
-    <button class="nav-item" onclick="setTab('oferta')" id="nav-oferta"><span class="ni">✋</span> Turnos disponibles</button>
-    <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Historial</button>
+    <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Turnos confirmados</button>
     <button class="nav-item" onclick="setTab('apuntes')" id="nav-apuntes"><span class="ni">✋</span> Apuntes</button>
     <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo meses</button>
     <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
@@ -470,8 +472,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-voluntarios" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div></div>
     <div id="tab-disponibilidad" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando disponibilidad…</p></div></div>
     <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
-    <div id="tab-oferta" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando oferta de turnos…</p></div></div>
-    <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div></div>
+    <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando turnos confirmados…</p></div></div>
     <div id="tab-apuntes" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando apuntes…</p></div></div>
     <div id="tab-archivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando archivo…</p></div></div>
     <div id="tab-busqueda" class="tab-pane"><div class="empty"><span class="ei">🔎</span><h4>Búsqueda manual</h4><p>Configura los filtros para buscar.</p></div></div>
@@ -530,17 +531,17 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','oferta','historial','apuntes','archivo','busqueda','calendario'];
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario'];
 const TAB_TITLES = {
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
-  oferta:'✋ Turnos disponibles',
-  historial:'📋 Historial', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
+  historial:'📋 Turnos confirmados', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
   calendario:'⚙️ Configurar calendario',
 };
 const TAB_ACTS = {
-  cuadrante:`<button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
+  cuadrante:`<button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
+             <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
              <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
              <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>`,
   alertas:`<button class="btn btn-ghost btn-sm" onclick="loadAlertas(true)">↻ Actualizar</button>`,
@@ -548,7 +549,6 @@ const TAB_ACTS = {
   voluntarios:``,
   disponibilidad:``,
   bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
-  oferta:`<button class="btn btn-ghost btn-sm" onclick="loadOferta(true)">↻ Actualizar</button>`,
   historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
   apuntes:`<button class="btn btn-ghost btn-sm" onclick="loadApuntes(true)">↻ Actualizar</button>`,
   archivo:`<button class="btn btn-ghost btn-sm" onclick="loadArchivo(true)">↻ Actualizar</button>`,
@@ -572,7 +572,6 @@ function setTab(id) {
   if (id==='voluntarios'    && !window._vOk)    loadVoluntarios();
   if (id==='disponibilidad' && !window._dOk)    loadDisponibilidad();
   if (id==='bajas'          && !window._bOk)    loadBajas();
-  if (id==='oferta'         && !window._oOk)    loadOferta();
   if (id==='historial'      && !window._hOk)    loadHistorial();
   if (id==='apuntes'        && !window._apOk)   loadApuntes();
   if (id==='archivo'        && !window._arOk)   loadArchivo();
@@ -904,8 +903,8 @@ async function apiGet(p) {
     }
 
     case 'getLlaves': {
-      const rows = await sbGet('voluntarios', 'tiene_llave=eq.true&activo=eq.true&select=nombre_norm');
-      return { llaves: rows.map(r => r.nombre_norm) };
+      const rows = await sbGet('voluntarios', 'tiene_llave=eq.true&activo=eq.true&select=nombre');
+      return { llaves: rows.map(r => r.nombre) };
     }
 
     case 'getDisponibilidadCompleta': {
@@ -1169,7 +1168,8 @@ async function guardarCalendarioConfig(dias) {
 
   const calRows = procesados.map(d => ({
     fecha: d.fechaISO, semana: d.semana, dia: d.dia,
-    activo: d.activo, estancia: d.estancia||null
+    activo: d.activo, estancia: d.estancia||null,
+    turnos: d.turnos||[]
   }));
   const insertados = await sbPost('calendario', calRows, 'return=representation');
 
@@ -2512,7 +2512,7 @@ async function loadHistorial(force) {
       return;
     }
     window._histData = data.slice().reverse();
-    window._histVista = 'tabla';
+    window._histVista = 'timeline';
     renderHistorialPanel(c, data.slice().reverse());
     window._histOk = true; window._hOk = true;
   } catch(e) {
@@ -2622,18 +2622,35 @@ function renderVistaHistorial(wrap, filt) {
     return;
   }
 
-  if (window._histVista === 'timeline') {
-    // Agrupar por fecha+turno
-    const grupos = {};
-    filt.forEach(r => {
-      const k = r.fecha+'|'+r.rango;
-      if (!grupos[k]) grupos[k] = {fecha:r.fecha,dia:r.dia,rango:r.rango,vols:[]};
-      grupos[k].vols.push(r);
-    });
-    Object.values(grupos).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach((g,i) => {
+  // Siempre timeline — agrupar por fecha+turno
+  const grupos = {};
+  filt.forEach(r => {
+    const k = r.fecha+'|'+r.rango;
+    if (!grupos[k]) grupos[k] = {fecha:r.fecha,dia:r.dia,rango:r.rango,vols:[]};
+    grupos[k].vols.push(r);
+  });
+
+  // También agrupar por fecha para añadir franjas
+  const porFecha = {};
+  Object.values(grupos).forEach(g => {
+    if (!porFecha[g.fecha]) porFecha[g.fecha] = {fecha:g.fecha, dia:g.dia, turnos:[]};
+    porFecha[g.fecha].turnos.push(g);
+  });
+
+  Object.values(porFecha).sort((a,b)=>a.fecha<b.fecha?-1:1).forEach((fd, fi) => {
+    // Cabecera de fecha con botón añadir franja
+    const fhdr = document.createElement('div');
+    fhdr.style = `display:flex;align-items:center;gap:.6rem;margin-bottom:.4rem;margin-top:${fi>0?'1.1rem':'0'}`;
+    fhdr.innerHTML = `
+      <div style="font-size:.78rem;font-weight:700;color:var(--navy);background:var(--blue-soft);padding:.25rem .6rem;border-radius:6px">${fd.fecha} · ${fd.dia}</div>
+      <div style="height:1px;flex:1;background:var(--sep)"></div>
+      <button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.22rem .55rem" onclick="abrirAddFranja('${fd.fecha}','${fd.dia}')">+ Franja</button>`;
+    wrap.appendChild(fhdr);
+
+    fd.turnos.sort((a,b)=>a.rango<b.rango?-1:1).forEach((g, i) => {
       const tarde = parseInt(g.rango) >= 14;
       const el = document.createElement('div');
-      el.style = `display:flex;gap:.75rem;margin-bottom:.65rem;animation:fadeUp .3s ease both;animation-delay:${i*.03}s`;
+      el.style = `display:flex;gap:.75rem;margin-bottom:.55rem;animation:fadeUp .28s ease both;animation-delay:${(fi*5+i)*.03}s`;
       el.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
           <div style="width:10px;height:10px;border-radius:50%;background:${tarde?'var(--amber)':'var(--blue)'};margin-top:.35rem;flex-shrink:0"></div>
@@ -2658,34 +2675,42 @@ function renderVistaHistorial(wrap, filt) {
         </div>`;
       wrap.appendChild(el);
     });
-  } else {
-    // Vista tabla con acciones inline
-    const card = document.createElement('div'); card.className = 'card'; card.style.padding = '0';
-    card.innerHTML = `
-      <table class="htable" style="font-size:.78rem">
-        <thead><tr>
-          <th>Fecha</th><th>Día</th><th>Turno</th><th>Voluntario</th>
-          <th style="text-align:right;padding-right:.9rem">Acciones</th>
-        </tr></thead>
-        <tbody>
-          ${filt.map(r => {
-            const tarde = parseInt(r.rango) >= 14;
-            const rv = JSON.stringify(r).replace(/"/g,'&quot;');
-            return `<tr>
-              <td style="font-weight:600">${r.fecha}</td>
-              <td>${r.dia}</td>
-              <td><span style="font-size:.67rem;padding:.12rem .42rem;border-radius:4px;font-weight:700;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${r.rango}</span></td>
-              <td>${r.nombre}</td>
-              <td style="text-align:right;padding-right:.65rem">
-                <button class="btn btn-ghost btn-sm" style="padding:.25rem .55rem;font-size:.68rem" onclick="abrirEditarTurno(${rv})" title="Editar">✏️</button>
-                <button class="btn btn-red btn-sm" style="padding:.25rem .55rem;font-size:.68rem" onclick="borrarTurno(${rv})" title="Eliminar">🗑️</button>
-              </td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>`;
-    wrap.appendChild(card);
-  }
+  });
+}
+
+// Abrir modal para añadir una franja nueva a un día del historial
+function abrirAddFranja(fecha, dia) {
+  document.getElementById('mvol-titulo').textContent = `+ Añadir franja — ${dia} ${fecha}`;
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.78rem;color:var(--label3);margin-bottom:1rem">Añade un turno extra a este día. Los voluntarios se podrán asignar desde el cuadrante.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1rem">
+      <div class="fg"><label>Hora inicio</label>
+        <select class="fc" id="af-ini">${[7,8,9,10,11,12,13,14,15,16,17,18,19,20].map(h=>`<option value="${h}">${String(h).padStart(2,'0')}:00</option>`).join('')}</select>
+      </div>
+      <div class="fg"><label>Hora fin</label>
+        <select class="fc" id="af-fin">${[9,10,11,12,13,14,15,16,17,18,19,20,21,22].map(h=>`<option value="${h}" ${h===12?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}</select>
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-green" onclick="confirmarAddFranja('${fecha}','${dia}')">✓ Añadir franja</button>
+    </div>`;
+  openModal('mvol');
+}
+
+async function confirmarAddFranja(fecha, dia) {
+  const ini = parseInt(document.getElementById('af-ini')?.value||0);
+  const fin = parseInt(document.getElementById('af-fin')?.value||0);
+  if (!ini || !fin || fin <= ini) { toast('El fin debe ser mayor que el inicio','err'); return; }
+  const rango = `${String(ini).padStart(2,'0')}:00 a ${String(fin).padStart(2,'0')}:00`;
+  // Calcular semana desde fecha dd/mm/yyyy
+  const fiso = dmyAIso(fecha);
+  const dNum = parseInt(fiso.split('-')[2]);
+  const semana = dNum<=7?1:dNum<=14?2:dNum<=21?3:dNum<=28?4:5;
+  // Crear un placeholder en historial con un voluntario ficticio o mostrar en cuadrante
+  // Por ahora mostramos mensaje de que deberían asignar desde cuadrante
+  closeModal('mvol');
+  toast(`Franja ${rango} anotada para ${dia} ${fecha}. Asigna voluntarios desde el Cuadrante.`, 'ok');
 }
 
 // ── Editar turno del historial
@@ -3211,6 +3236,15 @@ function renderCalendario(c, dias) {
     const row = document.createElement('div');
     row.className = 'cal-row';
     row.style.opacity = d.activo ? '1' : '0.5';
+
+    // Turnos habilitados del día (guardados en d.turnos como array de rangos)
+    const turnosHab = d.turnos || [];
+    const FRANJAS_DISPONIBLES = [
+      '08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00',
+      '12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00',
+      '16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00'
+    ];
+
     row.innerHTML = `
       <div style="min-width:105px;flex-shrink:0">
         <div class="cal-fecha">${d.fecha}</div>
@@ -3230,7 +3264,16 @@ function renderCalendario(c, dias) {
           <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
         </div>
       </div>
-      <div class="cal-estancia" style="min-width:140px">
+      <div style="min-width:180px">
+        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.3rem">🕒 Turnos habilitados</div>
+        <div style="display:flex;flex-wrap:wrap;gap:.22rem" id="cal-turnos-${i}">
+          ${FRANJAS_DISPONIBLES.map(f => {
+            const hab = turnosHab.includes(f);
+            return `<button class="cal-franja-btn${hab?' hab':''}" onclick="toggleCalTurno(${i},'${f}',this)">${f.replace(' a ','-').replace(':00','h').replace(':00','h')}</button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="cal-estancia" style="min-width:130px">
         <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
           <option value="">Sin estancia</option>
           <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
@@ -3242,6 +3285,18 @@ function renderCalendario(c, dias) {
       <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
     c.appendChild(row);
   });
+}
+
+function toggleCalTurno(i, rango, btn) {
+  if (!S.calConfig[i].turnos) S.calConfig[i].turnos = [];
+  const idx = S.calConfig[i].turnos.indexOf(rango);
+  if (idx === -1) {
+    S.calConfig[i].turnos.push(rango);
+    btn.classList.add('hab');
+  } else {
+    S.calConfig[i].turnos.splice(idx, 1);
+    btn.classList.remove('hab');
+  }
 }
 
 function toggleCalDia(i) {
