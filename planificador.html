@@ -447,6 +447,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo meses</button>
     <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
+    <button class="nav-item" onclick="setTab('reglas')" id="nav-reglas"><span class="ni">🎛️</span> Reglas del motor</button>
   </div>
   <div class="sidebar-footer"><p>v5.0 · Puerto de Sevilla</p></div>
 </aside>
@@ -477,6 +478,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-archivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando archivo…</p></div></div>
     <div id="tab-busqueda" class="tab-pane"><div class="empty"><span class="ei">🔎</span><h4>Búsqueda manual</h4><p>Configura los filtros para buscar.</p></div></div>
     <div id="tab-calendario" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando calendario…</p></div></div>
+    <div id="tab-reglas" class="tab-pane"></div>
   </div>
 </div>
 </div>
@@ -531,13 +533,13 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario'];
+const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
 const TAB_TITLES = {
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
   historial:'📋 Turnos confirmados', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
-  calendario:'⚙️ Configurar calendario',
+  calendario:'⚙️ Configurar calendario', reglas:'🎛️ Reglas del motor de planificación',
 };
 const TAB_ACTS = {
   cuadrante:`<button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
@@ -554,6 +556,7 @@ const TAB_ACTS = {
   archivo:`<button class="btn btn-ghost btn-sm" onclick="loadArchivo(true)">↻ Actualizar</button>`,
   busqueda:``,
   calendario:`<button class="btn btn-green btn-sm" onclick="guardarCalendario()">💾 Guardar cambios</button>`,
+  reglas:`<button class="btn btn-green btn-sm" onclick="guardarReglasCfg()">💾 Guardar reglas</button>`,
 };
 
 let tabActual = 'cuadrante';
@@ -577,6 +580,7 @@ function setTab(id) {
   if (id==='archivo'        && !window._arOk)   loadArchivo();
   if (id==='busqueda')                          initBusqueda();
   if (id==='calendario'     && !window._calOk)  loadCalendario();
+  if (id==='reglas')                            loadReglas();
 }
 
 // ══════════════════════════════════════
@@ -1251,19 +1255,32 @@ async function getAlertasLlave() {
 
 // ══════════════════════════════════════════════════════════════
 //  MOTOR DE PLANIFICACIÓN — portado del AppScript v17
-//  Reglas:
-//  - DESC_OK=5d descanso mínimo ideal, DESC_MIN=2d mínimo absoluto
-//  - IDEAL=4 voluntarios por turno, MIN_EQ=3 mínimo
-//  - DUR=2h por turno
-//  - Anti-solapamiento horario entre turnos del mismo día
-//  - Portador de llave obligatorio en primer/último turno y tras saltos
-//  - Prioridad: más días de descanso + llave primero
+//  Reglas configurables desde el panel de ajustes
 // ══════════════════════════════════════════════════════════════
-const DESC_OK  = 5;
-const DESC_MIN = 2;
-const IDEAL    = 4;
-const MIN_EQ   = 3;
-const DUR      = 2;
+
+// Cargar reglas desde localStorage o usar valores por defecto
+function cargarReglas() {
+  try {
+    const r = JSON.parse(localStorage.getItem('reglas_cuadrante')||'{}');
+    return {
+      DESC_OK:  r.DESC_OK  ?? 5,   // días de descanso mínimo ideal
+      DESC_MIN: r.DESC_MIN ?? 2,   // días de descanso mínimo absoluto
+      IDEAL:    r.IDEAL    ?? 4,   // voluntarios ideales por turno
+      MIN_EQ:   r.MIN_EQ   ?? 3,   // mínimo aceptable por turno
+      DUR:      r.DUR      ?? 2,   // duración en horas por turno
+    };
+  } catch(e) { return { DESC_OK:5, DESC_MIN:2, IDEAL:4, MIN_EQ:3, DUR:2 }; }
+}
+function guardarReglas(r) {
+  try { localStorage.setItem('reglas_cuadrante', JSON.stringify(r)); } catch(e) {}
+}
+let R = cargarReglas();
+// Alias para compatibilidad con el código existente
+let DESC_OK  = R.DESC_OK;
+let DESC_MIN = R.DESC_MIN;
+let IDEAL    = R.IDEAL;
+let MIN_EQ   = R.MIN_EQ;
+let DUR      = R.DUR;
 
 function PH(s) {
   // Parsea "10:00 a 12:00" o "10 a 12" → {a:10, b:12}
@@ -1278,29 +1295,34 @@ function PH(s) {
 
 function HP(h) { return String(h).padStart(2,'0'); }
 
-function franjas2h(candidatos) {
+function franjas2h(candidatos, dur, minEq) {
+  dur   = dur   ?? DUR;
+  minEq = minEq ?? MIN_EQ;
   if (!candidatos.length) return [];
   const hMin = candidatos.reduce((m,c) => Math.min(m,c.hIn), 23);
   const hMax = candidatos.reduce((m,c) => Math.max(m,c.hOut), 0);
   const res = [];
-  for (let h = hMin; h <= hMax - DUR; h++) {
-    const pool = candidatos.filter(c => c.hIn <= h && c.hOut >= h + DUR);
-    if (pool.length >= MIN_EQ) res.push({ h, pool });
+  for (let h = hMin; h <= hMax - dur; h++) {
+    const pool = candidatos.filter(c => c.hIn <= h && c.hOut >= h + dur);
+    if (pool.length >= minEq) res.push({ h, pool });
   }
   return res;
 }
 
-function formarEquipo(pool, necesitaLlave) {
+function formarEquipo(pool, necesitaLlave, ideal) {
+  ideal = ideal ?? IDEAL;
   const conLl = pool.filter(c => c.llave).sort((a,b) => b.desc-a.desc || a.dispo-b.dispo);
   const sinLl = pool.filter(c => !c.llave).sort((a,b) => b.desc-a.desc || a.dispo-b.dispo);
   const eq = [];
   if (necesitaLlave && conLl.length > 0) eq.push(conLl[0]);
-  for (let i = 0; i < sinLl.length && eq.length < IDEAL; i++) eq.push(sinLl[i]);
-  for (let j = 1; j < conLl.length && eq.length < MIN_EQ; j++) eq.push(conLl[j]);
+  for (let i = 0; i < sinLl.length && eq.length < ideal; i++) eq.push(sinLl[i]);
+  for (let j = 1; j < conLl.length && eq.length < (ideal < 3 ? ideal : 3); j++) eq.push(conLl[j]);
   return eq;
 }
 
-function elegir(franjas, candidatos, maxTurnos=99) {
+// Versión configurable de elegir()
+function elegirConReglas(franjas, candidatos, minEq, ideal, maxTurnos=99) {
+  minEq = minEq ?? MIN_EQ; ideal = ideal ?? IDEAL;
   const libres = {}, horasUsadas = {};
   const asignados = [];
   const franjasCron = [...franjas].sort((a,b) => a.h-b.h);
@@ -1308,17 +1330,16 @@ function elegir(franjas, candidatos, maxTurnos=99) {
   let it = 0;
 
   while (it++ < MAX_IT) {
-    if (asignados.filter(a => a.equipo.length >= MIN_EQ).length >= maxTurnos) break;
+    if (asignados.filter(a => a.equipo.length >= minEq).length >= maxTurnos) break;
     const candidatas = [];
 
     franjasCron.forEach(f => {
       if (horasUsadas[f.h]) return;
-      const turnosReales = asignados.filter(a => a.equipo.length >= MIN_EQ);
-      // Anti-solapamiento
+      const turnosReales = asignados.filter(a => a.equipo.length >= minEq);
       const solapa = turnosReales.some(a => f.h < a.h + DUR && f.h + DUR > a.h && f.h !== a.h);
       if (solapa) return;
       const libre = f.pool.filter(c => !libres[c.key]);
-      if (libre.length < MIN_EQ) return;
+      if (libre.length < minEq) return;
       const ultH  = turnosReales.length ? turnosReales[turnosReales.length-1].h + DUR : -99;
       const consec = f.h === ultH;
       const nLlave = turnosReales.length === 0 || !consec;
@@ -1335,8 +1356,8 @@ function elegir(franjas, candidatos, maxTurnos=99) {
     });
     const el = candidatas[0];
     horasUsadas[el.h] = true;
-    const eq = formarEquipo(el.libre, el.nLlave);
-    if (eq.length < MIN_EQ) continue;
+    const eq = formarEquipo(el.libre, el.nLlave, ideal);
+    if (eq.length < minEq) continue;
     eq.forEach(e => { libres[e.key] = true; });
     asignados.push({ h: el.h, equipo: eq, pool: el.libre });
   }
@@ -1348,7 +1369,13 @@ function elegir(franjas, candidatos, maxTurnos=99) {
   return asignados;
 }
 
-function reglasLlave(turnos, franjas) {
+// Alias retrocompatible
+function elegir(franjas, candidatos, maxTurnos=99) {
+  return elegirConReglas(franjas, candidatos, MIN_EQ, IDEAL, maxTurnos);
+}
+
+function reglasLlaveConf(turnos, franjas, minEq) {
+  minEq = minEq ?? MIN_EQ;
   turnos.forEach((t, i) => {
     const prev = i > 0 ? turnos[i-1] : null;
     const next = i < turnos.length-1 ? turnos[i+1] : null;
@@ -1385,10 +1412,22 @@ function reglasLlave(turnos, franjas) {
   });
 }
 
-function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat, llaves, simHist={}) {
+// Alias retrocompatible
+function reglasLlave(turnos, franjas) { return reglasLlaveConf(turnos, franjas, MIN_EQ); }
+
+function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat, llaves, simHist={}, turnosHabilitados=[], excepcion={}) {
   // disponibilidad: array de {nombre, horario, llave} para ese semana+dia
   // historialFlat: array de {nombre_norm, fecha_ts} de todos los turnos confirmados
-  // simHist: turnos simulados (para cálculo de reservados)
+  // turnosHabilitados: array de rangos "10:00 a 12:00" habilitados en calendario
+  // excepcion: override de reglas para este día {DESC_OK, DESC_MIN, IDEAL, MIN_EQ, ignorarDescanso}
+
+  // Reglas efectivas: globales + override del día
+  const dOK  = excepcion.DESC_OK  ?? DESC_OK;
+  const dMIN = excepcion.DESC_MIN ?? DESC_MIN;
+  const ideal= excepcion.IDEAL    ?? IDEAL;
+  const minEq= excepcion.MIN_EQ   ?? MIN_EQ;
+  const ignDescanso = excepcion.ignorarDescanso ?? false;
+
   const ref = new Date(fechaRef); ref.setHours(0,0,0,0);
   const todos = [];
 
@@ -1407,20 +1446,45 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
       nombre: v.nombre, key,
       hIn: p.a, hOut: p.b,
       llave: llaves.has(key),
-      desc, dispo: v.dispo || 0
+      desc: ignDescanso ? 99 : desc,
+      dispo: v.dispo || 0
     });
   });
 
-  let pool = todos.filter(c => c.desc >= DESC_OK);
+  let pool = todos.filter(c => c.desc >= dOK);
   let aviso = '';
-  if (pool.length < MIN_EQ) {
-    pool = todos.filter(c => c.desc >= DESC_MIN);
-    if (pool.length >= MIN_EQ) aviso = '⚠️ Descanso reducido a ' + DESC_MIN + ' días.';
+  if (pool.length < minEq) {
+    pool = todos.filter(c => c.desc >= dMIN);
+    if (pool.length >= minEq) aviso = '⚠️ Descanso reducido a ' + dMIN + ' días.';
   }
 
-  const fran = franjas2h(pool);
-  const raw  = elegir(fran, pool);
-  reglasLlave(raw, fran);
+  let fran = franjas2h(pool, DUR, minEq);
+
+  // ── FILTRO CLAVE: si el calendario tiene turnos habilitados para este día,
+  //    solo generar turnos en esas franjas horarias concretas
+  if (turnosHabilitados.length > 0) {
+    const horasPermitidas = new Set();
+    turnosHabilitados.forEach(rango => {
+      const p2 = PH(rango);
+      if (p2) {
+        for (let h = p2.a; h < p2.b; h++) horasPermitidas.add(h);
+      }
+    });
+    fran = fran.filter(f => horasPermitidas.has(f.h));
+
+    // Si no hay franjas que coincidan, generar franjas libres solo en esas horas
+    if (!fran.length) {
+      fran = turnosHabilitados.map(rango => {
+        const p2 = PH(rango);
+        if (!p2) return null;
+        const poolFranja = pool.filter(c => c.hIn <= p2.a && c.hOut >= p2.b);
+        return poolFranja.length >= minEq ? { h: p2.a, pool: poolFranja } : null;
+      }).filter(Boolean);
+    }
+  }
+
+  const raw  = elegirConReglas(fran, pool, minEq, ideal);
+  reglasLlaveConf(raw, fran, minEq);
 
   const turnos = raw.map(t => {
     const rango = HP(t.h) + ':00 a ' + HP(t.h + DUR) + ':00';
@@ -1434,7 +1498,7 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
     const sust  = fOrig ? fOrig.pool
       .filter(s => !t.equipo.some(e => e.key===s.key))
       .map(s => ({ nombre:s.nombre, dias:s.desc, dispo:s.dispo, llave:s.llave,
-                   horario:HP(s.hIn)+':00 a '+HP(s.hOut)+':00', estado:s.desc>=DESC_OK?'disponible':s.desc>=DESC_MIN?'reducido':'bloqueado' }))
+                   horario:HP(s.hIn)+':00 a '+HP(s.hOut)+':00', estado:s.desc>=dOK?'disponible':s.desc>=dMIN?'reducido':'bloqueado' }))
       : [];
     return {
       rango,
@@ -1447,7 +1511,7 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
   const todosInfo = todos.map(c => ({
     nombre:c.nombre, horario:HP(c.hIn)+':00 a '+HP(c.hOut)+':00',
     llave:c.llave, dias:c.desc,
-    estado: c.desc<DESC_MIN?'bloqueado': c.desc<DESC_OK?'reducido':'ok'
+    estado: c.desc<dMIN?'bloqueado': c.desc<dOK?'reducido':'ok'
   }));
 
   return { turnos, diagnostico: { aptos: pool.length, totalDisponibles: todos.length, todos: todosInfo, aviso } };
@@ -1519,10 +1583,16 @@ async function getCuadranteMensual() {
     } else {
       // Día sin confirmar — aplicar motor de planificación con todas las reglas
       const disponibles = dispoIdx[semana+'|'+diaNorm] || [];
-      const resultado   = calcularDiaJS(
+      // Excepciones por día (guardadas en localStorage)
+      let excepciones = {};
+      try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
+      const excepcion = excepciones[fiso] || {};
+      const resultado = calcularDiaJS(
         semana, diaNorm,
         new Date(fiso+'T12:00:00Z'),
-        disponibles, histFlat, llaves
+        disponibles, histFlat, llaves, {},
+        dia.turnos || [],   // <-- rangos habilitados en el calendario
+        excepcion           // <-- override de reglas para este día
       );
       plan.push({
         fechaLabel: dia.fecha+' — '+dia.dia, fechaStr: dia.fecha,
@@ -3980,6 +4050,186 @@ async function ofGuardarCfg(cfgKey, turnoKey, fecha) {
     const btn=document.getElementById('pwa-install-topbar');if(btn){btn.style.display='flex';btn.onclick=()=>{dp?.prompt();dp?.userChoice.then(()=>{dp=null;btn.style.display='none';});};}
   });
 })();
+
+// ══════════════════════════════════════
+//  REGLAS DEL MOTOR
+// ══════════════════════════════════════
+function loadReglas() {
+  const c = document.getElementById('tab-reglas');
+  const r = cargarReglas();
+  let excepciones = {};
+  try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
+
+  c.innerHTML = '';
+
+  // ── Reglas globales
+  const globCard = document.createElement('div'); globCard.className = 'card';
+  globCard.innerHTML = `
+    <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:1rem">Reglas generales del cuadrante</div>
+    <div class="form-row" style="margin-bottom:.85rem">
+      <div class="fg">
+        <label>Descanso ideal (días) <span style="color:var(--label3);font-weight:400">— mínimo preferido entre turnos</span></label>
+        <input class="fc" type="number" id="r-desc-ok" min="1" max="30" value="${r.DESC_OK}">
+      </div>
+      <div class="fg">
+        <label>Descanso mínimo (días) <span style="color:var(--label3);font-weight:400">— límite absoluto</span></label>
+        <input class="fc" type="number" id="r-desc-min" min="0" max="20" value="${r.DESC_MIN}">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:.85rem">
+      <div class="fg">
+        <label>Voluntarios ideales por turno</label>
+        <input class="fc" type="number" id="r-ideal" min="1" max="10" value="${r.IDEAL}">
+      </div>
+      <div class="fg">
+        <label>Mínimo aceptable por turno</label>
+        <input class="fc" type="number" id="r-min-eq" min="1" max="10" value="${r.MIN_EQ}">
+      </div>
+    </div>
+    <div class="form-row full" style="margin-bottom:.5rem">
+      <div class="fg">
+        <label>Duración de cada turno (horas)</label>
+        <input class="fc" type="number" id="r-dur" min="1" max="8" value="${r.DUR}" style="max-width:120px">
+      </div>
+    </div>
+    <div style="background:var(--blue-soft);border-radius:var(--r-sm);padding:.6rem .85rem;font-size:.76rem;color:var(--blue);margin-top:.5rem;line-height:1.5">
+      ℹ️ Cambiar estas reglas afecta a todos los días sin confirmar del cuadrante. Pulsa <strong>Guardar reglas</strong> arriba y luego <strong>↻ Recalc.</strong> en el Cuadrante para ver el efecto.
+    </div>`;
+  c.appendChild(globCard);
+
+  // ── Excepciones por día
+  const excHdr = document.createElement('div');
+  excHdr.style = 'display:flex;align-items:center;justify-content:space-between;margin:1.25rem 0 .65rem;flex-wrap:wrap;gap:.5rem';
+  excHdr.innerHTML = `
+    <div>
+      <div style="font-size:.88rem;font-weight:700;color:var(--label1)">Excepciones por día</div>
+      <div style="font-size:.74rem;color:var(--label3);margin-top:.15rem">Override de reglas para días concretos — útil para eventos especiales</div>
+    </div>
+    <button class="btn btn-green btn-sm" onclick="abrirAddExcepcion()">+ Añadir excepción</button>`;
+  c.appendChild(excHdr);
+
+  const excList = document.createElement('div'); excList.id = 'exc-list';
+  renderExcepciones(excList, excepciones);
+  c.appendChild(excList);
+}
+
+function renderExcepciones(wrap, excepciones) {
+  wrap.innerHTML = '';
+  const entries = Object.entries(excepciones).sort(([a],[b]) => a<b?-1:1);
+  if (!entries.length) {
+    wrap.innerHTML = `<div class="empty" style="padding:1.5rem"><span class="ei">🎛️</span><h4>Sin excepciones</h4><p>Todos los días usan las reglas generales.</p></div>`;
+    return;
+  }
+  entries.forEach(([fiso, exc]) => {
+    const dmy = isoADMY(fiso);
+    const row = document.createElement('div');
+    row.style = 'background:var(--surface);border-radius:var(--r-md);border:1px solid var(--sep);box-shadow:var(--shadow-sm);padding:.7rem 1rem;margin-bottom:.45rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap';
+    const pills = [];
+    if (exc.ignorarDescanso) pills.push('<span style="background:var(--amber-soft);color:var(--amber);font-size:.65rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;text-transform:uppercase">Sin descanso</span>');
+    if (exc.DESC_OK != null) pills.push(`<span style="background:var(--blue-soft);color:var(--blue);font-size:.65rem;font-weight:700;padding:.1rem .38rem;border-radius:4px">Descanso ideal: ${exc.DESC_OK}d</span>`);
+    if (exc.DESC_MIN != null) pills.push(`<span style="background:var(--blue-soft);color:var(--blue);font-size:.65rem;font-weight:700;padding:.1rem .38rem;border-radius:4px">Mín descanso: ${exc.DESC_MIN}d</span>`);
+    if (exc.IDEAL != null) pills.push(`<span style="background:var(--green-soft);color:var(--green-dark);font-size:.65rem;font-weight:700;padding:.1rem .38rem;border-radius:4px">Ideal: ${exc.IDEAL}</span>`);
+    if (exc.MIN_EQ != null) pills.push(`<span style="background:var(--green-soft);color:var(--green-dark);font-size:.65rem;font-weight:700;padding:.1rem .38rem;border-radius:4px">Mín equipo: ${exc.MIN_EQ}</span>`);
+    row.innerHTML = `
+      <div style="min-width:90px">
+        <div style="font-size:.82rem;font-weight:700;color:var(--label1)">${dmy}</div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:.25rem;flex:1">${pills.join('')||'<span style="font-size:.72rem;color:var(--label4)">Sin cambios definidos</span>'}</div>
+      <button class="btn btn-ghost btn-sm" onclick="editarExcepcion('${fiso}')">✏️ Editar</button>
+      <button class="btn btn-red btn-sm" onclick="borrarExcepcion('${fiso}')">🗑️</button>`;
+    wrap.appendChild(row);
+  });
+}
+
+function abrirAddExcepcion(fiso) {
+  let exc = {};
+  if (fiso) {
+    try { const all = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); exc = all[fiso]||{}; } catch(e) {}
+  }
+  const r = cargarReglas();
+  document.getElementById('mvol-titulo').textContent = fiso ? `✏️ Excepción — ${isoADMY(fiso)}` : '+ Nueva excepción';
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.78rem;color:var(--label3);margin-bottom:1rem">Define reglas especiales para un día concreto. Solo los campos que actives sobreescriben las reglas generales.</p>
+    ${!fiso ? `<div class="fg" style="margin-bottom:.85rem"><label>Fecha del día</label><input type="date" class="fc" id="exc-fecha" value="${fiso||''}"></div>` : `<input type="hidden" id="exc-fecha" value="${fiso}">`}
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding:.6rem .85rem;background:var(--amber-soft);border-radius:var(--r-md)">
+      <label class="toggle-sw"><input type="checkbox" id="exc-ignorar" ${exc.ignorarDescanso?'checked':''}><span class="toggle-sl"></span></label>
+      <div><div style="font-size:.8rem;font-weight:600">Ignorar regla de descanso</div><div style="font-size:.68rem;color:var(--label3)">Todos los voluntarios disponibles podrán asignarse sin importar cuándo fue su último turno</div></div>
+    </div>
+    <div class="form-row" style="margin-bottom:.75rem">
+      <div class="fg">
+        <label>Descanso ideal <span style="color:var(--label3)">(vacío = usar global: ${r.DESC_OK}d)</span></label>
+        <input class="fc" type="number" id="exc-dok" min="0" max="30" value="${exc.DESC_OK??''}">
+      </div>
+      <div class="fg">
+        <label>Descanso mínimo <span style="color:var(--label3)">(vacío = usar global: ${r.DESC_MIN}d)</span></label>
+        <input class="fc" type="number" id="exc-dmin" min="0" max="20" value="${exc.DESC_MIN??''}">
+      </div>
+    </div>
+    <div class="form-row" style="margin-bottom:1rem">
+      <div class="fg">
+        <label>Voluntarios ideales <span style="color:var(--label3)">(vacío = global: ${r.IDEAL})</span></label>
+        <input class="fc" type="number" id="exc-ideal" min="1" max="10" value="${exc.IDEAL??''}">
+      </div>
+      <div class="fg">
+        <label>Mínimo por turno <span style="color:var(--label3)">(vacío = global: ${r.MIN_EQ})</span></label>
+        <input class="fc" type="number" id="exc-mineq" min="1" max="10" value="${exc.MIN_EQ??''}">
+      </div>
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-green" onclick="guardarExcepcion()">💾 Guardar excepción</button>
+    </div>`;
+  openModal('mvol');
+}
+
+function editarExcepcion(fiso) { abrirAddExcepcion(fiso); }
+
+function guardarExcepcion() {
+  const fiso = document.getElementById('exc-fecha')?.value;
+  if (!fiso) { toast('Selecciona una fecha', 'err'); return; }
+  const exc = { ignorarDescanso: document.getElementById('exc-ignorar')?.checked || false };
+  const dok  = document.getElementById('exc-dok')?.value;
+  const dmin = document.getElementById('exc-dmin')?.value;
+  const ideal= document.getElementById('exc-ideal')?.value;
+  const mineq= document.getElementById('exc-mineq')?.value;
+  if (dok  !== '') exc.DESC_OK  = parseInt(dok);
+  if (dmin !== '') exc.DESC_MIN = parseInt(dmin);
+  if (ideal!== '') exc.IDEAL    = parseInt(ideal);
+  if (mineq!== '') exc.MIN_EQ   = parseInt(mineq);
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
+  all[fiso] = exc;
+  try { localStorage.setItem('excepcion_dia', JSON.stringify(all)); } catch(e) {}
+  closeModal('mvol');
+  toast(`Excepción guardada para ${isoADMY(fiso)} ✓`, 'ok');
+  loadReglas();
+}
+
+function borrarExcepcion(fiso) {
+  if (!confirm(`¿Eliminar la excepción para ${isoADMY(fiso)}?`)) return;
+  let all = {};
+  try { all = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
+  delete all[fiso];
+  try { localStorage.setItem('excepcion_dia', JSON.stringify(all)); } catch(e) {}
+  toast('Excepción eliminada', 'ok');
+  loadReglas();
+}
+
+function guardarReglasCfg() {
+  const dok  = parseInt(document.getElementById('r-desc-ok')?.value);
+  const dmin = parseInt(document.getElementById('r-desc-min')?.value);
+  const ideal= parseInt(document.getElementById('r-ideal')?.value);
+  const mineq= parseInt(document.getElementById('r-min-eq')?.value);
+  const dur  = parseInt(document.getElementById('r-dur')?.value);
+  if ([dok,dmin,ideal,mineq,dur].some(isNaN)) { toast('Revisa los valores', 'err'); return; }
+  if (dmin > dok) { toast('El mínimo no puede superar el ideal', 'err'); return; }
+  if (mineq > ideal) { toast('El mínimo por turno no puede superar el ideal', 'err'); return; }
+  const r = { DESC_OK:dok, DESC_MIN:dmin, IDEAL:ideal, MIN_EQ:mineq, DUR:dur };
+  guardarReglas(r);
+  // Actualizar variables globales en caliente
+  R = r; DESC_OK = r.DESC_OK; DESC_MIN = r.DESC_MIN; IDEAL = r.IDEAL; MIN_EQ = r.MIN_EQ; DUR = r.DUR;
+  toast('Reglas guardadas ✓ — pulsa Recalc. en el Cuadrante para aplicarlas', 'ok');
+}
 
 // ── INIT
 loadCuadrante();
