@@ -3393,7 +3393,17 @@ function renderOfertaPanel(c) {
       if (yaApuntado) {
         accionHTML = `<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.55rem .8rem;font-size:.78rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`;
       } else if (volSel) {
-        accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
+        // Si el turno requiere llave, comprobar si el voluntario seleccionado la tiene
+        const volData  = (window._ofertaVolsData || []).find(v => v.nombre.toUpperCase() === volSel.toUpperCase());
+        const tieneLlaveVol = volData ? volData.tiene_llave : false;
+        const requiereLlave = t.requiereLlave || false;
+        // También bloquear si tieneLlave ya está cubierto (alguien con llave ya apuntado) y requiere llave
+        const llaveCubierta = t.tieneLlave && requiereLlave;
+        if (requiereLlave && !tieneLlaveVol) {
+          accionHTML = `<div style="display:flex;align-items:center;gap:.45rem;background:var(--amber-soft);border:1px solid #ffd59e;border-radius:var(--r-md);padding:.55rem .8rem;font-size:.78rem;font-weight:600;color:var(--amber)">🔑 Solo puede apuntarse el portador de llave</div>`;
+        } else {
+          accionHTML = `<button class="btn btn-green btn-sm" onclick="ofApuntar('${esc(t.key)}','${esc(t.fecha)}')">✋ Apuntarme a este turno</button>`;
+        }
       } else {
         accionHTML = `<span style="font-size:.75rem;color:var(--label3)">Selecciona un voluntario arriba para apuntarse</span>`;
       }
@@ -3552,10 +3562,12 @@ async function loadOferta(force) {
   try {
     const data = await apiGet({action:'getOfertaSimple'});
     const turnos = (data.turnos || []).map(t => ({...t, dia: normDia(t.dia)}));
-    const vols   = await apiGet({action:'getVoluntarios'});
-    window._ofertaData = turnos;
-    window._ofertaVols = vols;
-    window._ofertaVolSel = window._ofertaVolSel || '';
+    const volsRaw = await sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true&order=nombre');
+    const vols = volsRaw.map(v => v.nombre);
+    window._ofertaData     = turnos;
+    window._ofertaVols     = vols;
+    window._ofertaVolsData = volsRaw; // con tiene_llave
+    window._ofertaVolSel   = window._ofertaVolSel || '';
     renderOfertaPanel(c);
     window._oOk = true;
   } catch(e) {
@@ -3595,6 +3607,14 @@ async function loadApuntes(force) {
   try {
     const refs = await sbGet('v_refuerzos',
       'order=registrado_en.desc&limit=200');
+    // Marcar sustitutos: refuerzos asociados a una baja (es_dia_completo=false y tienen baja relacionada)
+    // La vista v_refuerzos debería tener es_sustituto; si no, lo derivamos de bajas
+    // Cargamos bajas activas=false (neutralizadas) para cruzar
+    const bajasNeutr = await sbGet('bajas', 'activa=eq.false&select=voluntario_id,fecha,rango').catch(()=>[]);
+    const bajasSet = new Set(bajasNeutr.map(b => b.voluntario_id+'|'+b.fecha+'|'+(b.rango||'')));
+    refs.forEach(r => {
+      r.es_sustituto = bajasSet.has(r.voluntario_id+'|'+r.fecha+'|'+(r.rango||''));
+    });
     c.innerHTML = '';
 
     // Stats
@@ -3607,17 +3627,17 @@ async function loadApuntes(force) {
       <div class="sbox" style="border-left:3px solid var(--blue)"><div class="sv" style="color:var(--blue)">${recientes.length}</div><div class="sl">Últimos 7 días</div></div>`;
     c.appendChild(sr);
 
-    // Controles
+    // Controles — dos botones de vista + buscador
     const ctrl = document.createElement('div');
     ctrl.style = 'display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center';
     ctrl.innerHTML = `
       <input class="fc" id="ap-busca" placeholder="🔍 Buscar voluntario…" oninput="filtApuntes()"
         style="max-width:210px">
-      <select class="fc" id="ap-tipo" onchange="filtApuntes()" style="max-width:160px">
-        <option value="">Todos</option>
-        <option value="refuerzo">Solo refuerzos</option>
-        <option value="sustituto">Solo sustitutos de baja</option>
-      </select>`;
+      <div style="display:flex;gap:.3rem;margin-left:auto">
+        <button id="ap-btn-todos"    class="btn btn-navy btn-sm"  onclick="setFiltApuntes('')">Todos <span id="ap-cnt-todos"  style="font-size:.65rem;opacity:.7"></span></button>
+        <button id="ap-btn-ref"      class="btn btn-ghost btn-sm" onclick="setFiltApuntes('refuerzo')">✋ Refuerzos <span id="ap-cnt-ref"    style="font-size:.65rem;opacity:.7"></span></button>
+        <button id="ap-btn-sust"     class="btn btn-ghost btn-sm" onclick="setFiltApuntes('sustituto')">🔄 Sustitutos <span id="ap-cnt-sust"   style="font-size:.65rem;opacity:.7"></span></button>
+      </div>`;
     c.appendChild(ctrl);
 
     if (!refs.length) {
@@ -3628,7 +3648,10 @@ async function loadApuntes(force) {
     }
 
     window._apuntesData = refs;
+    _apFiltroTipo = '';
     renderApuntes(c, refs);
+    // Actualizar contadores tras render
+    setTimeout(() => filtApuntes(), 0);
     window._apOk = true;
   } catch(e) {
     c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4>
@@ -3637,13 +3660,39 @@ async function loadApuntes(force) {
   }
 }
 
+let _apFiltroTipo = '';
+
+function setFiltApuntes(tipo) {
+  _apFiltroTipo = tipo;
+  // Actualizar botones
+  ['todos','ref','sust'].forEach(k => {
+    const b = document.getElementById('ap-btn-'+k);
+    if (!b) return;
+    const isActive = (k==='todos'&&tipo==='') || (k==='ref'&&tipo==='refuerzo') || (k==='sust'&&tipo==='sustituto');
+    b.className = 'btn btn-sm ' + (isActive ? 'btn-navy' : 'btn-ghost');
+  });
+  filtApuntes();
+}
+
 function filtApuntes() {
-  const b  = (document.getElementById('ap-busca')?.value||'').toLowerCase();
-  const c  = document.getElementById('tab-apuntes');
+  const b   = (document.getElementById('ap-busca')?.value||'').toLowerCase();
+  const tipo = _apFiltroTipo || '';
+  const c   = document.getElementById('tab-apuntes');
   const data = window._apuntesData || [];
-  const filt = data.filter(r =>
-    (!b || r.nombre.toLowerCase().includes(b))
-  );
+
+  // Actualizar contadores en botones
+  const nTodos = data.filter(r => !b || r.nombre.toLowerCase().includes(b)).length;
+  const nRef   = data.filter(r => (!b || r.nombre.toLowerCase().includes(b)) && !r.es_sustituto).length;
+  const nSust  = data.filter(r => (!b || r.nombre.toLowerCase().includes(b)) && r.es_sustituto).length;
+  const cnt = document.getElementById('ap-cnt-todos'); if(cnt) cnt.textContent = '('+nTodos+')';
+  const cnr = document.getElementById('ap-cnt-ref');   if(cnr) cnr.textContent = '('+nRef+')';
+  const cns = document.getElementById('ap-cnt-sust');  if(cns) cns.textContent = '('+nSust+')';
+
+  const filt = data.filter(r => {
+    const matchNombre = !b || r.nombre.toLowerCase().includes(b);
+    const matchTipo   = !tipo || (tipo==='refuerzo' && !r.es_sustituto) || (tipo==='sustituto' && r.es_sustituto);
+    return matchNombre && matchTipo;
+  });
   const wrap = c.querySelector('.ap-table-wrap');
   if (wrap) wrap.remove();
   renderApuntes(c, filt);
@@ -3682,14 +3731,22 @@ function renderApuntes(c, refs) {
     const apuntadosHtml = t.voluntarios.map(v => {
       const ini = v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
       const fechaReg = v.registrado_en ? v.registrado_en.split('T')[0].split('-').reverse().join('/') : '—';
-      return `<div style="display:flex;align-items:center;gap:.55rem;background:var(--green-soft);
+      const esSust = v.es_sustituto;
+      return `<div style="display:flex;align-items:center;gap:.55rem;
+        background:${esSust?'var(--blue-soft)':'var(--green-soft)'};
+        border:1px solid ${esSust?'rgba(0,113,227,.18)':'#b0dcc0'};
         border-radius:var(--r-sm);padding:.38rem .65rem">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--gold);
           display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:700;flex-shrink:0">
           ${ini}
         </div>
         <div style="flex:1">
-          <div style="font-size:.8rem;font-weight:600">${v.nombre}${v.tiene_llave?' 🔑':''}</div>
+          <div style="font-size:.8rem;font-weight:600">${v.nombre}${v.tiene_llave?' 🔑':''}
+            <span style="font-size:.58rem;font-weight:700;padding:.06rem .32rem;border-radius:4px;margin-left:.3rem;
+              background:${esSust?'var(--blue)':'var(--green-dark)'};color:#fff">
+              ${esSust?'SUSTITUTO':'REFUERZO'}
+            </span>
+          </div>
           <div style="font-size:.65rem;color:var(--label3)">Registrado: ${fechaReg}</div>
         </div>
         <button onclick="eliminarApunte('${v.id}','${esc(v.nombre)}','${t.rango}')"
@@ -3750,10 +3807,15 @@ async function apAbrirCandidatos(btn, fecha, rango, dia) {
   panel.dataset.loaded = '1';
   panel.innerHTML = `<div style="text-align:center;padding:.75rem"><div style="width:22px;height:22px;border:2px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto"></div></div>`;
   try {
-    // Calcular semana a partir de la fecha ISO
-    const fiso = fecha; // ya está en formato YYYY-MM-DD desde BD
+    // fecha puede llegar como dd/mm/yyyy (de isoADMY) o yyyy-mm-dd — normalizar a ISO
+    const fiso = fecha.includes('/') ? dmyAIso(fecha) : fecha;
     const dNum = parseInt(fiso.split('-')[2]);
     const semana = dNum<=7?1:dNum<=14?2:dNum<=21?3:dNum<=28?4:5;
+    // rango puede estar vacío (día nuevo) — en ese caso no hay candidatos por rango
+    if (!rango || rango.trim() === '') {
+      panel.innerHTML = `<div style="font-size:.78rem;color:var(--label3);font-style:italic;padding:.3rem 0">Día nuevo sin rango definido — los candidatos se asignarán al generar el cuadrante.</div>`;
+      return;
+    }
     const data = await rpc('quien_puede_cubrir', {
       p_semana: semana, p_dia: normDia(dia), p_rango: rango, p_fecha: fiso
     });
@@ -3813,20 +3875,19 @@ async function ofGuardarCfg(cfgKey, turnoKey, fecha) {
   const llave = document.getElementById('cfg-llave-'+cfgKey)?.checked;
   if (!ini || !fin || fin <= ini) { toast('Revisa las horas: el fin debe ser mayor que el inicio', 'err'); return; }
   const nuevoRango = `${String(ini).padStart(2,'0')}:00 a ${String(fin).padStart(2,'0')}:00`;
-  // Actualizar en el estado local de oferta
-  const partes = turnoKey.split('|');
-  const [sem, dia, ...rp] = partes;
-  const rangoAntiguo = rp.join('|');
   (window._ofertaData||[]).forEach(t => {
     if (t.key === turnoKey) {
-      t.rango = nuevoRango;
-      t.key   = `${sem}|${dia}|${nuevoRango}`;
-      t.tieneLlave = !llave; // checkbox = "requiere llave" → si está marcado, tieneLlave=false
+      t.rango      = nuevoRango;
+      t.key        = `${turnoKey.split('|')[0]}|${turnoKey.split('|')[1]}|${nuevoRango}`;
+      // tieneLlave=true significa "el turno YA tiene un portador" — aquí configuramos si REQUIERE
+      // Guardamos requiereLlave separado para no confundir con tieneLlave (portador ya asignado)
+      t.requiereLlave = llave;
+      // Si requiere llave y ya hay un apuntado con llave, marcar tieneLlave=true
+      const yaHayLlave = (t.equipoNombres||[]).length > 0 && llave;
+      // Actualizar el estado visual
     }
   });
-  // Si hay filas en historial con este rango, actualizar sus rangos vía PATCH
-  // (solo aplica al estado local; el cuadrante se regenerará)
-  toast(`Turno actualizado: ${nuevoRango}${llave?' · Requiere llave':''}`, 'ok');
+  toast(`✓ Turno configurado: ${nuevoRango}${llave?' · 🔑 Requiere portador de llave':''}`, 'ok');
   document.getElementById('cfg-'+cfgKey).style.display = 'none';
   renderOfertaPanel(document.getElementById('tab-oferta'));
 }
