@@ -1119,18 +1119,25 @@ async function apiGet(p) {
 async function getCalendarioConfig() {
   return cached('calendario', 5*60000, async () => {
     const rows = await sbGet('v_calendario', 'order=fecha');
+    // Cargar turnos guardados localmente (no existen en BD todavía)
+    let turnosLocal = {};
+    try { turnosLocal = JSON.parse(localStorage.getItem('cal_turnos')||'{}'); } catch(e) {}
     return { dias: rows.map(r => {
-      // Usar la fecha ISO directamente de la BD — es la fuente de verdad
-      // para que coincida con las fechas del historial
       const diaNum = parseInt(r.fecha.split('-')[2]);
       const semana = diaNum<=7?1 : diaNum<=14?2 : diaNum<=21?3 : diaNum<=28?4 : 5;
+      const allNavs = Array.isArray(r.navieras) ? r.navieras : [];
+      // Navieras: solo las que NO empiezan por "turno:" (por si quedaron de versiones anteriores)
+      const navieras = allNavs.filter(n => !String(n).startsWith('turno:'));
+      // Turnos: desde localStorage (indexado por fecha ISO)
+      const turnos = turnosLocal[r.fecha] || [];
       return {
         fecha:    isoADMY(r.fecha),
-        fechaISO: r.fecha,           // "2026-05-08" — mismo formato que historial
+        fechaISO: r.fecha,
         semana,
-        dia:      normDia(r.dia),    // normalizar: "Sabado", "Martes"...
+        dia:      normDia(r.dia),
         activo:   r.activo,
-        navieras: Array.isArray(r.navieras) ? r.navieras : [],
+        navieras,
+        turnos,
         estancia: r.estancia || ''
       };
     })};
@@ -1150,8 +1157,10 @@ async function guardarCalendarioConfig(dias) {
     };
   }).sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
 
-  // Borrar todo y reinsertar
-  // Primero borrar navieras (FK), luego calendario
+  // Seguridad: no borrar si no hay nada que insertar
+  if (!procesados.length) throw new Error('No hay días que guardar');
+
+  // Borrar navieras y calendario actuales
   const calActual = await sbGet('calendario', 'select=id');
   if (calActual.length) {
     const ids = calActual.map(c=>c.id);
@@ -1168,15 +1177,24 @@ async function guardarCalendarioConfig(dias) {
 
   const calRows = procesados.map(d => ({
     fecha: d.fechaISO, semana: d.semana, dia: d.dia,
-    activo: d.activo, estancia: d.estancia||null,
-    turnos: d.turnos||[]
+    activo: d.activo, estancia: d.estancia||null
   }));
   const insertados = await sbPost('calendario', calRows, 'return=representation');
 
   const navRows = [];
+  // Guardar turnos en localStorage (la BD no tiene columna turnos todavía)
+  const turnosLocal = {};
   insertados.forEach((cal, i) => {
-    (procesados[i].navieras||[]).forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
+    // Solo navieras reales — sin prefijo turno:
+    (procesados[i].navieras||[]).filter(n=>!String(n).startsWith('turno:')).forEach(n =>
+      navRows.push({ calendario_id: cal.id, nombre: n })
+    );
+    // Turnos: guardar en localStorage indexado por fecha ISO
+    if ((procesados[i].turnos||[]).length) {
+      turnosLocal[procesados[i].fechaISO] = procesados[i].turnos;
+    }
   });
+  try { localStorage.setItem('cal_turnos', JSON.stringify(turnosLocal)); } catch(e) {}
   if (navRows.length) await sbPost('navieras', navRows);
   invalidar('calendario');
   return { status:'success' };
