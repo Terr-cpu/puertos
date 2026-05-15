@@ -359,7 +359,8 @@ async function registrarBaja(){
   const selItems=sel.map(i=>turnosU[i]);const btn=document.getElementById('btn-baja');btn.disabled=true;btn.innerHTML=sp()+'Registrando…';
   sel.forEach(i=>{const ti=document.getElementById('ti-'+i),chk=document.getElementById('chk-'+i);if(ti){ti.className='ti conf';ti.onclick=null;}if(chk)chk.textContent='✓';});
   document.getElementById('resumen').classList.remove('vis');btn.innerHTML='✓ Baja registrada';btn.className='btn btn-green btn-full';
-  const fb=document.getElementById('fb-baja');fb.style.display='block';fb.innerHTML=`<div class="fb-ok"><div style="font-size:1.1rem">✅</div><div><div style="font-size:.78rem;font-weight:600;color:var(--green-dark)">Baja registrada</div><div style="font-size:.68rem;color:var(--label3)">${selItems.length} turno${selItems.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
+  const fb=document.getElementById('fb-baja');fb.style.display='block';
+  setTimeout(()=>location.reload(),2800);fb.innerHTML=`<div class="fb-ok"><div style="font-size:1.1rem">✅</div><div><div style="font-size:.78rem;font-weight:600;color:var(--green-dark)">Baja registrada</div><div style="font-size:.68rem;color:var(--label3)">${selItems.length} turno${selItems.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
   setStep(3);
   try{const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');if(vs.length){const vid=vs[0].id;await sbPost('bajas',selItems.map(t=>({voluntario_id:vid,fecha:dmyAIso(t.fecha),semana:parseInt(t.semana),dia:t.dia,rango:t.rango,activa:true})),'resolution=merge-duplicates,return=minimal');}}catch(e){console.warn(e);}
 }
@@ -416,67 +417,126 @@ function cambiarVista(v){
 }
 function renderVista(c){c.innerHTML='';if(vistaActual==='confirmados') renderConf(c);else if(vistaActual==='nuevos') renderNuev(c);else renderMisApuntes(c);}
 
-// ── CONFIRMADOS: listas compactas agrupadas por fecha
+// ── CONFIRMADOS: cards por fecha, diseño legible
 function renderConf(c){
-  if(!ofertaActual.length){c.innerHTML=`<div class="empty-s"><span class="ei">✅</span><h4>Sin plazas libres</h4><p>Los turnos confirmados están completos.</p></div>`;return;}
-  const pf={};ofertaActual.forEach(t=>{const k=t.fecha+'|'+t.dia;if(!pf[k])pf[k]=[];pf[k].push(t);});
+  if(!ofertaActual.length){
+    c.innerHTML=`<div class="empty-s"><span class="ei">✅</span><h4>Sin plazas libres</h4><p>Los turnos confirmados están al completo en este momento.</p></div>`;
+    return;
+  }
+
+  // Agrupar por fecha
+  const pf={};
+  ofertaActual.forEach(t=>{
+    const k=t.fecha+'|'+t.dia;
+    if(!pf[k])pf[k]=[];
+    pf[k].push(t);
+  });
+
   Object.keys(pf).sort().forEach((fk,gi)=>{
-    const [fecha,dia]=fk.split('|');const ts=pf[fk];
-    const g=document.createElement('div');g.className='tr-group';g.style.animationDelay=(gi*.045)+'s';
-    g.innerHTML=`<div class="tr-head"><span class="tr-date">📅 ${fecha}</span><span class="tr-day">${dia}</span><span class="tr-n">${ts.length} turno${ts.length!==1?'s':''}</span></div>`;
-    ts.forEach(t=>{
+    const [fecha,dia]=fk.split('|');
+    const ts=pf[fk];
+
+    // Cabecera de fecha
+    const fechaHdr=document.createElement('div');
+    fechaHdr.style.cssText=`display:flex;align-items:center;gap:.6rem;margin-bottom:.55rem;margin-top:${gi>0?'1.2rem':'0'}`;
+    fechaHdr.innerHTML=`
+      <div style="background:var(--navy);color:#fff;border-radius:10px;padding:.4rem .75rem;font-size:.78rem;font-weight:700;white-space:nowrap">📅 ${fecha}</div>
+      <div style="font-size:.9rem;font-weight:600;color:var(--label2)">${dia}</div>
+      <div style="height:1px;flex:1;background:var(--sep)"></div>`;
+    c.appendChild(fechaHdr);
+
+    ts.forEach((t,ti)=>{
       const tard=parseInt((t.rango||'0').split(':')[0])>=14;
       const pct=Math.min(100,Math.round(((t.equipoActual||0)/4)*100));
       const pfC=pct===0?'var(--red)':pct>=75?'var(--green-dark)':'var(--amber)';
       const rid='rd-'+(fk+t.rango).replace(/[^a-z0-9]/gi,'_');
-      const row=document.createElement('div');row.className='tr-row'+(t.yaApuntado?' ya-row':'');
-      row.innerHTML=`<div class="tr-bar" style="background:${tard?'var(--amber)':'var(--blue)'}"></div><div class="tr-hora">🕒 ${t.rango}</div><span class="tr-pill ${tard?'tr-pill-t':'tr-pill-m'}">${tard?'TARDE':'MAÑ.'}</span><div class="tr-meta"><div class="tr-slots">${t.equipoActual||0}/4${(t.necesitan||0)>0?' &nbsp;·&nbsp; <span style="color:var(--red);font-weight:700">faltan '+t.necesitan+'</span>':''}</div><div class="tr-prog"><div class="tr-prog-fill" style="width:${pct}%;background:${pfC}"></div></div></div><div class="tr-action">${t.yaApuntado?`<span class="tr-btn apuntado-btn">✓</span>`:`<button class="tr-btn" onclick="abrirDet('${rid}',this)">Ver ▾</button>`}</div>`;
-      g.appendChild(row);
-      if(!t.yaApuntado){
-        const det=document.createElement('div');det.className='tr-detail';det.id=rid;
-        const vH=(t.equipoNombres||[]).map(n=>`<span style="background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.12rem .44rem;font-size:.65rem">${n}</span>`).join('')||`<span style="font-size:.65rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>`;
-        det.innerHTML=`${!t.tieneLlave?`<div class="llave-alrt">🔑 Necesita portador de llave</div>`:''}${(t.equipoNombres||[]).length?`<div style="font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.28rem">Apuntados</div><div style="display:flex;flex-wrap:wrap;gap:.2rem;margin-bottom:.45rem">${vH}</div>`:`<div style="font-size:.65rem;color:var(--label4);font-style:italic;margin-bottom:.42rem">Sin voluntarios aún</div>`}${nombreOferta?`<button class="btn btn-green btn-sm" style="width:100%" onclick="apuntarConf('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme</button>`:`<span style="font-size:.7rem;color:var(--label3)">Introduce tu nombre arriba para apuntarte</span>`}`;
-        g.appendChild(det);
-      }
+
+      const card=document.createElement('div');
+      card.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.65rem;animation:fadeUp .24s ease both;animation-delay:${(gi*3+ti)*.05}s`;
+
+      // Barra de color + header
+      const accentColor=tard?'var(--amber)':'var(--blue)';
+      const volBadges=(t.equipoNombres||[]).map(n=>{
+        const esYo=nombreOferta&&n.toUpperCase()===nombreOferta.toUpperCase();
+        return`<span style="font-size:.8rem;font-weight:${esYo?700:500};padding:.2rem .6rem;border-radius:20px;background:${esYo?'var(--green-soft)':'var(--surface2)'};border:1px solid ${esYo?'#b0dcc0':'var(--sep)'};color:${esYo?'var(--green-dark)':'var(--label1)'}">${esYo?'✓ ':''}${n}</span>`;
+      }).join('')||`<span style="font-size:.78rem;color:var(--label4);font-style:italic">Sin voluntarios aún</span>`;
+
+      card.innerHTML=`
+        <div style="height:4px;background:${tard?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+        <div style="padding:.9rem 1rem .6rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+          <div>
+            <div style="font-size:1.1rem;font-weight:800;letter-spacing:-.02em;color:var(--label1)">🕒 ${t.rango}</div>
+            <span style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:.15rem .5rem;border-radius:5px;display:inline-block;margin-top:.25rem;background:${tard?'var(--amber-soft)':'var(--blue-soft)'};color:${tard?'var(--amber)':'var(--blue)'}">${tard?'TARDE':'MAÑANA'}</span>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:1rem;font-weight:700;color:var(--label1)">${t.equipoActual||0}<span style="font-size:.75rem;font-weight:400;color:var(--label3)">/4</span></div>
+            ${(t.necesitan||0)>0?`<div style="font-size:.72rem;color:var(--red);font-weight:700">Faltan ${t.necesitan}</div>`:''}
+          </div>
+        </div>
+        <div style="padding:0 1rem .6rem">
+          <div style="height:5px;background:var(--sep);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${pfC};border-radius:3px;transition:width .4s"></div>
+          </div>
+          ${!t.tieneLlave?`<div style="display:flex;align-items:center;gap:.35rem;margin-top:.45rem;font-size:.78rem;color:#7a5000;font-weight:600;background:#fffbf0;border:1px solid #ffe082;border-radius:8px;padding:.35rem .6rem">🔑 Este turno necesita portador de llave</div>`:''}
+        </div>
+        <div style="padding:0 1rem .9rem">
+          <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.4rem">Voluntarios apuntados</div>
+          <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem">${volBadges}</div>
+          ${t.yaApuntado
+            ?`<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.6rem .85rem;font-size:.88rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`
+            :nombreOferta
+              ?`<button class="btn btn-green" style="width:100%;font-size:.88rem" onclick="apuntarConf('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme a este turno</button>`
+              :`<div style="font-size:.82rem;color:var(--label3);padding:.35rem 0">Introduce tu nombre arriba para apuntarte</div>`
+          }
+        </div>`;
+      c.appendChild(card);
     });
-    c.appendChild(g);
   });
 }
-function abrirDet(id,btn){
-  const det=document.getElementById(id);if(!det)return;
-  const abierto=det.classList.contains('open');
-  det.closest('.tr-group')?.querySelectorAll('.tr-detail.open').forEach(d=>{d.classList.remove('open');const b=d.previousElementSibling?.querySelector('.tr-btn');if(b&&!b.classList.contains('apuntado-btn'))b.textContent='Ver ▾';});
-  if(!abierto){det.classList.add('open');btn.textContent='Cerrar ▴';}
-}
 
-// ── NUEVOS DÍAS: accordion compacto
+// ── NUEVOS DÍAS: cards con texto legible
 function renderNuev(c){
-  if(!nuevosActual.length){c.innerHTML=`<div class="empty-s"><span class="ei">📅</span><h4>Sin días nuevos</h4><p>Todos los días del calendario ya tienen cuadrante.</p></div>`;return;}
-  // Aviso coordinador
+  if(!nuevosActual.length){c.innerHTML=`<div class="empty-s"><span class="ei">📅</span><h4>Sin días nuevos</h4><p>Todos los días tienen cuadrante asignado.</p></div>`;return;}
+  // Aviso positivo
   const aviso=document.createElement('div');
-  aviso.style.cssText='background:linear-gradient(135deg,#fff8e1,#fff3cc);border:1.5px solid #ffe082;border-radius:var(--r-md);padding:.65rem .85rem;margin-bottom:.7rem;display:flex;align-items:flex-start;gap:.5rem';
-  aviso.innerHTML=`<span style="font-size:1rem;flex-shrink:0">ℹ️</span><div><div style="font-size:.74rem;font-weight:700;color:#7a5c00;margin-bottom:.18rem">El coordinador confirmará el turno</div><div style="font-size:.68rem;color:#8a6800;line-height:1.4">Apuntarse aquí no garantiza tu participación. El responsable del cuadrante revisará los apuntes y te avisará cuando el turno sea efectivo.</div></div>`;
+  aviso.style.cssText='background:var(--blue-soft);border:1px solid rgba(0,113,227,.2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:.85rem;display:flex;align-items:flex-start;gap:.65rem';
+  aviso.innerHTML=`<span style="font-size:1.2rem;flex-shrink:0">📋</span><div><div style="font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.25rem">Días por completar</div><div style="font-size:.84rem;color:var(--label2);line-height:1.5">Estos días están en el calendario y necesitan voluntarios. Apúntate y el equipo de organización te confirmará el turno.</div></div>`;
   c.appendChild(aviso);
 
   nuevosActual.forEach((t,gi)=>{
-    const g=document.createElement('div');g.className='nd-group'+(t.yaApuntado?' apuntado':'');g.style.animationDelay=(gi*.045)+'s';
+    const card=document.createElement('div');
+    card.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:${t.yaApuntado?'1.5px solid var(--teal)':'1px solid var(--sep)'};box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.7rem;animation:fadeUp .24s ease both;animation-delay:${gi*.06}s`;
     const bid='nb-'+t.fechaISO;
-    const bodyHtml=t.yaApuntado
-      ?`<div class="ya-badge ya-teal" style="margin-bottom:.4rem">✓ Ya estás apuntado para este día</div>
-         <div style="font-size:.68rem;color:var(--label3);line-height:1.35">El coordinador te confirmará cuando el turno sea efectivo.</div>`
+    const navsHtml=t.navieras&&t.navieras.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`:'';
+    const bodyContent=t.yaApuntado
+      ?`<div style="display:flex;align-items:center;gap:.55rem;background:var(--teal-soft);border:1px solid rgba(0,138,120,.25);border-radius:var(--r-md);padding:.75rem .95rem;font-size:.95rem;font-weight:700;color:var(--teal)">✓ Ya estás apuntado para este día</div>
+         <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El equipo de organización te confirmará el turno cuando esté listo.</div>`
       :nombreOferta
-        ?`${t.navieras&&t.navieras.length?`<div class="nd-navs">${t.navieras.map(n=>`<span class="nd-nav">🚢 ${n}</span>`).join('')}</div>`:''}
-          <div class="nd-lbl">¿En qué franja puedes venir? (opcional)</div>
-          <div class="franja-grid" id="fg-${t.fechaISO}">
-            <button class="franja-btn" onclick="toggleF(this)">☀️ 10–12h</button>
-            <button class="franja-btn" onclick="toggleF(this)">☀️ 12–14h</button>
-            <button class="franja-btn tard" onclick="toggleF(this)">🌆 16–18h</button>
-            <button class="franja-btn tard" onclick="toggleF(this)">🌆 18–20h</button>
+        ?`${navsHtml}<div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes venir? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
+           <div class="franja-grid" id="fg-${t.fechaISO}">
+             <button class="franja-btn" onclick="toggleF(this)">☀️ 10:00–12:00</button>
+             <button class="franja-btn" onclick="toggleF(this)">☀️ 12:00–14:00</button>
+             <button class="franja-btn tard" onclick="toggleF(this)">🌆 16:00–18:00</button>
+             <button class="franja-btn tard" onclick="toggleF(this)">🌆 18:00–20:00</button>
+           </div>
+           <button class="btn btn-teal" style="width:100%;font-size:.92rem;margin-top:.1rem" onclick="apuntarNuev('${esc(t.fechaISO)}','${esc(t.fecha)}','${esc(t.dia)}','${t.semana}')">✋ Apuntarme a este día</button>`
+        :`<div style="font-size:.88rem;color:var(--label3);padding:.4rem 0">Introduce tu nombre arriba para apuntarte.</div>`;
+    card.innerHTML=`
+      <div style="height:4px;background:${t.yaApuntado?'linear-gradient(90deg,var(--teal),#0ac9b0)':'linear-gradient(90deg,#8b5cf6,#a78bfa)'}"></div>
+      <div style="padding:1rem 1.1rem .65rem;cursor:pointer;user-select:none" onclick="toggleND('${bid}',this)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
+          <div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--label1)">📅 ${t.fecha}</div>
+            <div style="font-size:.9rem;font-weight:500;color:var(--label2);margin-top:.2rem">${t.dia}</div>
           </div>
-          <button class="btn btn-teal btn-sm" style="width:100%" onclick="apuntarNuev('${esc(t.fechaISO)}','${esc(t.fecha)}','${esc(t.dia)}','${t.semana}')">✋ Apuntarme a este día</button>`
-        :`<span style="font-size:.7rem;color:var(--label3)">Introduce tu nombre arriba para apuntarte</span>`;
-    g.innerHTML=`<div class="nd-head" onclick="toggleND('${bid}',this)"><span class="nd-date">📅 ${t.fecha}</span><span class="nd-day">${t.dia}</span><span class="nd-badge ${t.yaApuntado?'ok':''}">${t.yaApuntado?'✓ Apuntado':'Sin cuadrante'}</span><span class="nd-caret">▼</span></div><div class="nd-body" id="${bid}">${bodyHtml}</div>`;
-    c.appendChild(g);
+          <div style="display:flex;align-items:center;gap:.5rem">
+            <span style="font-size:.76rem;font-weight:700;padding:.22rem .65rem;border-radius:20px;white-space:nowrap;background:${t.yaApuntado?'var(--teal)':'rgba(139,92,246,.15)'};color:${t.yaApuntado?'#fff':'#7c3aed'}">${t.yaApuntado?'✓ Apuntado':'Sin cuadrante'}</span>
+            <span style="color:var(--label4);font-size:.85rem;transition:transform .2s" class="nd-caret">▼</span>
+          </div>
+        </div>
+      </div>
+      <div id="${bid}" style="padding:0 1.1rem 1rem;display:none">${bodyContent}</div>`;
+    c.appendChild(card);
   });
 }
 
@@ -486,8 +546,8 @@ function renderMisApuntes(c){
   if(!mis.length){
     c.innerHTML=`<div class="empty-s"><span class="ei">🙋</span><h4>Sin apuntes aún</h4><p>Aún no te has apuntado a ningún turno disponible.</p></div>`;return;
   }
-  const hdr=document.createElement('p');hdr.style.cssText='font-size:.7rem;color:var(--label3);margin-bottom:.65rem;line-height:1.38';
-  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El coordinador te confirmará cada turno cuando sea efectivo.`;
+  const hdr=document.createElement('p');hdr.style.cssText='font-size:.9rem;color:var(--label2);margin-bottom:.75rem;line-height:1.5';
+  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El equipo de organización te confirmará cada turno cuando esté listo.`;
   c.appendChild(hdr);
 
   mis.forEach((r,gi)=>{
@@ -516,12 +576,12 @@ function renderMisApuntes(c){
   // Aviso coordinador al final
   const aviso=document.createElement('div');
   aviso.style.cssText='background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.6rem .82rem;margin-top:.5rem;font-size:.68rem;color:var(--label3);line-height:1.4;display:flex;align-items:flex-start;gap:.4rem';
-  aviso.innerHTML=`<span>ℹ️</span><span>El coordinador revisará los apuntes y te confirmará cuando cada turno sea definitivo.</span>`;
+  aviso.innerHTML=`<span>ℹ️</span><span style='font-size:.84rem'>El equipo de organización revisará los apuntes y te confirmará cuando cada turno esté listo.</span>`;
   c.appendChild(aviso);
 }
-function toggleND(id,head){const b=document.getElementById(id);if(!b)return;const a=b.classList.toggle('open');const c=head?.querySelector('.nd-caret');if(c)c.style.transform=a?'rotate(180deg)':'';}
+function toggleND(id,clickedEl){const b=document.getElementById(id);if(!b)return;const a=b.style.display==='none'||b.style.display==='';b.style.display=a?'block':'none';const caret=clickedEl?.querySelector('.nd-caret')||clickedEl?.closest('[onclick]')?.querySelector('.nd-caret');if(caret)caret.style.transform=a?'rotate(180deg)':''; }
 function toggleF(btn){btn.classList.toggle('sel');}
-const FRANJA_MAP={'☀️ 10–12h':'10:00 a 12:00','☀️ 12–14h':'12:00 a 14:00','🌆 16–18h':'16:00 a 18:00','🌆 18–20h':'18:00 a 20:00'};
+const FRANJA_MAP={'☀️ 10:00–12:00':'10:00 a 12:00','☀️ 12:00–14:00':'12:00 a 14:00','🌆 16:00–18:00':'16:00 a 18:00','🌆 18:00–20:00':'18:00 a 20:00'};
 function getFranjas(fechaISO){const g=document.getElementById('fg-'+fechaISO);if(!g)return[];return[...g.querySelectorAll('.franja-btn.sel')].map(b=>FRANJA_MAP[b.textContent.trim()]||b.textContent.trim());}
 
 // ── APUNTARSE CONFIRMADO
@@ -534,7 +594,7 @@ async function apuntarConf(key,fecha,rango){
     await sbPatch('bajas','voluntario_id=eq.'+vid+'&fecha=eq.'+fiso+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',{activa:false});
     await sbPost('refuerzos',[{voluntario_id:vid,fecha:fiso,semana:parseInt(sem),dia:normDia(dia),rango,es_dia_completo:false}],'resolution=merge-duplicates,return=minimal');
     ofertaActual=ofertaActual.map(t=>t.key===key?{...t,yaApuntado:true,equipoActual:(t.equipoActual||0)+1,necesitan:Math.max(0,(t.necesitan||1)-1)}:t);
-    overlay('exito',nombreOferta);setTimeout(()=>{cerrarOverlay();renderOferta();},2200);
+    overlay('exito',nombreOferta);setTimeout(()=>{ cerrarOverlay(); location.reload(); },2400);
   }catch(e){cerrarOverlay();toast('Error: '+e.message,'err');}
 }
 // ── APUNTARSE NUEVO DÍA
@@ -547,7 +607,7 @@ async function apuntarNuev(fechaISO,fecha,dia,semana){
     if(franjas.length>0){await sbPost('refuerzos',franjas.map(r=>({voluntario_id:vid,fecha:fechaISO,semana:parseInt(semana),dia:normDia(dia),rango:r,es_dia_completo:false})),'resolution=merge-duplicates,return=minimal');}
     else{await sbPost('refuerzos',[{voluntario_id:vid,fecha:fechaISO,semana:parseInt(semana),dia:normDia(dia),rango:'',es_dia_completo:true}],'resolution=merge-duplicates,return=minimal');}
     nuevosActual=nuevosActual.map(t=>t.fechaISO===fechaISO?{...t,yaApuntado:true}:t);
-    overlay('exito',nombreOferta);setTimeout(()=>{cerrarOverlay();renderOferta();},2200);
+    overlay('exito',nombreOferta);setTimeout(()=>{ cerrarOverlay(); location.reload(); },2400);
   }catch(e){cerrarOverlay();toast('Error: '+e.message,'err');}
 }
 
