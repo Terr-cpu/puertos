@@ -2373,6 +2373,10 @@ function renderBajasPanel(c) {
     <button id="btab-actividad" onclick="setBajaTab('actividad')"
       style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:var(--navy);color:#fff;transition:all .18s">
       📋 Actividad de bajas
+    </button>
+    <button id="btab-control" onclick="setBajaTab('control')"
+      style="flex:1;padding:.5rem .75rem;border:none;border-radius:var(--r-md);font-family:inherit;font-size:.78rem;font-weight:600;cursor:pointer;background:transparent;color:var(--label3);transition:all .18s">
+      ⚙️ Control del portal
     </button>`;
   c.appendChild(tabsBar);
 
@@ -2384,7 +2388,7 @@ function renderBajasPanel(c) {
 
 function setBajaTab(tab) {
   window._bajaTab = tab;
-  ['actividad','turnos'].forEach(t => {
+  ['actividad','control'].forEach(t => {
     const btn = document.getElementById('btab-'+t);
     if (!btn) return;
     btn.style.background = t===tab ? 'var(--navy)' : 'transparent';
@@ -2397,7 +2401,215 @@ function setBajaTab(tab) {
 async function renderBajaTab(c) {
   c.innerHTML = '';
   if (window._bajaTab === 'actividad') renderActividadBajas(c);
+  else if (window._bajaTab === 'control') renderControlSustituciones(c);
   else await renderTurnosDisponiblesEnBajas(c);
+}
+
+// ── TAB CONTROL DEL PORTAL DE SUSTITUCIONES ───────────────
+// Carga y guarda los flags en Supabase (tabla navieras con fecha especial)
+// y en localStorage como fallback inmediato
+const SUST_CONFIG_KEY = 'sust_portal_config';
+
+function cargarConfigSust() {
+  try {
+    const raw = localStorage.getItem(SUST_CONFIG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    mostrarConfirmados: true,
+    mostrarNuevosDias:  true,
+    mostrarMisApuntes:  true,
+    mostrarBajas:       true,
+    mensajePersonalizado: '',
+    urlBase: './sustituciones_v9.html'
+  };
+}
+
+function guardarConfigSust(cfg) {
+  try { localStorage.setItem(SUST_CONFIG_KEY, JSON.stringify(cfg)); } catch(e) {}
+  // También guardar en Supabase como naviera especial con nombre config:...
+  // Usamos fecha 1970-01-01 como registro de config global
+  const valor = JSON.stringify(cfg);
+  sbGet('calendario', 'fecha=eq.1970-01-01&select=id').then(rows => {
+    if (!rows.length) {
+      // Crear fila config si no existe
+      return sbPost('calendario', [{
+        fecha: '1970-01-01', semana: 0, dia: 'Config', activo: false, estancia: valor
+      }]);
+    } else {
+      return sbPatch('calendario', 'fecha=eq.1970-01-01', { estancia: valor });
+    }
+  }).catch(() => {}); // silencioso — localStorage es el fallback
+}
+
+async function cargarConfigSustDesdeDB() {
+  try {
+    const rows = await sbGet('calendario', 'fecha=eq.1970-01-01&select=estancia');
+    if (rows.length && rows[0].estancia) {
+      const cfg = JSON.parse(rows[0].estancia);
+      localStorage.setItem(SUST_CONFIG_KEY, JSON.stringify(cfg));
+      return cfg;
+    }
+  } catch(e) {}
+  return cargarConfigSust();
+}
+
+function renderControlSustituciones(c) {
+  const cfg = cargarConfigSust();
+
+  // Intentar cargar config actualizada de la BD en background
+  cargarConfigSustDesdeDB().then(cfgDB => {
+    if (cfgDB) {
+      Object.assign(cfg, cfgDB);
+      _renderControlUI(c, cfg);
+    }
+  }).catch(() => {});
+
+  _renderControlUI(c, cfg);
+}
+
+function _renderControlUI(c, cfg) {
+  const urlGenerada = _buildSustURL(cfg);
+
+  c.innerHTML = '';
+
+  // ── Info banner ─────────────────────────────────────────
+  const info = document.createElement('div');
+  info.style = 'background:var(--blue-soft);border:1px solid rgba(0,113,227,.2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:1.25rem;display:flex;align-items:flex-start;gap:.65rem';
+  info.innerHTML = `<span style="font-size:1.1rem">🔗</span>
+    <div>
+      <div style="font-size:.85rem;font-weight:700;color:var(--blue);margin-bottom:.2rem">Control del portal de sustituciones</div>
+      <div style="font-size:.78rem;color:var(--label2);line-height:1.5">Activa o desactiva las secciones que verán los voluntarios. Los cambios se aplican en tiempo real al compartir la URL generada.</div>
+    </div>`;
+  c.appendChild(info);
+
+  // ── Toggles ─────────────────────────────────────────────
+  const seccionesCard = document.createElement('div');
+  seccionesCard.className = 'card';
+  seccionesCard.innerHTML = `
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:1rem">Secciones visibles para los voluntarios</div>
+    ${[
+      { key:'mostrarBajas',      icon:'📤', label:'Comunicar baja',      sub:'El voluntario puede registrar que no puede asistir a sus turnos confirmados' },
+      { key:'mostrarConfirmados',icon:'📋', label:'Turnos confirmados',   sub:'Turnos del cuadrante con plazas libres donde apuntarse como refuerzo' },
+      { key:'mostrarNuevosDias', icon:'📅', label:'Nuevos días',          sub:'Días habilitados sin cuadrante asignado todavía' },
+      { key:'mostrarMisApuntes', icon:'🙋', label:'Mis apuntes',          sub:'El voluntario puede ver en qué turnos ya está apuntado' },
+    ].map(s => `
+      <div style="display:flex;align-items:center;gap:.85rem;padding:.75rem 0;border-bottom:1px solid var(--sep)">
+        <span style="font-size:1.2rem;flex-shrink:0">${s.icon}</span>
+        <div style="flex:1">
+          <div style="font-size:.85rem;font-weight:600;color:var(--label1)">${s.label}</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem;line-height:1.4">${s.sub}</div>
+        </div>
+        <label class="toggle-sw" style="flex-shrink:0">
+          <input type="checkbox" id="cfg-${s.key}" ${cfg[s.key]?'checked':''}
+            onchange="actualizarConfigSust()">
+          <span class="toggle-sl"></span>
+        </label>
+      </div>`).join('')}
+    <div style="padding-top:.75rem">
+      <div style="font-size:.78rem;font-weight:600;color:var(--label2);margin-bottom:.38rem">💬 Mensaje de aviso en la cabecera (opcional)</div>
+      <textarea id="cfg-mensaje" rows="2" class="fc"
+        style="width:100%;resize:vertical;font-size:.8rem;padding:.55rem .75rem;line-height:1.4"
+        placeholder="Ej: El portal estará cerrado del 15 al 20 de junio"
+        oninput="actualizarConfigSust()">${cfg.mensajePersonalizado||''}</textarea>
+    </div>`;
+  c.appendChild(seccionesCard);
+
+  // ── URL generada ─────────────────────────────────────────
+  const urlCard = document.createElement('div');
+  urlCard.className = 'card';
+  urlCard.innerHTML = `
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.65rem">URL del portal de sustituciones</div>
+    <div style="background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.65rem .85rem;font-family:monospace;font-size:.72rem;color:var(--label2);word-break:break-all;margin-bottom:.65rem;line-height:1.5" id="sust-url-display">${urlGenerada}</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-navy" onclick="copiarURLSust()">📋 Copiar enlace</button>
+      <button class="btn btn-ghost" onclick="abrirURLSust()">🔗 Abrir portal</button>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:.35rem">
+        <label style="font-size:.75rem;font-weight:600;color:var(--label2)">Archivo base:</label>
+        <input class="fc" id="cfg-urlbase" value="${cfg.urlBase||'./sustituciones_v9.html'}"
+          style="font-size:.72rem;padding:.32rem .55rem;max-width:220px"
+          oninput="actualizarConfigSust()">
+      </div>
+    </div>`;
+  c.appendChild(urlCard);
+
+  // ── Vista previa del estado ──────────────────────────────
+  const preview = document.createElement('div');
+  preview.id = 'sust-preview';
+  preview.className = 'card';
+  preview.style.background = 'var(--surface2)';
+  _renderPreview(preview, cfg);
+  c.appendChild(preview);
+}
+
+function _buildSustURL(cfg) {
+  const base = cfg.urlBase || './sustituciones_v9.html';
+  const params = new URLSearchParams({
+    c: cfg.mostrarConfirmados ? '1' : '0',
+    n: cfg.mostrarNuevosDias  ? '1' : '0',
+    a: cfg.mostrarMisApuntes  ? '1' : '0',
+    b: cfg.mostrarBajas       ? '1' : '0',
+    m: cfg.mensajePersonalizado || ''
+  });
+  return `${base}?${params.toString()}`;
+}
+
+function _renderPreview(wrap, cfg) {
+  const tabs = [
+    { key:'mostrarBajas',       icon:'📤', label:'Comunicar baja' },
+    { key:'mostrarConfirmados', icon:'📋', label:'Confirmados' },
+    { key:'mostrarNuevosDias',  icon:'📅', label:'Nuevos días' },
+    { key:'mostrarMisApuntes',  icon:'🙋', label:'Mis apuntes' },
+  ].filter(t => cfg[t.key]);
+
+  wrap.innerHTML = `
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.65rem">Vista previa de tabs visibles</div>
+    <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+      ${tabs.map(t => `
+        <div style="display:flex;align-items:center;gap:.35rem;background:var(--navy);color:#fff;border-radius:20px;padding:.32rem .75rem;font-size:.76rem;font-weight:600">
+          ${t.icon} ${t.label}
+        </div>`).join('')}
+      ${!tabs.length ? `<div style="font-size:.78rem;color:var(--red)">⚠️ Todas las secciones están desactivadas — el portal mostrará una pantalla vacía</div>` : ''}
+    </div>
+    ${cfg.mensajePersonalizado ? `
+    <div style="margin-top:.65rem;background:#fff8e1;border:1px solid #ffe082;border-radius:var(--r-sm);padding:.5rem .75rem;font-size:.78rem;color:#7a5c00">
+      💬 Aviso: ${cfg.mensajePersonalizado}
+    </div>` : ''}`;
+}
+
+function actualizarConfigSust() {
+  const cfg = {
+    mostrarBajas:       document.getElementById('cfg-mostrarBajas')?.checked ?? true,
+    mostrarConfirmados: document.getElementById('cfg-mostrarConfirmados')?.checked ?? true,
+    mostrarNuevosDias:  document.getElementById('cfg-mostrarNuevosDias')?.checked ?? true,
+    mostrarMisApuntes:  document.getElementById('cfg-mostrarMisApuntes')?.checked ?? true,
+    mensajePersonalizado: document.getElementById('cfg-mensaje')?.value || '',
+    urlBase: document.getElementById('cfg-urlbase')?.value || './sustituciones_v9.html'
+  };
+  guardarConfigSust(cfg);
+
+  const urlEl = document.getElementById('sust-url-display');
+  if (urlEl) urlEl.textContent = _buildSustURL(cfg);
+
+  const prev = document.getElementById('sust-preview');
+  if (prev) _renderPreview(prev, cfg);
+}
+
+function copiarURLSust() {
+  const url = document.getElementById('sust-url-display')?.textContent;
+  if (!url) return;
+  navigator.clipboard.writeText(url).then(() => toast('URL copiada ✓', 'ok')).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast('URL copiada ✓', 'ok');
+  });
+}
+
+function abrirURLSust() {
+  const url = document.getElementById('sust-url-display')?.textContent;
+  if (url) window.open(url, '_blank');
 }
 
 // ── TAB ACTIVIDAD ─────────────────────────────────────────
