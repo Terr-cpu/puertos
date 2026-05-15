@@ -21,6 +21,7 @@
   --gold:#c9a84c;--green:#34c759;--green-dark:#1a9648;--green-soft:#e6f7ed;
   --red:#ff3b30;--red-dark:#c0392b;--red-soft:#fff0ef;
   --teal:#0a8a78;--teal-soft:#e0f5f2;
+  --purple:#7c3aed;--purple-soft:#f0e9ff;
   --label1:#1c1c1e;--label2:#48484a;--label3:#8e8e93;--label4:#c7c7cc;
   --sep:rgba(60,60,67,.12);
   --shadow-sm:0 1px 4px rgba(0,0,0,.07);
@@ -380,6 +381,11 @@ async function cargarOferta(){
     ofertaActual=oArr.map(t=>{const fiso=dmyAIso(t.fecha);return{...t,dia:normDia(t.dia),yaApuntado:refSet.has(fiso+'|'+t.rango)||(t.equipoNombres||[]).some(n=>n.toUpperCase()===nombre.toUpperCase())};});
     const hoy=new Date().toISOString().split('T')[0];
     nuevosActual=calRaw.filter(r=>r.fecha>=hoy&&!hFechas.has(r.fecha)).map(r=>({fechaISO:r.fecha,fecha:isoADMY(r.fecha),semana:calcSem(r.fecha),dia:normDia(r.dia),navieras:Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]),yaApuntado:volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false}));
+    // Mis apuntes: todos los refuerzos del voluntario (con datos completos)
+    if(volId){
+      const misRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango,dia,semana,es_dia_completo&order=fecha,rango');
+      window._misApuntes=misRows;
+    } else { window._misApuntes=[]; }
     renderOferta();
   }catch(e){wrap.innerHTML=`<div class="empty-s"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`;}
   finally{btn.disabled=false;btn.innerHTML='🔄 Actualizar';}
@@ -388,21 +394,27 @@ function resetOferta(){nombreOferta='';ofertaActual=[];nuevosActual=[];document.
 
 function renderOferta(){
   const wrap=document.getElementById('oferta-wrap');wrap.innerHTML='';
-  const nC=ofertaActual.length,nN=nuevosActual.length;
-  if(!nC&&!nN){wrap.innerHTML=`<div class="empty-s"><span class="ei">✅</span><h4>¡Todo cubierto!</h4><p>No hay turnos que necesiten voluntarios ahora.</p></div>`;return;}
+  const nC=ofertaActual.length,nN=nuevosActual.length,nM=(window._misApuntes||[]).length;
+  if(!nC&&!nN&&!nM){wrap.innerHTML=`<div class="empty-s"><span class="ei">✅</span><h4>¡Todo cubierto!</h4><p>No hay turnos que necesiten voluntarios ahora.</p></div>`;return;}
   // Sub-tabs
   const tabs=document.createElement('div');tabs.className='sec-tabs';
-  tabs.innerHTML=`<button class="sec-tab ${vistaActual==='confirmados'?'active':''}" onclick="cambiarVista('confirmados')"><span class="st-icon">📋</span>Confirmados<span class="st-count">${nC}</span></button><button class="sec-tab teal ${vistaActual==='nuevos'?'active':''}" onclick="cambiarVista('nuevos')"><span class="st-icon">📅</span>Nuevos días<span class="st-count">${nN}</span></button>`;
+  tabs.innerHTML=`<button class="sec-tab ${vistaActual==='confirmados'?'active':''}" onclick="cambiarVista('confirmados')"><span class="st-icon">📋</span>Confirmados<span class="st-count">${nC}</span></button><button class="sec-tab teal ${vistaActual==='nuevos'?'active':''}" onclick="cambiarVista('nuevos')"><span class="st-icon">📅</span>Nuevos días<span class="st-count">${nN}</span></button><button class="sec-tab ${vistaActual==='misapuntes'?'active':''}" onclick="cambiarVista('misapuntes')" style="${vistaActual==='misapuntes'?'background:var(--purple);':''}"><span class="st-icon">🙋</span>Mis apuntes<span class="st-count">${nM}</span></button>`;
   wrap.appendChild(tabs);
   const ct=document.createElement('div');ct.id='oferta-ct';wrap.appendChild(ct);
   renderVista(ct);
 }
 function cambiarVista(v){
   vistaActual=v;
-  document.querySelectorAll('.sec-tab').forEach((b,i)=>{const iC=i===0;b.classList.toggle('active',(v==='confirmados'&&iC)||(v==='nuevos'&&!iC));});
+  document.querySelectorAll('.sec-tab').forEach((b,i)=>{
+    const keys=['confirmados','nuevos','misapuntes'];
+    const isActive=keys[i]===v;
+    b.classList.toggle('active',isActive);
+    // color especial para misapuntes
+    if(i===2) b.style.background=isActive?'var(--purple)':'';
+  });
   const c=document.getElementById('oferta-ct');if(c) renderVista(c);
 }
-function renderVista(c){c.innerHTML='';if(vistaActual==='confirmados') renderConf(c);else renderNuev(c);}
+function renderVista(c){c.innerHTML='';if(vistaActual==='confirmados') renderConf(c);else if(vistaActual==='nuevos') renderNuev(c);else renderMisApuntes(c);}
 
 // ── CONFIRMADOS: listas compactas agrupadas por fecha
 function renderConf(c){
@@ -440,12 +452,18 @@ function abrirDet(id,btn){
 // ── NUEVOS DÍAS: accordion compacto
 function renderNuev(c){
   if(!nuevosActual.length){c.innerHTML=`<div class="empty-s"><span class="ei">📅</span><h4>Sin días nuevos</h4><p>Todos los días del calendario ya tienen cuadrante.</p></div>`;return;}
-  const ley=document.createElement('p');ley.style.cssText='font-size:.7rem;color:var(--label3);margin-bottom:.6rem;line-height:1.38';ley.textContent='Días habilitados sin cuadrante. Si te apuntas, el coordinador te tendrá en cuenta.';c.appendChild(ley);
+  // Aviso coordinador
+  const aviso=document.createElement('div');
+  aviso.style.cssText='background:linear-gradient(135deg,#fff8e1,#fff3cc);border:1.5px solid #ffe082;border-radius:var(--r-md);padding:.65rem .85rem;margin-bottom:.7rem;display:flex;align-items:flex-start;gap:.5rem';
+  aviso.innerHTML=`<span style="font-size:1rem;flex-shrink:0">ℹ️</span><div><div style="font-size:.74rem;font-weight:700;color:#7a5c00;margin-bottom:.18rem">El coordinador confirmará el turno</div><div style="font-size:.68rem;color:#8a6800;line-height:1.4">Apuntarse aquí no garantiza tu participación. El responsable del cuadrante revisará los apuntes y te avisará cuando el turno sea efectivo.</div></div>`;
+  c.appendChild(aviso);
+
   nuevosActual.forEach((t,gi)=>{
     const g=document.createElement('div');g.className='nd-group'+(t.yaApuntado?' apuntado':'');g.style.animationDelay=(gi*.045)+'s';
     const bid='nb-'+t.fechaISO;
     const bodyHtml=t.yaApuntado
-      ?`<div class="ya-badge ya-teal">✓ Ya estás apuntado para este día</div>`
+      ?`<div class="ya-badge ya-teal" style="margin-bottom:.4rem">✓ Ya estás apuntado para este día</div>
+         <div style="font-size:.68rem;color:var(--label3);line-height:1.35">El coordinador te confirmará cuando el turno sea efectivo.</div>`
       :nombreOferta
         ?`${t.navieras&&t.navieras.length?`<div class="nd-navs">${t.navieras.map(n=>`<span class="nd-nav">🚢 ${n}</span>`).join('')}</div>`:''}
           <div class="nd-lbl">¿En qué franja puedes venir? (opcional)</div>
@@ -460,6 +478,46 @@ function renderNuev(c){
     g.innerHTML=`<div class="nd-head" onclick="toggleND('${bid}',this)"><span class="nd-date">📅 ${t.fecha}</span><span class="nd-day">${t.dia}</span><span class="nd-badge ${t.yaApuntado?'ok':''}">${t.yaApuntado?'✓ Apuntado':'Sin cuadrante'}</span><span class="nd-caret">▼</span></div><div class="nd-body" id="${bid}">${bodyHtml}</div>`;
     c.appendChild(g);
   });
+}
+
+// ── MIS APUNTES: resumen de turnos en los que el voluntario ya está apuntado
+function renderMisApuntes(c){
+  const mis=window._misApuntes||[];
+  if(!mis.length){
+    c.innerHTML=`<div class="empty-s"><span class="ei">🙋</span><h4>Sin apuntes aún</h4><p>Aún no te has apuntado a ningún turno disponible.</p></div>`;return;
+  }
+  const hdr=document.createElement('p');hdr.style.cssText='font-size:.7rem;color:var(--label3);margin-bottom:.65rem;line-height:1.38';
+  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El coordinador te confirmará cada turno cuando sea efectivo.`;
+  c.appendChild(hdr);
+
+  mis.forEach((r,gi)=>{
+    const fiso=r.fecha;const dmy=isoADMY(fiso);
+    const tard=parseInt((r.rango||'0').split(':')[0])>=14;
+    const esNuevo=r.es_dia_completo||!r.rango||r.rango.trim()==='';
+    const g=document.createElement('div');
+    g.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.45rem;animation:fadeUp .22s ease both;animation-delay:${gi*.04}s`;
+    g.innerHTML=`
+      <div style="height:3px;background:${esNuevo?'linear-gradient(90deg,var(--teal),#0ac9b0)':tard?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
+      <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .82rem">
+        <div style="width:3px;height:24px;border-radius:2px;background:${esNuevo?'var(--teal)':tard?'var(--amber)':'var(--blue)'};flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:.8rem;font-weight:700">${esNuevo?'📅 Día nuevo — sin franja definida':('🕒 '+r.rango)}</div>
+          <div style="font-size:.63rem;color:var(--label3);margin-top:.08rem">
+            📅 ${dmy} · ${normDia(r.dia)}
+            <span style="margin-left:.35rem;font-size:.54rem;font-weight:700;padding:.07rem .3rem;border-radius:4px;
+              background:${esNuevo?'var(--teal-soft)':tard?'var(--amber-soft)':'var(--blue-soft)'};
+              color:${esNuevo?'var(--teal)':tard?'var(--amber)':'var(--blue)'}">${esNuevo?'NUEVO DÍA':tard?'TARDE':'MAÑANA'}</span>
+          </div>
+        </div>
+        <span style="font-size:.58rem;font-weight:700;padding:.1rem .42rem;border-radius:20px;background:var(--purple-soft);color:var(--purple)">Pendiente confirmación</span>
+      </div>`;
+    c.appendChild(g);
+  });
+  // Aviso coordinador al final
+  const aviso=document.createElement('div');
+  aviso.style.cssText='background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.6rem .82rem;margin-top:.5rem;font-size:.68rem;color:var(--label3);line-height:1.4;display:flex;align-items:flex-start;gap:.4rem';
+  aviso.innerHTML=`<span>ℹ️</span><span>El coordinador revisará los apuntes y te confirmará cuando cada turno sea definitivo.</span>`;
+  c.appendChild(aviso);
 }
 function toggleND(id,head){const b=document.getElementById(id);if(!b)return;const a=b.classList.toggle('open');const c=head?.querySelector('.nd-caret');if(c)c.style.transform=a?'rotate(180deg)':'';}
 function toggleF(btn){btn.classList.toggle('sel');}
