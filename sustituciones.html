@@ -500,7 +500,7 @@ function renderNuev(c){
   // Aviso positivo
   const aviso=document.createElement('div');
   aviso.style.cssText='background:var(--blue-soft);border:1px solid rgba(0,113,227,.2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:.85rem;display:flex;align-items:flex-start;gap:.65rem';
-  aviso.innerHTML=`<span style="font-size:1.2rem;flex-shrink:0">📋</span><div><div style="font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.25rem">Días por completar</div><div style="font-size:.84rem;color:var(--label2);line-height:1.5">Estos días están en el calendario y necesitan voluntarios. Apúntate y el equipo de organización te confirmará el turno.</div></div>`;
+  aviso.innerHTML=`<span style="font-size:1.2rem;flex-shrink:0">📋</span><div><div style="font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.25rem">Días por completar</div><div style="font-size:.84rem;color:var(--label2);line-height:1.5">Estos días están en el calendario y necesitan voluntarios. Apúntate y el hermano responsable te confirmará el turno.</div></div>`;
   c.appendChild(aviso);
 
   nuevosActual.forEach((t,gi)=>{
@@ -510,9 +510,9 @@ function renderNuev(c){
     const navsHtml=t.navieras&&t.navieras.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`:'';
     const bodyContent=t.yaApuntado
       ?`<div style="display:flex;align-items:center;gap:.55rem;background:var(--teal-soft);border:1px solid rgba(0,138,120,.25);border-radius:var(--r-md);padding:.75rem .95rem;font-size:.95rem;font-weight:700;color:var(--teal)">✓ Ya estás apuntado para este día</div>
-         <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El equipo de organización te confirmará el turno cuando esté listo.</div>`
+         <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El hermano responsable te confirmará el turno cuando esté listo.</div>`
       :nombreOferta
-        ?`${navsHtml}<div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes venir? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
+        ?`${navsHtml}<div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes atender el turno? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
            <div class="franja-grid" id="fg-${t.fechaISO}">
              <button class="franja-btn" onclick="toggleF(this)">☀️ 10:00–12:00</button>
              <button class="franja-btn" onclick="toggleF(this)">☀️ 12:00–14:00</button>
@@ -544,10 +544,10 @@ function renderNuev(c){
 function renderMisApuntes(c){
   const mis=window._misApuntes||[];
   if(!mis.length){
-    c.innerHTML=`<div class="empty-s"><span class="ei">🙋</span><h4>Sin apuntes aún</h4><p>Aún no te has apuntado a ningún turno disponible.</p></div>`;return;
+    c.innerHTML=`<div class="empty-s"><span class="ei">🙋</span><h4>Sin turnos aún</h4><p>Aún no te has apuntado a ningún turno disponible.</p></div>`;return;
   }
   const hdr=document.createElement('p');hdr.style.cssText='font-size:.9rem;color:var(--label2);margin-bottom:.75rem;line-height:1.5';
-  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El equipo de organización te confirmará cada turno cuando esté listo.`;
+  hdr.textContent=`Tienes ${mis.length} turno${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El hermano resposnable te confirmará cada turno cuando esté listo.`;
   c.appendChild(hdr);
 
   mis.forEach((r,gi)=>{
@@ -576,7 +576,7 @@ function renderMisApuntes(c){
   // Aviso coordinador al final
   const aviso=document.createElement('div');
   aviso.style.cssText='background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.6rem .82rem;margin-top:.5rem;font-size:.68rem;color:var(--label3);line-height:1.4;display:flex;align-items:flex-start;gap:.4rem';
-  aviso.innerHTML=`<span>ℹ️</span><span style='font-size:.84rem'>El equipo de organización revisará los apuntes y te confirmará cuando cada turno esté listo.</span>`;
+  aviso.innerHTML=`<span>ℹ️</span><span style='font-size:.84rem'>El hermano responsable te confirmará cuando cada turno esté listo. Muchas gracias</span>`;
   c.appendChild(aviso);
 }
 function toggleND(id,clickedEl){const b=document.getElementById(id);if(!b)return;const a=b.style.display==='none'||b.style.display==='';b.style.display=a?'block':'none';const caret=clickedEl?.querySelector('.nd-caret')||clickedEl?.closest('[onclick]')?.querySelector('.nd-caret');if(caret)caret.style.transform=a?'rotate(180deg)':''; }
