@@ -1123,17 +1123,15 @@ async function apiGet(p) {
 async function getCalendarioConfig() {
   return cached('calendario', 5*60000, async () => {
     const rows = await sbGet('v_calendario', 'order=fecha');
-    // Cargar turnos guardados localmente (no existen en BD todavía)
-    let turnosLocal = {};
-    try { turnosLocal = JSON.parse(localStorage.getItem('cal_turnos')||'{}'); } catch(e) {}
     return { dias: rows.map(r => {
       const diaNum = parseInt(r.fecha.split('-')[2]);
       const semana = diaNum<=7?1 : diaNum<=14?2 : diaNum<=21?3 : diaNum<=28?4 : 5;
       const allNavs = Array.isArray(r.navieras) ? r.navieras : [];
-      // Navieras: solo las que NO empiezan por "turno:" (por si quedaron de versiones anteriores)
+      // Separar navieras reales de turnos habilitados (prefijo "turno:")
       const navieras = allNavs.filter(n => !String(n).startsWith('turno:'));
-      // Turnos: desde localStorage (indexado por fecha ISO)
-      const turnos = turnosLocal[r.fecha] || [];
+      const turnos   = allNavs
+        .filter(n => String(n).startsWith('turno:'))
+        .map(n => String(n).slice(6)); // quitar prefijo "turno:"
       return {
         fecha:    isoADMY(r.fecha),
         fechaISO: r.fecha,
@@ -1186,19 +1184,15 @@ async function guardarCalendarioConfig(dias) {
   const insertados = await sbPost('calendario', calRows, 'return=representation');
 
   const navRows = [];
-  // Guardar turnos en localStorage (la BD no tiene columna turnos todavía)
-  const turnosLocal = {};
   insertados.forEach((cal, i) => {
-    // Solo navieras reales — sin prefijo turno:
-    (procesados[i].navieras||[]).filter(n=>!String(n).startsWith('turno:')).forEach(n =>
-      navRows.push({ calendario_id: cal.id, nombre: n })
-    );
-    // Turnos: guardar en localStorage indexado por fecha ISO
-    if ((procesados[i].turnos||[]).length) {
-      turnosLocal[procesados[i].fechaISO] = procesados[i].turnos;
-    }
+    // Navieras reales (sin prefijo turno:)
+    (procesados[i].navieras||[])
+      .filter(n => !String(n).startsWith('turno:'))
+      .forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
+    // Turnos habilitados — guardados con prefijo "turno:" en la misma tabla navieras
+    (procesados[i].turnos||[])
+      .forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'turno:' + t }));
   });
-  try { localStorage.setItem('cal_turnos', JSON.stringify(turnosLocal)); } catch(e) {}
   if (navRows.length) await sbPost('navieras', navRows);
   invalidar('calendario');
   return { status:'success' };
@@ -2622,25 +2616,44 @@ function _renderControlUI(c, cfg) {
     ofertaItems.forEach(t => {
       const k = t.fecha+'|'+t.dia;
       if (!porFecha[k]) porFecha[k] = [];
-      porFecha[k].push(t);
+      porFecha[k].push({ rango: t.rango, fecha: t.fecha, fechaISO: t.fechaISO||dmyAIso(t.fecha), equipoActual: t.equipoActual||0 });
+    });
+
+    // Añadir también días del calendario con turnos habilitados que no están en oferta
+    const calCfg = window._calConfig?.dias || (S.calConfig || []);
+    calCfg.forEach(d => {
+      if (!d.activo || !(d.turnos||[]).length) return;
+      const fiso = d.fechaISO;
+      if (!fiso || fiso < new Date().toISOString().split('T')[0]) return;
+      d.turnos.forEach(rango => {
+        // Solo añadir si no está ya en ofertaItems
+        const yaEsta = ofertaItems.some(t => (t.fechaISO||dmyAIso(t.fecha)) === fiso && t.rango === rango);
+        if (!yaEsta) {
+          const k = d.fecha+'|'+d.dia;
+          if (!porFecha[k]) porFecha[k] = [];
+          if (!porFecha[k].some(x => x.rango === rango)) {
+            porFecha[k].push({ rango, fecha: d.fecha, fechaISO: fiso, equipoActual: 0, esNuevo: true });
+          }
+        }
+      });
     });
 
     llaveCard.innerHTML = `
       <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.4rem">🔑 Turnos que requieren portador de llave</div>
-      <div style="font-size:.75rem;color:var(--label3);margin-bottom:.85rem;line-height:1.45">Si activas la llave en un turno, el portal reservará automáticamente un hueco para un portador de llave. Sin él, nadie más podrá apuntarse en ese puesto.</div>
+      <div style="font-size:.75rem;color:var(--label3);margin-bottom:.85rem;line-height:1.45">Si activas la llave en un turno, el portal mostrará el aviso 🔑 y reservará automáticamente un hueco para un portador de llave.</div>
       ${Object.entries(porFecha).sort(([a],[b])=>a<b?-1:1).map(([fk, ts]) => {
         const [fecha, dia] = fk.split('|');
         return `<div style="margin-bottom:.75rem">
           <div style="font-size:.78rem;font-weight:700;color:var(--navy);margin-bottom:.35rem">📅 ${fecha} · ${dia}</div>
           ${ts.map(t => {
-            const tKey = (t.fechaISO||dmyAIso(t.fecha))+'|'+t.rango;
+            const tKey = t.fechaISO+'|'+t.rango;
             const activa = llavesPorTurno[tKey] || false;
             const tard = parseInt((t.rango||'0').split(':')[0]) >= 14;
             return `<div style="display:flex;align-items:center;gap:.65rem;padding:.48rem .65rem;background:${activa?'#fffbf0':'var(--surface2)'};border:1px solid ${activa?'#ffe082':'var(--sep)'};border-radius:var(--r-sm);margin-bottom:.28rem">
               <span style="font-size:.8rem;font-weight:700;flex:1">🕒 ${t.rango}
-                <span style="font-size:.6rem;font-weight:700;padding:.06rem .3rem;border-radius:4px;margin-left:.35rem;background:${tard?'var(--amber-soft)':'var(--blue-soft)'};color:${tard?'var(--amber)':'var(--blue)'}">${tard?'TARDE':'MAÑANA'}</span>
+                <span style="font-size:.6rem;font-weight:700;padding:.06rem .3rem;border-radius:4px;margin-left:.35rem;background:${t.esNuevo?'rgba(139,92,246,.15)':tard?'var(--amber-soft)':'var(--blue-soft)'};color:${t.esNuevo?'#7c3aed':tard?'var(--amber)':'var(--blue)'}">${t.esNuevo?'NUEVO':tard?'TARDE':'MAÑANA'}</span>
               </span>
-              <span style="font-size:.72rem;color:var(--label3)">${t.equipoActual||0}/4 voluntarios</span>
+              <span style="font-size:.72rem;color:var(--label3)">${t.equipoActual}/4</span>
               <label class="toggle-sw" style="flex-shrink:0" title="Requiere portador de llave">
                 <input type="checkbox" data-tkey="${tKey}" ${activa?'checked':''}
                   onchange="toggleLlaveTurno('${tKey}',this.checked)">
