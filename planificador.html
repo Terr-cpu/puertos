@@ -2152,8 +2152,9 @@ async function loadVoluntarios(force) {
           <div class="vm2">${llave?'Portador de llave':'Voluntario'}</div>
         </div>
         <div class="vol-acts">
-          <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nom}', ${llave})">✏️ Editar</button>
-          <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom}')">📋 Turnos</button>
+          <button class="btn btn-ghost btn-sm" data-vnom="${nom.replace(/"/g,'&quot;')}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Nombre</button>
+          <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nom.replace(/'/g,"\\'")}', ${llave})">✏️ Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom.replace(/'/g,"\\'")}')">📋 Turnos</button>
         </div>`;
       c.appendChild(el);
     });
@@ -2163,6 +2164,81 @@ async function loadVoluntarios(force) {
 
 function abrirNuevoVol() {
   editarDisponibilidad('', false, true);
+}
+
+// ── RENOMBRAR VOLUNTARIO ─────────────────────────────────────
+function abrirRenombrar(nombreActual) {
+  document.getElementById('mvol-titulo').textContent = `🏷️ Renombrar — ${nombreActual}`;
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.82rem;color:var(--label3);margin-bottom:1rem;line-height:1.5">
+      Cambia el nombre del voluntario en <strong>todas las tablas</strong>: historial, bajas, disponibilidad y refuerzos.
+    </p>
+    <div class="fg" style="margin-bottom:.85rem">
+      <label>Nombre actual</label>
+      <input class="fc" value="${nombreActual.replace(/"/g,'&quot;')}" readonly
+        style="background:var(--surface2);color:var(--label3)">
+    </div>
+    <div class="fg" style="margin-bottom:1.1rem">
+      <label>Nuevo nombre</label>
+      <input class="fc" id="ren-nuevo" value="${nombreActual.replace(/"/g,'&quot;')}"
+        placeholder="Nombre y apellidos completos"
+        oninput="document.getElementById('ren-btn').disabled = this.value.trim()==='' || this.value.trim()==='${nombreActual.replace(/'/g,"\\'")}'"
+        onkeydown="if(event.key==='Enter') ejecutarRenombrar('${nombreActual.replace(/'/g,"\\'")}')">
+    </div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-navy" id="ren-btn" disabled onclick="ejecutarRenombrar('${nombreActual.replace(/'/g,"\\'")}')">
+        🏷️ Renombrar
+      </button>
+    </div>`;
+  openModal('mvol');
+  setTimeout(() => {
+    const inp = document.getElementById('ren-nuevo');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 150);
+}
+
+async function ejecutarRenombrar(nombreAntiguo) {
+  const nuevoNombre = document.getElementById('ren-nuevo')?.value.trim();
+  if (!nuevoNombre || nuevoNombre === nombreAntiguo) return;
+
+  const btn = document.getElementById('ren-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Actualizando…'; }
+
+  try {
+    // 1. Buscar el voluntario en la BD
+    const vols = await sbGet('voluntarios',
+      'nombre=ilike.' + encodeURIComponent(nombreAntiguo) + '&select=id');
+    if (!vols.length) throw new Error('Voluntario no encontrado en la BD');
+    const volId = vols[0].id;
+
+    // 2. Actualizar nombre en tabla voluntarios
+    await sbPatch('voluntarios', 'id=eq.' + volId, { nombre: nuevoNombre });
+
+    // 3. Actualizar historial — si tiene columna voluntario_id solo necesitamos el voluntarios
+    //    pero si almacena el nombre directamente, actualizarlo también
+    await sbPatch('historial', 'voluntario_id=eq.' + volId, {}).catch(() => {});
+
+    // 4. Actualizar historial_archivo si tiene nombre directo
+    await sbPatch('historial_archivo', 'nombre=ilike.' + encodeURIComponent(nombreAntiguo),
+      { nombre: nuevoNombre }).catch(() => {});
+
+    // 5. Invalidar todas las cachés
+    invalidar('voluntarios', 'historial', 'disponibilidad', 'carga', 'oferta');
+    window._vOk = false; window._hOk = false; window._dOk = false;
+    window._aOk = false; window._cOk = false; window._bOk = false;
+    S.plan = null;
+
+    closeModal('mvol');
+    toast(`✓ "${nombreAntiguo}" renombrado a "${nuevoNombre}"`, 'ok');
+
+    // Recargar voluntarios para ver el cambio
+    loadVoluntarios(true);
+
+  } catch(e) {
+    toast('Error al renombrar: ' + e.message, 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '🏷️ Renombrar'; }
+  }
 }
 
 async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
@@ -2421,7 +2497,7 @@ function cargarConfigSust() {
     mostrarMisApuntes:  true,
     mostrarBajas:       true,
     mensajePersonalizado: '',
-    urlBase: './sustituciones_v9.html'
+    llavesPorTurno: {}   // {fechaISO+'|'+rango: true} — turnos que requieren llave
   };
 }
 
@@ -2515,23 +2591,68 @@ function _renderControlUI(c, cfg) {
     </div>`;
   c.appendChild(seccionesCard);
 
-  // ── URL generada ─────────────────────────────────────────
+  // ── URL fija ─────────────────────────────────────────────
   const urlCard = document.createElement('div');
   urlCard.className = 'card';
   urlCard.innerHTML = `
-    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.65rem">URL del portal de sustituciones</div>
-    <div style="background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.65rem .85rem;font-family:monospace;font-size:.72rem;color:var(--label2);word-break:break-all;margin-bottom:.65rem;line-height:1.5" id="sust-url-display">${urlGenerada}</div>
+    <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.65rem">🔗 Enlace del portal de sustituciones</div>
+    <div style="background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.65rem .85rem;font-family:monospace;font-size:.72rem;color:var(--label2);word-break:break-all;margin-bottom:.65rem;line-height:1.5;user-select:all">${SUST_URL_FIJA}</div>
     <div style="display:flex;gap:.5rem;flex-wrap:wrap">
       <button class="btn btn-navy" onclick="copiarURLSust()">📋 Copiar enlace</button>
       <button class="btn btn-ghost" onclick="abrirURLSust()">🔗 Abrir portal</button>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:.35rem">
-        <label style="font-size:.75rem;font-weight:600;color:var(--label2)">Archivo base:</label>
-        <input class="fc" id="cfg-urlbase" value="${cfg.urlBase||'./sustituciones_v9.html'}"
-          style="font-size:.72rem;padding:.32rem .55rem;max-width:220px"
-          oninput="actualizarConfigSust()">
-      </div>
+    </div>
+    <div style="font-size:.72rem;color:var(--label3);margin-top:.6rem;line-height:1.45">
+      ℹ️ La configuración se guarda automáticamente. El portal siempre usa este enlace fijo y lee la configuración desde la base de datos.
     </div>`;
   c.appendChild(urlCard);
+
+  // ── Llave por turno ──────────────────────────────────────
+  const llaveCard = document.createElement('div');
+  llaveCard.className = 'card';
+  llaveCard.style.marginTop = '.5rem';
+  const llavesPorTurno = cfg.llavesPorTurno || {};
+  const ofertaItems = window._ofertaBajas || [];
+
+  if (!ofertaItems.length) {
+    llaveCard.innerHTML = `
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.6rem">🔑 Turnos que requieren portador de llave</div>
+      <div style="font-size:.8rem;color:var(--label3);font-style:italic">No hay turnos disponibles cargados. Ve a la pestaña Actividad de bajas o recarga la página.</div>`;
+  } else {
+    const porFecha = {};
+    ofertaItems.forEach(t => {
+      const k = t.fecha+'|'+t.dia;
+      if (!porFecha[k]) porFecha[k] = [];
+      porFecha[k].push(t);
+    });
+
+    llaveCard.innerHTML = `
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.4rem">🔑 Turnos que requieren portador de llave</div>
+      <div style="font-size:.75rem;color:var(--label3);margin-bottom:.85rem;line-height:1.45">Si activas la llave en un turno, el portal reservará automáticamente un hueco para un portador de llave. Sin él, nadie más podrá apuntarse en ese puesto.</div>
+      ${Object.entries(porFecha).sort(([a],[b])=>a<b?-1:1).map(([fk, ts]) => {
+        const [fecha, dia] = fk.split('|');
+        return `<div style="margin-bottom:.75rem">
+          <div style="font-size:.78rem;font-weight:700;color:var(--navy);margin-bottom:.35rem">📅 ${fecha} · ${dia}</div>
+          ${ts.map(t => {
+            const tKey = (t.fechaISO||dmyAIso(t.fecha))+'|'+t.rango;
+            const activa = llavesPorTurno[tKey] || false;
+            const tard = parseInt((t.rango||'0').split(':')[0]) >= 14;
+            return `<div style="display:flex;align-items:center;gap:.65rem;padding:.48rem .65rem;background:${activa?'#fffbf0':'var(--surface2)'};border:1px solid ${activa?'#ffe082':'var(--sep)'};border-radius:var(--r-sm);margin-bottom:.28rem">
+              <span style="font-size:.8rem;font-weight:700;flex:1">🕒 ${t.rango}
+                <span style="font-size:.6rem;font-weight:700;padding:.06rem .3rem;border-radius:4px;margin-left:.35rem;background:${tard?'var(--amber-soft)':'var(--blue-soft)'};color:${tard?'var(--amber)':'var(--blue)'}">${tard?'TARDE':'MAÑANA'}</span>
+              </span>
+              <span style="font-size:.72rem;color:var(--label3)">${t.equipoActual||0}/4 voluntarios</span>
+              <label class="toggle-sw" style="flex-shrink:0" title="Requiere portador de llave">
+                <input type="checkbox" data-tkey="${tKey}" ${activa?'checked':''}
+                  onchange="toggleLlaveTurno('${tKey}',this.checked)">
+                <span class="toggle-sl"></span>
+              </label>
+              <span style="font-size:.72rem;font-weight:700;color:${activa?'var(--amber)':'var(--label4)'};min-width:60px">🔑 ${activa?'Sí':'No'}</span>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}`;
+  }
+  c.appendChild(llaveCard);
 
   // ── Vista previa del estado ──────────────────────────────
   const preview = document.createElement('div');
@@ -2542,16 +2663,11 @@ function _renderControlUI(c, cfg) {
   c.appendChild(preview);
 }
 
+const SUST_URL_FIJA = 'https://github.com/Terr-cpu/puertos/blob/main/sustituciones.html';
+
 function _buildSustURL(cfg) {
-  const base = cfg.urlBase || './sustituciones_v9.html';
-  const params = new URLSearchParams({
-    c: cfg.mostrarConfirmados ? '1' : '0',
-    n: cfg.mostrarNuevosDias  ? '1' : '0',
-    a: cfg.mostrarMisApuntes  ? '1' : '0',
-    b: cfg.mostrarBajas       ? '1' : '0',
-    m: cfg.mensajePersonalizado || ''
-  });
-  return `${base}?${params.toString()}`;
+  // La URL es siempre la fija — la config se lee desde Supabase, no desde params
+  return SUST_URL_FIJA;
 }
 
 function _renderPreview(wrap, cfg) {
@@ -2578,38 +2694,57 @@ function _renderPreview(wrap, cfg) {
 }
 
 function actualizarConfigSust() {
+  // Leer llavesPorTurno actual para no perderlos al actualizar
+  let cfgActual = cargarConfigSust();
   const cfg = {
-    mostrarBajas:       document.getElementById('cfg-mostrarBajas')?.checked ?? true,
-    mostrarConfirmados: document.getElementById('cfg-mostrarConfirmados')?.checked ?? true,
-    mostrarNuevosDias:  document.getElementById('cfg-mostrarNuevosDias')?.checked ?? true,
-    mostrarMisApuntes:  document.getElementById('cfg-mostrarMisApuntes')?.checked ?? true,
-    mensajePersonalizado: document.getElementById('cfg-mensaje')?.value || '',
-    urlBase: document.getElementById('cfg-urlbase')?.value || './sustituciones_v9.html'
+    mostrarBajas:        document.getElementById('cfg-mostrarBajas')?.checked        ?? true,
+    mostrarConfirmados:  document.getElementById('cfg-mostrarConfirmados')?.checked  ?? true,
+    mostrarNuevosDias:   document.getElementById('cfg-mostrarNuevosDias')?.checked   ?? true,
+    mostrarMisApuntes:   document.getElementById('cfg-mostrarMisApuntes')?.checked   ?? true,
+    mensajePersonalizado: document.getElementById('cfg-mensaje')?.value              || '',
+    llavesPorTurno:      cfgActual.llavesPorTurno || {}
   };
   guardarConfigSust(cfg);
-
-  const urlEl = document.getElementById('sust-url-display');
-  if (urlEl) urlEl.textContent = _buildSustURL(cfg);
 
   const prev = document.getElementById('sust-preview');
   if (prev) _renderPreview(prev, cfg);
 }
 
+function toggleLlaveTurno(tKey, activa) {
+  const cfg = cargarConfigSust();
+  if (!cfg.llavesPorTurno) cfg.llavesPorTurno = {};
+  if (activa) {
+    cfg.llavesPorTurno[tKey] = true;
+  } else {
+    delete cfg.llavesPorTurno[tKey];
+  }
+  guardarConfigSust(cfg);
+  // Actualizar el indicador visual sin re-renderizar todo
+  const span = document.querySelector(`[data-tkey="${tKey}"]`)?.closest('div')?.querySelector('span:last-child');
+  if (span) {
+    span.style.color = activa ? 'var(--amber)' : 'var(--label4)';
+    span.textContent = `🔑 ${activa ? 'Sí' : 'No'}`;
+  }
+  const parentDiv = document.querySelector(`[data-tkey="${tKey}"]`)?.closest('div[style]');
+  if (parentDiv) {
+    parentDiv.style.background = activa ? '#fffbf0' : 'var(--surface2)';
+    parentDiv.style.borderColor = activa ? '#ffe082' : 'var(--sep)';
+  }
+  toast(activa ? '🔑 Turno marcado como requiere llave' : 'Llave desactivada para este turno', activa ? 'ok' : 'inf');
+}
+
 function copiarURLSust() {
-  const url = document.getElementById('sust-url-display')?.textContent;
-  if (!url) return;
-  navigator.clipboard.writeText(url).then(() => toast('URL copiada ✓', 'ok')).catch(() => {
-    // Fallback
+  const url = SUST_URL_FIJA;
+  navigator.clipboard.writeText(url).then(() => toast('Enlace copiado ✓', 'ok')).catch(() => {
     const ta = document.createElement('textarea');
     ta.value = url; document.body.appendChild(ta); ta.select();
     document.execCommand('copy'); ta.remove();
-    toast('URL copiada ✓', 'ok');
+    toast('Enlace copiado ✓', 'ok');
   });
 }
 
 function abrirURLSust() {
-  const url = document.getElementById('sust-url-display')?.textContent;
-  if (url) window.open(url, '_blank');
+  window.open(SUST_URL_FIJA, '_blank');
 }
 
 // ── TAB ACTIVIDAD ─────────────────────────────────────────
