@@ -251,8 +251,8 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
         <span class="slbl">Selecciona los turnos en los que no puedes asistir</span>
         <div id="lista-turnos"></div>
       </div>
-      <div class="resumen" id="resumen"><div class="resumen-title">📋 Darás de baja en estos turnos:</div><div id="resumen-items"></div></div>
-      <button class="btn btn-red btn-full" id="btn-baja" disabled onclick="registrarBaja()">📤 Registrar mi baja</button>
+      <div class="resumen" id="resumen"><div class="resumen-title">📋 Darás de baja / cancelarás estos turnos:</div><div id="resumen-items"></div></div>
+      <button class="btn btn-red btn-full" id="btn-baja" disabled onclick="registrarBaja()">📤 Confirmar cancelación</button>
       <div id="fb-baja" style="display:none"></div>
     </div>
   </div>
@@ -401,15 +401,68 @@ async function buscarTurnos(){
   const nombre=document.getElementById('hid-baja').value.trim();if(!nombre){toast('Selecciona tu nombre','err');return;}
   const btn=document.getElementById('btn-buscar');btn.disabled=true;btn.innerHTML=sp()+'Buscando…';
   try{
-    const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');if(!vs.length){toast('No encontrado','err');return;}
+    const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if(!vs.length){toast('No encontrado','err');return;}
     const vid=vs[0].id;
-    const [rows,bajas]=await Promise.all([sbGet('historial','voluntario_id=eq.'+vid+'&select=fecha,semana,dia,rango&order=fecha,rango'),sbGet('bajas','voluntario_id=eq.'+vid+'&activa=eq.true&select=fecha,rango')]);
-    turnosU=rows.map(r=>({semana:r.semana,dia:normDia(r.dia),fecha:isoADMY(r.fecha),rango:r.rango,yaBaja:bajas.some(b=>b.fecha===r.fecha&&b.rango===r.rango)}));
-    if(!turnosU.length){toast('Sin turnos confirmados para "'+nombre+'"','inf');return;}
+
+    // Cargar historial (cuadrante confirmado) + refuerzos (apuntes voluntarios) + bajas activas
+    const [histRows, refRows, bajas]=await Promise.all([
+      sbGet('historial','voluntario_id=eq.'+vid+'&select=fecha,semana,dia,rango&order=fecha,rango'),
+      sbGet('refuerzos','voluntario_id=eq.'+vid+'&select=fecha,semana,dia,rango,es_dia_completo&order=fecha,rango'),
+      sbGet('bajas','voluntario_id=eq.'+vid+'&activa=eq.true&select=fecha,rango')
+    ]);
+
+    // Turnos del cuadrante confirmado
+    const turnosHist = histRows.map(r=>({
+      semana:r.semana, dia:normDia(r.dia), fecha:isoADMY(r.fecha),
+      fechaISO:r.fecha, rango:r.rango, esRefuerzo:false,
+      yaBaja:bajas.some(b=>b.fecha===r.fecha&&b.rango===r.rango)
+    }));
+
+    // Turnos apuntados como refuerzo (que no estén ya en el cuadrante confirmado)
+    // Excluir es_dia_completo=true sin rango (son "disponibilidades" sin franja concreta)
+    const histSet=new Set(histRows.map(r=>r.fecha+'|'+r.rango));
+    const turnosRef = refRows
+      .filter(r=>r.rango && r.rango.trim()!=='' && !histSet.has(r.fecha+'|'+r.rango))
+      .map(r=>({
+        semana:r.semana, dia:normDia(r.dia), fecha:isoADMY(r.fecha),
+        fechaISO:r.fecha, rango:r.rango, esRefuerzo:true,
+        yaBaja:bajas.some(b=>b.fecha===r.fecha&&b.rango===r.rango)
+      }));
+
+    // Combinar y ordenar por fecha+rango
+    turnosU=[...turnosHist, ...turnosRef].sort((a,b)=>
+      a.fechaISO<b.fechaISO?-1:a.fechaISO>b.fechaISO?1:a.rango<b.rango?-1:1
+    );
+
+    if(!turnosU.length){toast('Sin turnos asignados ni apuntes para "'+nombre+'"','inf');return;}
+
     const ini=nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
     const act=turnosU.filter(t=>!t.yaBaja).length;
-    document.getElementById('ubar-av').textContent=ini;document.getElementById('ubar-name').textContent=nombre;document.getElementById('ubar-sub').textContent=turnosU.length+' turnos · '+act+' activos';
-    document.getElementById('lista-turnos').innerHTML=turnosU.map((t,i)=>{const tard=parseInt(t.rango)>=14;const cls=t.yaBaja?'ya':'';return`<div class="ti ${cls}" id="ti-${i}" ${t.yaBaja?'':'onclick="toggleTurno('+i+')"'}><div class="ti-cb" id="chk-${i}">${t.yaBaja?'✓':''}</div><div><div class="ti-hora">🕒 ${t.rango}</div><div class="ti-meta"><span class="pill ${tard?'pill-t':'pill-m'}">${tard?'TARDE':'MAÑANA'}</span><span>${t.dia}</span>·<span>${t.fecha}</span>${t.yaBaja?'<span class="pill pill-ya">Baja registrada</span>':''}</div></div></div>`;}).join('');
+    const nRef=turnosRef.length;
+    document.getElementById('ubar-av').textContent=ini;
+    document.getElementById('ubar-name').textContent=nombre;
+    document.getElementById('ubar-sub').textContent=
+      turnosU.length+' turno'+(turnosU.length!==1?'s':'')+' · '+act+' activo'+(act!==1?'s':'')+
+      (nRef>0?' · '+nRef+' apunte'+(nRef!==1?'s':''):'');
+
+    document.getElementById('lista-turnos').innerHTML=turnosU.map((t,i)=>{
+      const tard=parseInt((t.rango||'0').split(':')[0])>=14;
+      const cls=t.yaBaja?'ya':'';
+      return`<div class="ti ${cls}" id="ti-${i}" ${t.yaBaja?'':'onclick="toggleTurno('+i+')"'}>
+        <div class="ti-cb" id="chk-${i}">${t.yaBaja?'✓':''}</div>
+        <div>
+          <div class="ti-hora">🕒 ${t.rango}</div>
+          <div class="ti-meta">
+            <span class="pill ${tard?'pill-t':'pill-m'}">${tard?'TARDE':'MAÑANA'}</span>
+            ${t.esRefuerzo?'<span class="pill" style="background:rgba(139,92,246,.15);color:#7c3aed">APUNTE</span>':''}
+            <span>${t.dia}</span>·<span>${t.fecha}</span>
+            ${t.yaBaja?'<span class="pill pill-ya">Baja registrada</span>':''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
     document.getElementById('card-turnos').style.display='block';setStep(2);
     setTimeout(()=>document.getElementById('card-turnos').scrollIntoView({behavior:'smooth',block:'start'}),100);
   }catch(e){toast('Error: '+e.message,'err');}finally{btn.disabled=false;btn.innerHTML='🔍 Ver mis turnos asignados';}
@@ -418,14 +471,47 @@ function cambiarNombre(){document.getElementById('card-turnos').style.display='n
 function toggleTurno(i){const ti=document.getElementById('ti-'+i),chk=document.getElementById('chk-'+i);if(!ti||ti.classList.contains('ya'))return;const sel=ti.classList.toggle('sel');chk.textContent=sel?'✓':'';actualizarResumen();}
 function actualizarResumen(){const sel=turnosU.map((_,i)=>i).filter(i=>document.getElementById('ti-'+i)?.classList.contains('sel'));const btn=document.getElementById('btn-baja'),res=document.getElementById('resumen');btn.disabled=!sel.length;if(!sel.length){res.classList.remove('vis');return;}res.classList.add('vis');document.getElementById('resumen-items').innerHTML=sel.map(i=>{const t=turnosU[i];return`<div class="resumen-item">🕒 <strong>${t.rango}</strong> · ${t.dia} ${t.fecha}</div>`;}).join('');setStep(2);btn.scrollIntoView({behavior:'smooth',block:'nearest'});}
 async function registrarBaja(){
-  const nombre=document.getElementById('hid-baja').value.trim();const sel=turnosU.map((_,i)=>i).filter(i=>document.getElementById('ti-'+i)?.classList.contains('sel'));if(!sel.length||!nombre)return;
-  const selItems=sel.map(i=>turnosU[i]);const btn=document.getElementById('btn-baja');btn.disabled=true;btn.innerHTML=sp()+'Registrando…';
+  const nombre=document.getElementById('hid-baja').value.trim();
+  const sel=turnosU.map((_,i)=>i).filter(i=>document.getElementById('ti-'+i)?.classList.contains('sel'));
+  if(!sel.length||!nombre)return;
+  const selItems=sel.map(i=>turnosU[i]);
+  const btn=document.getElementById('btn-baja');btn.disabled=true;btn.innerHTML=sp()+'Registrando…';
   sel.forEach(i=>{const ti=document.getElementById('ti-'+i),chk=document.getElementById('chk-'+i);if(ti){ti.className='ti conf';ti.onclick=null;}if(chk)chk.textContent='✓';});
-  document.getElementById('resumen').classList.remove('vis');btn.innerHTML='✓ Baja registrada';btn.className='btn btn-green btn-full';
+  document.getElementById('resumen').classList.remove('vis');
+  btn.innerHTML='✓ Baja/cancelación registrada';btn.className='btn btn-green btn-full';
   const fb=document.getElementById('fb-baja');fb.style.display='block';
-  setTimeout(()=>location.reload(),2800);fb.innerHTML=`<div class="fb-ok"><div style="font-size:1.1rem">✅</div><div><div style="font-size:.78rem;font-weight:600;color:var(--green-dark)">Baja registrada</div><div style="font-size:.68rem;color:var(--label3)">${selItems.length} turno${selItems.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
+  setTimeout(()=>location.reload(),2800);
+  fb.innerHTML=`<div class="fb-ok"><div style="font-size:1.1rem">✅</div><div><div style="font-size:.78rem;font-weight:600;color:var(--green-dark)">Registrado correctamente</div><div style="font-size:.68rem;color:var(--label3)">${selItems.length} turno${selItems.length!==1?'s':''} · ¡Gracias por avisar!</div></div></div>`;
   setStep(3);
-  try{const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');if(vs.length){const vid=vs[0].id;await sbPost('bajas',selItems.map(t=>({voluntario_id:vid,fecha:dmyAIso(t.fecha),semana:parseInt(t.semana),dia:t.dia,rango:t.rango,activa:true})),'resolution=merge-duplicates,return=minimal');}}catch(e){console.warn(e);}
+  try{
+    const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
+    if(!vs.length) return;
+    const vid=vs[0].id;
+
+    // Separar turnos del cuadrante (historial) de apuntes propios (refuerzos)
+    const turnosCuadrante = selItems.filter(t=>!t.esRefuerzo);
+    const turnosApunte    = selItems.filter(t=>t.esRefuerzo);
+
+    // Para turnos del cuadrante: registrar baja
+    if(turnosCuadrante.length){
+      await sbPost('bajas',
+        turnosCuadrante.map(t=>({
+          voluntario_id:vid,
+          fecha:dmyAIso(t.fecha),
+          semana:parseInt(t.semana),
+          dia:t.dia, rango:t.rango, activa:true
+        })),
+        'resolution=merge-duplicates,return=minimal'
+      );
+    }
+
+    // Para apuntes propios (refuerzos nuevos): eliminar directamente de refuerzos
+    for(const t of turnosApunte){
+      await fetch(SU+'/rest/v1/refuerzos?voluntario_id=eq.'+vid+'&fecha=eq.'+dmyAIso(t.fecha)+'&rango=eq.'+encodeURIComponent(t.rango),{
+        method:'DELETE', headers:SBH
+      });
+    }
+  }catch(e){console.warn(e);}
 }
 
 // ═══ OFERTA ════════════════════════════════════════════════════
