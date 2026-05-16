@@ -436,13 +436,33 @@ async function cargarOferta(){
   let uib=document.getElementById('uib-oferta');
   if(!uib){uib=document.createElement('div');uib.id='uib-oferta';uib.className='user-bar';uib.style.marginBottom='.85rem';const ini=nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();uib.innerHTML=`<div class="ubar-av">${ini}</div><div><div class="ubar-name">${nombre}</div><div class="ubar-sub">Turnos personalizados</div></div><button class="ubar-change" onclick="resetOferta()">Cambiar</button>`;wrap.parentElement.insertBefore(uib,wrap);}
   try{
+    // Cargar config de sustituciones (para llavesPorTurno y visibilidad)
+    sbGet('calendario','fecha=eq.1970-01-01&select=estancia').then(rows=>{
+      if(rows.length&&rows[0].estancia){
+        try{
+          const cfg=JSON.parse(rows[0].estancia);
+          window._llavesPorTurno=cfg.llavesPorTurno||{};
+        }catch(e){}
+      }
+    }).catch(()=>{});
+
     const [oRaw,calRaw,vs]=await Promise.all([rpc('get_oferta_simple'),sbGet('v_calendario','order=fecha&activo=eq.true'),sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id')]);
     const oArr=Array.isArray(oRaw)?oRaw:(oRaw||[]);
     let refSet=new Set(),hFechas=new Set();const volId=vs.length?vs[0].id:null;
     const fps=[sbGet('historial','select=fecha').then(r=>r.forEach(x=>hFechas.add(x.fecha)))];
     if(volId) fps.push(sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango').then(r=>r.forEach(x=>refSet.add(x.fecha+'|'+x.rango))));
     await Promise.all(fps);
-    ofertaActual=oArr.map(t=>{const fiso=dmyAIso(t.fecha);return{...t,dia:normDia(t.dia),yaApuntado:refSet.has(fiso+'|'+t.rango)||(t.equipoNombres||[]).some(n=>n.toUpperCase()===nombre.toUpperCase())};});
+    ofertaActual=oArr.map(t=>{
+      const fiso=dmyAIso(t.fecha);
+      const llaves=window._llavesPorTurno||{};
+      const llaveTKey=fiso+'|'+t.rango;
+      return{
+        ...t,
+        dia:normDia(t.dia),
+        yaApuntado:refSet.has(fiso+'|'+t.rango)||(t.equipoNombres||[]).some(n=>n.toUpperCase()===nombre.toUpperCase()),
+        requiereLlave: llaves[llaveTKey] || false
+      };
+    });
     const hoy=new Date().toISOString().split('T')[0];
     nuevosActual=calRaw.filter(r=>r.fecha>=hoy&&!hFechas.has(r.fecha)).map(r=>({fechaISO:r.fecha,fecha:isoADMY(r.fecha),semana:calcSem(r.fecha),dia:normDia(r.dia),navieras:Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]),yaApuntado:volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false}));
     // Mis apuntes: todos los refuerzos del voluntario (con datos completos)
@@ -559,16 +579,22 @@ function renderConf(c){
           <div style="height:5px;background:var(--sep);border-radius:3px;overflow:hidden">
             <div style="height:100%;width:${pct}%;background:${pfC};border-radius:3px;transition:width .4s"></div>
           </div>
-          ${!t.tieneLlave?`<div style="display:flex;align-items:center;gap:.35rem;margin-top:.45rem;font-size:.78rem;color:#7a5000;font-weight:600;background:#fffbf0;border:1px solid #ffe082;border-radius:8px;padding:.35rem .6rem">🔑 Este turno necesita portador de llave</div>`:''}
+          ${(t.requiereLlave||!t.tieneLlave)&&!t.yaApuntado?`<div style="display:flex;align-items:center;gap:.35rem;margin-top:.45rem;font-size:.78rem;color:#7a5000;font-weight:600;background:#fffbf0;border:1px solid #ffe082;border-radius:8px;padding:.35rem .6rem">🔑 ${t.requiereLlave?'Se reserva 1 plaza para portador de llave':'Este turno necesita portador de llave'}</div>`:''}
         </div>
         <div style="padding:0 1rem .9rem">
           <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.4rem">Voluntarios apuntados</div>
           <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.6rem">${volBadges}</div>
           ${t.yaApuntado
             ?`<div style="display:flex;align-items:center;gap:.45rem;background:var(--green-soft);border:1px solid #b0dcc0;border-radius:var(--r-md);padding:.6rem .85rem;font-size:.88rem;font-weight:700;color:var(--green-dark)">✓ Ya estás apuntado en este turno</div>`
-            :nombreOferta
-              ?`<button class="btn btn-green" style="width:100%;font-size:.88rem" onclick="apuntarConf('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme a este turno</button>`
-              :`<div style="font-size:.82rem;color:var(--label3);padding:.35rem 0">Introduce tu nombre arriba para apuntarte</div>`
+            :(t.equipoActual||0)>=4
+              ?`<div style="display:flex;align-items:center;gap:.45rem;background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.6rem .85rem;font-size:.88rem;font-weight:600;color:var(--label3)">🔒 Turno completo — 4/4 voluntarios</div>`
+              :t.requiereLlave && t.tieneLlave
+                ?`<div style="display:flex;align-items:center;gap:.45rem;background:#fffbf0;border:1px solid #ffe082;border-radius:var(--r-md);padding:.6rem .85rem;font-size:.85rem;font-weight:600;color:#7a5000">🔑 El hueco de llave ya está cubierto — solo queda 1 plaza libre</div>
+                  ${nombreOferta?`<button class="btn btn-green" style="width:100%;font-size:.88rem;margin-top:.45rem" onclick="apuntarConf('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme (sin llave)</button>`:''}` 
+                :nombreOferta
+                  ?`${t.requiereLlave&&!t.tieneLlave?`<div style="display:flex;align-items:center;gap:.35rem;background:#fffbf0;border:1px solid #ffe082;border-radius:8px;padding:.38rem .65rem;font-size:.78rem;color:#7a5000;font-weight:600;margin-bottom:.45rem">🔑 Este turno reserva 1 plaza para portador de llave</div>`:''}
+                   <button class="btn btn-green" style="width:100%;font-size:.88rem" onclick="apuntarConf('${esc(t.key)}','${esc(t.fecha)}','${esc(t.rango)}')">✋ Apuntarme a este turno</button>`
+                  :`<div style="font-size:.82rem;color:var(--label3);padding:.35rem 0">Introduce tu nombre arriba para apuntarte</div>`
           }
         </div>`;
       c.appendChild(card);
@@ -582,7 +608,7 @@ function renderNuev(c){
   // Aviso positivo
   const aviso=document.createElement('div');
   aviso.style.cssText='background:var(--blue-soft);border:1px solid rgba(0,113,227,.2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:.85rem;display:flex;align-items:flex-start;gap:.65rem';
-  aviso.innerHTML=`<span style="font-size:1.2rem;flex-shrink:0">📋</span><div><div style="font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.25rem">Días por completar</div><div style="font-size:.84rem;color:var(--label2);line-height:1.5">Estos días están en el calendario y necesitan voluntarios. Apúntate y el equipo de organización te confirmará el turno.</div></div>`;
+  aviso.innerHTML=`<span style="font-size:1.2rem;flex-shrink:0">📋</span><div><div style="font-size:.92rem;font-weight:700;color:var(--blue);margin-bottom:.25rem">Días por completar</div><div style="font-size:.84rem;color:var(--label2);line-height:1.5">Estos días están en el calendario y necesitan voluntarios. Apúntate y El hermano responsable te confirmará el turno.</div></div>`;
   c.appendChild(aviso);
 
   nuevosActual.forEach((t,gi)=>{
@@ -592,7 +618,7 @@ function renderNuev(c){
     const navsHtml=t.navieras&&t.navieras.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`:'';
     const bodyContent=t.yaApuntado
       ?`<div style="display:flex;align-items:center;gap:.55rem;background:var(--teal-soft);border:1px solid rgba(0,138,120,.25);border-radius:var(--r-md);padding:.75rem .95rem;font-size:.95rem;font-weight:700;color:var(--teal)">✓ Ya estás apuntado para este día</div>
-         <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El equipo de organización te confirmará el turno cuando esté listo.</div>`
+         <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El hermano responsable te confirmará el turno cuando esté listo.</div>`
       :nombreOferta
         ?`${navsHtml}<div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes venir? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
            <div class="franja-grid" id="fg-${t.fechaISO}">
@@ -629,7 +655,7 @@ function renderMisApuntes(c){
     c.innerHTML=`<div class="empty-s"><span class="ei">🙋</span><h4>Sin apuntes aún</h4><p>Aún no te has apuntado a ningún turno disponible.</p></div>`;return;
   }
   const hdr=document.createElement('p');hdr.style.cssText='font-size:.9rem;color:var(--label2);margin-bottom:.75rem;line-height:1.5';
-  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El equipo de organización te confirmará cada turno cuando esté listo.`;
+  hdr.textContent=`Tienes ${mis.length} apunte${mis.length!==1?'s':''} registrado${mis.length!==1?'s':''}. El hermano responsable te confirmará cada turno cuando esté listo.`;
   c.appendChild(hdr);
 
   mis.forEach((r,gi)=>{
@@ -655,10 +681,10 @@ function renderMisApuntes(c){
       </div>`;
     c.appendChild(g);
   });
-  // Aviso coordinador al final
+  // Aviso del hermano responsable al final
   const aviso=document.createElement('div');
   aviso.style.cssText='background:var(--surface2);border:1px solid var(--sep);border-radius:var(--r-md);padding:.6rem .82rem;margin-top:.5rem;font-size:.68rem;color:var(--label3);line-height:1.4;display:flex;align-items:flex-start;gap:.4rem';
-  aviso.innerHTML=`<span>ℹ️</span><span style='font-size:.84rem'>El equipo de organización revisará los apuntes y te confirmará cuando cada turno esté listo.</span>`;
+  aviso.innerHTML=`<span>ℹ️</span><span style='font-size:.84rem'>El hermano responsable revisará los apuntes y te confirmará cuando cada turno esté listo.</span>`;
   c.appendChild(aviso);
 }
 function toggleND(id,clickedEl){const b=document.getElementById(id);if(!b)return;const a=b.style.display==='none'||b.style.display==='';b.style.display=a?'block':'none';const caret=clickedEl?.querySelector('.nd-caret')||clickedEl?.closest('[onclick]')?.querySelector('.nd-caret');if(caret)caret.style.transform=a?'rotate(180deg)':''; }
@@ -671,8 +697,38 @@ async function apuntarConf(key,fecha,rango){
   if(!nombreOferta){toast('Selecciona tu nombre primero','err');return;}
   overlay('cargando',nombreOferta);const fiso=dmyAIso(fecha);
   try{
-    const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombreOferta)+'&select=id');if(!vs.length)throw new Error('Voluntario no encontrado');
-    const vid=vs[0].id;const [sem,dia]=key.split('|');
+    const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombreOferta)+'&select=id,tiene_llave');
+    if(!vs.length)throw new Error('Voluntario no encontrado');
+    const vid=vs[0].id;
+    const tieneLlaveVol=vs[0].tiene_llave||false;
+    const [sem,dia]=key.split('|');
+
+    // Verificar límite de 4 en servidor
+    const countRows=await sbGet('refuerzos','fecha=eq.'+fiso+'&rango=eq.'+encodeURIComponent(rango)+'&es_dia_completo=eq.false&select=id');
+    if(countRows.length>=4){
+      cerrarOverlay();
+      toast('Este turno ya está completo (4/4 voluntarios)','err');
+      return;
+    }
+
+    // Verificar si requiere llave y el hueco de llave ya está cubierto
+    const llaves=window._llavesPorTurno||{};
+    const tKey=fiso+'|'+rango;
+    if(llaves[tKey]&&!tieneLlaveVol){
+      // Comprobar si ya hay un portador de llave apuntado
+      const conLlaveRows=await sbGet('refuerzos',
+        'fecha=eq.'+fiso+'&rango=eq.'+encodeURIComponent(rango)+'&es_dia_completo=eq.false&select=voluntario_id');
+      const volIds=conLlaveRows.map(r=>r.voluntario_id);
+      if(volIds.length){
+        const volsConLlave=await sbGet('voluntarios',
+          'id=in.('+volIds.join(',')+')'+'&tiene_llave=eq.true&select=id');
+        // Si no hay portador de llave aún, permitir apuntarse normalmente
+        // (el slot de llave sigue libre)
+        // Si ya hay portador de llave, se puede apuntar en los huecos restantes
+        // Solo bloqueamos si el turno está lleno
+      }
+    }
+
     await sbPatch('bajas','voluntario_id=eq.'+vid+'&fecha=eq.'+fiso+'&rango=eq.'+encodeURIComponent(rango)+'&activa=eq.true',{activa:false});
     await sbPost('refuerzos',[{voluntario_id:vid,fecha:fiso,semana:parseInt(sem),dia:normDia(dia),rango,es_dia_completo:false}],'resolution=merge-duplicates,return=minimal');
     ofertaActual=ofertaActual.map(t=>t.key===key?{...t,yaApuntado:true,equipoActual:(t.equipoActual||0)+1,necesitan:Math.max(0,(t.necesitan||1)-1)}:t);
