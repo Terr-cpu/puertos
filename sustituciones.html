@@ -463,8 +463,32 @@ async function cargarOferta(){
         requiereLlave: llaves[llaveTKey] || false
       };
     });
+    const llaves=window._llavesPorTurno||{};
     const hoy=new Date().toISOString().split('T')[0];
-    nuevosActual=calRaw.filter(r=>r.fecha>=hoy&&!hFechas.has(r.fecha)).map(r=>({fechaISO:r.fecha,fecha:isoADMY(r.fecha),semana:calcSem(r.fecha),dia:normDia(r.dia),navieras:Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]),yaApuntado:volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false}));
+    nuevosActual=calRaw.filter(r=>r.fecha>=hoy&&!hFechas.has(r.fecha)).map(r=>{
+      const allNavs=Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]);
+      // Separar navieras reales de turnos habilitados (prefijo "turno:")
+      const navieras=allNavs.filter(n=>!String(n).startsWith('turno:'));
+      const turnosHabilitados=allNavs
+        .filter(n=>String(n).startsWith('turno:'))
+        .map(n=>String(n).slice(6));
+      const yaApuntado=volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false;
+      return {
+        fechaISO:r.fecha,
+        fecha:isoADMY(r.fecha),
+        semana:calcSem(r.fecha),
+        dia:normDia(r.dia),
+        navieras,
+        turnosHabilitados, // franjas horarias habilitadas en el calendario
+        yaApuntado,
+        // llave por franja: {rango: true} si alguna franja de este día requiere llave
+        llavesPorFranja: turnosHabilitados.reduce((acc,rango)=>{
+          const tKey=r.fecha+'|'+rango;
+          if(llaves[tKey]) acc[rango]=true;
+          return acc;
+        }, {})
+      };
+    });
     // Mis apuntes: todos los refuerzos del voluntario (con datos completos)
     if(volId){
       const misRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango,dia,semana,es_dia_completo&order=fecha,rango');
@@ -615,27 +639,53 @@ function renderNuev(c){
     const card=document.createElement('div');
     card.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:${t.yaApuntado?'1.5px solid var(--teal)':'1px solid var(--sep)'};box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.7rem;animation:fadeUp .24s ease both;animation-delay:${gi*.06}s`;
     const bid='nb-'+t.fechaISO;
-    const navsHtml=t.navieras&&t.navieras.length?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`:'';
+    const navsHtml=t.navieras&&t.navieras.length
+      ?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`
+      :'';
+
+    // Construir franjas desde los turnos habilitados en el calendario
+    // Si no hay ninguno configurado, mostrar todas las franjas estándar como fallback
+    const FRANJAS_STD=[
+      {rango:'10:00 a 12:00',tarde:false},{rango:'12:00 a 14:00',tarde:false},
+      {rango:'16:00 a 18:00',tarde:true}, {rango:'18:00 a 20:00',tarde:true},
+      {rango:'20:00 a 22:00',tarde:true}
+    ];
+    const franjasDisp=(t.turnosHabilitados&&t.turnosHabilitados.length>0)
+      ? t.turnosHabilitados.map(r=>({rango:r,tarde:parseInt(r.split(':')[0])>=14}))
+      : FRANJAS_STD;
+
+    const llavesPorFranja=t.llavesPorFranja||{};
+
+    const franjasHtml=franjasDisp.map(f=>{
+      const tieneIco=llavesPorFranja[f.rango]?'🔑 ':'';
+      const tieneTitle=llavesPorFranja[f.rango]?' title="Requiere portador de llave"':'';
+      // Texto del botón: convertir "10:00 a 12:00" → "10–12h"
+      const txt=f.rango.replace(' a ',' – ').replace(/:00/g,'h');
+      return `<button class="franja-btn${f.tarde?' tard':''}" onclick="toggleF(this)"${tieneTitle}>${tieneIco}${txt}</button>`;
+    }).join('');
+
+    const hayLlaveEnDia=Object.keys(llavesPorFranja).length>0;
+
     const bodyContent=t.yaApuntado
       ?`<div style="display:flex;align-items:center;gap:.55rem;background:var(--teal-soft);border:1px solid rgba(0,138,120,.25);border-radius:var(--r-md);padding:.75rem .95rem;font-size:.95rem;font-weight:700;color:var(--teal)">✓ Ya estás apuntado para este día</div>
          <div style="font-size:.84rem;color:var(--label3);margin-top:.55rem;line-height:1.5">El hermano responsable te confirmará el turno cuando esté listo.</div>`
       :nombreOferta
-        ?`${navsHtml}<div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes venir? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
-           <div class="franja-grid" id="fg-${t.fechaISO}">
-             <button class="franja-btn" onclick="toggleF(this)">☀️ 10:00–12:00</button>
-             <button class="franja-btn" onclick="toggleF(this)">☀️ 12:00–14:00</button>
-             <button class="franja-btn tard" onclick="toggleF(this)">🌆 16:00–18:00</button>
-             <button class="franja-btn tard" onclick="toggleF(this)">🌆 18:00–20:00</button>
-           </div>
-           <button class="btn btn-teal" style="width:100%;font-size:.92rem;margin-top:.1rem" onclick="apuntarNuev('${esc(t.fechaISO)}','${esc(t.fecha)}','${esc(t.dia)}','${t.semana}')">✋ Apuntarme a este día</button>`
+        ?`${navsHtml}
+          ${hayLlaveEnDia?`<div style="display:flex;align-items:center;gap:.35rem;background:#fffbf0;border:1px solid #ffe082;border-radius:8px;padding:.38rem .65rem;font-size:.8rem;color:#7a5000;font-weight:600;margin-bottom:.55rem">🔑 Algunos turnos reservan plaza para portador de llave</div>`:''}
+          <div style="font-size:.88rem;font-weight:700;color:var(--label2);margin-bottom:.5rem">¿En qué franja horaria puedes venir? <span style="font-weight:400;color:var(--label3)">(opcional)</span></div>
+          <div class="franja-grid" id="fg-${t.fechaISO}">${franjasHtml}</div>
+          <button class="btn btn-teal" style="width:100%;font-size:.92rem;margin-top:.1rem" onclick="apuntarNuev('${esc(t.fechaISO)}','${esc(t.fecha)}','${esc(t.dia)}','${t.semana}')">✋ Apuntarme a este día</button>`
         :`<div style="font-size:.88rem;color:var(--label3);padding:.4rem 0">Introduce tu nombre arriba para apuntarte.</div>`;
+
     card.innerHTML=`
       <div style="height:4px;background:${t.yaApuntado?'linear-gradient(90deg,var(--teal),#0ac9b0)':'linear-gradient(90deg,#8b5cf6,#a78bfa)'}"></div>
       <div style="padding:1rem 1.1rem .65rem;cursor:pointer;user-select:none" onclick="toggleND('${bid}',this)">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem">
           <div>
             <div style="font-size:1.05rem;font-weight:800;color:var(--label1)">📅 ${t.fecha}</div>
-            <div style="font-size:.9rem;font-weight:500;color:var(--label2);margin-top:.2rem">${t.dia}</div>
+            <div style="font-size:.9rem;font-weight:500;color:var(--label2);margin-top:.2rem">${t.dia}
+              ${franjasDisp.length?`<span style="font-size:.72rem;color:var(--label3);font-weight:400"> · ${franjasDisp.length} franja${franjasDisp.length!==1?'s':''} habilitada${franjasDisp.length!==1?'s':''}</span>`:''}
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:.5rem">
             <span style="font-size:.76rem;font-weight:700;padding:.22rem .65rem;border-radius:20px;white-space:nowrap;background:${t.yaApuntado?'var(--teal)':'rgba(139,92,246,.15)'};color:${t.yaApuntado?'#fff':'#7c3aed'}">${t.yaApuntado?'✓ Apuntado':'Sin cuadrante'}</span>
@@ -689,8 +739,20 @@ function renderMisApuntes(c){
 }
 function toggleND(id,clickedEl){const b=document.getElementById(id);if(!b)return;const a=b.style.display==='none'||b.style.display==='';b.style.display=a?'block':'none';const caret=clickedEl?.querySelector('.nd-caret')||clickedEl?.closest('[onclick]')?.querySelector('.nd-caret');if(caret)caret.style.transform=a?'rotate(180deg)':''; }
 function toggleF(btn){btn.classList.toggle('sel');}
-const FRANJA_MAP={'☀️ 10:00–12:00':'10:00 a 12:00','☀️ 12:00–14:00':'12:00 a 14:00','🌆 16:00–18:00':'16:00 a 18:00','🌆 18:00–20:00':'18:00 a 20:00'};
-function getFranjas(fechaISO){const g=document.getElementById('fg-'+fechaISO);if(!g)return[];return[...g.querySelectorAll('.franja-btn.sel')].map(b=>FRANJA_MAP[b.textContent.trim()]||b.textContent.trim());}
+function getFranjas(fechaISO){
+  const g=document.getElementById('fg-'+fechaISO);
+  if(!g)return[];
+  return[...g.querySelectorAll('.franja-btn.sel')].map(b=>{
+    // El botón puede mostrar "10–12h" o "🔑 10–12h"
+    // Convertir de vuelta al formato "10:00 a 12:00"
+    const txt=b.textContent.trim().replace(/^🔑\s*/,'');
+    // Intentar parsear "H–Hh" format
+    const m=txt.match(/(\d+)\s*[–-]\s*(\d+)h/);
+    if(m) return `${String(m[1]).padStart(2,'0')}:00 a ${String(m[2]).padStart(2,'0')}:00`;
+    // Fallback: el rango está en dataset si lo hubiera
+    return b.dataset.rango || txt;
+  });
+}
 
 // ── APUNTARSE CONFIRMADO
 async function apuntarConf(key,fecha,rango){
