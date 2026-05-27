@@ -458,11 +458,36 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   <div class="topbar">
     <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
     <div class="topbar-title" id="topbar-title">📅 Cuadrante mensual</div>
+    <button id="notif-bell" onclick="toggleNotifPanel()" title="Notificaciones"
+      style="position:relative;background:none;border:1px solid var(--sep);border-radius:var(--r-sm);padding:.32rem .6rem;cursor:pointer;font-size:1.1rem;line-height:1;transition:all .15s;flex-shrink:0"
+      onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">
+      🔔
+      <span id="notif-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:.55rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;padding:0 3px;display:none;align-items:center;justify-content:center;font-family:'Sora',sans-serif;border:2px solid var(--surface)">0</span>
+    </button>
     <div class="topbar-actions" id="topbar-acts">
       <button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
       <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
       <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
       <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>
+    </div>
+  </div>
+
+  <!-- Panel de notificaciones (dropdown) -->
+  <div id="notif-panel" style="display:none;position:fixed;top:56px;right:1rem;width:360px;max-width:calc(100vw - 2rem);background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);z-index:500;overflow:hidden;animation:fadeUp .2s ease">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--sep);background:var(--navy)">
+      <div style="font-size:.88rem;font-weight:700;color:#fff">🔔 Actividad del portal</div>
+      <div style="display:flex;align-items:center;gap:.5rem">
+        <button onclick="marcarTodasLeidas()" style="background:rgba(255,255,255,.12);border:none;color:rgba(255,255,255,.7);font-size:.68rem;font-weight:600;padding:.22rem .55rem;border-radius:6px;cursor:pointer;font-family:inherit">Marcar leídas</button>
+        <button onclick="toggleNotifPanel()" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:1rem;cursor:pointer;line-height:1;padding:.1rem .3rem">✕</button>
+      </div>
+    </div>
+    <div id="notif-cfg-bar" style="display:none;padding:.55rem 1rem;background:var(--surface2);border-bottom:1px solid var(--sep);font-size:.72rem;color:var(--label3)">
+      <!-- Configuración Telegram se inyecta aquí -->
+    </div>
+    <div id="notif-list" style="max-height:420px;overflow-y:auto"></div>
+    <div style="padding:.55rem 1rem;border-top:1px solid var(--sep);display:flex;align-items:center;justify-content:space-between">
+      <span id="notif-last-check" style="font-size:.67rem;color:var(--label4)">Comprobando…</span>
+      <button onclick="abrirCfgNotif()" style="background:none;border:none;cursor:pointer;font-size:.72rem;color:var(--label3);font-family:inherit;padding:.15rem .35rem">⚙️ Configurar</button>
     </div>
   </div>
 
@@ -1305,12 +1330,15 @@ function franjas2h(candidatos, dur, minEq) {
 
 function formarEquipo(pool, necesitaLlave, ideal) {
   ideal = ideal ?? IDEAL;
-  const conLl = pool.filter(c => c.llave).sort((a,b) => b.desc-a.desc || a.dispo-b.dispo);
+  const conLl = pool.filter(c =>  c.llave).sort((a,b) => b.desc-a.desc || a.dispo-b.dispo);
   const sinLl = pool.filter(c => !c.llave).sort((a,b) => b.desc-a.desc || a.dispo-b.dispo);
   const eq = [];
+  // 1. Si necesita llave, reservar el primer hueco para el portador con más descanso
   if (necesitaLlave && conLl.length > 0) eq.push(conLl[0]);
+  // 2. Rellenar hasta IDEAL con sin-llave
   for (let i = 0; i < sinLl.length && eq.length < ideal; i++) eq.push(sinLl[i]);
-  for (let j = 1; j < conLl.length && eq.length < (ideal < 3 ? ideal : 3); j++) eq.push(conLl[j]);
+  // 3. Si aún hay huecos y quedan portadores de llave, rellenar con ellos (máx hasta IDEAL)
+  for (let j = (necesitaLlave?1:0); j < conLl.length && eq.length < ideal; j++) eq.push(conLl[j]);
   return eq;
 }
 
@@ -1425,6 +1453,11 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
   const ref = new Date(fechaRef); ref.setHours(0,0,0,0);
   const todos = [];
 
+  // Contar turnos ya asignados por voluntario en el historial (real + simulado)
+  // Menos turnos asignados = mayor prioridad (equilibrio de carga)
+  const asigCount = {};
+  historialFlat.forEach(h => { asigCount[h.key] = (asigCount[h.key]||0)+1; });
+
   disponibilidad.forEach(v => {
     const p = PH(v.horario);
     if (!p) return;
@@ -1441,7 +1474,7 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
       hIn: p.a, hOut: p.b,
       llave: llaves.has(key),
       desc: ignDescanso ? 99 : desc,
-      dispo: v.dispo || 0
+      dispo: asigCount[key] || 0   // turnos ya asignados → menor = más prioritario
     });
   });
 
@@ -1540,20 +1573,28 @@ async function getCuadranteMensual() {
     });
   });
 
-  // Disponibilidad con conteo de días/mes por voluntario
+  // Disponibilidad: índice semana|dia → voluntarios disponibles ese slot
+  // dispoCount = nº de turnos ya en histFlat (real) = carga acumulada para desempate
   const dispoCount = {};
-  vDisp.forEach(d => { dispoCount[d.nombre] = (dispoCount[d.nombre]||0)+1; });
+  histFlat.forEach(h => { dispoCount[h.key] = (dispoCount[h.key]||0)+1; });
+
   const dispoIdx = {};
   vDisp.forEach(d => {
     const k = d.semana + '|' + normDia(d.dia);
     if (!dispoIdx[k]) dispoIdx[k] = [];
     dispoIdx[k].push({
       nombre: d.nombre, llave: d.tiene_llave,
-      horario: d.horario, dispo: dispoCount[d.nombre]||0
+      horario: d.horario,
+      // dispo = turnos ya asignados en el historial real (menos turnos → más prioritario)
+      dispo: dispoCount[d.nombre.toUpperCase().trim()] || 0
     });
   });
 
   const plan = [];
+  // ── histFlat simulado: se acumula con cada día calculado ──
+  // Esto garantiza que los días de descanso se respetan DENTRO del mismo mes
+  const histFlatSim = [...histFlat]; // copia para no mutar el original
+
   for (const dia of (calData.dias||[]).filter(d=>d.activo)) {
     const fiso    = dia.fechaISO;
     const semana  = dia.semana;
@@ -1562,6 +1603,7 @@ async function getCuadranteMensual() {
 
     if (Object.keys(turnosConf).length > 0) {
       // Día ya confirmado — mostrar del historial
+      // El historial real ya está en histFlatSim, no hace falta añadir nada
       const turnos = Object.entries(turnosConf)
         .sort(([a],[b]) => a<b?-1:1)
         .map(([rango,equipo]) => ({
@@ -1575,18 +1617,19 @@ async function getCuadranteMensual() {
         diagnostico:{aptos:0,totalDisponibles:0,todos:[],aviso:''}
       });
     } else {
-      // Día sin confirmar — aplicar motor de planificación con todas las reglas
+      // Día sin confirmar — aplicar motor de planificación con historial acumulado
       const disponibles = dispoIdx[semana+'|'+diaNorm] || [];
-      // Excepciones por día (guardadas en localStorage)
       let excepciones = {};
       try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
       const excepcion = excepciones[fiso] || {};
+
+      // Pasar histFlatSim (incluye días ya calculados este mes)
       const resultado = calcularDiaJS(
         semana, diaNorm,
         new Date(fiso+'T12:00:00Z'),
-        disponibles, histFlat, llaves, {},
-        dia.turnos || [],   // <-- rangos habilitados en el calendario
-        excepcion           // <-- override de reglas para este día
+        disponibles, histFlatSim, llaves, {},
+        dia.turnos || [],
+        excepcion
       );
       plan.push({
         fechaLabel: dia.fecha+' — '+dia.dia, fechaStr: dia.fecha,
@@ -1594,6 +1637,15 @@ async function getCuadranteMensual() {
         semana, dia: dia.dia,
         turnos: resultado.turnos, confirmado:false,
         diagnostico: resultado.diagnostico
+      });
+
+      // ── Acumular en histFlatSim los voluntarios asignados hoy ──
+      // Esto hace que el motor respete los días de descanso en días siguientes del mismo mes
+      const tsHoy = new Date(fiso+'T12:00:00Z').getTime();
+      resultado.turnos.forEach(t => {
+        (t.equipo||[]).forEach(v => {
+          histFlatSim.push({ key: v.nombre.toUpperCase().trim(), ts: tsHoy });
+        });
       });
     }
   }
@@ -4719,10 +4771,384 @@ function guardarReglasCfg() {
   toast('Reglas guardadas ✓ — pulsa Recalc. en el Cuadrante para aplicarlas', 'ok');
 }
 
+// ══════════════════════════════════════════════════════════════
+//  SISTEMA DE NOTIFICACIONES
+//  - Polling cada 60s a Supabase (bajas + refuerzos)
+//  - Notificaciones nativas del navegador
+//  - Panel de historial en el topbar
+//  - Estructura lista para Telegram
+// ══════════════════════════════════════════════════════════════
+
+const NOTIF_KEY      = 'plan_notificaciones';
+const NOTIF_LAST_KEY = 'plan_notif_last_ts';
+const NOTIF_CFG_KEY  = 'plan_notif_cfg';
+const POLL_INTERVAL  = 60000; // 60 segundos
+
+let _notifTimer = null;
+let _notifPanelOpen = false;
+
+// ── Helpers ──────────────────────────────────────────────────
+function cargarNotifCfg() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_CFG_KEY)||'{}'); } catch(e) { return {}; }
+}
+function guardarNotifCfg(cfg) {
+  try { localStorage.setItem(NOTIF_CFG_KEY, JSON.stringify(cfg)); } catch(e) {}
+}
+function cargarNotifs() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY)||'[]'); } catch(e) { return []; }
+}
+function guardarNotifs(list) {
+  // Mantener máximo 100 notificaciones
+  try { localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0,100))); } catch(e) {}
+}
+function cargarLastTs() {
+  try {
+    const stored = localStorage.getItem(NOTIF_LAST_KEY);
+    // Si no hay timestamp guardado, usar hace 1 hora para no inundar al arrancar
+    return stored || new Date(Date.now() - 3600000).toISOString();
+  } catch(e) { return new Date(Date.now() - 3600000).toISOString(); }
+}
+function guardarLastTs(ts) {
+  try { localStorage.setItem(NOTIF_LAST_KEY, ts); } catch(e) {}
+}
+function noLeidas() {
+  return cargarNotifs().filter(n => !n.leida).length;
+}
+
+// ── Actualizar badge ─────────────────────────────────────────
+function actualizarBadge() {
+  const n = noLeidas();
+  const badge = document.getElementById('notif-badge');
+  if (!badge) return;
+  if (n > 0) {
+    badge.textContent = n > 99 ? '99+' : n;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ── Solicitar permiso de notificaciones ─────────────────────
+async function pedirPermisoNotif() {
+  if (!('Notification' in window)) return false;
+  if (Notification.permission === 'granted') return true;
+  if (Notification.permission === 'denied') return false;
+  const result = await Notification.requestPermission();
+  return result === 'granted';
+}
+
+// ── Mostrar notificación nativa ──────────────────────────────
+function mostrarNotifNativa(titulo, cuerpo, icono) {
+  if (Notification.permission !== 'granted') return;
+  try {
+    const n = new Notification(titulo, {
+      body: cuerpo,
+      icon: icono || "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a1628'/><text y='.9em' font-size='72' x='14'>⚓</text></svg>",
+      badge: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>",
+      tag: 'puerto-sust',
+      renotify: true
+    });
+    n.onclick = () => { window.focus(); toggleNotifPanel(true); n.close(); };
+    setTimeout(() => n.close(), 8000);
+  } catch(e) {}
+}
+
+// ── Enviar a Telegram (si está configurado) ──────────────────
+async function enviarTelegram(mensaje) {
+  const cfg = cargarNotifCfg();
+  if (!cfg.telegramToken || !cfg.telegramChatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${cfg.telegramToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: cfg.telegramChatId,
+        text: mensaje,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch(e) { console.warn('Telegram error:', e); }
+}
+
+// ── Tipos de evento ──────────────────────────────────────────
+const TIPOS_EVENTO = {
+  baja_nueva:        { emoji:'📤', color:'var(--red)',      label:'Baja comunicada'    },
+  apunte_nuevo:      { emoji:'✋', color:'var(--green-dark)',label:'Nuevo apunte'       },
+  apunte_cancelado:  { emoji:'❌', color:'var(--amber)',    label:'Apunte cancelado'   },
+  apunte_nuevo_dia:  { emoji:'📅', color:'#7c3aed',         label:'Apunte nuevo día'   },
+};
+
+// ── Añadir evento al historial ───────────────────────────────
+function añadirEvento(tipo, datos) {
+  const def = TIPOS_EVENTO[tipo] || { emoji:'📌', color:'var(--label3)', label:tipo };
+  const evento = {
+    id:       Date.now() + Math.random(),
+    tipo,
+    leida:    false,
+    ts:       new Date().toISOString(),
+    tsLocal:  new Date().toLocaleTimeString('es-ES', {hour:'2-digit',minute:'2-digit'}),
+    tsDate:   new Date().toLocaleDateString('es-ES', {day:'2-digit',month:'2-digit'}),
+    ...datos
+  };
+  const lista = [evento, ...cargarNotifs()];
+  guardarNotifs(lista);
+  actualizarBadge();
+
+  // Notificación nativa
+  const titulo = `${def.emoji} ${def.label}`;
+  const cuerpo = datos.texto || '';
+  mostrarNotifNativa(titulo, cuerpo);
+
+  // Telegram
+  enviarTelegram(`${def.emoji} <b>${def.label}</b>\n${cuerpo}\n<i>${evento.tsDate} ${evento.tsLocal}</i>`);
+
+  // Actualizar panel si está abierto
+  if (_notifPanelOpen) renderNotifList();
+}
+
+// ── POLLING ──────────────────────────────────────────────────
+async function pollActividad() {
+  const lastTs = cargarLastTs();
+  let maxTs = lastTs;
+
+  try {
+    // ── Nuevas bajas ─────────────────────────────────────────
+    // La tabla bajas puede tener created_at o registrado_en — probamos ambos
+    const bajas = await sbGet('bajas',
+      `activa=eq.true&select=voluntario_id,fecha,rango,created_at&order=created_at.desc&limit=20`
+    ).catch(() => []);
+
+    for (const b of bajas) {
+      const ts = b.created_at;
+      if (!ts || ts <= lastTs) continue;
+      if (ts > maxTs) maxTs = ts;
+      let nombre = '(voluntario)';
+      try {
+        const v = await sbGet('voluntarios', `id=eq.${b.voluntario_id}&select=nombre`);
+        if (v.length) nombre = v[0].nombre;
+      } catch(e) {}
+      const fechaStr = isoADMY(b.fecha);
+      añadirEvento('baja_nueva', {
+        texto: `${nombre} no puede asistir — ${b.rango || 'turno'} del ${fechaStr}`,
+        nombre, fecha: b.fecha, rango: b.rango
+      });
+    }
+
+    // ── Nuevos refuerzos ─────────────────────────────────────
+    const refs = await sbGet('refuerzos',
+      `select=voluntario_id,fecha,rango,es_dia_completo,registrado_en&order=registrado_en.desc&limit=20`
+    ).catch(() => []);
+
+    for (const r of refs) {
+      const ts = r.registrado_en;
+      if (!ts || ts <= lastTs) continue;
+      if (ts > maxTs) maxTs = ts;
+      let nombre = '(voluntario)';
+      try {
+        const v = await sbGet('voluntarios', `id=eq.${r.voluntario_id}&select=nombre`);
+        if (v.length) nombre = v[0].nombre;
+      } catch(e) {}
+      const fechaStr = isoADMY(r.fecha);
+      const tipo = r.es_dia_completo ? 'apunte_nuevo_dia' : 'apunte_nuevo';
+      const rangoTxt = (r.es_dia_completo || !r.rango) ? 'disponible todo el día' : `turno ${r.rango}`;
+      añadirEvento(tipo, {
+        texto: `${nombre} se ha apuntado — ${rangoTxt} del ${fechaStr}`,
+        nombre, fecha: r.fecha, rango: r.rango
+      });
+    }
+
+  } catch(e) {
+    console.warn('Polling notificaciones:', e);
+  }
+
+  if (maxTs > lastTs) guardarLastTs(maxTs);
+  const el = document.getElementById('notif-last-check');
+  if (el) el.textContent = 'Última comprobación: ' +
+    new Date().toLocaleTimeString('es-ES', {hour:'2-digit', minute:'2-digit'});
+}
+
+// ── Arrancar polling ─────────────────────────────────────────
+function iniciarPolling() {
+  // Primer check inmediato
+  pollActividad();
+  // Repetir cada 60s
+  _notifTimer = setInterval(pollActividad, POLL_INTERVAL);
+}
+
+// ── Panel UI ─────────────────────────────────────────────────
+function toggleNotifPanel(forzarAbrir) {
+  const panel = document.getElementById('notif-panel');
+  if (!panel) return;
+  _notifPanelOpen = forzarAbrir !== undefined ? forzarAbrir : !_notifPanelOpen;
+  panel.style.display = _notifPanelOpen ? 'block' : 'none';
+  if (_notifPanelOpen) renderNotifList();
+}
+
+// Cerrar al hacer clic fuera
+document.addEventListener('click', e => {
+  if (_notifPanelOpen &&
+      !e.target.closest('#notif-panel') &&
+      !e.target.closest('#notif-bell')) {
+    _notifPanelOpen = false;
+    const p = document.getElementById('notif-panel');
+    if (p) p.style.display = 'none';
+  }
+});
+
+function renderNotifList() {
+  const list = document.getElementById('notif-list');
+  if (!list) return;
+  const notifs = cargarNotifs();
+
+  if (!notifs.length) {
+    list.innerHTML = `
+      <div style="text-align:center;padding:2rem 1rem">
+        <div style="font-size:2rem;opacity:.2;margin-bottom:.5rem">🔔</div>
+        <div style="font-size:.82rem;color:var(--label3)">Sin actividad todavía</div>
+        <div style="font-size:.72rem;color:var(--label4);margin-top:.25rem">Las acciones de los voluntarios aparecerán aquí</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = notifs.map(n => {
+    const def = TIPOS_EVENTO[n.tipo] || { emoji:'📌', color:'var(--label3)' };
+    return `
+      <div onclick="marcarLeida('${n.id}')" style="display:flex;align-items:flex-start;gap:.65rem;padding:.75rem 1rem;border-bottom:1px solid var(--sep);cursor:pointer;background:${n.leida?'transparent':'rgba(0,113,227,.03)'};transition:background .15s"
+        onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='${n.leida?'transparent':'rgba(0,113,227,.03)'}'">
+        <div style="width:34px;height:34px;border-radius:50%;background:${def.color}22;border:1.5px solid ${def.color}44;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;margin-top:.1rem">${def.emoji}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.8rem;font-weight:${n.leida?500:700};color:var(--label1);margin-bottom:.18rem;line-height:1.35">${n.texto||''}</div>
+          <div style="font-size:.68rem;color:var(--label3)">${n.tsDate} · ${n.tsLocal}</div>
+        </div>
+        ${!n.leida?`<div style="width:7px;height:7px;border-radius:50%;background:var(--blue);flex-shrink:0;margin-top:.55rem"></div>`:''}
+      </div>`;
+  }).join('');
+}
+
+function marcarLeida(id) {
+  const list = cargarNotifs().map(n => n.id == id ? {...n, leida:true} : n);
+  guardarNotifs(list);
+  actualizarBadge();
+  renderNotifList();
+}
+
+function marcarTodasLeidas() {
+  guardarNotifs(cargarNotifs().map(n => ({...n, leida:true})));
+  actualizarBadge();
+  renderNotifList();
+}
+
+// ── Configuración Telegram ───────────────────────────────────
+function abrirCfgNotif() {
+  const cfg = cargarNotifCfg();
+  document.getElementById('mvol-titulo').textContent = '🔔 Configurar notificaciones';
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.8rem;color:var(--label3);margin-bottom:1.1rem;line-height:1.5">
+      Las notificaciones del navegador funcionan mientras esta página esté abierta.<br>
+      Con Telegram recibirás avisos en tu móvil aunque el planificador esté cerrado.
+    </p>
+
+    <!-- Navegador -->
+    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:1rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem">
+        <div>
+          <div style="font-size:.85rem;font-weight:700;color:var(--label1)">🖥️ Notificaciones del navegador</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.15rem">Requiere que el planificador esté abierto</div>
+        </div>
+        <button class="btn btn-navy btn-sm" onclick="activarNotifNavegador()">
+          ${Notification.permission === 'granted' ? '✓ Activadas' : 'Activar'}
+        </button>
+      </div>
+    </div>
+
+    <!-- Telegram -->
+    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:1.1rem">
+      <div style="font-size:.85rem;font-weight:700;color:var(--label1);margin-bottom:.65rem">📱 Telegram (notificaciones en móvil)</div>
+      <div style="font-size:.75rem;color:var(--label3);margin-bottom:.75rem;line-height:1.5">
+        1. Habla con <a href="https://t.me/BotFather" target="_blank" style="color:var(--blue)">@BotFather</a> en Telegram → <code>/newbot</code> → copia el token<br>
+        2. Habla con tu bot → busca tu Chat ID en <a href="https://t.me/userinfobot" target="_blank" style="color:var(--blue)">@userinfobot</a>
+      </div>
+      <div class="fg" style="margin-bottom:.65rem">
+        <label style="font-size:.75rem;font-weight:600">Token del bot</label>
+        <input class="fc" id="tg-token" type="password" placeholder="123456789:AABBcc..."
+          value="${cfg.telegramToken||''}" style="font-size:.8rem">
+      </div>
+      <div class="fg" style="margin-bottom:.65rem">
+        <label style="font-size:.75rem;font-weight:600">Chat ID (tu ID personal)</label>
+        <input class="fc" id="tg-chatid" placeholder="123456789"
+          value="${cfg.telegramChatId||''}" style="font-size:.8rem">
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+        <button class="btn btn-navy btn-sm" onclick="guardarCfgTelegram()">💾 Guardar</button>
+        <button class="btn btn-ghost btn-sm" onclick="probarTelegram()">📤 Enviar prueba</button>
+        ${cfg.telegramToken?`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="borrarTelegram()">🗑️ Borrar</button>`:''}
+      </div>
+      ${cfg.telegramToken?`<div style="font-size:.7rem;color:var(--green-dark);margin-top:.5rem;font-weight:600">✓ Telegram configurado</div>`:''}
+    </div>
+
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cerrar</button>
+    </div>`;
+  openModal('mvol');
+}
+
+async function activarNotifNavegador() {
+  const ok = await pedirPermisoNotif();
+  if (ok) {
+    toast('✓ Notificaciones del navegador activadas', 'ok');
+    mostrarNotifNativa('✓ Notificaciones activadas', 'Recibirás alertas de actividad del portal aquí');
+    abrirCfgNotif(); // refrescar el modal
+  } else {
+    toast('Notificaciones bloqueadas — actívalas en los ajustes del navegador', 'err');
+  }
+}
+
+function guardarCfgTelegram() {
+  const token  = document.getElementById('tg-token')?.value.trim();
+  const chatId = document.getElementById('tg-chatid')?.value.trim();
+  if (!token || !chatId) { toast('Introduce el token y el Chat ID', 'err'); return; }
+  guardarNotifCfg({ ...cargarNotifCfg(), telegramToken: token, telegramChatId: chatId });
+  toast('✓ Telegram guardado', 'ok');
+  abrirCfgNotif();
+}
+
+async function probarTelegram() {
+  const cfg = cargarNotifCfg();
+  if (!cfg.telegramToken || !cfg.telegramChatId) { toast('Guarda el token y Chat ID primero', 'err'); return; }
+  try {
+    const r = await fetch(`https://api.telegram.org/bot${cfg.telegramToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: cfg.telegramChatId,
+        text: '⚓ <b>Planificador Puerto de Sevilla</b>\n\n✅ Notificaciones configuradas correctamente.\nRecibirás alertas de bajas y apuntes de los voluntarios.',
+        parse_mode: 'HTML'
+      })
+    });
+    const data = await r.json();
+    if (data.ok) toast('✓ Mensaje de prueba enviado a Telegram', 'ok');
+    else toast('Error Telegram: ' + (data.description||''), 'err');
+  } catch(e) { toast('Error de conexión: ' + e.message, 'err'); }
+}
+
+function borrarTelegram() {
+  if (!confirm('¿Borrar la configuración de Telegram?')) return;
+  const cfg = cargarNotifCfg();
+  delete cfg.telegramToken; delete cfg.telegramChatId;
+  guardarNotifCfg(cfg);
+  toast('Configuración de Telegram borrada', 'ok');
+  abrirCfgNotif();
+}
+
 // ── INIT
 loadCuadrante();
 // Cargar config calendario en background para tenerlo disponible en el cuadrante
 apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
+// Iniciar sistema de notificaciones
+actualizarBadge();
+iniciarPolling();
+// Pedir permiso de notificaciones al arrancar (no bloqueante)
+pedirPermisoNotif();
 </script>
 </body>
 </html>
