@@ -40,6 +40,17 @@ En ambos, tras formar los equipos se aplica la regla del portador de llave
 (primer turno, último turno y turnos junto a un hueco horario necesitan un
 portador presente).
 
+### Editar equipos a mano (excepción a la regla)
+
+Cada turno del cuadrante muestra **4 plazas**. En las vacías, **＋ Añadir
+voluntario** abre un selector con los disponibles de ese día y, aparte, toda la
+lista de voluntarios (estos últimos se añaden como excepción, ignorando la
+regla de descanso). Cada plaza ocupada tiene **⇄** (cambiar) y **✕** (quitar).
+Un turno tocado a mano se marca **✏️ Editado** y **↩︎ Revertir** lo devuelve al
+cálculo automático. **➕ Añadir turno manual / otro turno** crea un turno vacío
+en una franja libre. Los cambios viven en memoria hasta que pulsas **✓
+Confirmar**.
+
 Parámetros en **Reglas del motor** (se guardan en `localStorage` →
 `reglas_cuadrante`):
 

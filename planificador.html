@@ -168,6 +168,37 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .vm{font-size:.6rem;color:var(--label3)}
 .vhor{font-size:.58rem;color:var(--blue);font-weight:600}
 .bllave{background:var(--navy);color:var(--gold);font-size:.53rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;flex-shrink:0}
+.bllave.sm{padding:.02rem .22rem;font-size:.6rem}
+
+/* Plaza vacía + acciones de plaza (4 espacios editables) */
+.vslot-acts{display:flex;flex-direction:column;gap:.18rem;flex-shrink:0}
+.vslot-btn{border:none;background:var(--surface);color:var(--label3);width:20px;height:20px;border-radius:5px;font-size:.7rem;cursor:pointer;line-height:1;box-shadow:var(--shadow-sm);transition:all .12s}
+.vslot-btn:hover{background:var(--navy);color:#fff}
+.vslot-btn.vx:hover{background:var(--red)}
+.vslot-empty{
+  border:1.5px dashed var(--label4);background:var(--surface);
+  color:var(--label3);cursor:pointer;justify-content:center;text-align:center;gap:.5rem;
+}
+.vslot-empty:hover{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+.vslot-empty.muted{cursor:default;opacity:.55}
+.vslot-empty.muted:hover{border-color:var(--label4);background:var(--surface);color:var(--label3)}
+.vslot-plus{font-size:1.1rem;font-weight:700;line-height:1}
+.vslot-plus-lbl{font-size:.7rem;font-weight:600}
+.vslot-plus-lbl small{font-weight:400;opacity:.8}
+.tc-edit-badge{display:inline-block;font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--amber-soft);color:var(--amber);padding:.1rem .4rem;border-radius:4px;vertical-align:middle}
+
+/* Selector de voluntario / franja (modal) */
+.picker-loading{text-align:center;padding:2rem 0}
+.pick-sec-lbl{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);margin-bottom:.4rem}
+.pick-list{display:flex;flex-direction:column;gap:.25rem;max-height:34vh;overflow-y:auto}
+.pick-row{display:flex;align-items:center;gap:.55rem;width:100%;text-align:left;border:1px solid var(--sep);background:var(--surface);border-radius:var(--r-sm);padding:.4rem .6rem;cursor:pointer;font-family:inherit;transition:all .12s}
+.pick-row:hover{border-color:var(--blue);background:var(--blue-soft)}
+.pick-av{width:24px;height:24px;border-radius:50%;background:var(--navy);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:.55rem;font-weight:700;flex-shrink:0}
+.pick-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.pick-nom{font-size:.78rem;font-weight:600;color:var(--label1)}
+.pick-sub{font-size:.62rem;color:var(--label3)}
+.pick-add{margin-left:auto;font-size:.95rem;font-weight:700;color:var(--blue);flex-shrink:0}
+.pick-empty{font-size:.75rem;color:var(--label3);padding:.5rem;text-align:center}
 
 /* Chip disponible (draggable) */
 .dchip{
@@ -2003,75 +2034,145 @@ async function imprimirCuadrante() {
   }
 }
 
-// ── Generación del PDF con jsPDF: colores planos y enlaces clicables reales ──
+// ── Generación del PDF con jsPDF: colores planos, iconos vectoriales y enlaces
+//    clicables reales (anotaciones /Link, funcionan en Firefox y Adobe) ──
 function _generarPDF(jsPDF, plan, calConfig, pdfCfg) {
   const cc = calConfig || [];
   const dcDe = d => cc.find(c => c.fecha === d.fechaStr) || {};
   const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
 
-  const PW = 210, PH = 297, M = 10, RIGHT = PW - M, BOTTOM = PH - 11;
-  const NAVY=[21,74,140], AMBER=[196,121,0], INK=[38,38,38], GREY=[120,120,120],
-        TEAL=[35,96,140], SLATE=[85,110,140], CHIP_BG=[236,236,236], CHIP_BD=[203,203,203],
-        KEY_BG=[255,211,102], KEY_BD=[214,158,32], KEY_INK=[105,58,0],
-        PANEL_BG=[228,238,251], LINK=[19,90,170], SUST=[176,102,0], RED=[178,55,55], GREEN=[26,140,70];
-  const F = (style, size, col) => { doc.setFont('helvetica', style); doc.setFontSize(size); if (col) doc.setTextColor(col[0],col[1],col[2]); };
+  const PW = 210, PH = 297, M = 10, RIGHT = PW - M, BOTTOM = PH - 10;
+  const NAVY=[17,64,124], NAVY_D=[10,40,84], AMBER=[214,120,0], INK=[35,35,40], GREY=[120,120,120],
+        TEAL=[24,110,120], SLATE=[80,104,134], CHIP_BG=[239,240,243], CHIP_BD=[206,208,214],
+        KEY_BG=[255,206,92], KEY_BD=[212,150,20], KEY_INK=[104,54,0],
+        PANEL_BG=[233,240,251], LINK=[16,92,178], SUST=[178,96,0], RED=[188,52,52], GREEN=[24,140,68],
+        ROW_ALT=[247,249,252], WHITE=[255,255,255];
+  const setF = c => doc.setFillColor(c[0],c[1],c[2]);
+  const setD = c => doc.setDrawColor(c[0],c[1],c[2]);
+  const setT = c => doc.setTextColor(c[0],c[1],c[2]);
+  const F = (style, size, col) => { doc.setFont('helvetica', style); doc.setFontSize(size); if (col) setT(col); };
   const wrap = (txt, w, size, style) => { doc.setFont('helvetica', style||'normal'); doc.setFontSize(size); return doc.splitTextToSize(String(txt==null?'':txt), w); };
 
-  const LX = M, LW = 50, RX = M + LW, PAD = 3;
-  const CH_H = 5, CH_PADX = 2, CH_GAP = 1.5, CH_LGAP = 1.5;
-  const LK_H = 3.6, LK_GAP = 3.2;
+  // ── Iconos vectoriales (x,y = esquina sup-izq; s = tamaño en mm) ──
+  const ICO = 2.7;
+  function icoBarco(x, y, s, col) {   // ancla (icono de marca)
+    setD(col); setF(col); doc.setLineWidth(0.45);
+    const cx = x + s/2, r = s*0.16;
+    doc.circle(cx, y + r, r, 'S');                       // anilla
+    doc.line(cx, y + 2*r, cx, y + s*0.92);               // caña
+    doc.line(x + s*0.22, y + s*0.36, x + s*0.78, y + s*0.36); // cepo
+    doc.setLineWidth(0.55);
+    doc.line(cx, y + s*0.92, x + s*0.16, y + s*0.66);    // brazo izq
+    doc.line(cx, y + s*0.92, x + s*0.84, y + s*0.66);    // brazo der
+    doc.setLineWidth(0.45);
+    doc.line(x + s*0.16, y + s*0.66, x + s*0.30, y + s*0.72); // uña izq
+    doc.line(x + s*0.84, y + s*0.66, x + s*0.70, y + s*0.72); // uña der
+  }
+  function icoReloj(x, y, s, col) {
+    setD(col); doc.setLineWidth(0.35);
+    const r = s/2, cx = x + r, cy = y + r;
+    doc.circle(cx, cy, r, 'S');
+    doc.line(cx, cy, cx, cy - r*0.55);
+    doc.line(cx, cy, cx + r*0.5, cy);
+  }
+  function icoPin(x, y, s, col) {
+    setD(col); setF(col); doc.setLineWidth(0.35);
+    const r = s*0.36, cx = x + s/2, cy = y + r;
+    doc.circle(cx, cy, r, 'S');
+    doc.triangle(cx - r*0.85, cy + r*0.45, cx + r*0.85, cy + r*0.45, cx, y + s, 'S');
+    doc.circle(cx, cy, r*0.34, 'F');
+  }
+  function icoCal(x, y, s, col) {
+    setD(col); doc.setLineWidth(0.35);
+    doc.roundedRect(x, y + s*0.12, s, s*0.82, 0.4, 0.4, 'S');
+    doc.line(x, y + s*0.36, x + s, y + s*0.36);
+    doc.line(x + s*0.26, y, x + s*0.26, y + s*0.22);
+    doc.line(x + s*0.74, y, x + s*0.74, y + s*0.22);
+  }
+  function icoDoc(x, y, s, col) {
+    setD(col); doc.setLineWidth(0.35);
+    doc.roundedRect(x + s*0.12, y + s*0.06, s*0.76, s*0.92, 0.3, 0.3, 'S');
+    doc.roundedRect(x + s*0.36, y, s*0.28, s*0.16, 0.2, 0.2, 'S');
+    doc.line(x + s*0.28, y + s*0.44, x + s*0.72, y + s*0.44);
+    doc.line(x + s*0.28, y + s*0.62, x + s*0.72, y + s*0.62);
+  }
+  function icoUser(x, y, s, col) {
+    setD(col); doc.setLineWidth(0.35);
+    doc.circle(x + s/2, y + s*0.30, s*0.22, 'S');
+    doc.triangle(x + s*0.12, y + s, x + s*0.88, y + s, x + s/2, y + s*0.5, 'S');
+  }
+  function icoLlave(x, y, s, col) {   // llave horizontal, bocado a la derecha
+    setD(col); setF(col);
+    const r = s*0.34, cy = y + s*0.5;
+    doc.circle(x + r, cy, r, 'F');                       // paletón (relleno)
+    setF([255,255,255]); doc.circle(x + r, cy, r*0.42, 'F'); // ojo
+    setD(col); doc.setLineWidth(0.7);
+    doc.line(x + 2*r - 0.1, cy, x + s, cy);              // caña gruesa
+    doc.setLineWidth(0.6);
+    doc.line(x + s, cy, x + s, cy + s*0.34);             // diente 1
+    doc.line(x + s*0.80, cy, x + s*0.80, cy + s*0.24);   // diente 2
+  }
 
-  // Mide/dibuja la fila de chips de voluntarios → altura usada
+  const LX = M, LW = 51, RX = M + LW, PAD = 3, ACC = 1.6;
+  const CH_H = 5.7, CH_PADX = 2, CH_GAP = 1.6, CH_LGAP = 1.7, KEY_ICO_W = 4.4;
+  const LK_H = 4, LK_GAP = 3.2, LK_ICO = 2.7;
+
+  // Fila de chips de voluntarios (mide o dibuja) → altura usada
   function chips(items, x0, maxX, yTop, draw) {
     let cx = x0, cy = yTop;
     items.forEach(it => {
       doc.setFont('helvetica', it.key ? 'bold' : 'normal'); doc.setFontSize(8);
-      const w = doc.getTextWidth(it.label) + 2 * CH_PADX;
+      const tw = doc.getTextWidth(it.label);
+      const w = tw + 2*CH_PADX + (it.key ? KEY_ICO_W : 0);
       if (cx + w > maxX && cx > x0) { cx = x0; cy += CH_H + CH_LGAP; }
       if (draw) {
-        doc.setFillColor.apply(doc, it.key ? KEY_BG : CHIP_BG);
-        doc.setDrawColor.apply(doc, it.key ? KEY_BD : CHIP_BD);
-        doc.setLineWidth(0.2);
-        doc.roundedRect(cx, cy, w, CH_H, 1, 1, 'FD');
-        doc.setTextColor.apply(doc, it.key ? KEY_INK : INK);
-        doc.text(it.label, cx + CH_PADX, cy + CH_H - 1.6);
+        setF(it.key ? KEY_BG : CHIP_BG); setD(it.key ? KEY_BD : CHIP_BD); doc.setLineWidth(0.25);
+        doc.roundedRect(cx, cy, w, CH_H, 1.1, 1.1, 'FD');
+        let tx = cx + CH_PADX;
+        if (it.key) { icoLlave(tx, cy + 1.1, 3.6, KEY_INK); tx += KEY_ICO_W; }
+        setT(it.key ? KEY_INK : INK);
+        doc.setFont('helvetica', it.key ? 'bold' : 'normal'); doc.setFontSize(8);
+        doc.text(it.label, tx, cy + CH_H - 1.7);
       }
       cx += w + CH_GAP;
     });
     return (cy - yTop) + CH_H;
   }
-  // Mide/dibuja la fila de enlaces → altura usada
+  // Fila de enlaces con icono (mide o dibuja) → altura usada
   function links(items, x0, maxX, yTop, draw) {
     let cx = x0, cy = yTop;
     items.forEach(lk => {
       doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
       const tw = doc.getTextWidth(lk.label);
-      if (cx + tw > maxX && cx > x0) { cx = x0; cy += LK_H; }
+      const w = LK_ICO + 1 + tw;
+      if (cx + w > maxX && cx > x0) { cx = x0; cy += LK_H; }
       if (draw) {
-        doc.setTextColor.apply(doc, lk.sust ? SUST : LINK);
-        doc.textWithLink(lk.label, cx, cy + 2.6, { url: lk.url });
-        doc.setDrawColor.apply(doc, lk.sust ? SUST : LINK); doc.setLineWidth(0.15);
-        doc.line(cx, cy + 3.1, cx + tw, cy + 3.1);
+        const col = lk.sust ? SUST : LINK;
+        (lk.ico || icoCal)(cx, cy + 0.4, LK_ICO, col);
+        setT(col);
+        doc.textWithLink(lk.label, cx + LK_ICO + 1, cy + 3, { url: lk.url });
+        setD(col); doc.setLineWidth(0.15);
+        doc.line(cx + LK_ICO + 1, cy + 3.5, cx + LK_ICO + 1 + tw, cy + 3.5);
       }
-      cx += tw + LK_GAP;
+      cx += w + LK_GAP;
     });
     return (cy - yTop) + LK_H;
   }
 
   const sustURL = (typeof SUST_URL_FIJA !== 'undefined') ? SUST_URL_FIJA : '';
 
-  // Precalcula los datos de cada día
+  // Pre-cálculo por día
   const bloques = plan.map(d => {
     const dc = dcDe(d);
     const p = d.fechaStr.split('/');
     const wd = DIAS_ES_L[new Date(d.fechaRaw || (p[2]+'-'+p[1]+'-'+p[0]+'T12:00:00Z')).getUTCDay()] || d.dia;
     const navieras = dc.navieras || [];
-    const shipLines  = navieras.length ? wrap(navieras.join(' & '), LW - 2*PAD, 8, 'bold') : [];
-    const detLines   = dc.detalle ? wrap(dc.detalle, LW - 2*PAD, 7.5) : [];
+    const shipLines  = navieras.length ? wrap(navieras.join(' & '), LW - 2*PAD - 3.6, 8, 'bold') : [];
+    const detLines   = dc.detalle ? wrap(dc.detalle, LW - 2*PAD - 3.6, 7.5) : [];
     const lugarTxt   = [dc.muelle, dc.estancia].filter(Boolean).join(' · ');
-    const lugarLines = lugarTxt ? wrap(lugarTxt, LW - 2*PAD, 7.5) : [];
-    const leftH = PAD + 5 + shipLines.length*3.3 + (detLines.length?1:0) + detLines.length*3
-                + (lugarLines.length?1:0) + lugarLines.length*3 + PAD;
+    const lugarLines = lugarTxt ? wrap(lugarTxt, LW - 2*PAD - 3.6, 7.5) : [];
+    const leftH = PAD + 5.5 + shipLines.length*3.3 + (detLines.length?1.5:0) + detLines.length*3
+                + (lugarLines.length?1.5:0) + lugarLines.length*3 + PAD;
 
     const turnos = (d.turnos && d.turnos.length ? d.turnos : [{ rango:'—', equipo:[], _vacioDia:true }]).map(t => {
       const equipo = t.equipo || [];
@@ -2080,106 +2181,134 @@ function _generarPDF(jsPDF, plan, calConfig, pdfCfg) {
       const lks = [];
       if (!vacio) {
         const g = _gcalURL(d.fechaStr, t.rango, navieras, equipo, dc.muelle || dc.estancia || '');
-        if (g) lks.push({ label: 'Añadir a Google Calendar', url: g });
-        if (pdfCfg.cuestionarioUrl) lks.push({ label: '¿Cómo fue el turno?', url: pdfCfg.cuestionarioUrl });
-        if ((t.alertaLlave || equipo.length < 3) && sustURL) lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true });
+        if (g) lks.push({ label: 'Añadir a Google Calendar', url: g, ico: icoCal });
+        if (pdfCfg.cuestionarioUrl) lks.push({ label: '¿Cómo fue el turno?', url: pdfCfg.cuestionarioUrl, ico: icoDoc });
+        if ((t.alertaLlave || equipo.length < 3) && sustURL) lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true, ico: icoUser });
       } else if (sustURL) {
-        lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true });
+        lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true, ico: icoUser });
       }
-      const chH = vacio ? 4.5 : chips(volChips, RX+PAD, RIGHT-PAD, 0, false);
+      const chH = vacio ? 5 : chips(volChips, RX+PAD, RIGHT-PAD, 0, false);
       const lkH = lks.length ? links(lks, RX+PAD, RIGHT-PAD, 0, false) : 0;
-      const h = 5.5 + chH + (lks.length ? 1.5 + lkH : 0) + 3;
-      return { t, equipo, vacio, volChips, lks, h,
-               confirmado: !!(d.confirmado || t.confirmado) };
+      const h = 5.5 + chH + (lks.length ? 1.4 + lkH : 0) + 2.6;
+      return { t, equipo, vacio, volChips, lks, h, confirmado: !!(d.confirmado || t.confirmado) };
     });
     const rightH = PAD + turnos.reduce((a, x) => a + x.h, 0) + PAD;
     return { d, dc, wd, dayNum:+p[0], shipLines, detLines, lugarLines,
              blockH: Math.max(leftH, rightH), turnos };
   });
 
-  // Título
+  // Título en barra navy
   let mesTit = '', mesFile = '';
   if (plan.length) { const p = plan[0].fechaStr.split('/'); mesTit = (MESES_ES[+p[1]]||'').toUpperCase()+' '+p[2]; mesFile = (MESES_ES[+p[1]]||'')+' '+p[2]; }
-  let y = M;
-  F('bold', 13, NAVY);
-  doc.text(('PROGRAMA DE PREDICACIÓN · PUERTO DE SEVILLA' + (mesTit ? ' · ' + mesTit : '')), PW/2, y+4, { align:'center', maxWidth: PW - 2*M });
-  y += 8;
-  doc.setDrawColor.apply(doc, NAVY); doc.setLineWidth(0.6); doc.line(M, y, RIGHT, y);
-  y += 5;
+  setF(NAVY); doc.rect(0, 0, PW, 16, 'F');
+  setF(AMBER); doc.rect(0, 16, PW, 1, 'F');
+  F('bold', 13, WHITE);
+  doc.text('PROGRAMA DE PREDICACIÓN · PUERTO DE SEVILLA' + (mesTit ? '  ·  ' + mesTit : ''), PW/2, 10.5, { align:'center', maxWidth: PW - 2*M });
+  let y = 19.5;
 
   bloques.forEach(b => {
     if (y + b.blockH > BOTTOM) { doc.addPage(); y = M; }
     const top = y, H = b.blockH;
-    // Panel izquierdo + marco + separador
-    doc.setFillColor.apply(doc, PANEL_BG); doc.rect(LX, top, LW, H, 'F');
-    doc.setDrawColor(210, 218, 230); doc.setLineWidth(0.3);
-    doc.roundedRect(LX, top, RIGHT - LX, H, 1.6, 1.6, 'S');
-    doc.line(RX, top, RX, top + H);
+    setF(PANEL_BG); doc.rect(LX, top, LW, H, 'F');            // panel izq
+    setF(NAVY);     doc.rect(LX, top, ACC, H, 'F');           // franja de acento
+    setD([206,214,228]); doc.setLineWidth(0.3);
+    doc.roundedRect(LX, top, RIGHT - LX, H, 1.8, 1.8, 'S');   // marco
+    doc.line(RX, top, RX, top + H);                            // separador
 
     // Izquierda
-    let ly = top + PAD + 3.4;
-    F('bold', 11, NAVY); doc.text(b.wd + ' ' + b.dayNum, LX + PAD, ly); ly += 4.4;
-    if (b.shipLines.length) { F('bold', 8, TEAL); b.shipLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3.3; }); }
-    if (b.detLines.length)  { ly += 1; F('normal', 7.5, SLATE); b.detLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3; }); }
-    if (b.lugarLines.length){ ly += 1; F('normal', 7.5, GREY);  b.lugarLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3; }); }
+    let ly = top + PAD + 3.6;
+    F('bold', 11, NAVY); doc.text(b.wd + ' ' + b.dayNum, LX + PAD + ACC, ly); ly += 4.6;
+    const tx0 = LX + PAD + ACC;
+    if (b.shipLines.length) {
+      icoBarco(tx0, ly - 3, 3.4, TEAL);
+      F('bold', 8, TEAL);
+      b.shipLines.forEach((l, i) => { doc.text(l, tx0 + 4, ly); ly += 3.3; });
+    }
+    if (b.detLines.length) {
+      ly += 1.5; icoReloj(tx0, ly - 2.4, 2.8, SLATE);
+      F('normal', 7.5, SLATE);
+      b.detLines.forEach(l => { doc.text(l, tx0 + 4, ly); ly += 3; });
+    }
+    if (b.lugarLines.length) {
+      ly += 1.5; icoPin(tx0, ly - 2.6, 3, GREY);
+      F('normal', 7.5, GREY);
+      b.lugarLines.forEach(l => { doc.text(l, tx0 + 4, ly); ly += 3; });
+    }
 
     // Derecha
     let ry = top + PAD;
     b.turnos.forEach((tt, i) => {
-      F('bold', 6.5, GREY); doc.text('TURNO', RX + PAD, ry + 2.6);
-      F('bold', 10, AMBER); doc.text(String(tt.t.rango), RX + PAD + 13, ry + 3);
-      if (tt.confirmado) { F('bold', 6.5, GREEN); doc.text('CONFIRMADO', RX + PAD + 13 + doc.getTextWidth(String(tt.t.rango)) + 3, ry + 3); }
-      ry += 5.5;
+      if (i % 2 === 1) { setF(ROW_ALT); doc.rect(RX + 0.6, ry - 1.5, RIGHT - RX - 1.2, tt.h, 'F'); }
+      // Pastilla de hora
+      F('bold', 8.5, WHITE);
+      const pw = doc.getTextWidth(String(tt.t.rango)) + 4;
+      setF(tt.confirmado ? GREEN : AMBER);
+      doc.roundedRect(RX + PAD, ry, pw, 5, 1.2, 1.2, 'F');
+      F('bold', 8.5, WHITE); doc.text(String(tt.t.rango), RX + PAD + 2, ry + 3.5);
+      if (tt.confirmado) { F('bold', 6.5, GREEN); doc.text('CONFIRMADO', RX + PAD + pw + 2.5, ry + 3.5); }
+      ry += 6.2;
       if (tt.vacio) {
+        icoUser(RX + PAD, ry - 0.5, 3.2, RED);
         F('bold', 9, RED);
-        doc.text('Sin cubrir' + (tt.t.sinLlave ? ' — falta portador de llave' : (tt.t._vacioDia ? '' : '')), RX + PAD, ry + 2.5);
-        ry += 4.5;
+        doc.text('Sin cubrir' + (tt.t.sinLlave ? ' — falta portador de llave' : ''), RX + PAD + 4.5, ry + 2.3);
+        ry += 5;
       } else {
         ry += chips(tt.volChips, RX + PAD, RIGHT - PAD, ry, true);
       }
-      if (tt.lks.length) { ry += 1.5; ry += links(tt.lks, RX + PAD, RIGHT - PAD, ry, true); }
-      ry += 3;
-      if (i < b.turnos.length - 1) { doc.setDrawColor(234, 234, 234); doc.setLineWidth(0.2); doc.line(RX + PAD, ry - 1.4, RIGHT - PAD, ry - 1.4); }
+      if (tt.lks.length) { ry += 1.8; ry += links(tt.lks, RX + PAD, RIGHT - PAD, ry, true); }
+      ry += 2.6;
+      if (i < b.turnos.length - 1) { setD([230,232,236]); doc.setLineWidth(0.2); doc.line(RX + PAD, ry - 1.6, RIGHT - PAD, ry - 1.6); }
     });
 
-    y = top + H + 3;
+    y = top + H + 2.8;
   });
 
-  // Pie: nota de la llave + contacto + cuestionario
-  const notaLines    = wrap('Nota: el nombre con fondo ámbar indica que el voluntario tiene llave y por tanto está asignado a recoger y depositar los expositores.', RIGHT - LX - 8, 8);
-  const contactoTxt  = pdfCfg.contacto || '';
-  const contactoLines = wrap(contactoTxt, RIGHT - LX - 8, 8);
-  const pieH = 6 + notaLines.length*3.4 + 5 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 5 : 2);
+  // Pie
+  const notaLines = wrap('El voluntario con este distintivo tiene llave y por tanto se encarga de recoger y depositar los expositores.', RIGHT - LX - 24, 8);
+  const contactoLines = wrap(pdfCfg.contacto || '', RIGHT - LX - 6, 8);
+  const pieH = 7 + Math.max(notaLines.length, 1)*3.3 + 4 + contactoLines.length*3.3 + (pdfCfg.cuestionarioUrl ? 4.6 : 0);
   if (y + pieH > BOTTOM) { doc.addPage(); y = M; }
 
   let ny = y + 2;
-  doc.setFillColor(247, 247, 247); doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.3);
-  doc.roundedRect(LX, ny, RIGHT - LX, 6 + notaLines.length*3.4, 1.4, 1.4, 'FD');
-  F('normal', 8, [90, 90, 90]); ny += 4.2;
-  notaLines.forEach(l => { doc.text(l, LX + 3, ny); ny += 3.4; });
-  ny += 3;
+  const notaH = 5.5 + Math.max(notaLines.length, 1)*3.4;
+  setF([248,248,248]); setD([230,230,230]); doc.setLineWidth(0.3);
+  doc.roundedRect(LX, ny, RIGHT - LX, notaH, 1.4, 1.4, 'FD');
+  // chip de muestra con icono de llave
+  F('bold', 8, KEY_INK);
+  const muestra = 'Nombre';
+  const mw = doc.getTextWidth(muestra) + 2*CH_PADX + KEY_ICO_W;
+  setF(KEY_BG); setD(KEY_BD); doc.setLineWidth(0.25);
+  doc.roundedRect(LX + 3, ny + 2.4, mw, CH_H, 1.1, 1.1, 'FD');
+  icoLlave(LX + 3 + CH_PADX, ny + 3.7, 3.6, KEY_INK);
+  setT(KEY_INK); F('bold', 8, KEY_INK); doc.text(muestra, LX + 3 + CH_PADX + KEY_ICO_W, ny + 2.4 + CH_H - 1.7);
+  F('normal', 8, [90,90,90]);
+  let tny = ny + 4.4;
+  notaLines.forEach(l => { doc.text(l, LX + 3 + mw + 3, tny); tny += 3.4; });
+  ny += notaH + 2.2;
 
-  doc.setFillColor(235, 242, 253); doc.setDrawColor(200, 218, 245);
-  doc.roundedRect(LX, ny, RIGHT - LX, 6 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 4.5 : 0), 1.4, 1.4, 'FD');
-  F('normal', 8, [50, 70, 100]); ny += 4.2;
+  const contH = 5.5 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 4.6 : 0);
+  setF([234,242,253]); setD([198,216,244]);
+  doc.roundedRect(LX, ny, RIGHT - LX, contH, 1.4, 1.4, 'FD');
+  F('normal', 8, [48,68,98]); ny += 4.4;
   contactoLines.forEach(l => { doc.text(l, LX + 3, ny); ny += 3.4; });
   if (pdfCfg.cuestionarioUrl) {
     ny += 1;
-    F('normal', 8, [50, 70, 100]);
+    icoDoc(LX + 3, ny - 2.5, 3, LINK);
+    F('normal', 8, [48,68,98]);
     const pre = 'Cuestionario del turno: ';
-    doc.text(pre, LX + 3, ny);
-    const px = LX + 3 + doc.getTextWidth(pre);
+    doc.text(pre, LX + 7, ny);
+    const px = LX + 7 + doc.getTextWidth(pre);
     F('bold', 8, LINK);
     doc.textWithLink('RELLENAR CUESTIONARIO', px, ny, { url: pdfCfg.cuestionarioUrl });
-    doc.setDrawColor.apply(doc, LINK); doc.setLineWidth(0.15);
-    doc.line(px, ny + 0.5, px + doc.getTextWidth('RELLENAR CUESTIONARIO'), ny + 0.5);
+    setD(LINK); doc.setLineWidth(0.15);
+    doc.line(px, ny + 0.6, px + doc.getTextWidth('RELLENAR CUESTIONARIO'), ny + 0.6);
   }
 
-  // Numeración de páginas
+  // Numeración
   const np = doc.getNumberOfPages();
   for (let i = 1; i <= np; i++) {
     doc.setPage(i);
-    F('normal', 7, [150, 150, 150]);
+    F('normal', 7, [150,150,150]);
     doc.text('Página ' + i + ' de ' + np, RIGHT, PH - 5, { align: 'right' });
   }
 
@@ -2225,6 +2354,7 @@ function renderCuadrante(c) {
 function buildDia(d) {
   const b = document.createElement('div');
   b.className = 'dia-block';
+  b.id = 'dia-' + (d.fechaRaw || (d.semana + '-' + d.dia));
   const turnos = d.turnos||[];
   const conf   = d.confirmado||false;
 
@@ -2248,9 +2378,11 @@ function buildDia(d) {
   if (d.diagnostico?.aviso) b.insertAdjacentHTML('beforeend',`<div class="aviso-bar">${d.diagnostico.aviso}</div>`);
 
   if (!turnos.length) {
-    b.insertAdjacentHTML('beforeend',`<div class="no-turno"><p>⚠️ Sin franja de 2h con ≥3 voluntarios.<br><small>Disponibles: ${d.diagnostico?.totalDisponibles||0} · Aptos: ${d.diagnostico?.aptos||0}</small></p></div>`);
+    b.insertAdjacentHTML('beforeend',`<div class="no-turno"><p>⚠️ Sin franja de 2h con ≥3 voluntarios.<br><small>Disponibles: ${d.diagnostico?.totalDisponibles||0} · Aptos: ${d.diagnostico?.aptos||0}</small></p>
+      ${!conf?`<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="crearTurnoManual('${d.semana}','${d.dia}')">➕ Añadir turno manual</button>`:''}</div>`);
   } else {
     turnos.forEach(t => b.appendChild(buildTurno(t,d)));
+    if (!conf) b.insertAdjacentHTML('beforeend',`<div style="padding:.4rem .95rem .8rem"><button class="btn btn-ghost btn-sm" onclick="crearTurnoManual('${d.semana}','${d.dia}')">➕ Añadir otro turno</button></div>`);
   }
   if (d.diagnostico?.todos?.length) b.appendChild(buildDispoPanel(d.diagnostico.todos, d));
   return b;
@@ -2259,12 +2391,75 @@ function buildDia(d) {
 // ══════════════════════════════════════
 //  TURNO
 // ══════════════════════════════════════
+// Nº de plazas visibles por turno (siempre ≥ IDEAL, ≥ equipo actual)
+function _nSlots(equipo) {
+  const ideal = (cargarReglas().IDEAL) || 4;
+  return Math.max(ideal, 4, (equipo || []).length);
+}
+// Localiza el turno + día de una key "sem|dia|rango" en S.plan
+function _turnoRef(key) {
+  const parts = String(key).split('|');
+  const sem = parts[0], dia = parts[1], rango = parts.slice(2).join('|');
+  const d = (S.plan || []).find(x => String(x.semana) === sem && x.dia === dia);
+  if (!d) return null;
+  const t = (d.turnos || []).find(x => x.rango === rango);
+  return t ? { d, t } : null;
+}
+function _slug(key) { return String(key).replace(/[|: ]/g, '-'); }
+// Rehace en el DOM solo la tarjeta de ese turno
+function _rerenderTurno(key) {
+  const ref = _turnoRef(key);
+  const old = document.getElementById('tc-' + _slug(key));
+  if (!ref || !old) { const c = document.getElementById('tab-cuadrante'); if (S.plan) renderCuadrante(c); return; }
+  old.replaceWith(buildTurno(ref.t, ref.d));
+}
+function _rerenderDia(d) {
+  const old = document.getElementById('dia-' + (d.fechaRaw || (d.semana + '-' + d.dia)));
+  if (old) old.replaceWith(buildDia(d));
+  else { const c = document.getElementById('tab-cuadrante'); if (S.plan) renderCuadrante(c); }
+}
+
+const FRANJAS_MANUAL = ['08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00','12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00','16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00','20:00 a 22:00'];
+
+// Crea un turno manual (excepción) para un día: elige la franja horaria
+function crearTurnoManual(sem, dia) {
+  const d = (S.plan || []).find(x => String(x.semana) === String(sem) && x.dia === dia);
+  if (!d) { toast('Recarga el cuadrante', 'err'); return; }
+  const usados = new Set((d.turnos || []).map(t => t.rango));
+  let permitidas = null;
+  if (S.calConfig) {
+    const dc = S.calConfig.find(c => c.fecha === d.fechaStr);
+    if (dc && dc.turnos && dc.turnos.length) permitidas = new Set(dc.turnos);
+  }
+  const opts = FRANJAS_MANUAL.filter(r => !usados.has(r) && (!permitidas || permitidas.has(r)));
+  document.getElementById('mcubre-titulo').textContent = `Añadir turno manual · ${d.fechaLabel || d.fechaStr}`;
+  document.getElementById('mcubre-body').innerHTML = `
+    <p style="font-size:.8rem;color:var(--label3);margin-bottom:.8rem">Elige la franja horaria. Se crea un turno vacío con 4 plazas para que asignes voluntarios manualmente.</p>
+    <div class="pick-list">
+      ${opts.map(r => `<button class="pick-row" onclick="_addTurnoManual('${sem}','${dia}','${r}')"><span class="pick-add" style="margin-left:0;margin-right:.6rem">🕒</span><span class="pick-main"><span class="pick-nom">${r}</span></span><span class="pick-add">＋</span></button>`).join('') || '<div class="pick-empty">No quedan franjas libres</div>'}
+    </div>`;
+  openModal('mcubre');
+}
+function _addTurnoManual(sem, dia, rango) {
+  const d = (S.plan || []).find(x => String(x.semana) === String(sem) && x.dia === dia);
+  if (!d) return;
+  d.turnos = d.turnos || [];
+  if (d.turnos.some(t => t.rango === rango)) { toast('Ese turno ya existe', 'err'); return; }
+  const sust = (d.diagnostico?.todos || []).map(v => ({ nombre: v.nombre, llave: v.llave, dias: v.dias, dispo: 0, horario: v.horario, estado: v.estado }));
+  d.turnos.push({ rango, equipo: [], sustitutos: sust, necesitaLlave: true, sinLlave: false, alertaLlave: false, manual: true });
+  d.turnos.sort((a, b) => a.rango < b.rango ? -1 : 1);
+  closeModal('mcubre');
+  _rerenderDia(d);
+  toast('Turno ' + rango + ' añadido — asigna los voluntarios', 'ok');
+}
+
 function buildTurno(t, d) {
   const hIni = parseInt(t.rango.split(':')[0]);
   const tarde = hIni >= 14;
   const conf  = t.confirmado || d.confirmado;
   const key   = `${d.semana}|${d.dia}|${t.rango}`;
   const equipo = S.edits[key] || t.equipo || [];
+  const editado = !!S.edits[key];
 
   if (t.sinLlave) {
     const card = document.createElement('div');
@@ -2278,15 +2473,25 @@ function buildTurno(t, d) {
   const btnId = `bc-${d.semana}-${d.dia}-${hIni}`;
   const tipCls = conf?'tt-conf':tarde?'tt-t':'tt-m';
   const tipTxt = conf?'CONFIRMADO':tarde?'TARDE':'MAÑANA';
+  const n = _nSlots(equipo);
+  const sust = (t.sustitutos||[]).filter(s => !equipo.some(v => (v.nombre||'').toUpperCase() === (s.nombre||'').toUpperCase()));
+
+  let slotsHTML = '';
+  for (let i = 0; i < n; i++) {
+    slotsHTML += equipo[i] ? buildSlot(equipo[i], key, i, conf) : buildSlotVacio(key, i, conf);
+  }
 
   const card = document.createElement('div');
   card.className = 'tc';
+  card.id = 'tc-' + _slug(key);
+  card.dataset.key = key;
   card.innerHTML = `
     <div class="tc-accent ${tarde?'ac-t':'ac-m'}"></div>
     <div class="tc-top">
-      <div><div class="tc-hora">🕒 ${t.rango}</div><span class="tc-tipo ${tipCls}">${tipTxt}</span></div>
+      <div><div class="tc-hora">🕒 ${t.rango}</div><span class="tc-tipo ${tipCls}">${tipTxt}</span>${editado&&!conf?' <span class="tc-edit-badge">✏️ Editado</span>':''}</div>
       <div class="tc-acts">
         ${!conf?`
+          ${editado?`<button class="btn btn-ghost btn-sm" onclick="revertirTurno('${key}')" title="Volver al equipo calculado">↩︎ Revertir</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir</button>
           <button class="btn btn-green btn-sm" id="${btnId}" onclick="confirmarTurno('${d.semana}','${d.dia}','${key}','${t.rango}',${d.fechaRaw||'null'},'${btnId}')">✓ Confirmar</button>`
           :'<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Guardado</span>'}
@@ -2294,15 +2499,13 @@ function buildTurno(t, d) {
     </div>
     <div class="tc-grid">
       <div class="tc-left">
-        <div class="tc-col-lbl">Equipo (${equipo.length})</div>
-        <div id="eq-${key.replace(/[|: ]/g,'-')}">
-          ${equipo.map((v,i) => buildSlot(v,key,i,conf)).join('')}
-        </div>
+        <div class="tc-col-lbl">Equipo (${equipo.length}/${n})</div>
+        <div id="eq-${_slug(key)}">${slotsHTML}</div>
       </div>
       <div class="tc-right">
-        <div class="tc-col-lbl">Disponibles adicionales (${t.sustitutos?.length||0})</div>
-        <div class="dchip-wrap" id="sust-${key.replace(/[|: ]/g,'-')}">
-          ${(t.sustitutos||[]).map(s => buildDChip(s,key,'turno')).join('')}
+        <div class="tc-col-lbl">Disponibles adicionales (${sust.length})</div>
+        <div class="dchip-wrap" id="sust-${_slug(key)}">
+          ${sust.map(s => buildDChip(s,key,'turno')).join('')}
         </div>
       </div>
     </div>`;
@@ -2313,7 +2516,7 @@ function buildTurno(t, d) {
 
 function buildSlot(v, key, idx, conf) {
   const ini = (v.nombre||'??').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-  const eid = `sl-${key.replace(/[|: ]/g,'-')}-${idx}`;
+  const eid = `sl-${_slug(key)}-${idx}`;
   return `<div class="vslot" id="${eid}" data-key="${key}" data-idx="${idx}">
     <div class="va">${ini}</div>
     <div style="flex:1;min-width:0">
@@ -2322,7 +2525,114 @@ function buildSlot(v, key, idx, conf) {
       ${v.horario?`<div class="vhor">🕐 ${v.horario}</div>`:''}
     </div>
     ${v.llave?'<span class="bllave">🔑 Llave</span>':''}
+    ${!conf?`<div class="vslot-acts">
+      <button class="vslot-btn" title="Cambiar voluntario" onclick="abrirPickerVol('${key}',${idx})">⇄</button>
+      <button class="vslot-btn vx" title="Quitar del turno" onclick="quitarVolSlot('${key}',${idx})">✕</button>
+    </div>`:''}
   </div>`;
+}
+
+function buildSlotVacio(key, idx, conf) {
+  const eid = `sl-${_slug(key)}-${idx}`;
+  if (conf) return `<div class="vslot vslot-empty muted" id="${eid}" data-key="${key}" data-idx="${idx}"><span class="vslot-plus-lbl">— libre —</span></div>`;
+  return `<div class="vslot vslot-empty" id="${eid}" data-key="${key}" data-idx="${idx}" onclick="abrirPickerVol('${key}',${idx})" title="Añadir voluntario a esta plaza">
+    <span class="vslot-plus">＋</span>
+    <span class="vslot-plus-lbl">Añadir voluntario<br><small>de disponibles o de toda la lista</small></span>
+  </div>`;
+}
+
+// Quita al voluntario de una plaza (queda hueco)
+function quitarVolSlot(key, idx) {
+  const ref = _turnoRef(key); if (!ref) return;
+  const base = S.edits[key] ? [...S.edits[key]] : [...(ref.t.equipo || [])];
+  if (idx < 0 || idx >= base.length) return;
+  const fuera = base.splice(idx, 1)[0];
+  S.edits[key] = base;
+  _rerenderTurno(key);
+  toast((fuera?.nombre || 'Voluntario') + ' quitado del turno', 'ok');
+}
+
+// Vuelve al equipo calculado por el motor
+function revertirTurno(key) {
+  delete S.edits[key];
+  _rerenderTurno(key);
+  toast('Turno restaurado al cálculo automático', 'ok');
+}
+
+// Cache de todos los voluntarios {nombre, llave}
+async function _cargarVolsAll() {
+  if (S.volsAll) return S.volsAll;
+  const [vols, ll] = await Promise.all([
+    apiGet({ action: 'getVoluntarios' }),
+    apiGet({ action: 'getLlaves' }),
+  ]);
+  const set = new Set((ll.llaves || []).map(n => n.toUpperCase()));
+  S.volsAll = (vols || []).map(n => ({ nombre: n, llave: set.has(n.toUpperCase()) }));
+  return S.volsAll;
+}
+
+// Abre el selector para rellenar/cambiar una plaza del turno
+async function abrirPickerVol(key, idx) {
+  const ref = _turnoRef(key);
+  if (!ref) { toast('Recarga el cuadrante', 'err'); return; }
+  const { d, t } = ref;
+  const equipo = S.edits[key] || t.equipo || [];
+  const enEquipo = new Set(equipo.map(v => (v.nombre || '').toUpperCase()));
+
+  document.getElementById('mcubre-titulo').textContent = `Añadir voluntario · ${t.rango}`;
+  const body = document.getElementById('mcubre-body');
+  body.innerHTML = `<div class="picker-loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div>`;
+  openModal('mcubre');
+
+  let volsAll = [];
+  try { volsAll = await _cargarVolsAll(); } catch (e) {}
+
+  // Disponibles ese día (del diagnóstico + sustitutos, con su info)
+  const dispMap = {};
+  (d.diagnostico?.todos || []).forEach(v => { dispMap[v.nombre.toUpperCase()] = { nombre: v.nombre, llave: v.llave, dias: v.dias, dispo: 0, horario: v.horario, estado: v.estado }; });
+  (t.sustitutos || []).forEach(s => { const k = (s.nombre || '').toUpperCase(); dispMap[k] = { nombre: s.nombre, llave: s.llave, dias: s.dias, dispo: s.dispo || 0, horario: s.horario, estado: s.estado || dispMap[k]?.estado }; });
+  const disp = Object.values(dispMap).filter(v => !enEquipo.has(v.nombre.toUpperCase()))
+    .sort((a, b) => (b.dias || 0) - (a.dias || 0));
+  const dispNombres = new Set(disp.map(v => v.nombre.toUpperCase()));
+  const resto = volsAll.filter(v => !enEquipo.has(v.nombre.toUpperCase()) && !dispNombres.has(v.nombre.toUpperCase()))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  const estClr = e => e === 'ok' ? 'var(--green)' : e === 'reducido' ? 'var(--amber)' : e === 'bloqueado' ? 'var(--red)' : 'var(--label3)';
+  const rowDisp = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},${v.dias==null?99:+v.dias},${+v.dispo||0},${JSON.stringify(v.horario||'').replace(/"/g,'&quot;')})">
+      <span class="pick-av">${v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}</span>
+      <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
+        <span class="pick-sub">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.horario?' · 🕐 '+v.horario:''} · <b style="color:${estClr(v.estado)}">${v.estado||'disp.'}</b></span></span>
+      <span class="pick-add">＋</span></button>`;
+  const rowAll = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},99,0,'')">
+      <span class="pick-av">${v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}</span>
+      <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
+        <span class="pick-sub" style="color:var(--amber)">no disponible ese día — se añade como excepción</span></span>
+      <span class="pick-add">＋</span></button>`;
+
+  body.innerHTML = `
+    <input class="fc" id="pick-search" placeholder="🔎 Buscar voluntario…" style="margin-bottom:.75rem" oninput="_filtrarPicker(this.value)">
+    <div class="pick-sec-lbl">Disponibles ese día (${disp.length})</div>
+    <div class="pick-list" id="pick-disp">${disp.map(rowDisp).join('') || '<div class="pick-empty">Nadie más disponible ese día</div>'}</div>
+    <div class="pick-sec-lbl" style="margin-top:.9rem">Todos los voluntarios (${resto.length}) — excepción a la regla</div>
+    <div class="pick-list" id="pick-all">${resto.map(rowAll).join('')}</div>`;
+}
+function _filtrarPicker(q) {
+  q = (q || '').trim().toLowerCase();
+  document.querySelectorAll('#mcubre-body .pick-row').forEach(r => {
+    r.style.display = !q || r.dataset.s.includes(q) ? '' : 'none';
+  });
+}
+// Coloca al voluntario en la plaza idx (reemplaza si está ocupada, si no añade)
+function elegirVolSlot(key, idx, nombre, llave, dias, dispo, horario) {
+  const ref = _turnoRef(key); if (!ref) return;
+  const base = S.edits[key] ? [...S.edits[key]] : [...(ref.t.equipo || [])];
+  if (base.some(v => (v.nombre || '').toUpperCase() === String(nombre).toUpperCase())) { toast('Ya está en el equipo', 'err'); return; }
+  const nuevo = { nombre, llave: !!llave, dias: dias == null ? 99 : +dias, dispo: +dispo || 0, horario: horario || '' };
+  if (idx != null && idx < base.length) base[idx] = nuevo; else base.push(nuevo);
+  S.edits[key] = base;
+  closeModal('mcubre');
+  _rerenderTurno(key);
+  toast(nombre + ' añadido al turno ✓', 'ok');
 }
 
 function buildDChip(s, turnoKey, source) {
@@ -2478,45 +2788,32 @@ function _ejecutarDrop(turnoKey, slotIdx, tOrig, dData, sl) {
     return;
   }
 
-  const sustituido = equipoBase[slotIdx];
-  equipoBase[slotIdx] = { nombre:nuevo.nombre, llave:nuevo.llave, dias:nuevo.dias, dispo:nuevo.dispo, horario:nuevo.horario };
+  const entrada = { nombre:nuevo.nombre, llave:nuevo.llave, dias:nuevo.dias, dispo:nuevo.dispo, horario:nuevo.horario };
+  let sustituido = null;
+  if (slotIdx != null && slotIdx < equipoBase.length) { sustituido = equipoBase[slotIdx]; equipoBase[slotIdx] = entrada; }
+  else equipoBase.push(entrada);
   S.edits[turnoKey] = equipoBase;
 
-  sl.classList.add('drop-done');
-  const eqEl = document.getElementById(`eq-${turnoKey.replace(/[|: ]/g,'-')}`);
-  if (eqEl) {
-    eqEl.innerHTML = equipoBase.map((v,i) => buildSlot(v, turnoKey, i, false)).join('');
-    activateSlots(turnoKey, tOrig, dData, false);
-  }
-
-  const sustEl = document.getElementById(`sust-${turnoKey.replace(/[|: ]/g,'-')}`);
-  if (sustEl) {
-    const chipViejo = sustEl.querySelector(`[data-nombre="${nuevo.nombre}"]`);
-    if (chipViejo) chipViejo.remove();
-    if (sustituido) {
-      sustEl.insertAdjacentHTML('beforeend', buildDChip({...sustituido, dias:sustituido.dias||99}, turnoKey, 'turno'));
-    }
-  }
+  if (sl) sl.classList.add('drop-done');
+  _rerenderTurno(turnoKey);
 
   if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
-  toast(`${nuevo.nombre} sustituye a ${sustituido?.nombre||'?'}`, 'ok');
+  toast(sustituido ? `${nuevo.nombre} sustituye a ${sustituido.nombre}` : `${nuevo.nombre} añadido al turno`, 'ok');
 }
 
-// ── ACTIVAR SLOTS (ratón + touch) ────────────────────────────
+// ── ACTIVAR SLOTS (ratón + touch) — incluye plazas vacías ─────
 function activateSlots(key, tOrig, dData, confirmado) {
+  if (confirmado) return;
   const equipo = S.edits[key] ? [...S.edits[key]] : [...(tOrig.equipo||[])];
-  equipo.forEach((_, i) => {
-    const sl = document.getElementById(`sl-${key.replace(/[|: ]/g,'-')}-${i}`);
-    if (!sl) return;
-
-    // Guardar datos para el touch handler
+  const n = _nSlots(equipo);
+  for (let i = 0; i < n; i++) {
+    const sl = document.getElementById(`sl-${_slug(key)}-${i}`);
+    if (!sl) continue;
     sl._dropData = { turnoKey: key, slotIdx: i, tOrig, dData };
-
-    // Mouse
     sl.ondragover  = e => { e.preventDefault(); sl.classList.add('drop-active'); };
     sl.ondragleave = () => sl.classList.remove('drop-active');
     sl.ondrop      = e => dDrop(e, key, i, tOrig, dData);
-  });
+  }
 }
 
 // ── CHIPS CON SOPORTE TOUCH ──────────────────────────────────
@@ -2579,9 +2876,10 @@ function toggleBlock(id, btn) {
 //  CONFIRMAR TURNO
 // ══════════════════════════════════════
 async function confirmarTurno(sem, dia, key, rango, fechaRaw, btnId) {
-  const equipo = S.edits[key]
-    ? S.edits[key].map(v=>v.nombre)
-    : (() => { const d=S.plan?.find(d=>d.semana==sem&&d.dia==dia); return d?.turnos?.find(t=>t.rango===rango)?.equipo?.map(v=>v.nombre)||[]; })();
+  const equipo = (S.edits[key]
+    ? S.edits[key].map(v=>v&&v.nombre)
+    : (() => { const d=S.plan?.find(d=>d.semana==sem&&d.dia==dia); return d?.turnos?.find(t=>t.rango===rango)?.equipo?.map(v=>v.nombre)||[]; })()
+  ).filter(Boolean);
   if (!equipo.length) { toast('Sin equipo','err'); return; }
   if (!confirm(`¿Confirmar turno ${rango}?\n${equipo.join(', ')}`)) return;
   const btn = document.getElementById(btnId);
