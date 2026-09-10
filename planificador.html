@@ -1949,13 +1949,242 @@ function _buildPrintHTML(plan, calConfig, pdfCfg) {
   </div>`;
 }
 
-function imprimirCuadrante() {
+// Fallback: impresión del navegador (Ctrl+P → Guardar como PDF).
+// Nota: Firefox NO conserva los enlaces al exportar a PDF; por eso el botón
+// principal usa jsPDF (_generarPDF), que sí crea anotaciones de enlace reales.
+function imprimirCuadranteNavegador() {
   if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
   const area = document.getElementById('print-area');
   area.innerHTML = _buildPrintHTML(S.plan, S.calConfig || [], cargarPdfCfg());
   const limpiar = () => { area.innerHTML = ''; window.removeEventListener('afterprint', limpiar); };
   window.addEventListener('afterprint', limpiar);
   setTimeout(() => window.print(), 60);
+}
+
+// ── Carga perezosa de jsPDF (una sola vez) ──
+let _jspdfPromesa = null;
+function cargarJsPDF() {
+  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+  if (_jspdfPromesa) return _jspdfPromesa;
+  const FUENTES = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  ];
+  _jspdfPromesa = new Promise((res, rej) => {
+    let i = 0;
+    const probar = () => {
+      if (window.jspdf && window.jspdf.jsPDF) return res(window.jspdf.jsPDF);
+      if (i >= FUENTES.length) { _jspdfPromesa = null; return rej(new Error('no se pudo descargar jsPDF (¿sin conexión?)')); }
+      const s = document.createElement('script');
+      s.src = FUENTES[i++];
+      s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : probar();
+      s.onerror = probar;
+      document.head.appendChild(s);
+    };
+    probar();
+  });
+  return _jspdfPromesa;
+}
+
+async function imprimirCuadrante() {
+  if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
+  let jsPDF;
+  try {
+    jsPDF = await cargarJsPDF();
+  } catch (e) {
+    toast(e.message + ' — abriendo impresión del navegador', 'err');
+    return imprimirCuadranteNavegador();
+  }
+  try {
+    _generarPDF(jsPDF, S.plan, S.calConfig || [], cargarPdfCfg());
+  } catch (e) {
+    console.error(e);
+    toast('Error generando el PDF: ' + e.message, 'err');
+  }
+}
+
+// ── Generación del PDF con jsPDF: colores planos y enlaces clicables reales ──
+function _generarPDF(jsPDF, plan, calConfig, pdfCfg) {
+  const cc = calConfig || [];
+  const dcDe = d => cc.find(c => c.fecha === d.fechaStr) || {};
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+
+  const PW = 210, PH = 297, M = 10, RIGHT = PW - M, BOTTOM = PH - 11;
+  const NAVY=[21,74,140], AMBER=[196,121,0], INK=[38,38,38], GREY=[120,120,120],
+        TEAL=[35,96,140], SLATE=[85,110,140], CHIP_BG=[236,236,236], CHIP_BD=[203,203,203],
+        KEY_BG=[255,211,102], KEY_BD=[214,158,32], KEY_INK=[105,58,0],
+        PANEL_BG=[228,238,251], LINK=[19,90,170], SUST=[176,102,0], RED=[178,55,55], GREEN=[26,140,70];
+  const F = (style, size, col) => { doc.setFont('helvetica', style); doc.setFontSize(size); if (col) doc.setTextColor(col[0],col[1],col[2]); };
+  const wrap = (txt, w, size, style) => { doc.setFont('helvetica', style||'normal'); doc.setFontSize(size); return doc.splitTextToSize(String(txt==null?'':txt), w); };
+
+  const LX = M, LW = 50, RX = M + LW, PAD = 3;
+  const CH_H = 5, CH_PADX = 2, CH_GAP = 1.5, CH_LGAP = 1.5;
+  const LK_H = 3.6, LK_GAP = 3.2;
+
+  // Mide/dibuja la fila de chips de voluntarios → altura usada
+  function chips(items, x0, maxX, yTop, draw) {
+    let cx = x0, cy = yTop;
+    items.forEach(it => {
+      doc.setFont('helvetica', it.key ? 'bold' : 'normal'); doc.setFontSize(8);
+      const w = doc.getTextWidth(it.label) + 2 * CH_PADX;
+      if (cx + w > maxX && cx > x0) { cx = x0; cy += CH_H + CH_LGAP; }
+      if (draw) {
+        doc.setFillColor.apply(doc, it.key ? KEY_BG : CHIP_BG);
+        doc.setDrawColor.apply(doc, it.key ? KEY_BD : CHIP_BD);
+        doc.setLineWidth(0.2);
+        doc.roundedRect(cx, cy, w, CH_H, 1, 1, 'FD');
+        doc.setTextColor.apply(doc, it.key ? KEY_INK : INK);
+        doc.text(it.label, cx + CH_PADX, cy + CH_H - 1.6);
+      }
+      cx += w + CH_GAP;
+    });
+    return (cy - yTop) + CH_H;
+  }
+  // Mide/dibuja la fila de enlaces → altura usada
+  function links(items, x0, maxX, yTop, draw) {
+    let cx = x0, cy = yTop;
+    items.forEach(lk => {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+      const tw = doc.getTextWidth(lk.label);
+      if (cx + tw > maxX && cx > x0) { cx = x0; cy += LK_H; }
+      if (draw) {
+        doc.setTextColor.apply(doc, lk.sust ? SUST : LINK);
+        doc.textWithLink(lk.label, cx, cy + 2.6, { url: lk.url });
+        doc.setDrawColor.apply(doc, lk.sust ? SUST : LINK); doc.setLineWidth(0.15);
+        doc.line(cx, cy + 3.1, cx + tw, cy + 3.1);
+      }
+      cx += tw + LK_GAP;
+    });
+    return (cy - yTop) + LK_H;
+  }
+
+  const sustURL = (typeof SUST_URL_FIJA !== 'undefined') ? SUST_URL_FIJA : '';
+
+  // Precalcula los datos de cada día
+  const bloques = plan.map(d => {
+    const dc = dcDe(d);
+    const p = d.fechaStr.split('/');
+    const wd = DIAS_ES_L[new Date(d.fechaRaw || (p[2]+'-'+p[1]+'-'+p[0]+'T12:00:00Z')).getUTCDay()] || d.dia;
+    const navieras = dc.navieras || [];
+    const shipLines  = navieras.length ? wrap(navieras.join(' & '), LW - 2*PAD, 8, 'bold') : [];
+    const detLines   = dc.detalle ? wrap(dc.detalle, LW - 2*PAD, 7.5) : [];
+    const lugarTxt   = [dc.muelle, dc.estancia].filter(Boolean).join(' · ');
+    const lugarLines = lugarTxt ? wrap(lugarTxt, LW - 2*PAD, 7.5) : [];
+    const leftH = PAD + 5 + shipLines.length*3.3 + (detLines.length?1:0) + detLines.length*3
+                + (lugarLines.length?1:0) + lugarLines.length*3 + PAD;
+
+    const turnos = (d.turnos && d.turnos.length ? d.turnos : [{ rango:'—', equipo:[], _vacioDia:true }]).map(t => {
+      const equipo = t.equipo || [];
+      const vacio = equipo.length === 0 || t.sinLlave;
+      const volChips = equipo.map(v => ({ label: v.nombre, key: !!v.llave }));
+      const lks = [];
+      if (!vacio) {
+        const g = _gcalURL(d.fechaStr, t.rango, navieras, equipo, dc.muelle || dc.estancia || '');
+        if (g) lks.push({ label: 'Añadir a Google Calendar', url: g });
+        if (pdfCfg.cuestionarioUrl) lks.push({ label: '¿Cómo fue el turno?', url: pdfCfg.cuestionarioUrl });
+        if ((t.alertaLlave || equipo.length < 3) && sustURL) lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true });
+      } else if (sustURL) {
+        lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true });
+      }
+      const chH = vacio ? 4.5 : chips(volChips, RX+PAD, RIGHT-PAD, 0, false);
+      const lkH = lks.length ? links(lks, RX+PAD, RIGHT-PAD, 0, false) : 0;
+      const h = 5.5 + chH + (lks.length ? 1.5 + lkH : 0) + 3;
+      return { t, equipo, vacio, volChips, lks, h,
+               confirmado: !!(d.confirmado || t.confirmado) };
+    });
+    const rightH = PAD + turnos.reduce((a, x) => a + x.h, 0) + PAD;
+    return { d, dc, wd, dayNum:+p[0], shipLines, detLines, lugarLines,
+             blockH: Math.max(leftH, rightH), turnos };
+  });
+
+  // Título
+  let mesTit = '', mesFile = '';
+  if (plan.length) { const p = plan[0].fechaStr.split('/'); mesTit = (MESES_ES[+p[1]]||'').toUpperCase()+' '+p[2]; mesFile = (MESES_ES[+p[1]]||'')+' '+p[2]; }
+  let y = M;
+  F('bold', 13, NAVY);
+  doc.text(('PROGRAMA DE PREDICACIÓN · PUERTO DE SEVILLA' + (mesTit ? ' · ' + mesTit : '')), PW/2, y+4, { align:'center', maxWidth: PW - 2*M });
+  y += 8;
+  doc.setDrawColor.apply(doc, NAVY); doc.setLineWidth(0.6); doc.line(M, y, RIGHT, y);
+  y += 5;
+
+  bloques.forEach(b => {
+    if (y + b.blockH > BOTTOM) { doc.addPage(); y = M; }
+    const top = y, H = b.blockH;
+    // Panel izquierdo + marco + separador
+    doc.setFillColor.apply(doc, PANEL_BG); doc.rect(LX, top, LW, H, 'F');
+    doc.setDrawColor(210, 218, 230); doc.setLineWidth(0.3);
+    doc.roundedRect(LX, top, RIGHT - LX, H, 1.6, 1.6, 'S');
+    doc.line(RX, top, RX, top + H);
+
+    // Izquierda
+    let ly = top + PAD + 3.4;
+    F('bold', 11, NAVY); doc.text(b.wd + ' ' + b.dayNum, LX + PAD, ly); ly += 4.4;
+    if (b.shipLines.length) { F('bold', 8, TEAL); b.shipLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3.3; }); }
+    if (b.detLines.length)  { ly += 1; F('normal', 7.5, SLATE); b.detLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3; }); }
+    if (b.lugarLines.length){ ly += 1; F('normal', 7.5, GREY);  b.lugarLines.forEach(l => { doc.text(l, LX+PAD, ly); ly += 3; }); }
+
+    // Derecha
+    let ry = top + PAD;
+    b.turnos.forEach((tt, i) => {
+      F('bold', 6.5, GREY); doc.text('TURNO', RX + PAD, ry + 2.6);
+      F('bold', 10, AMBER); doc.text(String(tt.t.rango), RX + PAD + 13, ry + 3);
+      if (tt.confirmado) { F('bold', 6.5, GREEN); doc.text('CONFIRMADO', RX + PAD + 13 + doc.getTextWidth(String(tt.t.rango)) + 3, ry + 3); }
+      ry += 5.5;
+      if (tt.vacio) {
+        F('bold', 9, RED);
+        doc.text('Sin cubrir' + (tt.t.sinLlave ? ' — falta portador de llave' : (tt.t._vacioDia ? '' : '')), RX + PAD, ry + 2.5);
+        ry += 4.5;
+      } else {
+        ry += chips(tt.volChips, RX + PAD, RIGHT - PAD, ry, true);
+      }
+      if (tt.lks.length) { ry += 1.5; ry += links(tt.lks, RX + PAD, RIGHT - PAD, ry, true); }
+      ry += 3;
+      if (i < b.turnos.length - 1) { doc.setDrawColor(234, 234, 234); doc.setLineWidth(0.2); doc.line(RX + PAD, ry - 1.4, RIGHT - PAD, ry - 1.4); }
+    });
+
+    y = top + H + 3;
+  });
+
+  // Pie: nota de la llave + contacto + cuestionario
+  const notaLines    = wrap('Nota: el nombre con fondo ámbar indica que el voluntario tiene llave y por tanto está asignado a recoger y depositar los expositores.', RIGHT - LX - 8, 8);
+  const contactoTxt  = pdfCfg.contacto || '';
+  const contactoLines = wrap(contactoTxt, RIGHT - LX - 8, 8);
+  const pieH = 6 + notaLines.length*3.4 + 5 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 5 : 2);
+  if (y + pieH > BOTTOM) { doc.addPage(); y = M; }
+
+  let ny = y + 2;
+  doc.setFillColor(247, 247, 247); doc.setDrawColor(230, 230, 230); doc.setLineWidth(0.3);
+  doc.roundedRect(LX, ny, RIGHT - LX, 6 + notaLines.length*3.4, 1.4, 1.4, 'FD');
+  F('normal', 8, [90, 90, 90]); ny += 4.2;
+  notaLines.forEach(l => { doc.text(l, LX + 3, ny); ny += 3.4; });
+  ny += 3;
+
+  doc.setFillColor(235, 242, 253); doc.setDrawColor(200, 218, 245);
+  doc.roundedRect(LX, ny, RIGHT - LX, 6 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 4.5 : 0), 1.4, 1.4, 'FD');
+  F('normal', 8, [50, 70, 100]); ny += 4.2;
+  contactoLines.forEach(l => { doc.text(l, LX + 3, ny); ny += 3.4; });
+  if (pdfCfg.cuestionarioUrl) {
+    ny += 1;
+    F('normal', 8, [50, 70, 100]);
+    const pre = 'Cuestionario del turno: ';
+    doc.text(pre, LX + 3, ny);
+    const px = LX + 3 + doc.getTextWidth(pre);
+    F('bold', 8, LINK);
+    doc.textWithLink('RELLENAR CUESTIONARIO', px, ny, { url: pdfCfg.cuestionarioUrl });
+    doc.setDrawColor.apply(doc, LINK); doc.setLineWidth(0.15);
+    doc.line(px, ny + 0.5, px + doc.getTextWidth('RELLENAR CUESTIONARIO'), ny + 0.5);
+  }
+
+  // Numeración de páginas
+  const np = doc.getNumberOfPages();
+  for (let i = 1; i <= np; i++) {
+    doc.setPage(i);
+    F('normal', 7, [150, 150, 150]);
+    doc.text('Página ' + i + ' de ' + np, RIGHT, PH - 5, { align: 'right' });
+  }
+
+  doc.save('Cuadrante Puerto' + (mesFile ? ' ' + mesFile : '') + '.pdf');
+  toast('PDF generado ✓', 'ok');
 }
 
 function exportarSheet() {
