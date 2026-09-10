@@ -58,6 +58,20 @@ Parámetros en **Reglas del motor** (se guardan en `localStorage` →
 Se pueden definir excepciones por día concreto (clave `excepcion_dia` en
 `localStorage`): descanso, tamaño de equipo o "ignorar descanso".
 
+### Exportar el cuadrante
+
+- **Cuadrante → 📄 PDF** genera la vista de impresión (bloque por día: barco,
+  detalle horario, muelle; por turno: hora, equipo con el portador de llave
+  resaltado, enlace "añadir a Google Calendar" y al cuestionario). En los turnos
+  sin cubrir enlaza al portal de sustituciones. Al pie, la nota de la llave y el
+  contacto de bajas. Se abre el diálogo de impresión del navegador → **Guardar
+  como PDF** (los enlaces quedan clicables en el PDF).
+- **Cuadrante → 📋 Sheet** copia el cuadrante como tabla (TSV) al portapapeles
+  para pegar en Google Sheets.
+- El enlace al cuestionario y el texto de contacto se editan en **Calendario →
+  Ajustes del PDF** (`localStorage` → `pdf_cfg`). El detalle horario y el muelle
+  de cada día se editan en la fila de ese día en **Calendario**.
+
 ## Configuración
 
 Las credenciales van embebidas en cada HTML (constantes al inicio del `<script>`):

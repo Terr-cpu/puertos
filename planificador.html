@@ -367,27 +367,36 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 ══════════════════════════════════════ */
 #print-area{display:none}
 @media print{
-  .app,.topbar,#drag-ghost,.toast-stack,.moverlay{display:none!important}
+  .app,.topbar,#drag-ghost,.toast-stack,.moverlay,#notif-panel{display:none!important}
   #print-area{display:block!important}
+  @page{size:A4;margin:11mm 10mm}
 }
-.pw{max-width:780px;margin:0 auto;font-family:Arial,sans-serif;font-size:11px}
-.ptitulo{text-align:center;font-size:17px;font-weight:bold;color:#1a56a0;border-bottom:3px solid #1a56a0;padding-bottom:6px;margin-bottom:16px;letter-spacing:1px}
-.pbloque{display:flex;margin-bottom:4px;border:1px solid #dde;border-radius:6px;overflow:hidden}
-.pinfo{width:170px;flex-shrink:0;background:#f0f4fa;padding:10px 12px;border-right:1px solid #dde}
-.pinfo .pfecha{font-size:15px;font-weight:bold;color:#1a56a0}
-.pinfo .pbarco{font-size:9px;color:#5580a0;margin-top:5px;line-height:1.4;background:#e6eef8;border-radius:3px;padding:3px 5px}
-.pinfo .plugar{font-size:9px;color:#888;margin-top:3px}
+#print-area .pw{max-width:780px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.ptitulo{text-align:center;font-size:16px;font-weight:bold;color:#1a56a0;border-bottom:3px solid #1a56a0;padding-bottom:6px;margin-bottom:14px;letter-spacing:1px;text-transform:uppercase}
+.pbloque{display:flex;margin-bottom:5px;border:1px solid #dde;border-radius:6px;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+.pinfo{width:172px;flex-shrink:0;background:#f0f4fa;padding:9px 11px;border-right:1px solid #dde}
+.pinfo .pfecha{font-size:14px;font-weight:bold;color:#1a56a0}
+.pinfo .pbarco{font-size:9px;color:#33608c;margin-top:5px;line-height:1.45;background:#e6eef8;border-radius:3px;padding:4px 6px;font-weight:bold}
+.pinfo .pdet{font-size:8.5px;color:#5580a0;margin-top:4px;line-height:1.4}
+.pinfo .plugar{font-size:9px;color:#777;margin-top:3px}
 .pturnos{flex:1}
-.pturno-row{display:flex;align-items:center;padding:7px 10px;border-bottom:1px solid #eee}
+.pturno-row{display:flex;align-items:flex-start;padding:6px 10px;border-bottom:1px solid #eee}
 .pturno-row:last-child{border-bottom:none}
-.pthora{width:95px;flex-shrink:0}
-.pthora .phl{font-size:8px;color:#888;text-transform:uppercase}
+.pthora{width:88px;flex-shrink:0}
+.pthora .phl{font-size:8px;color:#999;text-transform:uppercase;letter-spacing:.5px}
 .pthora .pht{font-size:12px;font-weight:bold;color:#cc8800}
-.ptvols{display:flex;flex-wrap:wrap;gap:4px;flex:1;align-items:center}
-.pvol{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:3px 7px;border-radius:4px;background:#f5f5f5;border:1px solid #ddd;color:#333}
+.ptmid{flex:1;min-width:0}
+.ptvols{display:flex;flex-wrap:wrap;gap:4px;align-items:center}
+.pvol{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;padding:2px 7px;border-radius:4px;background:#f5f5f5;border:1px solid #ddd;color:#333}
 .pvol.pllave{background:#fff3cc;border-color:#f5c518;font-weight:bold;color:#7a4800}
-.pnota{margin-top:14px;font-size:10px;color:#555;padding:8px 12px;background:#f9f9f9;border-radius:5px;border:1px solid #eee}
-.pcontacto{margin-top:10px;font-size:10px;color:#555;padding:8px 12px;background:#eef4ff;border-radius:5px;border:1px solid #c8daf5}
+.ptlinks{margin-top:4px;display:flex;flex-wrap:wrap;gap:10px}
+.ptlink{font-size:8.5px;color:#1a56a0;text-decoration:none}
+.ptlink.psust{color:#b26a00;font-weight:bold}
+.pt-empty{font-size:10.5px;color:#b23b3b;font-weight:bold}
+.pnota{margin-top:14px;font-size:9.5px;color:#555;padding:8px 12px;background:#f9f9f9;border-radius:5px;border:1px solid #eee}
+.pnota .pllavemuestra{display:inline-block;background:#fff3cc;border:1px solid #f5c518;border-radius:3px;padding:1px 5px;font-weight:bold;color:#7a4800}
+.pcontacto{margin-top:8px;font-size:9.5px;color:#33475f;padding:8px 12px;background:#eef4ff;border-radius:5px;border:1px solid #c8daf5;line-height:1.5}
+.pcontacto a{color:#1a56a0;font-weight:bold}
 
 /* ══════════════════════════════════════
    TOAST
@@ -466,7 +475,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     </button>
     <div class="topbar-actions" id="topbar-acts">
       <button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
-      <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
+      <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()" title="Genera el PDF del cuadrante — en el diálogo elige «Guardar como PDF»">📄 <span>PDF</span></button>
       <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
       <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>
     </div>
@@ -568,7 +577,7 @@ const TAB_TITLES = {
 };
 const TAB_ACTS = {
   cuadrante:`<button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
-             <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()">🖨️ <span>Imprimir</span></button>
+             <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()" title="Genera el PDF del cuadrante — en el diálogo elige «Guardar como PDF»">📄 <span>PDF</span></button>
              <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
              <button class="btn btn-blue btn-sm" onclick="recargar()">↻ <span>Recalc.</span></button>`,
   alertas:`<button class="btn btn-ghost btn-sm" onclick="loadAlertas(true)">↻ Actualizar</button>`,
@@ -1020,11 +1029,13 @@ async function getCalendarioConfig() {
       const diaNum = parseInt(r.fecha.split('-')[2]);
       const semana = diaNum<=7?1 : diaNum<=14?2 : diaNum<=21?3 : diaNum<=28?4 : 5;
       const allNavs = Array.isArray(r.navieras) ? r.navieras : [];
-      // Separar navieras reales de turnos habilitados (prefijo "turno:")
-      const navieras = allNavs.filter(n => !String(n).startsWith('turno:'));
-      const turnos   = allNavs
-        .filter(n => String(n).startsWith('turno:'))
-        .map(n => String(n).slice(6)); // quitar prefijo "turno:"
+      // La tabla "navieras" guarda varias cosas con prefijo:
+      //   "turno:HH..."  → franja horaria habilitada
+      //   "info:..."     → detalle horario del barco (llegada/salida prevista)
+      //   "muelle:..."   → muelle / ubicación
+      //   (sin prefijo)  → nombre de naviera / barco
+      const pref = p => allNavs.filter(n => String(n).startsWith(p)).map(n => String(n).slice(p.length));
+      const navieras = allNavs.filter(n => !/^(turno:|info:|muelle:)/.test(String(n)));
       return {
         fecha:    isoADMY(r.fecha),
         fechaISO: r.fecha,
@@ -1032,7 +1043,9 @@ async function getCalendarioConfig() {
         dia:      normDia(r.dia),
         activo:   r.activo,
         navieras,
-        turnos,
+        turnos:   pref('turno:'),
+        detalle:  pref('info:')[0]   || '',
+        muelle:   pref('muelle:')[0] || '',
         estancia: r.estancia || ''
       };
     })};
@@ -1078,13 +1091,15 @@ async function guardarCalendarioConfig(dias) {
 
   const navRows = [];
   insertados.forEach((cal, i) => {
-    // Navieras reales (sin prefijo turno:)
-    (procesados[i].navieras||[])
-      .filter(n => !String(n).startsWith('turno:'))
+    const p = procesados[i];
+    // Navieras reales (sin ningún prefijo especial)
+    (p.navieras||[])
+      .filter(n => !/^(turno:|info:|muelle:)/.test(String(n)))
       .forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
-    // Turnos habilitados — guardados con prefijo "turno:" en la misma tabla navieras
-    (procesados[i].turnos||[])
-      .forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'turno:' + t }));
+    // Turnos habilitados / detalle horario / muelle — con prefijo en la misma tabla
+    (p.turnos||[]).forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'turno:' + t }));
+    if (p.detalle && p.detalle.trim()) navRows.push({ calendario_id: cal.id, nombre: 'info:' + p.detalle.trim() });
+    if (p.muelle  && p.muelle.trim())  navRows.push({ calendario_id: cal.id, nombre: 'muelle:' + p.muelle.trim() });
   });
   if (navRows.length) await sbPost('navieras', navRows);
   invalidar('calendario');
@@ -1815,6 +1830,158 @@ async function loadCuadrante() {
   }
 }
 function recargar() { S.plan=null; window._aOk=false; window._cOk=false; loadCuadrante(); }
+
+// ══════════════════════════════════════════════════════════════
+//  EXPORTAR CUADRANTE — PDF (vía impresión) y hoja de cálculo
+// ══════════════════════════════════════════════════════════════
+const PDF_CFG_KEY = 'pdf_cfg';
+const PDF_CFG_DEF = {
+  cuestionarioUrl: 'https://forms.gle/CGyhjDJheehep5rNA',
+  contacto: 'Si por algún motivo no podéis atender vuestro turno, contactad con MANUEL FERNÁNDEZ enviando un mensaje privado por WhatsApp al 622 71 45 85.',
+};
+function cargarPdfCfg() {
+  try {
+    const r = JSON.parse(localStorage.getItem(PDF_CFG_KEY) || '{}');
+    return { cuestionarioUrl: r.cuestionarioUrl ?? PDF_CFG_DEF.cuestionarioUrl,
+             contacto: r.contacto ?? PDF_CFG_DEF.contacto };
+  } catch (e) { return { ...PDF_CFG_DEF }; }
+}
+function guardarPdfCfg(cfg) { try { localStorage.setItem(PDF_CFG_KEY, JSON.stringify(cfg)); } catch (e) {} }
+
+const MESES_ES = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const DIAS_ES_L = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+function escH(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+}
+
+// Enlace "Añadir a Google Calendar" para un turno
+function _gcalURL(fechaStr, rango, navieras, equipo, lugar) {
+  const p = String(fechaStr).split('/'); // dd/mm/yyyy
+  if (p.length !== 3) return '';
+  const m = String(rango).match(/(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  const fecha = p[2] + p[1].padStart(2,'0') + p[0].padStart(2,'0');
+  const ini = m[1].padStart(2,'0') + m[2] + '00';
+  const fin = m[3].padStart(2,'0') + m[4] + '00';
+  const det = 'Turno predicación puerto\n\n'
+    + (navieras && navieras.length ? 'Barco: ' + navieras.join(', ') + '\n' : '')
+    + 'Voluntarios:\n' + (equipo || []).map(e => e.nombre).join('\n');
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent('Turno Predicación Puerto')
+    + '&dates=' + fecha + 'T' + ini + '/' + fecha + 'T' + fin
+    + '&location=' + encodeURIComponent(lugar || '')
+    + '&details=' + encodeURIComponent(det);
+}
+
+function _buildPrintHTML(plan, calConfig, pdfCfg) {
+  const cc = calConfig || [];
+  const dcDe = d => cc.find(c => c.fecha === d.fechaStr) || {};
+
+  // Título: mes/año del primer día
+  let titulo = 'Programa de Predicación · Puerto de Sevilla';
+  if (plan.length) {
+    const p = plan[0].fechaStr.split('/');
+    titulo = 'Programa de Predicación · Puerto de Sevilla · ' + (MESES_ES[+p[1]] || '') + ' ' + p[2];
+  }
+
+  const sustURL = (typeof SUST_URL_FIJA !== 'undefined') ? SUST_URL_FIJA : '';
+  const linkSust = sustURL
+    ? `<a class="ptlink psust" href="${escH(sustURL)}">🙋 Apúntate en Sustituciones</a>` : '';
+
+  const bloques = plan.map(d => {
+    const dc = dcDe(d);
+    const p = d.fechaStr.split('/');
+    const diaNum = +p[0];
+    const wd = DIAS_ES_L[new Date(d.fechaRaw || (p[2]+'-'+p[1]+'-'+p[0]+'T12:00:00Z')).getUTCDay()] || d.dia;
+    const navieras = dc.navieras || [];
+    const barcoHTML = navieras.length ? `<div class="pbarco">🚢 ${navieras.map(escH).join(' &amp; ')}</div>` : '';
+    const detHTML = dc.detalle ? `<div class="pdet">🕓 ${escH(dc.detalle)}</div>` : '';
+    const lugarTxt = [dc.muelle, dc.estancia].filter(Boolean).map(escH).join(' · ');
+    const lugarHTML = lugarTxt ? `<div class="plugar">📍 ${lugarTxt}</div>` : '';
+
+    let filas;
+    if (!d.turnos.length) {
+      filas = `<div class="pturno-row">
+        <div class="pthora"><div class="phl">Turno</div><div class="pht">—</div></div>
+        <div class="ptmid"><span class="pt-empty">Sin turno asignado</span>
+          <div class="ptlinks">${linkSust}</div></div></div>`;
+    } else {
+      filas = d.turnos.map(t => {
+        const equipo = t.equipo || [];
+        const vacio = equipo.length === 0 || t.sinLlave;
+        const volsHTML = vacio
+          ? `<span class="pt-empty">Sin cubrir${t.sinLlave ? ' — falta portador de llave' : ''}</span>`
+          : equipo.map(v => `<span class="pvol${v.llave ? ' pllave' : ''}">${v.llave ? '🔑 ' : ''}${escH(v.nombre)}</span>`).join('');
+        const links = [];
+        if (!vacio) {
+          const g = _gcalURL(d.fechaStr, t.rango, navieras, equipo, dc.muelle || dc.estancia || '');
+          if (g) links.push(`<a class="ptlink" href="${escH(g)}">📅 Añadir a Google Calendar</a>`);
+          if (pdfCfg.cuestionarioUrl) links.push(`<a class="ptlink" href="${escH(pdfCfg.cuestionarioUrl)}">📝 ¿Cómo fue el turno?</a>`);
+          if ((t.alertaLlave || equipo.length < 3) && linkSust) links.push(linkSust);
+        } else if (linkSust) {
+          links.push(linkSust);
+        }
+        return `<div class="pturno-row">
+          <div class="pthora"><div class="phl">Turno</div><div class="pht">${escH(t.rango)}</div></div>
+          <div class="ptmid"><div class="ptvols">${volsHTML}</div>
+            <div class="ptlinks">${links.join('')}</div></div></div>`;
+      }).join('');
+    }
+
+    return `<div class="pbloque">
+      <div class="pinfo">
+        <div class="pfecha">${escH(wd)} ${diaNum}</div>
+        ${barcoHTML}${detHTML}${lugarHTML}
+      </div>
+      <div class="pturnos">${filas}</div>
+    </div>`;
+  }).join('');
+
+  const cuest = pdfCfg.cuestionarioUrl
+    ? `<br>Al terminar, rellenad el cuestionario del turno: <a href="${escH(pdfCfg.cuestionarioUrl)}">RELLENAR CUESTIONARIO</a>.` : '';
+
+  return `<div class="pw">
+    <div class="ptitulo">${escH(titulo)}</div>
+    ${bloques || '<p style="text-align:center;color:#888">Sin días en el cuadrante.</p>'}
+    <div class="pnota">Nota: el nombre resaltado <span class="pllavemuestra">🔑 Voluntario</span> indica que tiene llave y por tanto está asignado a recoger y depositar los expositores.</div>
+    <div class="pcontacto">${escH(pdfCfg.contacto)}${cuest}</div>
+  </div>`;
+}
+
+function imprimirCuadrante() {
+  if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
+  const area = document.getElementById('print-area');
+  area.innerHTML = _buildPrintHTML(S.plan, S.calConfig || [], cargarPdfCfg());
+  const limpiar = () => { area.innerHTML = ''; window.removeEventListener('afterprint', limpiar); };
+  window.addEventListener('afterprint', limpiar);
+  setTimeout(() => window.print(), 60);
+}
+
+function exportarSheet() {
+  if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
+  const cc = S.calConfig || [];
+  const filas = [['Fecha','Día','Barco(s)','Muelle/Estancia','Detalle','Turno','Voluntarios','Portador(es) de llave']];
+  S.plan.forEach(d => {
+    const dc = cc.find(c => c.fecha === d.fechaStr) || {};
+    const meta = [d.fechaStr, d.dia, (dc.navieras || []).join(' + '),
+      [dc.muelle, dc.estancia].filter(Boolean).join(' · '), dc.detalle || ''];
+    const turnos = d.turnos.length ? d.turnos : [{ rango: '—', equipo: [] }];
+    turnos.forEach(t => {
+      filas.push([...meta, t.rango,
+        (t.equipo || []).map(e => e.nombre).join(', '),
+        (t.equipo || []).filter(e => e.llave).map(e => e.nombre).join(', ')]);
+    });
+  });
+  const tsv = filas.map(r => r.map(c => String(c).replace(/[\t\n\r]/g, ' ')).join('\t')).join('\n');
+  const ok = () => toast('Copiado ✓ — pégalo en Google Sheets (Ctrl+V)', 'ok');
+  (navigator.clipboard?.writeText(tsv) || Promise.reject()).then(ok).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = tsv; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); ok(); } catch (e) { toast('No se pudo copiar', 'err'); }
+    ta.remove();
+  });
+}
 
 function renderCuadrante(c) {
   c.innerHTML = '';
@@ -3980,6 +4147,7 @@ function diaRealDesdeFecha(fechaStr) {
 function renderCalendario(c, dias) {
   c.innerHTML = '';
 
+  const pcfg = cargarPdfCfg();
   const hdr = document.createElement('div');
   hdr.style = 'margin-bottom:1.1rem';
   hdr.innerHTML = `
@@ -3990,6 +4158,20 @@ function renderCalendario(c, dias) {
         <input type="date" class="fc" id="cal-new-fecha" style="width:auto">
       </div>
       <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
+    </div>
+    <div style="background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-top:.65rem">
+      <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.55rem">📄 Ajustes del PDF del cuadrante</div>
+      <div class="form-row" style="margin-bottom:.5rem">
+        <div class="fg">
+          <label>Enlace al cuestionario de turnos</label>
+          <input class="fc" id="pdf-cuest" value="${escH(pcfg.cuestionarioUrl)}" placeholder="https://forms.gle/…" onchange="guardarPdfCfg({...cargarPdfCfg(), cuestionarioUrl:this.value.trim()}); toast('Ajuste guardado ✓','ok')">
+        </div>
+        <div class="fg">
+          <label>Texto de contacto para bajas</label>
+          <input class="fc" id="pdf-contacto" value="${escH(pcfg.contacto)}" onchange="guardarPdfCfg({...cargarPdfCfg(), contacto:this.value.trim()}); toast('Ajuste guardado ✓','ok')">
+        </div>
+      </div>
+      <p style="font-size:.72rem;color:var(--label3);margin:0">Se usan al generar el PDF desde <strong>Cuadrante → 📄 PDF</strong>. En los turnos sin cubrir el PDF enlaza al portal de sustituciones.</p>
     </div>`;
   c.appendChild(hdr);
 
@@ -4047,7 +4229,7 @@ function renderCalendario(c, dias) {
           }).join('')}
         </div>
       </div>
-      <div class="cal-estancia" style="min-width:130px">
+      <div class="cal-estancia" style="min-width:150px;display:flex;flex-direction:column;gap:.25rem">
         <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
           <option value="">Sin estancia</option>
           <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
@@ -4055,6 +4237,8 @@ function renderCalendario(c, dias) {
           <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
           <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
         </select>
+        <input class="fc" id="cal-info-${i}" value="${escH(d.detalle||'')}" placeholder="🕓 Llegada prevista 13:00–15:00…" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].detalle=this.value">
+        <input class="fc" id="cal-muelle-${i}" value="${escH(d.muelle||'')}" placeholder="📍 Muelle (Delicias, Tablada…)" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].muelle=this.value">
       </div>
       <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
     c.appendChild(row);
@@ -4094,7 +4278,7 @@ function addDiaCalendario() {
   const yyyy = f.getUTCFullYear();
   const fechaFmt = `${dd}/${mm}/${yyyy}`;
   if (S.calConfig.some(d => d.fecha === fechaFmt)) { toast('Esta fecha ya existe','err'); return; }
-  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, semana, dia:diaReal, activo:true, navieras:[], estancia:'' });
+  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, semana, dia:diaReal, activo:true, navieras:[], turnos:[], detalle:'', muelle:'', estancia:'' });
   S.calConfig.sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
   const c = document.getElementById('tab-calendario');
   renderCalendario(c, S.calConfig);
