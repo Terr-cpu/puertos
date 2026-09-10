@@ -1146,28 +1146,39 @@ async function getAlertasLlave() {
 // ══════════════════════════════════════════════════════════════
 
 // Cargar reglas desde localStorage o usar valores por defecto
+const REGLAS_DEFECTO = {
+  DESC_OK: 5,          // días de descanso ideal entre turnos
+  DESC_MIN: 2,         // (legacy) descanso mínimo del motor por-día
+  DESC_FLOOR: 3,       // suelo absoluto de descanso del motor global — nunca se baja de aquí
+  IDEAL: 4,            // voluntarios ideales por turno
+  MIN_EQ: 3,           // mínimo aceptable por turno
+  DUR: 2,              // duración en horas por turno
+  VENTANA_CARGA: 60,   // días hacia atrás/adelante para contar carga (balance)
+  MAX_TURNOS_DIA: 3,   // tope duro de turnos por día
+  motorGlobal: true,   // true = motor con visión global; false = motor por-día (legacy)
+};
 function cargarReglas() {
   try {
     const r = JSON.parse(localStorage.getItem('reglas_cuadrante')||'{}');
-    return {
-      DESC_OK:  r.DESC_OK  ?? 5,   // días de descanso mínimo ideal
-      DESC_MIN: r.DESC_MIN ?? 2,   // días de descanso mínimo absoluto
-      IDEAL:    r.IDEAL    ?? 4,   // voluntarios ideales por turno
-      MIN_EQ:   r.MIN_EQ   ?? 3,   // mínimo aceptable por turno
-      DUR:      r.DUR      ?? 2,   // duración en horas por turno
-    };
-  } catch(e) { return { DESC_OK:5, DESC_MIN:2, IDEAL:4, MIN_EQ:3, DUR:2 }; }
+    const out = {};
+    for (const k in REGLAS_DEFECTO) out[k] = r[k] ?? REGLAS_DEFECTO[k];
+    return out;
+  } catch(e) { return { ...REGLAS_DEFECTO }; }
 }
 function guardarReglas(r) {
   try { localStorage.setItem('reglas_cuadrante', JSON.stringify(r)); } catch(e) {}
 }
 let R = cargarReglas();
 // Alias para compatibilidad con el código existente
-let DESC_OK  = R.DESC_OK;
-let DESC_MIN = R.DESC_MIN;
-let IDEAL    = R.IDEAL;
-let MIN_EQ   = R.MIN_EQ;
-let DUR      = R.DUR;
+let DESC_OK        = R.DESC_OK;
+let DESC_MIN       = R.DESC_MIN;
+let DESC_FLOOR     = R.DESC_FLOOR;
+let IDEAL          = R.IDEAL;
+let MIN_EQ         = R.MIN_EQ;
+let DUR            = R.DUR;
+let VENTANA_CARGA  = R.VENTANA_CARGA;
+let MAX_TURNOS_DIA = R.MAX_TURNOS_DIA;
+let MOTOR_GLOBAL   = R.motorGlobal;
 
 function PH(s) {
   // Parsea "10:00 a 12:00" o "10 a 12" → {a:10, b:12}
@@ -1413,6 +1424,265 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
 }
 
 // ══════════════════════════════════════════════════════════════
+//  MOTOR GLOBAL — planifica el mes entero con visión de conjunto
+//  ────────────────────────────────────────────────────────────
+//  Fase 1  Garantiza 1 turno en cada día posible. Procesa los días del
+//          más apretado al más holgado (recalculando la holgura en cada
+//          vuelta) y, dentro de cada equipo, elige a los voluntarios por
+//          COSTE DE OPORTUNIDAD: quien más falta hace pronto en días
+//          apretados donde también está disponible, se reserva para ellos.
+//  Fase 2  Añade 2º/3er turno solo donde sobra gente y sin dejar que
+//          ningún día futuro dentro de la ventana de descanso baje del
+//          mínimo de equipo.
+//  Descanso  Intenta DESC_OK; baja 1 a 1 hasta DESC_FLOOR únicamente si el
+//            día quedaría sin ningún turno. Nunca por debajo de DESC_FLOOR.
+//  Llave  Tras formar los equipos se aplica reglasLlaveConf() por día,
+//         igual que en el motor por-día.
+//  Devuelve  Map<fechaISO, {turnos, diagnostico}> — mismo contrato que
+//            calcularDiaJS(), solo para los días pendientes.
+// ══════════════════════════════════════════════════════════════
+function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) {
+  const DAY    = 86400000;
+  const DUR_   = R.DUR ?? 2;
+  const DOK    = R.DESC_OK ?? 5;
+  const DFLOOR = Math.min(R.DESC_FLOOR ?? 3, DOK);
+  const IDEAL_ = R.IDEAL ?? 4;
+  const MINEQ_ = R.MIN_EQ ?? 3;
+  const MAXTD  = Math.max(1, R.MAX_TURNOS_DIA ?? 3);
+  const VENT   = R.VENTANA_CARGA ?? 60;
+  const W = { fut: 3, desc: 1, carga: 0.5, llave: 2 }; // pesos del coste de oportunidad
+
+  // ── Historial simulado: real + lo que asignemos en esta pasada ──
+  const simIdx = {}; // key -> [ts,...]
+  histFlat.forEach(h => (simIdx[h.key] = simIdx[h.key] || []).push(h.ts));
+  const addSim = (key, ts) => (simIdx[key] = simIdx[key] || []).push(ts);
+  function descanso(key, ts, ignorar) {
+    if (ignorar) return 99;
+    const arr = simIdx[key]; if (!arr || !arr.length) return 99;
+    let best = 99;
+    for (const t of arr) {
+      const d = Math.abs(ts - t) / DAY;
+      if (d === 0) return 0;
+      if (d < best) best = d;
+    }
+    return Math.round(best);
+  }
+  function cargaVent(key, ts) {
+    const arr = simIdx[key]; if (!arr) return 0;
+    let n = 0;
+    for (const t of arr) if (Math.abs(ts - t) / DAY <= VENT) n++;
+    return n;
+  }
+
+  // ── Preparar días pendientes con su pool crudo ──
+  const dias = diasPendientes.map(di => {
+    const seen = new Set();
+    const raw = (dispoIdx[di.semana + '|' + di.diaNorm] || []).map(v => {
+      const p = PH(v.horario); if (!p) return null;
+      const key = v.nombre.toUpperCase().trim();
+      if (seen.has(key)) return null; seen.add(key);
+      return { nombre: v.nombre, key, hIn: p.a, hOut: p.b, llave: llaves.has(key) };
+    }).filter(Boolean);
+    const horasHab = new Set();
+    (di.turnosHabilitados || []).forEach(rg => {
+      const p = PH(rg); if (p) for (let h = p.a; h <= p.b - DUR_; h++) horasHab.add(h);
+    });
+    return { ...di, raw, horasHab, usados: new Set(), turnos: [], holgura: 0, cerrado: false };
+  });
+
+  const ex = (d, campo, def) => (d.exc && d.exc[campo] != null ? d.exc[campo] : def);
+  const ign = d => !!(d.exc && d.exc.ignorarDescanso);
+
+  function poolDia(d, umbral) {
+    return d.raw.filter(c => !d.usados.has(c.key) && descanso(c.key, d.ts, ign(d)) >= umbral);
+  }
+  function franjasDia(d, pool) {
+    let fr = franjas2h(pool, DUR_, MINEQ_);
+    if (d.horasHab.size) fr = fr.filter(f => d.horasHab.has(f.h));
+    return fr.filter(f => !d.turnos.some(t => f.h < t.h + DUR_ && f.h + DUR_ > t.h));
+  }
+  function recalcHolguras() {
+    for (const d of dias) d.holgura = poolDia(d, DOK).length - MINEQ_;
+  }
+  function necesidadFutura(key, ts) {
+    let s = 0;
+    for (const d2 of dias) {
+      const dd = (d2.ts - ts) / DAY;
+      if (dd <= 0 || dd > DOK) continue;
+      if (d2.usados.has(key)) continue;
+      if (!d2.raw.some(c => c.key === key)) continue;
+      s += 1 / Math.max(d2.holgura, 0.5);
+    }
+    return s;
+  }
+  function enriquecer(c, d) {
+    return { ...c, desc: descanso(c.key, d.ts, ign(d)), dispo: cargaVent(c.key, d.ts) };
+  }
+
+  // Forma un equipo para la franja h del día d. Devuelve [cand enriquecidos] o null.
+  function formarEquipoOp(d, pool, h, ideal, minEq) {
+    const cubren = pool.filter(c => c.hIn <= h && c.hOut >= h + DUR_).map(c => {
+      const e = enriquecer(c, d); e._fut = necesidadFutura(c.key, d.ts); return e;
+    });
+    if (cubren.length < 2) return null;
+    const score = (c, yaHayLlave) =>
+        W.fut  * c._fut
+      - W.desc * c.desc
+      + W.carga * c.dispo
+      + ((c.llave && yaHayLlave) ? W.llave : 0); // no malgastar llaves si el equipo ya tiene una
+    const eq = [];
+    const lls = cubren.filter(c => c.llave).sort((a, b) => score(a, false) - score(b, false));
+    if (lls.length) eq.push(lls[0]); // reserva 1 portador (la necesidad real la valida reglasLlaveConf)
+    const resto = cubren
+      .filter(c => !eq.some(e => e.key === c.key))
+      .sort((a, b) => score(a, true) - score(b, true));
+    for (const c of resto) { if (eq.length >= ideal) break; eq.push(c); }
+    return eq;
+  }
+
+  // Coloca UN turno en d. Cascada de descanso DOK..DFLOOR.
+  function colocarTurno(d, permitirCorto) {
+    const ideal = ex(d, 'IDEAL', IDEAL_);
+    const minEq = ex(d, 'MIN_EQ', MINEQ_);
+    for (let umbral = DOK; umbral >= DFLOOR; umbral--) {
+      const pool = poolDia(d, umbral);
+      const fr = franjasDia(d, pool);
+      let h = null;
+      if (fr.length) {
+        fr.sort((a, b) => b.pool.length - a.pool.length || a.h - b.h);
+        h = fr[0].h;
+      } else if (permitirCorto) {
+        const horas = d.horasHab.size ? [...d.horasHab] : (() => {
+          if (!pool.length) return [];
+          const mn = Math.min(...pool.map(c => c.hIn)), mx = Math.max(...pool.map(c => c.hOut));
+          const hs = []; for (let x = mn; x <= mx - DUR_; x++) hs.push(x); return hs;
+        })();
+        for (const x of horas.sort((a, b) => a - b)) {
+          if (d.turnos.some(t => x < t.h + DUR_ && x + DUR_ > t.h)) continue;
+          if (pool.filter(c => c.hIn <= x && c.hOut >= x + DUR_).length >= 2) { h = x; break; }
+        }
+      }
+      if (h == null) continue;
+      const eq = formarEquipoOp(d, pool, h, ideal, minEq);
+      if (!eq || eq.length < 2) continue;
+      if (eq.length < minEq && !permitirCorto) continue;
+      d.turnos.push({ h, equipo: eq, umbral });
+      d.turnos.sort((a, b) => a.h - b.h);
+      eq.forEach(c => { d.usados.add(c.key); addSim(c.key, d.ts); });
+      return { umbral, corto: eq.length < minEq };
+    }
+    return null;
+  }
+
+  // ── FASE 1 — cobertura mínima (1 turno por día) ──
+  let guard = dias.length * 4 + 20;
+  while (guard-- > 0) {
+    const pend = dias.filter(d => !d.turnos.length && !d.cerrado && d.raw.length);
+    if (!pend.length) break;
+    recalcHolguras();
+    pend.sort((a, b) => a.holgura - b.holgura || a.ts - b.ts);
+    const d = pend[0];
+    let res = colocarTurno(d, false) || colocarTurno(d, true);
+    if (!res) { d.cerrado = true; continue; }
+    if (res.umbral < DOK) d.avisoDesc = res.umbral;
+    if (res.corto) d.avisoCorto = true;
+  }
+
+  // ── FASE 2 — ampliación prudente ──
+  guard = dias.length * MAXTD + 20;
+  while (guard-- > 0) {
+    recalcHolguras();
+    let mejor = null;
+    for (const d of dias) {
+      if (d._noAmpliar || !d.turnos.length) continue;
+      if (d.turnos.length >= ex(d, 'MAX_TURNOS_DIA', MAXTD)) continue;
+      const pool = poolDia(d, DOK);
+      const fr = franjasDia(d, pool);
+      if (!fr.length) continue;
+      fr.sort((a, b) => b.pool.length - a.pool.length || a.h - b.h);
+      const surplus = fr[0].pool.length - MINEQ_;
+      if (surplus < 0) continue;
+      if (!mejor || surplus > mejor.surplus) mejor = { d, h: fr[0].h, pool, surplus };
+    }
+    if (!mejor) break;
+    const d = mejor.d;
+    const eq = formarEquipoOp(d, mejor.pool, mejor.h, IDEAL_, MINEQ_);
+    if (!eq || eq.length < MINEQ_) { d._noAmpliar = true; continue; }
+    const keys = new Set(eq.map(c => c.key));
+    let rompe = false;
+    for (const d2 of dias) {
+      if (d2 === d || d2.cerrado) continue;
+      if (Math.abs(d2.ts - d.ts) / DAY > DOK) continue;
+      const p2 = poolDia(d2, DOK);
+      if (p2.length < MINEQ_) continue; // ese día ya no puede depender de estos voluntarios
+      if (p2.filter(c => !keys.has(c.key)).length < MINEQ_) { rompe = true; break; }
+    }
+    if (rompe) { d._noAmpliar = true; continue; }
+    d.turnos.push({ h: mejor.h, equipo: eq, umbral: DOK });
+    d.turnos.sort((a, b) => a.h - b.h);
+    eq.forEach(c => { d.usados.add(c.key); addSim(c.key, d.ts); });
+  }
+
+  // ── SALIDA — mismo contrato que calcularDiaJS(), por día ──
+  const salida = new Map();
+  for (const d of dias) {
+    const minEq = ex(d, 'MIN_EQ', MINEQ_);
+    const poolRef = d.raw.map(c => enriquecer(c, d));
+    let franRef = franjas2h(poolRef.filter(c => c.desc >= DFLOOR), DUR_, minEq);
+    if (d.horasHab.size) franRef = franRef.filter(f => d.horasHab.has(f.h));
+
+    const rawTurnos = d.turnos.map(t => ({
+      h: t.h,
+      equipo: t.equipo.map(c => ({ ...c })),
+      pool: (franRef.find(f => f.h === t.h)?.pool) || t.equipo.map(c => ({ ...c })),
+    }));
+    const asigG = {};
+    rawTurnos.forEach(t => t.equipo.forEach(e => { asigG[e.key] = true; }));
+    rawTurnos.forEach(t => { t.asignadosGlobal = asigG; });
+    reglasLlaveConf(rawTurnos, franRef.length ? franRef : rawTurnos.map(t => ({ h: t.h, pool: t.pool })), minEq);
+
+    const turnosOut = rawTurnos.map(t => {
+      const rango = HP(t.h) + ':00 a ' + HP(t.h + DUR_) + ':00';
+      if (t.alertaLlave && t.equipo.length === 0) {
+        return { rango, equipo: [], sustitutos: (t.pool || []).map(s => ({
+          nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
+          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00', estado: 'disponible' })),
+          necesitaLlave: true, sinLlave: true, alertaLlave: false };
+      }
+      const fOrig = franRef.find(f => f.h === t.h);
+      const sust = fOrig ? fOrig.pool
+        .filter(s => !t.equipo.some(e => e.key === s.key))
+        .map(s => ({ nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
+          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00',
+          estado: s.desc >= DOK ? 'disponible' : s.desc >= DFLOOR ? 'reducido' : 'bloqueado' })) : [];
+      return {
+        rango,
+        equipo: t.equipo.map(e => ({ nombre: e.nombre, llave: e.llave, dias: e.desc, dispo: e.dispo,
+          horario: HP(e.hIn) + ':00 a ' + HP(e.hOut) + ':00' })),
+        sustitutos: sust, necesitaLlave: t.necesitaLlave, sinLlave: false, alertaLlave: t.alertaLlave || false,
+      };
+    });
+
+    const todosInfo = poolRef.map(c => ({
+      nombre: c.nombre, horario: HP(c.hIn) + ':00 a ' + HP(c.hOut) + ':00',
+      llave: c.llave, dias: c.desc,
+      estado: c.desc < DFLOOR ? 'bloqueado' : c.desc < DOK ? 'reducido' : 'ok',
+    }));
+    let aviso = '';
+    if (d.avisoDesc) aviso = '⚠️ Descanso reducido a ' + d.avisoDesc + ' días para poder cubrir el día.';
+    if (d.avisoCorto) aviso = (aviso ? aviso + ' ' : '') + '⚠️ Equipo por debajo del mínimo: no hay suficientes voluntarios.';
+    if (!d.turnos.length && d.raw.length && !d.avisoCorto) aviso = '⚠️ Sin franja de ' + DUR_ + 'h con ≥' + minEq + ' voluntarios con descanso suficiente.';
+    const aptos = d.raw.filter(c => d.usados.has(c.key) || descanso(c.key, d.ts, ign(d)) >= DOK).length;
+
+    salida.set(d.fiso, {
+      turnos: turnosOut,
+      diagnostico: { aptos, totalDisponibles: d.raw.length, todos: todosInfo, aviso },
+    });
+  }
+  return salida;
+}
+
+// ══════════════════════════════════════════════════════════════
 //  CUADRANTE MENSUAL — usa el motor de planificación completo
 // ══════════════════════════════════════════════════════════════
 async function getCuadranteMensual() {
@@ -1458,64 +1728,72 @@ async function getCuadranteMensual() {
     });
   });
 
-  const plan = [];
-  // ── histFlat simulado: se acumula con cada día calculado ──
-  // Esto garantiza que los días de descanso se respetan DENTRO del mismo mes
-  const histFlatSim = [...histFlat]; // copia para no mutar el original
+  const reglas = cargarReglas();
+  let excepciones = {};
+  try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
 
-  for (const dia of (calData.dias||[]).filter(d=>d.activo)) {
+  const activos = (calData.dias||[]).filter(d=>d.activo);
+  const esConfirmado = fiso => histPorFecha[fiso] && Object.keys(histPorFecha[fiso]).length > 0;
+
+  // ── MOTOR GLOBAL: resuelve todos los días pendientes de una pasada ──
+  let porFiso = new Map();
+  if (reglas.motorGlobal !== false) {
+    const pendientes = activos.filter(d => !esConfirmado(d.fechaISO)).map(d => ({
+      dia: d, fiso: d.fechaISO,
+      ts: new Date(d.fechaISO+'T12:00:00Z').getTime(),
+      semana: d.semana, diaNorm: normDia(d.dia),
+      turnosHabilitados: d.turnos || [],
+      exc: excepciones[d.fechaISO] || {},
+    }));
+    porFiso = planificarMesGlobal({ diasPendientes: pendientes, histFlat, dispoIdx, llaves, R: reglas });
+  }
+
+  const plan = [];
+  const histFlatSim = [...histFlat]; // solo lo usa el motor por-día (legacy)
+
+  for (const dia of activos) {
     const fiso    = dia.fechaISO;
     const semana  = dia.semana;
     const diaNorm = normDia(dia.dia);
     const turnosConf = histPorFecha[fiso] || {};
+    const base = {
+      fechaLabel: dia.fecha+' — '+dia.dia, fechaStr: dia.fecha,
+      fechaRaw: new Date(fiso+'T12:00:00Z').getTime(),
+      semana, dia: dia.dia,
+    };
 
     if (Object.keys(turnosConf).length > 0) {
       // Día ya confirmado — mostrar del historial
-      // El historial real ya está en histFlatSim, no hace falta añadir nada
       const turnos = Object.entries(turnosConf)
         .sort(([a],[b]) => a<b?-1:1)
         .map(([rango,equipo]) => ({
           rango, equipo, confirmado:true,
           sustitutos:[], sinLlave:false, necesitaLlave:false, alertaLlave:false
         }));
-      plan.push({
-        fechaLabel: dia.fecha+' — '+dia.dia, fechaStr: dia.fecha,
-        fechaRaw: new Date(fiso+'T12:00:00Z').getTime(),
-        semana, dia: dia.dia, turnos, confirmado:true,
-        diagnostico:{aptos:0,totalDisponibles:0,todos:[],aviso:''}
-      });
-    } else {
-      // Día sin confirmar — aplicar motor de planificación con historial acumulado
-      const disponibles = dispoIdx[semana+'|'+diaNorm] || [];
-      let excepciones = {};
-      try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
-      const excepcion = excepciones[fiso] || {};
-
-      // Pasar histFlatSim (incluye días ya calculados este mes)
-      const resultado = calcularDiaJS(
-        semana, diaNorm,
-        new Date(fiso+'T12:00:00Z'),
-        disponibles, histFlatSim, llaves, {},
-        dia.turnos || [],
-        excepcion
-      );
-      plan.push({
-        fechaLabel: dia.fecha+' — '+dia.dia, fechaStr: dia.fecha,
-        fechaRaw: new Date(fiso+'T12:00:00Z').getTime(),
-        semana, dia: dia.dia,
-        turnos: resultado.turnos, confirmado:false,
-        diagnostico: resultado.diagnostico
-      });
-
-      // ── Acumular en histFlatSim los voluntarios asignados hoy ──
-      // Esto hace que el motor respete los días de descanso en días siguientes del mismo mes
-      const tsHoy = new Date(fiso+'T12:00:00Z').getTime();
-      resultado.turnos.forEach(t => {
-        (t.equipo||[]).forEach(v => {
-          histFlatSim.push({ key: v.nombre.toUpperCase().trim(), ts: tsHoy });
-        });
-      });
+      plan.push({ ...base, turnos, confirmado:true,
+        diagnostico:{aptos:0,totalDisponibles:0,todos:[],aviso:''} });
+      continue;
     }
+
+    if (reglas.motorGlobal !== false) {
+      const r = porFiso.get(fiso) || { turnos:[], diagnostico:{aptos:0,totalDisponibles:0,todos:[],aviso:''} };
+      plan.push({ ...base, turnos:r.turnos, confirmado:false, diagnostico:r.diagnostico });
+      continue;
+    }
+
+    // ── MOTOR POR-DÍA (legacy) — greedy cronológico con historial acumulado ──
+    const disponibles = dispoIdx[semana+'|'+diaNorm] || [];
+    const resultado = calcularDiaJS(
+      semana, diaNorm, new Date(fiso+'T12:00:00Z'),
+      disponibles, histFlatSim, llaves, {},
+      dia.turnos || [], excepciones[fiso] || {}
+    );
+    plan.push({ ...base, turnos: resultado.turnos, confirmado:false, diagnostico: resultado.diagnostico });
+
+    const tsHoy = new Date(fiso+'T12:00:00Z').getTime();
+    resultado.turnos.forEach(t => {
+      (t.equipo||[]).forEach(v => histFlatSim.push({ key: v.nombre.toUpperCase().trim(), ts: tsHoy }));
+    });
   }
   return plan;
 }
@@ -1644,7 +1922,7 @@ function buildSlot(v, key, idx, conf) {
     <div class="va">${ini}</div>
     <div style="flex:1;min-width:0">
       <div class="vn">${v.nombre}</div>
-      <div class="vm">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.dispo?' · '+v.dispo+'d/mes':''}</div>
+      <div class="vm">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.dispo?' · '+v.dispo+' turnos/vent.':''}</div>
       ${v.horario?`<div class="vhor">🕐 ${v.horario}</div>`:''}
     </div>
     ${v.llave?'<span class="bllave">🔑 Llave</span>':''}
@@ -4474,14 +4752,18 @@ function loadReglas() {
   const globCard = document.createElement('div'); globCard.className = 'card';
   globCard.innerHTML = `
     <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:1rem">Reglas generales del cuadrante</div>
+    <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;padding:.65rem .9rem;background:var(--green-soft);border-radius:var(--r-md)">
+      <label class="toggle-sw"><input type="checkbox" id="r-motor-global" ${r.motorGlobal!==false?'checked':''}><span class="toggle-sl"></span></label>
+      <div><div style="font-size:.8rem;font-weight:600">Motor con visión global</div><div style="font-size:.68rem;color:var(--label3)">Planifica el mes entero repartiendo la carga entre días y reservando voluntarios para los días con menos gente. Desactívalo para volver al motor día a día.</div></div>
+    </div>
     <div class="form-row" style="margin-bottom:.85rem">
       <div class="fg">
-        <label>Descanso ideal (días) <span style="color:var(--label3);font-weight:400">— mínimo preferido entre turnos</span></label>
+        <label>Descanso ideal (días) <span style="color:var(--label3);font-weight:400">— objetivo entre turnos</span></label>
         <input class="fc" type="number" id="r-desc-ok" min="1" max="30" value="${r.DESC_OK}">
       </div>
       <div class="fg">
-        <label>Descanso mínimo (días) <span style="color:var(--label3);font-weight:400">— límite absoluto</span></label>
-        <input class="fc" type="number" id="r-desc-min" min="0" max="20" value="${r.DESC_MIN}">
+        <label>Suelo de descanso (días) <span style="color:var(--label3);font-weight:400">— nunca se baja de aquí</span></label>
+        <input class="fc" type="number" id="r-desc-floor" min="0" max="20" value="${r.DESC_FLOOR}">
       </div>
     </div>
     <div class="form-row" style="margin-bottom:.85rem">
@@ -4494,10 +4776,20 @@ function loadReglas() {
         <input class="fc" type="number" id="r-min-eq" min="1" max="10" value="${r.MIN_EQ}">
       </div>
     </div>
-    <div class="form-row full" style="margin-bottom:.5rem">
+    <div class="form-row" style="margin-bottom:.85rem">
       <div class="fg">
         <label>Duración de cada turno (horas)</label>
-        <input class="fc" type="number" id="r-dur" min="1" max="8" value="${r.DUR}" style="max-width:120px">
+        <input class="fc" type="number" id="r-dur" min="1" max="8" value="${r.DUR}">
+      </div>
+      <div class="fg">
+        <label>Máx. turnos por día <span style="color:var(--label3);font-weight:400">— tope de la fase de ampliación</span></label>
+        <input class="fc" type="number" id="r-max-td" min="1" max="8" value="${r.MAX_TURNOS_DIA}">
+      </div>
+    </div>
+    <div class="form-row full" style="margin-bottom:.5rem">
+      <div class="fg">
+        <label>Ventana de carga (días) <span style="color:var(--label3);font-weight:400">— periodo para equilibrar turnos por voluntario</span></label>
+        <input class="fc" type="number" id="r-ventana" min="7" max="365" value="${r.VENTANA_CARGA}" style="max-width:140px">
       </div>
     </div>
     <div style="background:var(--blue-soft);border-radius:var(--r-sm);padding:.6rem .85rem;font-size:.76rem;color:var(--blue);margin-top:.5rem;line-height:1.5">
@@ -4624,18 +4916,26 @@ function borrarExcepcion(fiso) {
 }
 
 function guardarReglasCfg() {
-  const dok  = parseInt(document.getElementById('r-desc-ok')?.value);
-  const dmin = parseInt(document.getElementById('r-desc-min')?.value);
-  const ideal= parseInt(document.getElementById('r-ideal')?.value);
-  const mineq= parseInt(document.getElementById('r-min-eq')?.value);
-  const dur  = parseInt(document.getElementById('r-dur')?.value);
-  if ([dok,dmin,ideal,mineq,dur].some(isNaN)) { toast('Revisa los valores', 'err'); return; }
-  if (dmin > dok) { toast('El mínimo no puede superar el ideal', 'err'); return; }
+  const dok   = parseInt(document.getElementById('r-desc-ok')?.value);
+  const floor = parseInt(document.getElementById('r-desc-floor')?.value);
+  const ideal = parseInt(document.getElementById('r-ideal')?.value);
+  const mineq = parseInt(document.getElementById('r-min-eq')?.value);
+  const dur   = parseInt(document.getElementById('r-dur')?.value);
+  const maxtd = parseInt(document.getElementById('r-max-td')?.value);
+  const vent  = parseInt(document.getElementById('r-ventana')?.value);
+  const motorGlobal = !!document.getElementById('r-motor-global')?.checked;
+  if ([dok,floor,ideal,mineq,dur,maxtd,vent].some(isNaN)) { toast('Revisa los valores', 'err'); return; }
+  if (floor > dok) { toast('El suelo de descanso no puede superar el ideal', 'err'); return; }
   if (mineq > ideal) { toast('El mínimo por turno no puede superar el ideal', 'err'); return; }
-  const r = { DESC_OK:dok, DESC_MIN:dmin, IDEAL:ideal, MIN_EQ:mineq, DUR:dur };
+  const r = { ...cargarReglas(),
+    DESC_OK:dok, DESC_FLOOR:floor, IDEAL:ideal, MIN_EQ:mineq, DUR:dur,
+    MAX_TURNOS_DIA:maxtd, VENTANA_CARGA:vent, motorGlobal };
   guardarReglas(r);
   // Actualizar variables globales en caliente
-  R = r; DESC_OK = r.DESC_OK; DESC_MIN = r.DESC_MIN; IDEAL = r.IDEAL; MIN_EQ = r.MIN_EQ; DUR = r.DUR;
+  R = r;
+  DESC_OK = r.DESC_OK; DESC_MIN = r.DESC_MIN; DESC_FLOOR = r.DESC_FLOOR;
+  IDEAL = r.IDEAL; MIN_EQ = r.MIN_EQ; DUR = r.DUR;
+  VENTANA_CARGA = r.VENTANA_CARGA; MAX_TURNOS_DIA = r.MAX_TURNOS_DIA; MOTOR_GLOBAL = r.motorGlobal;
   toast('Reglas guardadas ✓ — pulsa Recalc. en el Cuadrante para aplicarlas', 'ok');
 }
 

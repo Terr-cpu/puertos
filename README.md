@@ -19,16 +19,44 @@ y se cachea en `localStorage`.
 ## Motor de planificación (`planificador.html`)
 
 Genera el cuadrante a partir de la disponibilidad, el historial de turnos y el
-calendario de días activos. Parámetros configurables en la pestaña **Reglas del motor**
-(se guardan en `localStorage` con la clave `reglas_cuadrante`):
+calendario de días activos. Los días ya confirmados no se recalculan nunca.
 
-- `DESC_OK` — días de descanso mínimo ideal entre turnos (por defecto 5)
-- `DESC_MIN` — días de descanso mínimo absoluto (2)
-- `IDEAL` — voluntarios ideales por turno (4)
-- `MIN_EQ` — mínimo aceptable por turno (3)
-- `DUR` — duración del turno en horas (2)
+Hay dos motores, seleccionables con el toggle **Motor con visión global** de la
+pestaña **Reglas del motor**:
 
-Se pueden definir excepciones por día concreto (clave `excepcion_dia` en `localStorage`).
+- **Motor global** (por defecto). Planifica el mes entero de una pasada.
+  - *Fase 1 — cobertura:* coloca 1 turno en cada día posible, procesando los días
+    del más apretado al más holgado. Dentro de cada equipo elige a los voluntarios
+    por **coste de oportunidad**: quien hace falta pronto en un día con poca gente
+    donde también está disponible, se reserva para ese día.
+  - *Fase 2 — ampliación:* añade 2º/3er turno solo donde sobra gente y sin dejar
+    que ningún día futuro dentro de la ventana de descanso baje del mínimo.
+  - *Descanso:* intenta `DESC_OK`; baja 1 a 1 hasta `DESC_FLOOR` solo si el día
+    quedaría sin ningún turno. Nunca por debajo de `DESC_FLOOR`.
+- **Motor por-día** (legacy). Resuelve cada día de forma aislada en orden
+  cronológico. Se conserva como alternativa.
+
+En ambos, tras formar los equipos se aplica la regla del portador de llave
+(primer turno, último turno y turnos junto a un hueco horario necesitan un
+portador presente).
+
+Parámetros en **Reglas del motor** (se guardan en `localStorage` →
+`reglas_cuadrante`):
+
+| Regla | Def. | Descripción |
+|---|---|---|
+| `DESC_OK` | 5 | Días de descanso objetivo entre turnos |
+| `DESC_FLOOR` | 3 | Suelo absoluto de descanso (motor global) |
+| `DESC_MIN` | 2 | Descanso mínimo del motor por-día (legacy) |
+| `IDEAL` | 4 | Voluntarios ideales por turno |
+| `MIN_EQ` | 3 | Mínimo aceptable por turno |
+| `DUR` | 2 | Duración del turno en horas |
+| `VENTANA_CARGA` | 60 | Días para equilibrar la carga por voluntario |
+| `MAX_TURNOS_DIA` | 3 | Tope de turnos por día |
+| `motorGlobal` | true | Motor global (true) o por-día (false) |
+
+Se pueden definir excepciones por día concreto (clave `excepcion_dia` en
+`localStorage`): descanso, tamaño de equipo o "ignorar descanso".
 
 ## Configuración
 
@@ -40,6 +68,17 @@ Las credenciales van embebidas en cada HTML (constantes al inicio del `<script>`
   vive en el propio proyecto de Apps Script, fuera de este repo).
 - **Telegram** (opcional): el token del bot y el chat ID los introduce el usuario en
   el panel de notificaciones; se guardan solo en `localStorage`, no en el repo.
+
+## Pruebas
+
+El motor global tiene un banco de pruebas que carga el `<script>` de
+`planificador.html` en un DOM simulado y lo ejercita con escenarios sintéticos
+(reparto de cobertura, cascada de descanso, portador de llave, ventana de carga,
+franjas habilitadas, mes completo):
+
+```bash
+node test/motor-global.test.js
+```
 
 ## Despliegue
 
