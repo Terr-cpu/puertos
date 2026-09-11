@@ -112,7 +112,25 @@ Las credenciales van embebidas en cada HTML (constantes al inicio del `<script>`
 - **Google Apps Script**: `APP_URL` en `disponibilidad.html` (y la lógica de servidor
   vive en el propio proyecto de Apps Script, fuera de este repo).
 - **Telegram** (opcional): el token del bot y el chat ID los introduce el usuario en
-  el panel de notificaciones; se guardan solo en `localStorage`, no en el repo.
+  el panel de notificaciones; se guardan solo en `localStorage`, no en el repo. Esos
+  campos solo sirven para probar el bot — el envío real en segundo plano usa su propia
+  copia de las credenciales como *secrets* de la Edge Function (ver más abajo).
+
+## App instalable (PWA) y notificaciones en segundo plano
+
+`planificador.html` se puede instalar en el móvil (Android/Chrome → "Añadir a
+pantalla de inicio"): icono propio, pantalla completa. `manifest.webmanifest` y
+`sw.js` son archivos estáticos reales — necesario para que la instalación sea
+fiable (antes se generaban como *blob URLs* efímeras, que Chrome ni siquiera
+acepta para registrar un service worker).
+
+Las notificaciones de bajas y apuntes nuevos, para que lleguen **aunque la app
+esté cerrada**, no pueden depender del navegador (ningún sondeo desde JS de
+página sobrevive a que Android mate la pestaña en segundo plano). Por eso el
+aviso a Telegram lo dispara Supabase directamente al insertarse la fila —
+`supabase/functions/notificar-telegram/` + dos Database Webhooks. Se despliega
+entero desde el panel de Supabase, sin CLI. Guía paso a paso:
+[`NOTIFICACIONES.md`](NOTIFICACIONES.md).
 
 ## Pruebas
 

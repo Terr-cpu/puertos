@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Turnos Puerto">
 <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a1628'/><text y='.9em' font-size='72' x='14'>⚓</text></svg>">
-<link rel="manifest" id="pwa-manifest">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
@@ -5386,13 +5386,14 @@ async function ofGuardarCfg(cfgKey, turnoKey, fecha) {
 }
 
 // ── PWA ─────────────────────────────────────────────────────
+// El manifest (manifest.webmanifest) y el service worker (sw.js) son ahora
+// archivos estáticos reales en el repo — antes se generaban como blob URLs
+// efímeras en cada carga de página, lo que hacía "Añadir a pantalla de
+// inicio" poco fiable en Android (Chrome necesita una URL estable para
+// validar la instalación y comprobar actualizaciones del service worker).
 (function initPWA(){
-  const m={name:'Turnos Puerto de Sevilla',short_name:'Turnos Puerto',start_url:'./',display:'standalone',background_color:'#0a1628',theme_color:'#0a1628',icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a1628'/><text y='.85em' font-size='140' x='22'>⚓</text></svg>",sizes:'192x192',type:'image/svg+xml'},{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a1628'/><text y='.85em' font-size='380' x='56'>⚓</text></svg>",sizes:'512x512',type:'image/svg+xml'}]};
-  const bl=new Blob([JSON.stringify(m)],{type:'application/json'});
-  const el=document.getElementById('pwa-manifest');if(el) el.href=URL.createObjectURL(bl);
   if('serviceWorker' in navigator){
-    const sw=`const C='plan-v1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])).catch(()=>{})));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
-    navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'})),{scope:'./'}).catch(()=>{});
+    navigator.serviceWorker.register('sw.js', {scope:'./'}).catch(()=>{});
   }
   let dp=null;
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;
@@ -5685,23 +5686,6 @@ function mostrarNotifNativa(titulo, cuerpo, icono) {
   } catch(e) {}
 }
 
-// ── Enviar a Telegram (si está configurado) ──────────────────
-async function enviarTelegram(mensaje) {
-  const cfg = cargarNotifCfg();
-  if (!cfg.telegramToken || !cfg.telegramChatId) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${cfg.telegramToken}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: cfg.telegramChatId,
-        text: mensaje,
-        parse_mode: 'HTML'
-      })
-    });
-  } catch(e) { console.warn('Telegram error:', e); }
-}
-
 // ── Tipos de evento ──────────────────────────────────────────
 const TIPOS_EVENTO = {
   baja_nueva:        { emoji:'📤', color:'var(--red)',      label:'Baja comunicada'    },
@@ -5726,13 +5710,17 @@ function añadirEvento(tipo, datos) {
   guardarNotifs(lista);
   actualizarBadge();
 
-  // Notificación nativa
+  // Notificación nativa del navegador — solo llega mientras la app está
+  // abierta en primer plano/segundo plano; útil como aviso inmediato in-app.
   const titulo = `${def.emoji} ${def.label}`;
   const cuerpo = datos.texto || '';
   mostrarNotifNativa(titulo, cuerpo);
 
-  // Telegram
-  enviarTelegram(`${def.emoji} <b>${def.label}</b>\n${cuerpo}\n<i>${evento.tsDate} ${evento.tsLocal}</i>`);
+  // El aviso a Telegram YA NO se envía desde aquí: ahora lo dispara Supabase
+  // directamente al insertar la fila (función notificar-telegram + webhooks
+  // de bajas/refuerzos — ver NOTIFICACIONES.md), así llega aunque la app esté
+  // cerrada. Mandarlo también desde el cliente duplicaría el mensaje cuando
+  // la app SÍ está abierta en el momento del evento.
 
   // Actualizar panel si está abierto
   if (_notifPanelOpen) renderNotifList();
@@ -5876,8 +5864,11 @@ function abrirCfgNotif() {
   document.getElementById('mvol-titulo').textContent = '🔔 Configurar notificaciones';
   document.getElementById('mvol-body').innerHTML = `
     <p style="font-size:.8rem;color:var(--label3);margin-bottom:1.1rem;line-height:1.5">
-      Las notificaciones del navegador funcionan mientras esta página esté abierta.<br>
-      Con Telegram recibirás avisos en tu móvil aunque el planificador esté cerrado.
+      Las notificaciones del navegador solo llegan mientras esta página está abierta.<br>
+      Para que Telegram avise <strong>con la app cerrada</strong>, el envío lo hace
+      Supabase directamente al guardar la baja/apunte — configúralo siguiendo
+      <code>NOTIFICACIONES.md</code> del repositorio. El token y chat ID de aquí abajo
+      solo sirven para <em>probar</em> que tu bot funciona antes de darlo de alta allí.
     </p>
 
     <!-- Navegador -->

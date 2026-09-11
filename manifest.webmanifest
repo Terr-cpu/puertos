@@ -1,0 +1,39 @@
+{
+  "name": "Turnos Puerto de Sevilla",
+  "short_name": "Turnos Puerto",
+  "description": "Planificador de turnos del Puerto de Sevilla",
+  "start_url": "planificador.html",
+  "scope": "./",
+  "id": "./planificador.html",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%230a1628'/%3E%3Ctext y='.85em' font-size='140' x='22'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' fill='%230a1628'/%3E%3Ctext y='.62em' font-size='100' x='50%25' text-anchor='middle'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%230a1628'/%3E%3Ctext y='.85em' font-size='380' x='56'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%230a1628'/%3E%3Ctext y='.62em' font-size='270' x='50%25' text-anchor='middle'%3E%E2%9A%93%3C/text%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
