@@ -1709,6 +1709,27 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
       };
     });
 
+    // Asegurar que toda franja habilitada en el calendario aparece en la salida,
+    // aunque el motor no haya podido formar equipo — para que se vea el hueco y
+    // se pueda cubrir a mano o apuntarse (enlace de sustituciones en el PDF).
+    if (d.horasHab.size) {
+      const cubiertas = new Set();
+      turnosOut.forEach(t => { const h0 = parseInt(t.rango); for (let x = h0; x < h0 + DUR_; x++) cubiertas.add(x); });
+      [...d.horasHab].sort((a, b) => a - b).forEach(h => {
+        let libre = true;
+        for (let x = h; x < h + DUR_; x++) if (cubiertas.has(x)) { libre = false; break; }
+        if (!libre) return;
+        const sust = poolRef.filter(c => c.hIn <= h && c.hOut >= h + DUR_).map(s => ({
+          nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
+          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00',
+          estado: s.desc >= DOK ? 'disponible' : s.desc >= DFLOOR ? 'reducido' : 'bloqueado' }));
+        turnosOut.push({ rango: HP(h) + ':00 a ' + HP(h + DUR_) + ':00', equipo: [], sustitutos: sust,
+          necesitaLlave: true, sinLlave: false, alertaLlave: false });
+        for (let x = h; x < h + DUR_; x++) cubiertas.add(x);
+      });
+      turnosOut.sort((a, b) => a.rango < b.rango ? -1 : 1);
+    }
+
     const todosInfo = poolRef.map(c => ({
       nombre: c.nombre, horario: HP(c.hIn) + ':00 a ' + HP(c.hOut) + ':00',
       llave: c.llave, dias: c.desc,
@@ -2178,13 +2199,18 @@ function buildDia(d) {
   const turnos = d.turnos||[];
   const conf   = d.confirmado||false;
 
-  // Navieras del calendario config (si está cargado)
+  // Datos del calendario config (si está cargado) — navieras, muelle/estancia, detalle horario.
+  // Cada uno se muestra si tiene valor, independientemente de los demás.
   let navierasHTML = '';
   if (S.calConfig) {
     const dc = S.calConfig.find(c => c.fecha === d.fechaStr || (d.fechaLabel && d.fechaLabel.startsWith(c.fecha)));
-    if (dc && dc.navieras?.length) {
-      navierasHTML = dc.navieras.map(n=>`<span class="naviera-pill">🚢 ${n}</span>`).join('');
-      if (dc.estancia) navierasHTML += `<span style="font-size:.65rem;color:var(--label3)">📍 ${dc.estancia}</span>`;
+    if (dc) {
+      const partes = [];
+      (dc.navieras||[]).forEach(n => partes.push(`<span class="naviera-pill">🚢 ${escH(n)}</span>`));
+      const lugar = [dc.muelle, dc.estancia].filter(Boolean).join(' · ');
+      if (lugar) partes.push(`<span style="font-size:.65rem;color:var(--label3)">📍 ${escH(lugar)}</span>`);
+      if (dc.detalle) partes.push(`<span style="font-size:.65rem;color:var(--label3)">🕓 ${escH(dc.detalle)}</span>`);
+      navierasHTML = partes.join('');
     }
   }
 

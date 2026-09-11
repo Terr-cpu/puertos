@@ -231,6 +231,32 @@ function check(nombre, cond, detalle) {
   if (ok) check('ambos días sin turnos', res.get(d1).turnos.length === 0 && res.get(d2).turnos.length === 0);
 })();
 
+// ── E8: franjas habilitadas sin gente para todas — las que sobran deben
+//        aparecer vacías (huecos), no desaparecer ──
+(function E8() {
+  console.log('\n═══ E8 · Franjas habilitadas de sobra: los huecos se muestran vacíos ═══');
+  const V = ['ANA','LUIS','MARIA','JOSE'].map(n => ({ nombre: n, llave: n === 'ANA' }));
+  const d = '2026-09-01';
+  // Solo disponibles 11-13 (cubre un turno real); el resto de franjas habilitadas
+  // (10-12,12-14,13-15,14-16,20-22) se quedan sin nadie.
+  const disp = { [d]: ['ANA 11 a 13', 'LUIS 11 a 13', 'MARIA 11 a 13', 'JOSE 11 a 13'] };
+  const hab = ['10:00 a 12:00', '11:00 a 13:00', '12:00 a 14:00', '13:00 a 15:00', '14:00 a 16:00', '20:00 a 22:00'];
+  const cfg = construir({ dias: [d], vols: V, dispPorDia: disp, turnosHab: { [d]: hab } });
+  const res = E.planificarMesGlobal({ ...cfg });
+  const turnos = res.get(d).turnos;
+  console.log(resumen(res, cfg.diasPendientes));
+  check('el turno real 11:00-13:00 tiene equipo', turnos.some(t => t.rango === '11:00 a 13:00' && t.equipo.length === 4));
+  check('se muestra un hueco vacío para el resto del día (13-15)', turnos.some(t => t.rango === '13:00 a 15:00' && t.equipo.length === 0));
+  check('se muestra un hueco vacío para la tarde (20-22)', turnos.some(t => t.rango === '20:00 a 22:00' && t.equipo.length === 0));
+  check('ningún turno se solapa en horas', (() => {
+    const horas = turnos.map(t => parseInt(t.rango));
+    for (let i = 0; i < turnos.length; i++) for (let j = i + 1; j < turnos.length; j++) {
+      if (Math.abs(horas[i] - horas[j]) < 2) return false;
+    }
+    return true;
+  })());
+})();
+
 // ── E7: escenario mensual grande — rendimiento y coherencia ──
 (function E7() {
   console.log('\n═══ E7 · Mes completo (22 días, 30 voluntarios) — coherencia + tiempo ═══');

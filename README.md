@@ -33,6 +33,10 @@ pestaña **Reglas del motor**:
     que ningún día futuro dentro de la ventana de descanso baje del mínimo.
   - *Descanso:* intenta `DESC_OK`; baja 1 a 1 hasta `DESC_FLOOR` solo si el día
     quedaría sin ningún turno. Nunca por debajo de `DESC_FLOOR`.
+  - *Huecos:* toda franja horaria habilitada en el calendario que quede sin
+    cubrir aparece igualmente como turno vacío ("Sin cubrir"), tanto en el
+    cuadrante (editable con el selector de voluntarios) como en el PDF (con
+    enlace a Sustituciones) — nunca desaparece por no tener equipo.
 - **Motor por-día** (legacy). Resuelve cada día de forma aislada en orden
   cronológico. Se conserva como alternativa.
 
