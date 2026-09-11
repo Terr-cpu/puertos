@@ -53,7 +53,16 @@ regla de descanso). Cada plaza ocupada tiene **⇄** (cambiar) y **✕** (quitar
 Un turno tocado a mano se marca **✏️ Editado** y **↩︎ Revertir** lo devuelve al
 cálculo automático. **➕ Añadir turno manual / otro turno** crea un turno vacío
 en una franja libre. Los cambios viven en memoria hasta que pulsas **✓
-Confirmar**.
+Confirmar** — y solo bloquea el turno que confirmas: un día con algún turno ya
+confirmado sigue mostrando el resto de franjas habilitadas como huecos
+editables (nunca desaparecen).
+
+El descanso/disponibilidad que ves en el selector y en "Disponibles
+adicionales" se recalcula **en vivo** cada vez que añades, cambias o quitas a
+alguien — quitar a un voluntario de un turno lo libera al instante en el resto
+del cuadrante (no hace falta un ↻ Recalc.). La sección "Todos los
+voluntarios" avisa si esa persona ya está asignada cerca de esa fecha antes de
+añadirla como excepción.
 
 Parámetros en **Reglas del motor** (se guardan en `localStorage` →
 `reglas_cuadrante`):

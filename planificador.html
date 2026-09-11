@@ -1752,6 +1752,38 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
 // ══════════════════════════════════════════════════════════════
 //  CUADRANTE MENSUAL — usa el motor de planificación completo
 // ══════════════════════════════════════════════════════════════
+// Franjas habilitadas del calendario que un día (ya con algo confirmado) deja sin
+// cubrir → turnos vacíos editables, con sustitutos calculados a partir del
+// historial real (sin la simulación del motor, que aquí no aplica).
+function _huecosVacios(dia, turnosExistentes, poolDia, llaves, histFlat, dur) {
+  const DUR_ = dur || 2;
+  const cubiertas = new Set();
+  turnosExistentes.forEach(t => { const h0 = parseInt(t.rango); for (let x = h0; x < h0 + DUR_; x++) cubiertas.add(x); });
+  const horasHab = new Set();
+  (dia.turnos || []).forEach(rg => { const p = PH(rg); if (p) for (let h = p.a; h <= p.b - DUR_; h++) horasHab.add(h); });
+  const tsDia = new Date(dia.fechaISO + 'T12:00:00Z').getTime();
+  const out = [];
+  [...horasHab].sort((a, b) => a - b).forEach(h => {
+    let libre = true;
+    for (let x = h; x < h + DUR_; x++) if (cubiertas.has(x)) { libre = false; break; }
+    if (!libre) return;
+    const sust = (poolDia || []).map(v => {
+      const p = PH(v.horario);
+      if (!p || p.a > h || p.b < h + DUR_) return null;
+      const key = v.nombre.toUpperCase().trim();
+      const regs = histFlat.filter(x => x.key === key);
+      let dias = 99;
+      if (regs.length) dias = Math.round((tsDia - Math.max(...regs.map(r => r.ts))) / 86400000);
+      return { nombre: v.nombre, llave: llaves.has(key), dias, dispo: 0, horario: v.horario,
+        estado: dias >= 5 ? 'disponible' : dias >= 2 ? 'reducido' : 'bloqueado' };
+    }).filter(Boolean);
+    out.push({ rango: HP(h) + ':00 a ' + HP(h + DUR_) + ':00', equipo: [], sustitutos: sust,
+      necesitaLlave: true, sinLlave: false, alertaLlave: false, confirmado: false });
+    for (let x = h; x < h + DUR_; x++) cubiertas.add(x);
+  });
+  return out;
+}
+
 async function getCuadranteMensual() {
   const [calData, hist, vDisp, vols] = await Promise.all([
     getCalendarioConfig(),
@@ -1830,14 +1862,18 @@ async function getCuadranteMensual() {
     };
 
     if (Object.keys(turnosConf).length > 0) {
-      // Día ya confirmado — mostrar del historial
+      // Día con algún turno ya confirmado — esos se muestran fijos desde el historial.
+      // Las franjas habilitadas que NO tengan turno confirmado siguen como huecos
+      // editables (para asignar a mano o para que la gente se apunte).
       const turnos = Object.entries(turnosConf)
         .sort(([a],[b]) => a<b?-1:1)
         .map(([rango,equipo]) => ({
           rango, equipo, confirmado:true,
           sustitutos:[], sinLlave:false, necesitaLlave:false, alertaLlave:false
         }));
-      plan.push({ ...base, turnos, confirmado:true,
+      const huecos = _huecosVacios(dia, turnos, dispoIdx[semana+'|'+diaNorm] || [], llaves, histFlat, reglas.DUR);
+      const todos = turnos.concat(huecos).sort((a,b) => a.rango < b.rango ? -1 : 1);
+      plan.push({ ...base, turnos: todos, confirmado: huecos.length === 0,
         diagnostico:{aptos:0,totalDisponibles:0,todos:[],aviso:''} });
       continue;
     }
@@ -2252,17 +2288,48 @@ function _turnoRef(key) {
   return t ? { d, t } : null;
 }
 function _slug(key) { return String(key).replace(/[|: ]/g, '-'); }
-// Rehace en el DOM solo la tarjeta de ese turno
-function _rerenderTurno(key) {
-  const ref = _turnoRef(key);
-  const old = document.getElementById('tc-' + _slug(key));
-  if (!ref || !old) { const c = document.getElementById('tab-cuadrante'); if (S.plan) renderCuadrante(c); return; }
-  old.replaceWith(buildTurno(ref.t, ref.d));
-}
+// Rehace en el DOM el día entero (todos sus turnos + panel de disponibles) —
+// tras cualquier edición, para que la ocupación en vivo se refleje en todo
+// el día, no solo en el turno tocado.
 function _rerenderDia(d) {
   const old = document.getElementById('dia-' + (d.fechaRaw || (d.semana + '-' + d.dia)));
   if (old) old.replaceWith(buildDia(d));
   else { const c = document.getElementById('tab-cuadrante'); if (S.plan) renderCuadrante(c); }
+}
+
+// ── OCUPACIÓN EN VIVO ─────────────────────────────────────────
+// El motor calcula el descanso una vez, al planificar el mes. Si luego el
+// admin quita, cambia o sustituye a alguien a mano en el cuadrante, esa
+// persona debe dejar de contar como "ocupada" en el resto del mes al
+// instante — sin esperar a un ↻ Recalc. completo. Estas funciones derivan la
+// ocupación real a partir del estado actual (turnos confirmados + S.edits),
+// no del cálculo congelado del motor.
+function _ocupacionEfectiva() {
+  const porClave = new Map();
+  (S.plan || []).forEach(d => {
+    (d.turnos || []).forEach(t => {
+      const key = `${d.semana}|${d.dia}|${t.rango}`;
+      const equipo = t.confirmado ? (t.equipo || []) : (S.edits[key] || t.equipo || []);
+      equipo.forEach(v => {
+        const k = (v.nombre || '').toUpperCase().trim();
+        if (!k) return;
+        if (!porClave.has(k)) porClave.set(k, new Set());
+        porClave.get(k).add(d.fechaRaw);
+      });
+    });
+  });
+  return porClave;
+}
+function _descansoVivo(ocupacion, nombreUpper, tsRef) {
+  const set = ocupacion.get(nombreUpper);
+  if (!set || !set.size) return 99;
+  let best = 99;
+  set.forEach(ts => { const dd = Math.round(Math.abs(ts - tsRef) / 86400000); if (dd < best) best = dd; });
+  return best;
+}
+function _estadoVivo(dias) {
+  const r = cargarReglas();
+  return dias >= (r.DESC_OK ?? 5) ? 'ok' : dias >= (r.DESC_FLOOR ?? 3) ? 'reducido' : 'bloqueado';
 }
 
 const FRANJAS_MANUAL = ['08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00','12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00','16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00','20:00 a 22:00'];
@@ -2302,7 +2369,9 @@ function _addTurnoManual(sem, dia, rango) {
 function buildTurno(t, d) {
   const hIni = parseInt(t.rango.split(':')[0]);
   const tarde = hIni >= 14;
-  const conf  = t.confirmado || d.confirmado;
+  // Solo el propio turno bloquea su edición — un día con algún turno confirmado
+  // puede tener otras franjas habilitadas todavía vacías y editables.
+  const conf  = !!t.confirmado;
   const key   = `${d.semana}|${d.dia}|${t.rango}`;
   const equipo = S.edits[key] || t.equipo || [];
   const editado = !!S.edits[key];
@@ -2320,7 +2389,27 @@ function buildTurno(t, d) {
   const tipCls = conf?'tt-conf':tarde?'tt-t':'tt-m';
   const tipTxt = conf?'CONFIRMADO':tarde?'TARDE':'MAÑANA';
   const n = _nSlots(equipo);
-  const sust = (t.sustitutos||[]).filter(s => !equipo.some(v => (v.nombre||'').toUpperCase() === (s.nombre||'').toUpperCase()));
+  // "Disponibles adicionales" en vivo: parte de los sustitutos calculados por el
+  // motor y del panel de disponibles del día, recalculando descanso/estado con la
+  // ocupación ACTUAL (S.edits incluido) — así alguien que se acaba de quitar de
+  // aquí o de otro turno reaparece al momento, en vez de seguir "ocupado".
+  const ocup = _ocupacionEfectiva();
+  const pTurno = PH(t.rango);
+  const vistos = new Set(equipo.map(v => (v.nombre||'').toUpperCase()));
+  const sust = [];
+  (t.sustitutos||[]).forEach(s => {
+    const k = (s.nombre||'').toUpperCase(); if (!k || vistos.has(k)) return; vistos.add(k);
+    const dias = _descansoVivo(ocup, k, d.fechaRaw);
+    sust.push({ ...s, dias, estado: _estadoVivo(dias) });
+  });
+  (d.diagnostico?.todos||[]).forEach(v => {
+    const k = (v.nombre||'').toUpperCase(); if (!k || vistos.has(k)) return;
+    const p = PH(v.horario);
+    if (pTurno && (!p || p.a > pTurno.a || p.b < pTurno.b)) return; // no cubre esta franja horaria
+    vistos.add(k);
+    const dias = _descansoVivo(ocup, k, d.fechaRaw);
+    sust.push({ nombre:v.nombre, llave:v.llave, dias, dispo:0, horario:v.horario, estado:_estadoVivo(dias) });
+  });
 
   let slotsHTML = '';
   for (let i = 0; i < n; i++) {
@@ -2387,21 +2476,24 @@ function buildSlotVacio(key, idx, conf) {
   </div>`;
 }
 
-// Quita al voluntario de una plaza (queda hueco)
+// Quita al voluntario de una plaza (queda hueco). Repinta el día ENTERO (no
+// solo el turno) para que la persona liberada reaparezca al momento como
+// disponible en los demás turnos/paneles de ese día.
 function quitarVolSlot(key, idx) {
   const ref = _turnoRef(key); if (!ref) return;
   const base = S.edits[key] ? [...S.edits[key]] : [...(ref.t.equipo || [])];
   if (idx < 0 || idx >= base.length) return;
   const fuera = base.splice(idx, 1)[0];
   S.edits[key] = base;
-  _rerenderTurno(key);
+  _rerenderDia(ref.d);
   toast((fuera?.nombre || 'Voluntario') + ' quitado del turno', 'ok');
 }
 
 // Vuelve al equipo calculado por el motor
 function revertirTurno(key) {
+  const ref = _turnoRef(key); if (!ref) return;
   delete S.edits[key];
-  _rerenderTurno(key);
+  _rerenderDia(ref.d);
   toast('Turno restaurado al cálculo automático', 'ok');
 }
 
@@ -2433,14 +2525,22 @@ async function abrirPickerVol(key, idx) {
   let volsAll = [];
   try { volsAll = await _cargarVolsAll(); } catch (e) {}
 
-  // Disponibles ese día (del diagnóstico + sustitutos, con su info)
+  // Disponibles ese día (del diagnóstico + sustitutos), con descanso/estado
+  // recalculados EN VIVO según la ocupación actual (S.edits incluido) — para que
+  // quien se acaba de quitar de un turno reaparezca al momento como disponible.
+  const ocup = _ocupacionEfectiva();
   const dispMap = {};
-  (d.diagnostico?.todos || []).forEach(v => { dispMap[v.nombre.toUpperCase()] = { nombre: v.nombre, llave: v.llave, dias: v.dias, dispo: 0, horario: v.horario, estado: v.estado }; });
-  (t.sustitutos || []).forEach(s => { const k = (s.nombre || '').toUpperCase(); dispMap[k] = { nombre: s.nombre, llave: s.llave, dias: s.dias, dispo: s.dispo || 0, horario: s.horario, estado: s.estado || dispMap[k]?.estado }; });
+  (d.diagnostico?.todos || []).forEach(v => { dispMap[v.nombre.toUpperCase()] = { nombre: v.nombre, llave: v.llave, dispo: 0, horario: v.horario }; });
+  (t.sustitutos || []).forEach(s => { const k = (s.nombre || '').toUpperCase(); dispMap[k] = { nombre: s.nombre, llave: s.llave, dispo: s.dispo || 0, horario: s.horario }; });
   const disp = Object.values(dispMap).filter(v => !enEquipo.has(v.nombre.toUpperCase()))
+    .map(v => { const dias = _descansoVivo(ocup, v.nombre.toUpperCase(), d.fechaRaw); return { ...v, dias, estado: _estadoVivo(dias) }; })
     .sort((a, b) => (b.dias || 0) - (a.dias || 0));
   const dispNombres = new Set(disp.map(v => v.nombre.toUpperCase()));
+  // También en vivo: si alguien de "todos los voluntarios" ya está asignado cerca
+  // de esta fecha (aunque no tenga horario para este día), se avisa en vez de
+  // ofrecerlo como si estuviera completamente libre.
   const resto = volsAll.filter(v => !enEquipo.has(v.nombre.toUpperCase()) && !dispNombres.has(v.nombre.toUpperCase()))
+    .map(v => ({ ...v, dias: _descansoVivo(ocup, v.nombre.toUpperCase(), d.fechaRaw) }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   const estClr = e => e === 'ok' ? 'var(--green)' : e === 'reducido' ? 'var(--amber)' : e === 'bloqueado' ? 'var(--red)' : 'var(--label3)';
@@ -2449,10 +2549,10 @@ async function abrirPickerVol(key, idx) {
       <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
         <span class="pick-sub">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.horario?' · 🕐 '+v.horario:''} · <b style="color:${estClr(v.estado)}">${v.estado||'disp.'}</b></span></span>
       <span class="pick-add">＋</span></button>`;
-  const rowAll = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},99,0,'')">
+  const rowAll = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},${v.dias},0,'')">
       <span class="pick-av">${v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}</span>
       <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
-        <span class="pick-sub" style="color:var(--amber)">no disponible ese día — se añade como excepción</span></span>
+        <span class="pick-sub" style="color:${v.dias<99?'var(--red)':'var(--amber)'}">${v.dias<99?`⚠️ ya asignado hace ${v.dias}d — `:''}no disponible ese día por horario — se añade como excepción</span></span>
       <span class="pick-add">＋</span></button>`;
 
   body.innerHTML = `
@@ -2477,7 +2577,7 @@ function elegirVolSlot(key, idx, nombre, llave, dias, dispo, horario) {
   if (idx != null && idx < base.length) base[idx] = nuevo; else base.push(nuevo);
   S.edits[key] = base;
   closeModal('mcubre');
-  _rerenderTurno(key);
+  _rerenderDia(ref.d);
   toast(nombre + ' añadido al turno ✓', 'ok');
 }
 
@@ -2641,7 +2741,7 @@ function _ejecutarDrop(turnoKey, slotIdx, tOrig, dData, sl) {
   S.edits[turnoKey] = equipoBase;
 
   if (sl) sl.classList.add('drop-done');
-  _rerenderTurno(turnoKey);
+  _rerenderDia(dData);
 
   if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
   toast(sustituido ? `${nuevo.nombre} sustituye a ${sustituido.nombre}` : `${nuevo.nombre} añadido al turno`, 'ok');
@@ -2685,10 +2785,16 @@ _chipObserver.observe(document.body, { childList: true, subtree: true });
 // ══════════════════════════════════════
 //  PANEL DISPONIBILIDAD (con drag!)
 // ══════════════════════════════════════
-function buildDispoPanel(todos, d) {
+function buildDispoPanel(todosOrig, d) {
   const wrap = document.createElement('div');
   wrap.className = 'dpanel';
   const lbl={ok:'✅',reducido:'⚡',reservado:'📌',bloqueado:'🔒'};
+  // Recalcular descanso/estado en vivo con la ocupación actual (S.edits incluido)
+  const ocup = _ocupacionEfectiva();
+  const todos = todosOrig.map(v => {
+    const dias = _descansoVivo(ocup, (v.nombre||'').toUpperCase(), d.fechaRaw);
+    return { ...v, dias, estado: _estadoVivo(dias) };
+  });
   const counts = todos.reduce((a,v)=>{a[v.estado]=(a[v.estado]||0)+1;return a},{});
   const res = Object.entries(counts).map(([k,n])=>`${lbl[k]||''} ${n} ${k}`).join(' · ');
   const pid = `dp-${d.fechaRaw||Math.random()}`;
