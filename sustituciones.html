@@ -534,8 +534,8 @@ async function cargarOferta(){
 
     const [oRaw,calRaw,vs]=await Promise.all([rpc('get_oferta_simple'),sbGet('v_calendario','order=fecha&activo=eq.true'),sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id')]);
     const oArr=Array.isArray(oRaw)?oRaw:(oRaw||[]);
-    let refSet=new Set(),hFechas=new Set();const volId=vs.length?vs[0].id:null;volIdOferta=volId;
-    const fps=[sbGet('historial','select=fecha').then(r=>r.forEach(x=>hFechas.add(x.fecha)))];
+    let refSet=new Set(),hFechas=new Set(),hRangos=new Set();const volId=vs.length?vs[0].id:null;volIdOferta=volId;
+    const fps=[sbGet('historial','select=fecha,rango').then(r=>r.forEach(x=>{hFechas.add(x.fecha);hRangos.add(x.fecha+'|'+x.rango);}))];
     if(volId) fps.push(sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango').then(r=>r.forEach(x=>refSet.add(x.fecha+'|'+x.rango))));
     await Promise.all(fps);
     ofertaActual=oArr.map(t=>{
@@ -551,13 +551,24 @@ async function cargarOferta(){
     });
     const llaves=window._llavesPorTurno||{};
     const hoy=new Date().toISOString().split('T')[0];
-    nuevosActual=calRaw.filter(r=>r.fecha>=hoy&&!hFechas.has(r.fecha)).map(r=>{
+    // Antes se excluía el DÍA ENTERO en cuanto tenía algún turno confirmado, así que
+    // una franja habilitada que se quedaba sin cubrir dejaba de ofrecerse. Ahora, si el
+    // día tiene franjas configuradas, se ofrecen solo las que AÚN no tienen turno
+    // confirmado; el resto del día puede ya estar cubierto sin problema. Si el día no
+    // tiene franjas configuradas, se mantiene el criterio anterior (día completo).
+    nuevosActual=calRaw.filter(r=>r.fecha>=hoy).map(r=>{
       const allNavs=Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]);
-      // Separar navieras reales de turnos habilitados (prefijo "turno:")
-      const navieras=allNavs.filter(n=>!String(n).startsWith('turno:'));
-      const turnosHabilitados=allNavs
+      // Separar navieras reales de turnos habilitados / detalle horario / muelle
+      // (mismos prefijos que usa planificador.html en la tabla "navieras")
+      const navieras=allNavs.filter(n=>!/^(turno:|info:|muelle:)/.test(String(n)));
+      const todasHab=allNavs
         .filter(n=>String(n).startsWith('turno:'))
         .map(n=>String(n).slice(6));
+      const turnosHabilitados=todasHab.length
+        ? todasHab.filter(rango=>!hRangos.has(r.fecha+'|'+rango))
+        : [];
+      const incluir=todasHab.length ? turnosHabilitados.length>0 : !hFechas.has(r.fecha);
+      if(!incluir) return null;
       const yaApuntado=volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false;
       return {
         fechaISO:r.fecha,
@@ -565,7 +576,7 @@ async function cargarOferta(){
         semana:calcSem(r.fecha),
         dia:normDia(r.dia),
         navieras,
-        turnosHabilitados, // franjas horarias habilitadas en el calendario
+        turnosHabilitados, // franjas horarias habilitadas en el calendario que aún no tienen turno confirmado
         yaApuntado,
         // llave por franja: {rango: true} si alguna franja de este día requiere llave
         llavesPorFranja: turnosHabilitados.reduce((acc,rango)=>{
@@ -574,7 +585,7 @@ async function cargarOferta(){
           return acc;
         }, {})
       };
-    });
+    }).filter(Boolean);
     // Mis apuntes: todos los refuerzos del voluntario (con datos completos)
     if(volId){
       const misRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango,dia,semana,es_dia_completo&order=fecha,rango');
