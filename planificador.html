@@ -1996,7 +1996,8 @@ function _buildPrintHTML(plan, calConfig, pdfCfg) {
           <div class="ptlinks">${linkSust}</div></div></div>`;
     } else {
       filas = d.turnos.map(t => {
-        const equipo = t.equipo || [];
+        // Portadores de llave primero, para que el orden sea el mismo en todos los turnos
+        const equipo = [...(t.equipo || [])].sort((a, b) => (b.llave ? 1 : 0) - (a.llave ? 1 : 0));
         const vacio = equipo.length === 0 || t.sinLlave;
         const volsHTML = vacio
           ? `<span class="pt-empty">Sin cubrir${t.sinLlave ? ' — falta portador de llave' : ''}</span>`
