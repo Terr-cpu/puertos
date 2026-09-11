@@ -756,9 +756,10 @@ function renderNuev(c){
     const franjasHtml=franjasDisp.map(f=>{
       const tieneIco=llavesPorFranja[f.rango]?'🔑 ':'';
       const tieneTitle=llavesPorFranja[f.rango]?' title="Requiere portador de llave"':'';
-      // Texto del botón: convertir "10:00 a 12:00" → "10–12h"
+      // Texto del botón: convertir "10:00 a 12:00" → "10–12h" (solo para mostrar).
+      // El rango real va en data-rango — getFranjas() lo lee de ahí, nunca del texto.
       const txt=f.rango.replace(' a ',' – ').replace(/:00/g,'h');
-      return `<button class="franja-btn${f.tarde?' tard':''}" onclick="toggleF(this)"${tieneTitle}>${tieneIco}${txt}</button>`;
+      return `<button class="franja-btn${f.tarde?' tard':''}" data-rango="${f.rango}" onclick="toggleF(this)"${tieneTitle}>${tieneIco}${txt}</button>`;
     }).join('');
 
     const hayLlaveEnDia=Object.keys(llavesPorFranja).length>0;
@@ -849,16 +850,12 @@ function toggleF(btn){
 function getFranjas(fechaISO){
   const g=document.getElementById('fg-'+fechaISO);
   if(!g)return[];
-  return[...g.querySelectorAll('.franja-btn.sel')].map(b=>{
-    // El botón puede mostrar "10–12h" o "🔑 10–12h"
-    // Convertir de vuelta al formato "10:00 a 12:00"
-    const txt=b.textContent.trim().replace(/^🔑\s*/,'');
-    // Intentar parsear "H–Hh" format
-    const m=txt.match(/(\d+)\s*[–-]\s*(\d+)h/);
-    if(m) return `${String(m[1]).padStart(2,'0')}:00 a ${String(m[2]).padStart(2,'0')}:00`;
-    // Fallback: el rango está en dataset si lo hubiera
-    return b.dataset.rango || txt;
-  });
+  // El rango real viene siempre de data-rango (formato "HH:00 a HH:00"), nunca se
+  // reinterpreta el texto del botón — antes esa reinterpretación fallaba en
+  // silencio (la regex no encajaba con "10h – 12h") y guardaba el texto tal cual
+  // ("10h – 12h") en vez de la hora real, dejando esos apuntes irreconocibles
+  // para el resto de la app (Comunicar baja, el motor de planificación...).
+  return[...g.querySelectorAll('.franja-btn.sel')].map(b=>b.dataset.rango).filter(Boolean);
 }
 
 // ── CANCELAR UN APUNTE (desde "Mis apuntes"; incluye días nuevos sin franja, que
