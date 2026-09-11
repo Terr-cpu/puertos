@@ -71,13 +71,19 @@ Se pueden definir excepciones por día concreto (clave `excepcion_dia` en
 
 ### Exportar el cuadrante
 
-- **Cuadrante → 📄 PDF** genera y descarga el PDF con **jsPDF** (se carga desde
-  cdnjs la primera vez; sin conexión cae al diálogo de impresión del navegador).
+- **Cuadrante → 📄 PDF** genera y descarga el PDF a partir del **mismo HTML/CSS
+  que usa la app** (`_buildPrintHTML`, con sus emoji e iconos habituales): se
+  renderiza fuera de pantalla, se captura con **html2canvas** y se monta como
+  imagen en el PDF con **jsPDF** (ambas se cargan desde cdnjs/jsdelivr la
+  primera vez; sin conexión cae al diálogo de impresión del navegador). Encima
+  de la imagen se superponen **anotaciones `/Link` reales**, calculadas a partir
+  de la posición de cada enlace en el HTML — funcionan en Firefox, Chrome y
+  Adobe igual, porque no dependen del motor de impresión del navegador.
   Bloque por día (barco, detalle horario, muelle) y por turno (hora, equipo con
-  el portador de llave resaltado en ámbar, enlace "Añadir a Google Calendar" y al
+  el portador de llave resaltado, enlace "Añadir a Google Calendar" y al
   cuestionario). En los turnos sin cubrir enlaza al portal de sustituciones. Al
-  pie, la nota de la llave y el contacto de bajas. Los enlaces son anotaciones
-  reales del PDF: **funcionan en Firefox, Chrome y Adobe**.
+  pie, la nota de la llave y el contacto de bajas. La paginación evita partir
+  un bloque de día entre dos páginas.
 - **Cuadrante → 📋 Sheet** copia el cuadrante como tabla (TSV) al portapapeles
   para pegar en Google Sheets.
 - El enlace al cuestionario y el texto de contacto se editan en **Calendario →

@@ -1992,328 +1992,148 @@ function imprimirCuadranteNavegador() {
   setTimeout(() => window.print(), 60);
 }
 
-// ── Carga perezosa de jsPDF (una sola vez) ──
-let _jspdfPromesa = null;
-function cargarJsPDF() {
-  if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
-  if (_jspdfPromesa) return _jspdfPromesa;
-  const FUENTES = [
-    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
-  ];
-  _jspdfPromesa = new Promise((res, rej) => {
+// ── Carga perezosa de jsPDF + html2canvas (una sola vez cada una) ──
+function _cargarScript(nombre, globalCheck, fuentes) {
+  const cacheKey = '_' + nombre + 'Promesa';
+  if (globalCheck()) return Promise.resolve(globalCheck());
+  if (window[cacheKey]) return window[cacheKey];
+  window[cacheKey] = new Promise((res, rej) => {
     let i = 0;
     const probar = () => {
-      if (window.jspdf && window.jspdf.jsPDF) return res(window.jspdf.jsPDF);
-      if (i >= FUENTES.length) { _jspdfPromesa = null; return rej(new Error('no se pudo descargar jsPDF (¿sin conexión?)')); }
+      const ya = globalCheck();
+      if (ya) return res(ya);
+      if (i >= fuentes.length) { window[cacheKey] = null; return rej(new Error('no se pudo descargar ' + nombre + ' (¿sin conexión?)')); }
       const s = document.createElement('script');
-      s.src = FUENTES[i++];
-      s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? res(window.jspdf.jsPDF) : probar();
+      s.src = fuentes[i++];
+      s.onload = () => { const g = globalCheck(); g ? res(g) : probar(); };
       s.onerror = probar;
       document.head.appendChild(s);
     };
     probar();
   });
-  return _jspdfPromesa;
+  return window[cacheKey];
+}
+function cargarJsPDF() {
+  return _cargarScript('jspdf', () => window.jspdf && window.jspdf.jsPDF, [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js',
+  ]);
+}
+function cargarHtml2Canvas() {
+  return _cargarScript('html2canvas', () => window.html2canvas, [
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+    'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+  ]);
 }
 
 async function imprimirCuadrante() {
   if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
-  let jsPDF;
+  let jsPDF, html2canvas;
   try {
-    jsPDF = await cargarJsPDF();
+    [jsPDF, html2canvas] = await Promise.all([cargarJsPDF(), cargarHtml2Canvas()]);
   } catch (e) {
     toast(e.message + ' — abriendo impresión del navegador', 'err');
     return imprimirCuadranteNavegador();
   }
+  toast('Generando PDF…', 'ok');
   try {
-    _generarPDF(jsPDF, S.plan, S.calConfig || [], cargarPdfCfg());
+    await _generarPDF(jsPDF, html2canvas, S.plan, S.calConfig || [], cargarPdfCfg());
   } catch (e) {
     console.error(e);
     toast('Error generando el PDF: ' + e.message, 'err');
   }
 }
 
-// ── Generación del PDF con jsPDF: colores planos, iconos vectoriales y enlaces
-//    clicables reales (anotaciones /Link, funcionan en Firefox y Adobe) ──
-function _generarPDF(jsPDF, plan, calConfig, pdfCfg) {
-  const cc = calConfig || [];
-  const dcDe = d => cc.find(c => c.fecha === d.fechaStr) || {};
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+// ── Genera el PDF renderizando el MISMO HTML/CSS de la app (_buildPrintHTML)
+//    con html2canvas, y superpone enlaces reales (anotaciones /Link) sobre la
+//    imagen a partir de la posición real de cada <a> — mismo estilo que la
+//    app (emoji nativos incluidos) y enlaces clicables en Firefox/Adobe. ──
+async function _generarPDF(jsPDF, html2canvas, plan, calConfig, pdfCfg) {
+  const W_PX = 794;         // ancho A4 a 96dpi
+  const PAGE_H_PX = 1123;   // alto A4 a 96dpi (297mm)
+  const PAD_PX = 34;        // ~9mm de margen
+  const MM_PER_PX = 210 / W_PX;
+  const SCALE = 2;          // resolución de captura
 
-  const PW = 210, PH = 297, M = 10, RIGHT = PW - M, BOTTOM = PH - 10;
-  const NAVY=[17,64,124], NAVY_D=[10,40,84], AMBER=[214,120,0], INK=[35,35,40], GREY=[120,120,120],
-        TEAL=[24,110,120], SLATE=[80,104,134], CHIP_BG=[239,240,243], CHIP_BD=[206,208,214],
-        KEY_BG=[255,206,92], KEY_BD=[212,150,20], KEY_INK=[104,54,0],
-        PANEL_BG=[233,240,251], LINK=[16,92,178], SUST=[178,96,0], RED=[188,52,52], GREEN=[24,140,68],
-        ROW_ALT=[247,249,252], WHITE=[255,255,255];
-  const setF = c => doc.setFillColor(c[0],c[1],c[2]);
-  const setD = c => doc.setDrawColor(c[0],c[1],c[2]);
-  const setT = c => doc.setTextColor(c[0],c[1],c[2]);
-  const F = (style, size, col) => { doc.setFont('helvetica', style); doc.setFontSize(size); if (col) setT(col); };
-  const wrap = (txt, w, size, style) => { doc.setFont('helvetica', style||'normal'); doc.setFontSize(size); return doc.splitTextToSize(String(txt==null?'':txt), w); };
+  // 1) Montar el HTML real fuera de pantalla (mismo _buildPrintHTML que usa la app)
+  const host = document.createElement('div');
+  host.style.cssText = `position:fixed;left:-10000px;top:0;width:${W_PX}px;background:#fff;padding:${PAD_PX}px;box-sizing:border-box;z-index:-1;`;
+  host.innerHTML = _buildPrintHTML(plan, calConfig, pdfCfg);
+  // La regla base de .pw (fuente/tamaño/color) está en el CSS como "#print-area .pw" —
+  // este host no tiene ese id, así que fijamos la base explícitamente aquí.
+  const pwEl = host.querySelector('.pw');
+  if (pwEl) pwEl.style.cssText += ';max-width:none;margin:0;font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#222';
+  document.body.appendChild(host);
 
-  // ── Iconos vectoriales (x,y = esquina sup-izq; s = tamaño en mm) ──
-  const ICO = 2.7;
-  function icoBarco(x, y, s, col) {   // ancla (icono de marca)
-    setD(col); setF(col); doc.setLineWidth(0.45);
-    const cx = x + s/2, r = s*0.16;
-    doc.circle(cx, y + r, r, 'S');                       // anilla
-    doc.line(cx, y + 2*r, cx, y + s*0.92);               // caña
-    doc.line(x + s*0.22, y + s*0.36, x + s*0.78, y + s*0.36); // cepo
-    doc.setLineWidth(0.55);
-    doc.line(cx, y + s*0.92, x + s*0.16, y + s*0.66);    // brazo izq
-    doc.line(cx, y + s*0.92, x + s*0.84, y + s*0.66);    // brazo der
-    doc.setLineWidth(0.45);
-    doc.line(x + s*0.16, y + s*0.66, x + s*0.30, y + s*0.72); // uña izq
-    doc.line(x + s*0.84, y + s*0.66, x + s*0.70, y + s*0.72); // uña der
-  }
-  function icoReloj(x, y, s, col) {
-    setD(col); doc.setLineWidth(0.35);
-    const r = s/2, cx = x + r, cy = y + r;
-    doc.circle(cx, cy, r, 'S');
-    doc.line(cx, cy, cx, cy - r*0.55);
-    doc.line(cx, cy, cx + r*0.5, cy);
-  }
-  function icoPin(x, y, s, col) {
-    setD(col); setF(col); doc.setLineWidth(0.35);
-    const r = s*0.36, cx = x + s/2, cy = y + r;
-    doc.circle(cx, cy, r, 'S');
-    doc.triangle(cx - r*0.85, cy + r*0.45, cx + r*0.85, cy + r*0.45, cx, y + s, 'S');
-    doc.circle(cx, cy, r*0.34, 'F');
-  }
-  function icoCal(x, y, s, col) {
-    setD(col); doc.setLineWidth(0.35);
-    doc.roundedRect(x, y + s*0.12, s, s*0.82, 0.4, 0.4, 'S');
-    doc.line(x, y + s*0.36, x + s, y + s*0.36);
-    doc.line(x + s*0.26, y, x + s*0.26, y + s*0.22);
-    doc.line(x + s*0.74, y, x + s*0.74, y + s*0.22);
-  }
-  function icoDoc(x, y, s, col) {
-    setD(col); doc.setLineWidth(0.35);
-    doc.roundedRect(x + s*0.12, y + s*0.06, s*0.76, s*0.92, 0.3, 0.3, 'S');
-    doc.roundedRect(x + s*0.36, y, s*0.28, s*0.16, 0.2, 0.2, 'S');
-    doc.line(x + s*0.28, y + s*0.44, x + s*0.72, y + s*0.44);
-    doc.line(x + s*0.28, y + s*0.62, x + s*0.72, y + s*0.62);
-  }
-  function icoUser(x, y, s, col) {
-    setD(col); doc.setLineWidth(0.35);
-    doc.circle(x + s/2, y + s*0.30, s*0.22, 'S');
-    doc.triangle(x + s*0.12, y + s, x + s*0.88, y + s, x + s/2, y + s*0.5, 'S');
-  }
-  function icoLlave(x, y, s, col) {   // llave horizontal, bocado a la derecha
-    setD(col); setF(col);
-    const r = s*0.34, cy = y + s*0.5;
-    doc.circle(x + r, cy, r, 'F');                       // paletón (relleno)
-    setF([255,255,255]); doc.circle(x + r, cy, r*0.42, 'F'); // ojo
-    setD(col); doc.setLineWidth(0.7);
-    doc.line(x + 2*r - 0.1, cy, x + s, cy);              // caña gruesa
-    doc.setLineWidth(0.6);
-    doc.line(x + s, cy, x + s, cy + s*0.34);             // diente 1
-    doc.line(x + s*0.80, cy, x + s*0.80, cy + s*0.24);   // diente 2
-  }
+  try {
+    // Esperar a que las fuentes/emoji estén listos y el layout se asiente
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
-  const LX = M, LW = 51, RX = M + LW, PAD = 3, ACC = 1.6;
-  const CH_H = 5.7, CH_PADX = 2, CH_GAP = 1.6, CH_LGAP = 1.7, KEY_ICO_W = 4.4;
-  const LK_H = 4, LK_GAP = 3.2, LK_ICO = 2.7;
+    const hostRect = host.getBoundingClientRect();
+    const totalHpx = Math.ceil(host.scrollHeight);
 
-  // Fila de chips de voluntarios (mide o dibuja) → altura usada
-  function chips(items, x0, maxX, yTop, draw) {
-    let cx = x0, cy = yTop;
-    items.forEach(it => {
-      doc.setFont('helvetica', it.key ? 'bold' : 'normal'); doc.setFontSize(8);
-      const tw = doc.getTextWidth(it.label);
-      const w = tw + 2*CH_PADX + (it.key ? KEY_ICO_W : 0);
-      if (cx + w > maxX && cx > x0) { cx = x0; cy += CH_H + CH_LGAP; }
-      if (draw) {
-        setF(it.key ? KEY_BG : CHIP_BG); setD(it.key ? KEY_BD : CHIP_BD); doc.setLineWidth(0.25);
-        doc.roundedRect(cx, cy, w, CH_H, 1.1, 1.1, 'FD');
-        let tx = cx + CH_PADX;
-        if (it.key) { icoLlave(tx, cy + 1.1, 3.6, KEY_INK); tx += KEY_ICO_W; }
-        setT(it.key ? KEY_INK : INK);
-        doc.setFont('helvetica', it.key ? 'bold' : 'normal'); doc.setFontSize(8);
-        doc.text(it.label, tx, cy + CH_H - 1.7);
-      }
-      cx += w + CH_GAP;
+    // 2) Cortes de página SIN partir bloques (día, nota, contacto)
+    const bloques = [...host.querySelectorAll('.pbloque, .pnota, .pcontacto')];
+    const cortes = [0];
+    let inicioPag = 0;
+    bloques.forEach(b => {
+      const r = b.getBoundingClientRect();
+      const top = r.top - hostRect.top, bottom = r.bottom - hostRect.top;
+      if (bottom - inicioPag > PAGE_H_PX && top > inicioPag) { cortes.push(top); inicioPag = top; }
     });
-    return (cy - yTop) + CH_H;
-  }
-  // Fila de enlaces con icono (mide o dibuja) → altura usada
-  function links(items, x0, maxX, yTop, draw) {
-    let cx = x0, cy = yTop;
-    items.forEach(lk => {
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      const tw = doc.getTextWidth(lk.label);
-      const w = LK_ICO + 1 + tw;
-      if (cx + w > maxX && cx > x0) { cx = x0; cy += LK_H; }
-      if (draw) {
-        const col = lk.sust ? SUST : LINK;
-        (lk.ico || icoCal)(cx, cy + 0.4, LK_ICO, col);
-        setT(col);
-        doc.textWithLink(lk.label, cx + LK_ICO + 1, cy + 3, { url: lk.url });
-        setD(col); doc.setLineWidth(0.15);
-        doc.line(cx + LK_ICO + 1, cy + 3.5, cx + LK_ICO + 1 + tw, cy + 3.5);
-      }
-      cx += w + LK_GAP;
+    cortes.push(totalHpx);
+
+    // 3) Captura completa con html2canvas
+    const canvasCompleto = await html2canvas(host, {
+      scale: SCALE, backgroundColor: '#ffffff', useCORS: true,
+      windowWidth: W_PX, width: W_PX, height: totalHpx,
     });
-    return (cy - yTop) + LK_H;
-  }
 
-  const sustURL = (typeof SUST_URL_FIJA !== 'undefined') ? SUST_URL_FIJA : '';
-
-  // Pre-cálculo por día
-  const bloques = plan.map(d => {
-    const dc = dcDe(d);
-    const p = d.fechaStr.split('/');
-    const wd = DIAS_ES_L[new Date(d.fechaRaw || (p[2]+'-'+p[1]+'-'+p[0]+'T12:00:00Z')).getUTCDay()] || d.dia;
-    const navieras = dc.navieras || [];
-    const shipLines  = navieras.length ? wrap(navieras.join(' & '), LW - 2*PAD - 3.6, 8, 'bold') : [];
-    const detLines   = dc.detalle ? wrap(dc.detalle, LW - 2*PAD - 3.6, 7.5) : [];
-    const lugarTxt   = [dc.muelle, dc.estancia].filter(Boolean).join(' · ');
-    const lugarLines = lugarTxt ? wrap(lugarTxt, LW - 2*PAD - 3.6, 7.5) : [];
-    const leftH = PAD + 5.5 + shipLines.length*3.3 + (detLines.length?1.5:0) + detLines.length*3
-                + (lugarLines.length?1.5:0) + lugarLines.length*3 + PAD;
-
-    const turnos = (d.turnos && d.turnos.length ? d.turnos : [{ rango:'—', equipo:[], _vacioDia:true }]).map(t => {
-      const equipo = t.equipo || [];
-      const vacio = equipo.length === 0 || t.sinLlave;
-      const volChips = equipo.map(v => ({ label: v.nombre, key: !!v.llave }));
-      const lks = [];
-      if (!vacio) {
-        const g = _gcalURL(d.fechaStr, t.rango, navieras, equipo, dc.muelle || dc.estancia || '');
-        if (g) lks.push({ label: 'Añadir a Google Calendar', url: g, ico: icoCal });
-        if (pdfCfg.cuestionarioUrl) lks.push({ label: '¿Cómo fue el turno?', url: pdfCfg.cuestionarioUrl, ico: icoDoc });
-        if ((t.alertaLlave || equipo.length < 3) && sustURL) lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true, ico: icoUser });
-      } else if (sustURL) {
-        lks.push({ label: 'Apúntate en Sustituciones', url: sustURL, sust: true, ico: icoUser });
-      }
-      const chH = vacio ? 5 : chips(volChips, RX+PAD, RIGHT-PAD, 0, false);
-      const lkH = lks.length ? links(lks, RX+PAD, RIGHT-PAD, 0, false) : 0;
-      const h = 5.5 + chH + (lks.length ? 1.4 + lkH : 0) + 2.6;
-      return { t, equipo, vacio, volChips, lks, h, confirmado: !!(d.confirmado || t.confirmado) };
-    });
-    const rightH = PAD + turnos.reduce((a, x) => a + x.h, 0) + PAD;
-    return { d, dc, wd, dayNum:+p[0], shipLines, detLines, lugarLines,
-             blockH: Math.max(leftH, rightH), turnos };
-  });
-
-  // Título en barra navy
-  let mesTit = '', mesFile = '';
-  if (plan.length) { const p = plan[0].fechaStr.split('/'); mesTit = (MESES_ES[+p[1]]||'').toUpperCase()+' '+p[2]; mesFile = (MESES_ES[+p[1]]||'')+' '+p[2]; }
-  setF(NAVY); doc.rect(0, 0, PW, 16, 'F');
-  setF(AMBER); doc.rect(0, 16, PW, 1, 'F');
-  F('bold', 13, WHITE);
-  doc.text('PROGRAMA DE PREDICACIÓN · PUERTO DE SEVILLA' + (mesTit ? '  ·  ' + mesTit : ''), PW/2, 10.5, { align:'center', maxWidth: PW - 2*M });
-  let y = 19.5;
-
-  bloques.forEach(b => {
-    if (y + b.blockH > BOTTOM) { doc.addPage(); y = M; }
-    const top = y, H = b.blockH;
-    setF(PANEL_BG); doc.rect(LX, top, LW, H, 'F');            // panel izq
-    setF(NAVY);     doc.rect(LX, top, ACC, H, 'F');           // franja de acento
-    setD([206,214,228]); doc.setLineWidth(0.3);
-    doc.roundedRect(LX, top, RIGHT - LX, H, 1.8, 1.8, 'S');   // marco
-    doc.line(RX, top, RX, top + H);                            // separador
-
-    // Izquierda
-    let ly = top + PAD + 3.6;
-    F('bold', 11, NAVY); doc.text(b.wd + ' ' + b.dayNum, LX + PAD + ACC, ly); ly += 4.6;
-    const tx0 = LX + PAD + ACC;
-    if (b.shipLines.length) {
-      icoBarco(tx0, ly - 3, 3.4, TEAL);
-      F('bold', 8, TEAL);
-      b.shipLines.forEach((l, i) => { doc.text(l, tx0 + 4, ly); ly += 3.3; });
-    }
-    if (b.detLines.length) {
-      ly += 1.5; icoReloj(tx0, ly - 2.4, 2.8, SLATE);
-      F('normal', 7.5, SLATE);
-      b.detLines.forEach(l => { doc.text(l, tx0 + 4, ly); ly += 3; });
-    }
-    if (b.lugarLines.length) {
-      ly += 1.5; icoPin(tx0, ly - 2.6, 3, GREY);
-      F('normal', 7.5, GREY);
-      b.lugarLines.forEach(l => { doc.text(l, tx0 + 4, ly); ly += 3; });
+    // 4) Recortar por páginas y montarlas en el PDF
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    for (let i = 0; i < cortes.length - 1; i++) {
+      const yIni = cortes[i], yFin = Math.min(cortes[i + 1], totalHpx);
+      const hPx = yFin - yIni;
+      if (hPx <= 0) continue;
+      const slice = document.createElement('canvas');
+      slice.width = canvasCompleto.width;
+      slice.height = Math.round(hPx * SCALE);
+      slice.getContext('2d').drawImage(
+        canvasCompleto, 0, Math.round(yIni * SCALE), canvasCompleto.width, Math.round(hPx * SCALE),
+        0, 0, slice.width, slice.height
+      );
+      if (i > 0) doc.addPage();
+      doc.addImage(slice.toDataURL('image/jpeg', 0.94), 'JPEG', 0, 0, 210, hPx * MM_PER_PX);
     }
 
-    // Derecha
-    let ry = top + PAD;
-    b.turnos.forEach((tt, i) => {
-      if (i % 2 === 1) { setF(ROW_ALT); doc.rect(RX + 0.6, ry - 1.5, RIGHT - RX - 1.2, tt.h, 'F'); }
-      // Pastilla de hora
-      F('bold', 8.5, WHITE);
-      const pw = doc.getTextWidth(String(tt.t.rango)) + 4;
-      setF(tt.confirmado ? GREEN : AMBER);
-      doc.roundedRect(RX + PAD, ry, pw, 5, 1.2, 1.2, 'F');
-      F('bold', 8.5, WHITE); doc.text(String(tt.t.rango), RX + PAD + 2, ry + 3.5);
-      if (tt.confirmado) { F('bold', 6.5, GREEN); doc.text('CONFIRMADO', RX + PAD + pw + 2.5, ry + 3.5); }
-      ry += 6.2;
-      if (tt.vacio) {
-        icoUser(RX + PAD, ry - 0.5, 3.2, RED);
-        F('bold', 9, RED);
-        doc.text('Sin cubrir' + (tt.t.sinLlave ? ' — falta portador de llave' : ''), RX + PAD + 4.5, ry + 2.3);
-        ry += 5;
-      } else {
-        ry += chips(tt.volChips, RX + PAD, RIGHT - PAD, ry, true);
+    // 5) Enlaces reales — anotaciones /Link sobre la posición de cada <a>
+    host.querySelectorAll('a[href]').forEach(a => {
+      const r = a.getBoundingClientRect();
+      const x = r.left - hostRect.left, y = r.top - hostRect.top, w = r.width, h = r.height;
+      let pagina = cortes.length - 2, inicioP = cortes[pagina];
+      for (let i = 0; i < cortes.length - 1; i++) {
+        if (y >= cortes[i] && y < cortes[i + 1]) { pagina = i; inicioP = cortes[i]; break; }
       }
-      if (tt.lks.length) { ry += 1.8; ry += links(tt.lks, RX + PAD, RIGHT - PAD, ry, true); }
-      ry += 2.6;
-      if (i < b.turnos.length - 1) { setD([230,232,236]); doc.setLineWidth(0.2); doc.line(RX + PAD, ry - 1.6, RIGHT - PAD, ry - 1.6); }
+      doc.setPage(pagina + 1);
+      doc.link(x * MM_PER_PX, (y - inicioP) * MM_PER_PX, w * MM_PER_PX, h * MM_PER_PX, { url: a.href });
     });
 
-    y = top + H + 2.8;
-  });
+    // 6) Numeración de páginas
+    const np = doc.getNumberOfPages();
+    for (let i = 1; i <= np; i++) {
+      doc.setPage(i);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+      doc.text('Página ' + i + ' de ' + np, 210 - 8, 297 - 5, { align: 'right' });
+    }
 
-  // Pie
-  const notaLines = wrap('El voluntario con este distintivo tiene llave y por tanto se encarga de recoger y depositar los expositores.', RIGHT - LX - 24, 8);
-  const contactoLines = wrap(pdfCfg.contacto || '', RIGHT - LX - 6, 8);
-  const pieH = 7 + Math.max(notaLines.length, 1)*3.3 + 4 + contactoLines.length*3.3 + (pdfCfg.cuestionarioUrl ? 4.6 : 0);
-  if (y + pieH > BOTTOM) { doc.addPage(); y = M; }
-
-  let ny = y + 2;
-  const notaH = 5.5 + Math.max(notaLines.length, 1)*3.4;
-  setF([248,248,248]); setD([230,230,230]); doc.setLineWidth(0.3);
-  doc.roundedRect(LX, ny, RIGHT - LX, notaH, 1.4, 1.4, 'FD');
-  // chip de muestra con icono de llave
-  F('bold', 8, KEY_INK);
-  const muestra = 'Nombre';
-  const mw = doc.getTextWidth(muestra) + 2*CH_PADX + KEY_ICO_W;
-  setF(KEY_BG); setD(KEY_BD); doc.setLineWidth(0.25);
-  doc.roundedRect(LX + 3, ny + 2.4, mw, CH_H, 1.1, 1.1, 'FD');
-  icoLlave(LX + 3 + CH_PADX, ny + 3.7, 3.6, KEY_INK);
-  setT(KEY_INK); F('bold', 8, KEY_INK); doc.text(muestra, LX + 3 + CH_PADX + KEY_ICO_W, ny + 2.4 + CH_H - 1.7);
-  F('normal', 8, [90,90,90]);
-  let tny = ny + 4.4;
-  notaLines.forEach(l => { doc.text(l, LX + 3 + mw + 3, tny); tny += 3.4; });
-  ny += notaH + 2.2;
-
-  const contH = 5.5 + contactoLines.length*3.4 + (pdfCfg.cuestionarioUrl ? 4.6 : 0);
-  setF([234,242,253]); setD([198,216,244]);
-  doc.roundedRect(LX, ny, RIGHT - LX, contH, 1.4, 1.4, 'FD');
-  F('normal', 8, [48,68,98]); ny += 4.4;
-  contactoLines.forEach(l => { doc.text(l, LX + 3, ny); ny += 3.4; });
-  if (pdfCfg.cuestionarioUrl) {
-    ny += 1;
-    icoDoc(LX + 3, ny - 2.5, 3, LINK);
-    F('normal', 8, [48,68,98]);
-    const pre = 'Cuestionario del turno: ';
-    doc.text(pre, LX + 7, ny);
-    const px = LX + 7 + doc.getTextWidth(pre);
-    F('bold', 8, LINK);
-    doc.textWithLink('RELLENAR CUESTIONARIO', px, ny, { url: pdfCfg.cuestionarioUrl });
-    setD(LINK); doc.setLineWidth(0.15);
-    doc.line(px, ny + 0.6, px + doc.getTextWidth('RELLENAR CUESTIONARIO'), ny + 0.6);
+    let mesFile = '';
+    if (plan.length) { const p = plan[0].fechaStr.split('/'); mesFile = (MESES_ES[+p[1]] || '') + ' ' + p[2]; }
+    doc.save('Cuadrante Puerto' + (mesFile ? ' ' + mesFile : '') + '.pdf');
+    toast('PDF generado ✓', 'ok');
+  } finally {
+    host.remove();
   }
-
-  // Numeración
-  const np = doc.getNumberOfPages();
-  for (let i = 1; i <= np; i++) {
-    doc.setPage(i);
-    F('normal', 7, [150,150,150]);
-    doc.text('Página ' + i + ' de ' + np, RIGHT, PH - 5, { align: 'right' });
-  }
-
-  doc.save('Cuadrante Puerto' + (mesFile ? ' ' + mesFile : '') + '.pdf');
-  toast('PDF generado ✓', 'ok');
 }
 
 function exportarSheet() {
