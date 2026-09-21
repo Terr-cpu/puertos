@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _dSemTxt, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -447,7 +447,7 @@ function check(nombre, cond, detalle) {
       ...eq('2026-10-13', R2, 'hi'),            // T5 solo 2 → débil
       ...eq('2026-10-20', R1, 'abc'),           // T7 futuro
     ],
-    arch: [...eq('2026-09-10', R1, 'abcde'), H('2026-05-05', R1, 'l')],   // T0 (mes anterior, archivado) + un turno antiguo de L, que no volvió
+    arch: [...eq('2026-09-10', R1, 'abcde'), H('2026-03-05', R1, 'l')],   // T0 (mes anterior, archivado) + un turno antiguo de L (hace más de 6 meses), que no volvió
     bajas: [
       { voluntario_id: 'b', fecha: '2026-10-06', rango: R1, registrado_en: '2026-10-05T10:00:00Z', activa: true },   // 1 día
       { voluntario_id: 'e', fecha: '2026-10-09', rango: R2, registrado_en: '2026-10-09T08:00:00Z', activa: true },   // mismo día
@@ -488,7 +488,7 @@ function check(nombre, cond, detalle) {
   check('turnos sin portador de llave: 3 (T3, T5, T6)', T.sinLlave === 3, T.sinLlave + '');
   check('participación: 7 de 11 activos = 64 % (el inactivo no cuenta)', V.participantes === 7 && V.activos === 11 && V.inactivos === 1 && V.participacion === 64, `${V.participantes}/${V.activos}/${V.participacion}`);
   check('concentración: 3 primeros = 62 %, 20 % más activo = 46 %', V.top3Share === 62 && V.top20Share === 46, `${V.top3Share}/${V.top20Share}`);
-  check('dejaron de participar: solo L (turno en mayo, ninguno desde entonces)', V.sugeridos.map(r => r.id).join() === 'l', V.sugeridos.map(r => r.id).join());
+  check('dejaron de participar (más de 6 meses sin turnos): solo L (último turno en marzo)', V.sugeridos.map(r => r.id).join() === 'l', V.sugeridos.map(r => r.id).join());
   check('sin estrenar: F y J (nunca un turno hecho); K inactivo no cuenta', V.sinEstrenar.map(r => r.id).sort().join() === 'f,j', V.sinEstrenar.map(r => r.id).join());
   check('turnos confirmados desglosados: 4 ya hechos y 1 próximo', T.confPasados === 4 && T.confProg === 1, T.confPasados + '/' + T.confProg);
   const fila = id => S.tabla.find(r => r.id === id);
@@ -537,7 +537,7 @@ function check(nombre, cond, detalle) {
     refs: [], act: null,
   };
   const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
-  const S = E._statsAgregar(base, raw, '2026-05-01', '2026-09-30', hoy);
+  const S = E._statsAgregar(base, raw, '2026-05-01', '2026-09-30', hoy, { mesesSinParticipar: 3 });
   const est = Object.fromEntries(S.cobertura.meses.map(m => [m.k, m.estado]));
   check('estados por mes: mayo y septiembre con registro; jun, jul, ago sin datos', est['2026-05'] === 'app' && est['2026-09'] === 'app' && est['2026-06'] === 'vacio' && est['2026-07'] === 'vacio' && est['2026-08'] === 'vacio', JSON.stringify(est));
   check('la serie mensual marca los meses vacíos', S.meses.filter(m => m.estado === 'vacio').length === 3);
@@ -553,14 +553,19 @@ function check(nombre, cond, detalle) {
   // Si se importan los meses que faltan (jun-ago), la conclusión cambia: D ya llevaba 4 meses sin participar
   raw.arch.push(H('2026-06-06', 'a'), H('2026-06-06', 'b'), H('2026-06-06', 'c'), H('2026-07-04', 'a'), H('2026-07-04', 'b'), H('2026-07-04', 'c'), H('2026-08-01', 'a'), H('2026-08-01', 'b'), H('2026-08-01', 'c'));
   const base2 = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
-  const S2 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy);
+  const S2 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy, { mesesSinParticipar: 3 });
   const est2 = Object.fromEntries(S2.cobertura.meses.map(m => [m.k, m.estado]));
   check('tras importar, jun-ago pasan a "manual" (turnos sin rastro de bajas)', est2['2026-06'] === 'manual' && est2['2026-07'] === 'manual' && est2['2026-08'] === 'manual');
   check('y ahora sí se puede afirmar que D, F y G dejaron de participar (4 meses con datos después)', S2.voluntarios.sugeridos.map(r => r.id).sort().join() === 'd,f,g' && S2.voluntarios.sinEvidencia.length === 0, S2.voluntarios.sugeridos.map(r => r.id).join());
   check('los meses manuales no diluyen la tasa: sigue sobre las 11 plazas con registro', S2.bajas.base === 11 && S2.bajas.tasa === 18.2, `${S2.bajas.base}/${S2.bajas.tasa}`);
-  const S3 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy, { mesesOk: new Set(['2026-06', '2026-07', '2026-08']) });
+  const S3 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy, { mesesOk: new Set(['2026-06', '2026-07', '2026-08']), mesesSinParticipar: 3 });
   check('si el usuario marca esos meses como "registro completo", pasan a contar en la tasa (20 plazas, 2 bajas = 10 %)', S3.bajas.base === 20 && S3.bajas.tasa === 10, `${S3.bajas.base}/${S3.bajas.tasa}`);
 
+  // El plazo de "dejó de participar" es configurable (por defecto 6 meses)
+  const S6 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy);
+  check('por defecto (6 meses) quien hizo su último turno en mayo (hace 4 meses) NO se da por perdido ni por dudoso', S6.voluntarios.sugeridos.length === 0 && S6.voluntarios.sinEvidencia.length === 0 && S6.voluntarios.umbralMeses === 6);
+  const S12 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy, { mesesSinParticipar: 12 });
+  check('con 3 meses sí (D, F, G) y con 12 meses tampoco: el plazo cambia el resultado', S2.voluntarios.sugeridos.length === 3 && S2.voluntarios.umbralMeses === 3 && S12.voluntarios.sugeridos.length === 0 && S12.voluntarios.umbralMeses === 12);
   // Apunte ya confirmado en el equipo: cuenta como "salido por apuntes", no como equipo propio
   const R = { vols: 'abcd'.split('').map(V), hist: ['a', 'b', 'c'].map(id => H('2026-09-10', id)), arch: [], bajas: [],
     refs: ['a', 'b', 'c'].map(id => ({ voluntario_id: id, fecha: '2026-09-10', rango: R1, es_dia_completo: false, registrado_en: '2026-09-05T10:00:00Z' })), act: null };
@@ -863,8 +868,8 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   ];
   const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, nunca: new Set(['e', 'f']), dejo: new Set(['d']) });
   const x = id => D.lista.find(v => v.id === id);
-  check('A, B, C coinciden entre sí todo el sábado: conexión 100 % y "bien conectado"', x('a').pct === 100 && x('a').nivel === 'bien' && x('a').nVent === 3, JSON.stringify({ p: x('a').pct, n: x('a').nVent }));
-  check('D: el sábado coincide con 3 (1 franja conectada) pero el domingo con nadie → 25 % "poco conectado"', x('d').pct === 25 && x('d').nivel === 'poco' && x('d').nVent === 4, JSON.stringify({ p: x('d').pct, n: x('d').nVent }));
+  check('(sin semana en los datos = todas las semanas) A, B, C coinciden entre sí todo el sábado: conexión 100 % y "bien conectado"', x('a').pct === 100 && x('a').nivel === 'bien' && x('a').nVent === 15, JSON.stringify({ p: x('a').pct, n: x('a').nVent }));
+  check('D: el sábado coincide con 3 (1 franja conectada) pero el domingo con nadie → 25 % "poco conectado"', x('d').pct === 25 && x('d').nivel === 'poco' && x('d').nVent === 20, JSON.stringify({ p: x('d').pct, n: x('d').nVent }));
   check('E: solo el lunes por la mañana y nadie más → 0 % "muy desconectado"', x('e').pct === 0 && x('e').nivel === 'aislado' && x('e').mediaOtros === 0);
   check('F sin ningún horario → "sin horario" (y se cuenta aparte)', x('f').nivel === 'sin' && x('f').pct === null && D.sinHorario === 1);
   check('el que no es del grupo (zz) no aparece', !x('zz') && D.lista.length === 6);
@@ -899,6 +904,32 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const ins = E._statsInsights(S, null);
   check('recomendación: 3 de los 3 que nunca participaron tienen un horario que casi no encaja, con la mejor franja', ins.some(i => /3 de los 3 voluntarios que nunca han participado tienen un horario que casi no encaja/.test(i.titulo) && /Sáb de 10 a 12h/.test(i.accion)), ins.map(i => i.titulo).join(' | '));
   check('recomendación: 1 voluntario activo sin horario no genera aviso (mínimo 2)', !ins.some(i => /sin horario|ningún horario/.test(i.titulo)) || S.dispo.sinHorario >= 2);
+})();
+
+// ── E21: la semana del mes importa (no es lo mismo todos los martes que solo el tercero) ──
+(function E21() {
+  console.log('\n═══ E21 · Conexión horaria semana a semana ═══');
+  check('texto de semanas: solo la 3.ª / 1.ª y 3.ª / 1.ª, 2.ª y 4.ª / todas', E._dSemTxt(new Set([2])) === 'solo la 3.ª sem.' && E._dSemTxt(new Set([0, 2])) === '1.ª y 3.ª sem.' && E._dSemTxt(new Set([0, 1, 3])) === '1.ª, 2.ª y 4.ª sem.' && E._dSemTxt(new Set([0, 1, 2, 3, 4])) === 'todas las semanas');
+  const vols = 'abcdz'.split('').map(id => ({ id, nombre: id.toUpperCase() + ' NOMBRE' }));
+  const M = (id, semana) => ({ voluntario_id: id, semana, dia: 'Martes', horario: '16:00 a 20:00' });
+  // A solo está libre el tercer martes; B, C y D lo están las otras cuatro semanas. Ninguno coincide con A ese día.
+  const disp = [M('a', 3), ...[1, 2, 4, 5].flatMap(w => ['b', 'c', 'd'].map(id => M(id, w))), { voluntario_id: 'z', dia: 'Lunes', horario: '08:00 a 10:00' }];
+  const dem = Array.from({ length: 7 }, () => new Array(14).fill(0)); dem[1][8] = 1; dem[1][9] = 1; dem[1][10] = 1; dem[1][11] = 1;   // martes 16-20 con turnos
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, demanda: dem });
+  const x = id => D.lista.find(v => v.id === id);
+  check('A (solo el tercer martes, y ese martes nadie más) → coincide 0 %: "muy desconectado" aunque B, C y D también tengan los martes', x('a').pct === 0 && x('a').nivel === 'aislado' && x('a').nVent === 3, JSON.stringify({ p: x('a').pct, n: x('a').nVent }));
+  check('A está libre 1 de 5 semanas → constancia "pocas" y esporádico', x('a').semanas === 1 && x('a').constancia === 'pocas' && x('a').esporadico === true && x('a').recur === 20, JSON.stringify({ s: x('a').semanas, c: x('a').constancia, r: x('a').recur }));
+  check('B, C, D (4 de 5 semanas, y coinciden entre ellos) → 100 % y constancia "todas"', x('b').pct === 100 && x('b').nivel === 'bien' && x('b').semanas === 4 && x('b').recur === 80 && x('b').constancia === 'todas' && !x('b').esporadico, JSON.stringify({ p: x('b').pct, r: x('b').recur }));
+  check('el horario se escribe con sus semanas: "Mar 16–20 (solo la 3.ª sem.)" frente a "Mar 16–20 (1.ª, 2.ª, 4.ª y 5.ª sem.)"', x('a').resumen === 'Mar 16–20 (solo la 3.ª sem.)' && x('b').resumen === 'Mar 16–20 (1.ª, 2.ª, 4.ª y 5.ª sem.)', x('a').resumen + ' / ' + x('b').resumen);
+  check('mapa de A: a las 16h del martes coinciden 0 otros y solo está libre 1 semana', x('a').mapa[1][8] === 0 && x('a').sem[1][8] === 1 && x('b').sem[1][8] === 4 && x('b').mapa[1][8] === 2, JSON.stringify([x('a').mapa[1][8], x('a').sem[1][8], x('b').mapa[1][8], x('b').sem[1][8]]));
+  check('mapa de todo el grupo por semana: 16h del martes → 1 en la semana 3 (solo A), 3 en la semana 1; y la media es 2,6', D.grupoSem[2][1][8] === 1 && D.grupoSem[0][1][8] === 3 && D.grupo[1][8] === 2.6, JSON.stringify([D.grupoSem[2][1][8], D.grupoSem[0][1][8], D.grupo[1][8]]));
+  check('encaje con los turnos: el martes 16-20 tiene turnos → A 100 %', x('a').pctDem === 100 && x('a').encaje === 'bien');
+  check('una fila sin semana (Z, lunes 8-10) vale para las 5 semanas', x('z').semanas === 5 && x('z').recur === 100 && x('z').resumen === 'Lun 8–10');
+  check('mejor franja: martes 16-18 (de media, 2,6 voluntarios la cubren cada semana)', D.mejor && D.mejor.dia === 'Mar' && D.mejor.desde === 16 && D.mejor.n === 2.6, JSON.stringify(D.mejor));
+  // Comparado con juntar todas las semanas: A habría salido "bien conectado" (coincidiría con B, C y D)
+  const union = disp.map(r => ({ ...r, semana: undefined }));
+  const Du = E._dispoModelo(union, vols, { DUR: 2, MIN: 3 });
+  check('juntando todas las semanas (el cálculo anterior) A parecía "bien conectado" al 100 %: por eso ahora se mide semana a semana', Du.lista.find(v => v.id === 'a').pct === 100 && Du.lista.find(v => v.id === 'a').nivel === 'bien');
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

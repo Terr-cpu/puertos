@@ -170,7 +170,8 @@ cifra se compara con el **periodo anterior** de la misma duración (▲▼).
   voluntarios…). También señala lo que va bien.
 - **Voluntarios:** tabla ordenable y filtrable (turnos, próximos, bajas, % de
   baja, apuntes, último turno; pulsar un nombre abre su ficha). Distingue quienes
-  **dejaron de participar** (último turno hace más de 90 días) de los **sin
+  **dejaron de participar** (por defecto, último turno hace más de **6 meses**;
+  se cambia a 3, 6, 9 o 12 meses en el propio panel) de los **sin
   estrenar** (nunca han tenido turno). Exporta a **CSV** y copia un **resumen**
   listo para pegar.
 - Las cancelaciones de apuntes solo cuentan desde que se ejecutó
@@ -187,8 +188,9 @@ conclusiones falsas, cada mes se clasifica solo:
   mes tranquilo registrado en la app, se marca en *🩺 Calidad de los datos*.
 - **Sin datos**: ningún turno; se muestra como hueco en el gráfico y se avisa.
 
-Además, **nadie se da por "dejó de participar"** salvo que haya al menos 2 meses
-con datos posteriores a su último turno (si hay un hueco de meses sin registrar de
+Además, **nadie se da por "dejó de participar"** salvo que lleve más del plazo elegido
+(6 meses por defecto) sin turnos y haya al menos 2 meses con datos posteriores a su
+último turno (si hay un hueco de meses sin registrar de
 por medio, se muestra aparte como "sin datos suficientes"). Y las tasas solo se
 comentan a partir de 15 plazas con registro.
 
@@ -268,19 +270,30 @@ turno anulado deja de generar avisos de "turno en riesgo" (hay que volver a pega
 
 Sección **🧭 Disponibilidad y conexión horaria** de Estadísticas: a partir del horario
 que cada voluntario registró (`disponibilidad`), se dibuja **su horario hora a hora**
-sobre el de todos los demás y se mide de dos formas:
+sobre el de todos los demás. Se trabaja **semana a semana** (las 5 semanas del
+formulario: días 1-7, 8-14, 15-21, 22-28 y 29 en adelante), porque no es lo mismo estar
+libre todos los martes del mes que solo el tercero. Se mide de tres formas:
 
 - **Coincide con otros voluntarios**: qué parte de las franjas de un turno que puede
-  cubrir tienen además, a la vez, al menos `MIN_EQ − 1` voluntarios más disponibles.
+  cubrir tienen además, **esa misma semana**, al menos `MIN_EQ − 1` voluntarios más
+  disponibles el mismo día y a la misma hora. Quien solo está libre el tercer martes y
+  ese martes nadie más lo está, sale como *muy desconectado* aunque otros voluntarios
+  también tengan los martes en otras semanas.
+- **Constancia**: en cuántas de las 5 semanas del mes está libre, de media, en los
+  días que tiene (*casi todas las semanas* / *algunas* / *solo unas pocas*).
 - **Encaja con los turnos**: qué parte de sus horas cae en días y horas donde de
   verdad ha habido turnos (borde oscuro en el dibujo).
 
-Hay un mapa con **todos los voluntarios** (cuántos están disponibles cada hora) y una
-lista filtrable —🆕 nunca han participado, ⚠️ los menos conectados, 💤 dejaron de
+En el dibujo de cada voluntario, un cuadro **más pálido** significa que está libre en
+menos semanas de las 5, y el texto de su horario dice en qué semanas
+(`Mar 16–20 (solo la 3.ª sem.)`). Hay un mapa con **todos los voluntarios** (cuántos
+están disponibles cada hora; media de las 5 semanas o una semana concreta) y una lista
+filtrable —🆕 nunca han participado, ⚠️ los menos conectados, 💤 dejaron de
 participar, todos—, ordenada de menos a más conectado, con la comparación entre
 quienes participan y quienes nunca lo han hecho, y una recomendación si el horario de
 los que nunca participaron casi no encaja. También avisa de los voluntarios activos
-que no tienen ningún horario registrado.
+que no tienen ningún horario registrado. (Una fila de disponibilidad sin semana se toma
+como "todas las semanas".)
 
 ## Configuración
 
