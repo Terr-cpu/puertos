@@ -354,6 +354,46 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .ev-item .t{font-size:.76rem;color:var(--label2);line-height:1.35}
 .ev-item .h{font-size:.64rem;color:var(--label3);margin-top:.12rem}
 .ev-item.nuevo .h{color:var(--blue);font-weight:700}
+
+/* ── Estadísticas ── */
+.st-ctrl{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1rem}
+.st-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.7rem;margin-bottom:1rem}
+.st-sub{font-size:.62rem;color:var(--label3);margin-top:.25rem;line-height:1.35;text-align:center}
+.st-dl{display:block;font-size:.66rem;font-weight:700;margin-top:.2rem;text-align:center}
+.st-sec{background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);padding:.85rem 1rem;margin-bottom:.9rem}
+.st-sec h4{font-size:.82rem;margin:0 0 .65rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.st-sec h4 span{font-size:.68rem;font-weight:500;color:var(--label3)}
+.st-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.9rem}
+.st-cols>*,#st-body,.st-sec{min-width:0}
+.main-area,.content{min-width:0}
+.vol-acts{flex-wrap:wrap}
+@media(max-width:640px){.vol-row2{flex-wrap:wrap}.vol-acts{width:100%}.vinfo2{min-width:0;flex:1 1 60%}}
+.st-sec{overflow-x:auto}
+@media(max-width:820px){.st-cols{grid-template-columns:minmax(0,1fr)}.st-et{width:96px}.st-heat td{min-width:26px;padding:.4rem .1rem}}
+.st-insgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:.6rem}
+.st-ins{border-left:4px solid;border-radius:var(--r-sm);padding:.6rem .8rem}
+.st-fila{display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;font-size:.74rem}
+.st-et{width:130px;flex-shrink:0;color:var(--label2)}
+.st-track{flex:1;height:14px;background:var(--surface2);border-radius:5px;overflow:hidden}
+.st-fill{height:100%;border-radius:5px}
+.st-val{min-width:54px;text-align:right;font-weight:700}
+.st-leyenda{display:flex;gap:.3rem .9rem;flex-wrap:wrap;margin-top:.5rem;font-size:.7rem;color:var(--label2)}
+.st-leyenda i,.st-pt{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:.3rem;vertical-align:middle}
+.st-heat{border-collapse:separate;border-spacing:3px;width:100%;font-size:.72rem;text-align:center}
+.st-heat th{font-weight:600;color:var(--label3);font-size:.68rem;text-align:center;padding:.15rem}
+.st-heat th:first-child{text-align:left;white-space:nowrap}
+.st-heat td{border-radius:6px;padding:.5rem .2rem;font-weight:700;min-width:34px}
+.st-vres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.6rem;margin-bottom:.8rem}
+.st-vres div{background:var(--surface2);border-radius:var(--r-sm);padding:.55rem .7rem;font-size:.8rem;line-height:1.5}
+.st-vres b{font-size:1.1rem}.st-vres span{font-size:.68rem;color:var(--label3)}
+.st-sug{background:var(--amber-soft);border-radius:var(--r-sm);padding:.65rem .8rem;font-size:.76rem;margin-bottom:.8rem}
+.st-tag{display:inline-block;background:var(--surface);border:1px solid var(--sep);border-radius:20px;padding:.15rem .55rem;margin:.15rem .2rem 0 0;cursor:pointer;font-size:.72rem;font-weight:600}
+.st-tag i{font-style:normal;color:var(--label3);font-weight:400;font-size:.65rem}
+.st-filtros{display:flex;gap:.8rem;flex-wrap:wrap;align-items:center;margin:.4rem 0 .6rem;font-size:.74rem;color:var(--label2)}
+.st-tabla{width:100%;border-collapse:collapse;font-size:.76rem}
+.st-tabla th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--label3);padding:.4rem .5rem;border-bottom:1px solid var(--sep);white-space:nowrap;user-select:none}
+.st-tabla td{padding:.4rem .5rem;border-bottom:1px solid var(--sep)}
+.st-tabla tr:hover td{background:var(--surface2)}
 .baja-col-title{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.42rem}
 .baja-vol-chip{display:inline-flex;align-items:center;gap:.28rem;font-size:.73rem;font-weight:600;padding:.26rem .6rem;border-radius:20px;margin:.12rem;border:1.5px solid transparent}
 .chip-baja{background:var(--red-soft);color:var(--red);border-color:#f5b8b5}
@@ -521,6 +561,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante"><span class="ni">📅</span> Cuadrante</button>
     <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas"><span class="ni">🔑</span> Alertas <span class="nbadge" id="nbadge" style="display:none">0</span></button>
     <button class="nav-item" onclick="setTab('carga')" id="nav-carga"><span class="ni">📊</span> Balance</button>
+    <button class="nav-item" onclick="setTab('estadisticas')" id="nav-estadisticas"><span class="ni">📈</span> Estadísticas</button>
   </div>
   <div class="nav-sec">
     <div class="nav-lbl">Gestión</div>
@@ -578,6 +619,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 
   <div class="content">
     <div id="tab-envivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando vista en vivo…</p></div></div>
+    <div id="tab-estadisticas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Calculando estadísticas…</p></div></div>
     <div id="tab-cuadrante" class="tab-pane active"><div class="loading"><div class="spinner"></div><p>Calculando…</p></div></div>
     <div id="tab-alertas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div></div>
     <div id="tab-carga" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div></div>
@@ -644,9 +686,10 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['envivo','cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
+const TABS = ['envivo','estadisticas','cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
 const TAB_TITLES = {
   envivo:'🛰️ En vivo · turnos, bajas y apuntes',
+  estadisticas:'📈 Estadísticas de actividad',
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
@@ -655,6 +698,7 @@ const TAB_TITLES = {
 };
 const TAB_ACTS = {
   envivo:`<button class="btn btn-ghost btn-sm" onclick="loadEnVivo(true)">↻ Actualizar</button>`,
+  estadisticas:`<button class="btn btn-ghost btn-sm" onclick="loadEstadisticas(true)">↻ Actualizar</button>`,
   cuadrante:`<button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
              <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()" title="Genera el PDF del cuadrante — en el diálogo elige «Guardar como PDF»">📄 <span>PDF</span></button>
              <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
@@ -683,6 +727,7 @@ function setTab(id) {
   tabActual = id;
   closeSidebar();
   if (id==='envivo')                            entrarEnVivo();
+  if (id==='estadisticas')                      entrarEstadisticas();
   if (id==='cuadrante'      && !S.plan)         loadCuadrante();
   if (id==='alertas'        && !window._aOk)    loadAlertas();
   if (id==='carga'          && !window._cOk)    loadCarga();
@@ -967,17 +1012,21 @@ async function apiGet(p) {
 
     case 'getResumenCarga': {
       const data = await cached('carga', 3*60000, () => rpc('get_resumen_carga'));
-      return data || { total:0, max:0, min:0, media:0, voluntarios:[] };
+      if (!data) return { total:0, max:0, min:0, media:0, voluntarios:[] };
+      const actC = await nombresActivos();
+      return actC && Array.isArray(data.voluntarios)
+        ? { ...data, voluntarios: data.voluntarios.filter(v => actC.has(String(v.nombre).toUpperCase().trim())) } : data;
     }
 
     case 'quienCubre': {
       const fecha = p.fecha ? dmyAIso(isoADMY(p.fecha)) : null;
-      return rpc('quien_puede_cubrir', {
+      // Sin los voluntarios dados de baja del grupo
+      return { candidatos: await rpcCandidatos({
         p_semana: parseInt(p.semana),
         p_dia: p.dia,
         p_rango: p.rango,
         p_fecha: fecha
-      });
+      }) };
     }
 
     case 'getBajas': {
@@ -1028,7 +1077,8 @@ async function apiGet(p) {
     }
 
     case 'getDisponibilidadCompleta': {
-      const rows = await sbGet('v_disponibilidad', 'order=nombre,semana,dia');
+      const [rowsAll, act] = await Promise.all([sbGet('v_disponibilidad', 'order=nombre,semana,dia'), nombresActivos()]);
+      const rows = act ? rowsAll.filter(r => act.has(String(r.nombre).toUpperCase().trim())) : rowsAll;
       const mapa = {};
       rows.forEach(r => {
         if (!mapa[r.nombre]) mapa[r.nombre] = { nombre: r.nombre, llave: r.tiene_llave, disponibilidad: [] };
@@ -1066,7 +1116,8 @@ async function apiGet(p) {
       // Obtener disponibilidad para semana+día
       const dispRows = await sbGet('v_disponibilidad',
         'semana=eq.'+semBusq+'&horario=not.is.null&order=nombre');
-      const dispDia = dispRows.filter(r => normDia(r.dia) === diaBusq);
+      const actBus = await nombresActivos();
+      const dispDia = dispRows.filter(r => normDia(r.dia) === diaBusq && (!actBus || actBus.has(String(r.nombre).toUpperCase().trim())));
 
       // Filtrar por hora si se especifica
       const candidatos = dispDia.filter(r => {
@@ -1842,6 +1893,8 @@ async function getCuadranteMensual() {
   ]);
 
   const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase().trim()));
+  // v_disponibilidad no distingue activos: quien se dio de baja del grupo no se planifica
+  const volsAct = new Set(vols.map(v=>v.nombre.toUpperCase().trim()));
 
   // Historial plano para calcular días de descanso
   const histFlat = hist.map(h => ({
@@ -1865,7 +1918,7 @@ async function getCuadranteMensual() {
   histFlat.forEach(h => { dispoCount[h.key] = (dispoCount[h.key]||0)+1; });
 
   const dispoIdx = {};
-  vDisp.forEach(d => {
+  vDisp.filter(d => volsAct.has(d.nombre.toUpperCase().trim())).forEach(d => {
     const k = d.semana + '|' + normDia(d.dia);
     if (!dispoIdx[k]) dispoIdx[k] = [];
     dispoIdx[k].push({
@@ -3014,41 +3067,181 @@ async function loadVoluntarios(force) {
   const c=document.getElementById('tab-voluntarios');
   c.innerHTML=`<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
   try {
-    const [vols, llData] = await Promise.all([
-      apiGet({action:'getVoluntarios'}),
-      apiGet({action:'getLlaves'})
-    ]);
-    const llaveSet = new Set((llData.llaves||[]).map(n=>n.toUpperCase()));
-    window._llaveSet = llaveSet;
-    c.innerHTML='';
-
-    // Header con botón añadir
-    const hdr=document.createElement('div');
-    hdr.style='display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:.5rem';
-    hdr.innerHTML=`<p style="font-size:.82rem;color:var(--label3)">${vols.length} voluntarios registrados</p>
-      <button class="btn btn-green btn-sm" onclick="abrirNuevoVol()">+ Nuevo voluntario</button>`;
-    c.appendChild(hdr);
-
-    vols.forEach((nom,i) => {
-      const ini=nom.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-      const llave=llaveSet.has(nom.toUpperCase());
-      const el=document.createElement('div'); el.className='vol-row2'; el.style.animationDelay=(i*.02)+'s';
-      el.innerHTML=`
-        <div class="vavatar">${ini}</div>
-        <div class="vinfo2">
-          <div class="vn">${nom}${llave?' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>':''}</div>
-          <div class="vm2">${llave?'Portador de llave':'Voluntario'}</div>
-        </div>
-        <div class="vol-acts">
-          <button class="btn btn-ghost btn-sm" data-vnom="${nom.replace(/"/g,'&quot;')}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Nombre</button>
-          <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nom.replace(/'/g,"\\'")}', ${llave})">✏️ Editar</button>
-          <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nom.replace(/'/g,"\\'")}')">📊 Ficha</button>
-          <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom.replace(/'/g,"\\'")}')">📋 Turnos</button>
-        </div>`;
-      c.appendChild(el);
-    });
+    const raw = await _stCargar(true);
+    const hoy = _evHoy();
+    const base = _statsBase(raw, cargarReglas());
+    // Ficha resumida de cada uno sobre TODO el histórico (último turno, total, próximos)
+    const tabla = _statsAgregar(base, raw, '0000-01-01', '9999-12-31', hoy).tabla;
+    const tieneHistoria = new Set([...base.asigs.map(a => a.id), ...raw.bajas.map(b => b.voluntario_id), ...raw.refs.map(r => r.voluntario_id)]);
+    tabla.forEach(r => { r.historia = tieneHistoria.has(r.id); });
+    window._volTabla = tabla;
+    window._volFiltro = window._volFiltro || 'activos';
+    window._volBusca = '';
+    c.innerHTML = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem">
+        <div id="vol-resumen" style="font-size:.82rem;color:var(--label3)"></div>
+        <button class="btn btn-green btn-sm" onclick="abrirNuevoVol()">+ Nuevo voluntario</button>
+      </div>
+      <div class="ev-filtros">
+        <input class="fc" id="vol-busca" placeholder="🔍 Buscar…" style="max-width:190px" oninput="window._volBusca=this.value;renderListaVoluntarios()">
+        <span id="vol-pills" style="display:contents"></span>
+      </div>
+      <div id="vol-lista"></div>`;
+    renderListaVoluntarios();
     window._vOk=true;
-  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+  } catch(e) { c.innerHTML=`<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${escH(e.message)}</p></div>`; }
+}
+
+// Mismo criterio que Estadísticas: activo, alta de hace más de 2 meses, sin turno próximo y
+// (nunca ha tenido turno = "sin estrenar") o (su último turno fue hace más de 90 días = "dejó de participar")
+function _volSinActividad(r, hoy) {
+  if (!r.activo || r.proximos) return false;
+  const d = n => { const x = new Date(hoy + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() - n); return x.toISOString().slice(0, 10); };
+  if (r.creado && r.creado >= d(60)) return false;
+  return !r.ultimo || r.ultimo < d(90);
+}
+
+function renderListaVoluntarios() {
+  const t = window._volTabla || [], hoy = _evHoy(), f = window._volFiltro, q = (window._volBusca || '').trim().toLowerCase();
+  const activos = t.filter(r => r.activo), inact = t.filter(r => !r.activo), sinAct = t.filter(r => _volSinActividad(r, hoy));
+  const res = document.getElementById('vol-resumen');
+  if (res) res.textContent = `${activos.length} activos${inact.length ? ' · ' + inact.length + ' inactivos' : ''}`;
+  const defs = [['activos', 'Activos', activos.length], ['sinact', '💤 Sin actividad', sinAct.length], ['inactivos', '🚪 Inactivos', inact.length], ['todos', 'Todos', t.length]];
+  const pills = document.getElementById('vol-pills');
+  if (pills) pills.innerHTML = defs.map(([id, l, n]) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="window._volFiltro='${id}';renderListaVoluntarios()">${l} ${n}</button>`).join('');
+  let lista = f === 'activos' ? activos : f === 'sinact' ? sinAct : f === 'inactivos' ? inact : t;
+  if (q) lista = lista.filter(r => r.nombre.toLowerCase().includes(q));
+  lista = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const c = document.getElementById('vol-lista'); if (!c) return;
+  if (!lista.length) { c.innerHTML = `<div class="empty"><span class="ei">${f === 'inactivos' ? '🚪' : '🔍'}</span><h4>${f === 'inactivos' ? 'Nadie inactivo' : 'Sin resultados'}</h4>${f === 'inactivos' ? '<p>Aquí aparecerán los voluntarios que des de baja del grupo.</p>' : ''}</div>`; return; }
+  c.innerHTML = lista.map((r, i) => {
+    const nom = r.nombre, nAttr = escH(nom).replace(/'/g, '&#39;'), ini = nom.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    const info = r.ultimo ? `último turno hace ${_stDiasEntre(r.ultimo, hoy)} d · ${r.total} en total` : (r.proximos ? `${r.proximos} próximo${r.proximos === 1 ? '' : 's'}` : 'sin turnos todavía');
+    const acts = r.activo ? `
+      <button class="btn btn-ghost btn-sm" data-vnom="${nAttr}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Nombre</button>
+      <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nAttr}', ${r.llave})">✏️ Editar</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
+      <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nAttr}')">📋 Turnos</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirDesactivar('${r.id}')" title="Dar de baja del grupo (reversible)">🚪 Dar de baja</button>` : `
+      <button class="btn btn-green btn-sm" onclick="reactivarVoluntario('${r.id}')">♻️ Reactivar</button>
+      <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirEliminar('${r.id}')" title="${r.historia ? 'Tiene historial: solo se puede eliminar si no consta en ningún turno' : 'Eliminar definitivamente'}">🗑️ Eliminar</button>`;
+    return `<div class="vol-row2" style="animation-delay:${i * .015}s;${r.activo ? '' : 'opacity:.75'}">
+      <div class="vavatar">${ini}</div>
+      <div class="vinfo2">
+        <div class="vn">${escH(nom)}${r.llave ? ' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>' : ''}${r.activo ? '' : ' <span style="font-size:.6rem;background:var(--surface2);color:var(--label3);padding:.08rem .4rem;border-radius:3px">Inactivo</span>'}${_volSinActividad(r, hoy) ? (r.ultimo ? ' <span title="Su último turno fue hace más de 90 días y no tiene ninguno próximo" style="font-size:.7rem">💤</span>' : ' <span title="Nunca ha tenido un turno" style="font-size:.7rem">🆕</span>') : ''}</div>
+        <div class="vm2">${info}</div>
+      </div>
+      <div class="vol-acts">${acts}</div></div>`;
+  }).join('');
+}
+
+// ── Dar de baja del grupo (activo = false). Reversible; conserva todo el historial.
+function _volPorId(id) { return (window._volTabla || []).find(r => r.id === id); }
+
+async function abrirDesactivar(id) {
+  const r = _volPorId(id); if (!r) return;
+  document.getElementById('mvol-titulo').textContent = '🚪 Dar de baja del grupo';
+  const body = document.getElementById('mvol-body');
+  body.innerHTML = `<div class="loading" style="padding:1.5rem 0"><div class="spinner"></div></div>`; openModal('mvol');
+  try {
+    const hoy = _evHoy();
+    const [prox, refs] = await Promise.all([
+      sbGet('v_historial', 'voluntario_id=eq.' + id + '&fecha=gte.' + hoy + '&select=fecha,rango&order=fecha'),
+      sbGet('refuerzos', 'voluntario_id=eq.' + id + '&fecha=gte.' + hoy + '&select=fecha,rango,es_dia_completo&order=fecha'),
+    ]);
+    const hay = prox.length + refs.length > 0;
+    body.innerHTML = `
+      <p style="font-size:.84rem;line-height:1.55;margin-bottom:.8rem"><b>${escH(r.nombre)}</b> dejará de aparecer en el cuadrante, en los sustitutos, en la disponibilidad y en el balance. <b>Se conserva todo su historial</b> para las estadísticas y puedes reactivarlo cuando quieras.</p>
+      ${hay ? `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.65rem .8rem;font-size:.78rem;margin-bottom:.8rem">
+        <b style="color:var(--amber)">⚠️ Tiene ${prox.length} turno${prox.length === 1 ? '' : 's'} y ${refs.length} apunte${refs.length === 1 ? '' : 's'} por delante:</b>
+        <div style="margin-top:.3rem;color:var(--label2)">${[...prox, ...refs].slice(0, 6).map(x => _evFechaCorta(x.fecha) + (x.rango ? ' · ' + escH(x.rango) : ' · todo el día')).join('<br>')}${prox.length + refs.length > 6 ? '<br>…' : ''}</div>
+        <label style="display:flex;gap:.45rem;align-items:flex-start;margin-top:.55rem;font-weight:600"><input type="checkbox" id="des-quitar" checked style="margin-top:.15rem"> Quitarlo también de esos turnos y apuntes futuros (los turnos quedarán con un hueco que cubrir)</label></div>` : ''}
+      <div style="display:flex;gap:.5rem;justify-content:flex-end">
+        <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+        <button class="btn btn-navy" id="des-btn" onclick="ejecutarDesactivar('${id}')">🚪 Dar de baja del grupo</button>
+      </div>`;
+  } catch(e) { body.innerHTML = `<p style="color:var(--red)">Error: ${escH(e.message)}</p>`; }
+}
+
+function _volRefrescarTodo() {
+  invalidar('activos', 'voluntarios', 'historial', 'disponibilidad', 'carga', 'oferta', 'calendario');
+  ['_vOk', '_dOk', '_cOk', '_aOk', '_hOk', '_bOk', '_apOk'].forEach(k => { window[k] = false; });
+  S.plan = null; S.volsAll = null; ST.raw = null; ST.S = null; EV.data = null;
+}
+
+async function ejecutarDesactivar(id) {
+  const r = _volPorId(id); if (!r) return;
+  const btn = document.getElementById('des-btn'); btn.disabled = true; btn.textContent = '⏳ …';
+  try {
+    if (document.getElementById('des-quitar')?.checked) {
+      const hoy = _evHoy();
+      await sbDelete('historial', 'voluntario_id=eq.' + id + '&fecha=gte.' + hoy);
+      await sbDelete('refuerzos', 'voluntario_id=eq.' + id + '&fecha=gte.' + hoy);
+    }
+    await sbPatch('voluntarios', 'id=eq.' + id, { activo: false });
+    _volRefrescarTodo();
+    closeModal('mvol');
+    toast(`${r.nombre} dado de baja del grupo`, 'ok');
+    window._volFiltro = 'activos'; loadVoluntarios(true);
+  } catch(e) { btn.disabled = false; btn.textContent = '🚪 Dar de baja del grupo'; toast('Error: ' + e.message, 'err'); }
+}
+
+async function reactivarVoluntario(id) {
+  const r = _volPorId(id); if (!r) return;
+  try {
+    await sbPatch('voluntarios', 'id=eq.' + id, { activo: true });
+    _volRefrescarTodo();
+    toast(`${r.nombre} reactivado ✓`, 'ok');
+    window._volFiltro = 'activos'; loadVoluntarios(true);
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// ── Eliminar definitivamente: solo si no consta en ningún turno, baja ni apunte
+function abrirEliminar(id) {
+  const r = _volPorId(id); if (!r) return;
+  document.getElementById('mvol-titulo').textContent = '🗑️ Eliminar voluntario';
+  document.getElementById('mvol-body').innerHTML = r.historia ? `
+    <p style="font-size:.84rem;line-height:1.55;margin-bottom:.9rem"><b>${escH(r.nombre)}</b> consta en turnos, bajas o apuntes. Si lo eliminaras se perdería su historia y <b>las estadísticas dejarían de ser fiables</b>, así que se queda como inactivo: no aparece en ningún sitio salvo en el filtro "Inactivos" y en las estadísticas.</p>
+    <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal('mvol')">Entendido</button></div>` : `
+    <p style="font-size:.84rem;line-height:1.55;margin-bottom:.9rem"><b>${escH(r.nombre)}</b> no consta en ningún turno, baja ni apunte. Se eliminará definitivamente junto con su disponibilidad. <b>No se puede deshacer.</b></p>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-red" id="del-btn" onclick="ejecutarEliminar('${id}')">🗑️ Eliminar definitivamente</button></div>`;
+  openModal('mvol');
+}
+
+async function ejecutarEliminar(id) {
+  const r = _volPorId(id); if (!r || r.historia) return;
+  const btn = document.getElementById('del-btn'); btn.disabled = true; btn.textContent = '⏳ …';
+  try {
+    // Última comprobación en directo, por si algo cambió desde que se cargó la lista
+    const [h, b, f] = await Promise.all([
+      sbGet('historial', 'voluntario_id=eq.' + id + '&select=id&limit=1'),
+      sbGet('bajas', 'voluntario_id=eq.' + id + '&select=id&limit=1'),
+      sbGet('refuerzos', 'voluntario_id=eq.' + id + '&select=id&limit=1'),
+    ]);
+    if (h.length || b.length || f.length) throw new Error('ahora consta en algún turno; se mantiene como inactivo');
+    await sbDelete('disponibilidad', 'voluntario_id=eq.' + id).catch(() => {});
+    await sbDelete('voluntarios', 'id=eq.' + id);
+    _volRefrescarTodo();
+    closeModal('mvol');
+    toast(`${r.nombre} eliminado`, 'ok');
+    loadVoluntarios(true);
+  } catch(e) { btn.disabled = false; btn.textContent = '🗑️ Eliminar definitivamente'; toast('No se pudo eliminar: ' + e.message, 'err'); }
+}
+
+// ── Candidatos para cubrir: el RPC no distingue activos, así que se filtra aquí
+async function nombresActivos() {
+  try {
+    return await cached('activos', 60000, async () =>
+      new Set((await sbGet('voluntarios', 'select=nombre&activo=eq.true')).map(v => v.nombre.toUpperCase().trim())));
+  } catch(e) { return null; }
+}
+async function rpcCandidatos(params) {
+  const [data, act] = await Promise.all([rpc('quien_puede_cubrir', params), nombresActivos()]);
+  const cands = Array.isArray(data) ? data : (data?.candidatos || []);
+  return act ? cands.filter(c => act.has(String(c.nombre).toUpperCase().trim())) : cands;
 }
 
 function abrirNuevoVol() {
@@ -5370,7 +5563,7 @@ async function apAbrirCandidatos(btn, fecha, rango, dia) {
       panel.innerHTML = `<div style="font-size:.78rem;color:var(--label3);font-style:italic;padding:.3rem 0">Día nuevo sin rango definido — los candidatos se asignarán al generar el cuadrante.</div>`;
       return;
     }
-    const data = await rpc('quien_puede_cubrir', {
+    const data = await rpcCandidatos({
       p_semana: semana, p_dia: normDia(dia), p_rango: rango, p_fecha: fiso
     });
     // El RPC devuelve {candidatos:[{nombre,llave,dias,estado,horario}]}; los bloqueados por descanso no valen
@@ -6402,7 +6595,7 @@ async function evSugerir(k) {
   openModal('mvol');
   try {
     const sd = _evSemanaDia(t.fecha);
-    const data = await rpc('quien_puede_cubrir', { p_semana: sd.semana, p_dia: sd.dia, p_rango: t.rango, p_fecha: t.fecha });
+    const data = await rpcCandidatos({ p_semana: sd.semana, p_dia: sd.dia, p_rango: t.rango, p_fecha: t.fecha });
     const yaEn = new Set(t.chips.map(c => c.nombre.toUpperCase()));
     const ofrecidos = new Set(((EV.data.dias.get(t.fecha) || {}).diaCompleto || []).map(x => x.nombre.toUpperCase()));
     const cands = (Array.isArray(data) ? data : (data?.candidatos || [])).filter(c => !yaEn.has(String(c.nombre).toUpperCase()));
@@ -6594,6 +6787,533 @@ async function abrirFicha(nombre, id) {
   } catch(e) {
     body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
   }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ESTADÍSTICAS — modelo puro (sin DOM ni red; se prueba en test/)
+//  Une historial (activo + archivado), bajas, apuntes y voluntarios y calcula
+//  todo por periodo. La interfaz está más abajo (renderEstadisticas).
+// ══════════════════════════════════════════════════════════════
+
+// Un "turno" = fecha + franja. Una sola pasada sobre TODO el histórico; los periodos solo filtran.
+function _statsBase(raw, reglas) {
+  const MIN = (reglas && reglas.MIN_EQ) || 3, IDEAL = (reglas && reglas.IDEAL) || 4;
+  const nombreDe = new Map((raw.vols || []).map(v => [v.id, v.nombre]));
+  const llaveDe  = new Map((raw.vols || []).map(v => [v.id, !!v.tiene_llave]));
+  const visto = new Set(), asigs = [];
+  [...(raw.hist || []), ...(raw.arch || [])].forEach(h => {
+    if (!h.voluntario_id || !h.rango) return;
+    const k = h.voluntario_id + '|' + h.fecha + '|' + h.rango;
+    if (visto.has(k)) return; visto.add(k);
+    asigs.push({ id: h.voluntario_id, nombre: nombreDe.get(h.voluntario_id) || h.nombre || '(voluntario)', fecha: h.fecha, rango: h.rango });
+  });
+
+  const turnos = new Map();
+  const get = (f, r) => { const k = f + '|' + r; if (!turnos.has(k)) turnos.set(k, { k, fecha: f, rango: r, equipo: [], bajasEf: [], bajasAn: [], apuntes: [] }); return turnos.get(k); };
+  asigs.forEach(a => get(a.fecha, a.rango).equipo.push(a.id));
+  (raw.bajas || []).forEach(b => { if (b.rango) (b.activa ? get(b.fecha, b.rango).bajasEf : get(b.fecha, b.rango).bajasAn).push(b.voluntario_id); });
+  (raw.refs || []).forEach(r => { if (!r.es_dia_completo && r.rango) get(r.fecha, r.rango).apuntes.push(r.voluntario_id); });
+
+  turnos.forEach(t => {
+    const bajaEf = new Set(t.bajasEf), ap = new Set(t.apuntes), eq = new Set(t.equipo);
+    const propios = t.equipo.filter(id => !bajaEf.has(id));                       // siguen del equipo original
+    const vuelven = t.equipo.filter(id => bajaEf.has(id) && ap.has(id));           // dieron baja y se volvieron a apuntar
+    const nuevos  = t.apuntes.filter(id => !eq.has(id));                           // apuntados de fuera del equipo
+    t.presentes = [...propios, ...vuelven, ...nuevos];
+    t.n = t.presentes.length;
+    t.nPropio = propios.length;
+    t.bajaReal = t.bajasEf.filter(id => !ap.has(id)).length;                       // bajas que siguen en pie
+    t.conBaja = t.bajasEf.length + t.bajasAn.length > 0;
+    t.salvado = t.bajaReal > 0 && t.n >= MIN && t.nPropio < MIN;                   // llegó al mínimo gracias a apuntes
+    t.aguanto = t.bajaReal > 0 && t.nPropio >= MIN;                                // con bajas, sin necesitar apuntes
+    t.creadoPorApuntes = t.equipo.length === 0 && nuevos.length > 0;               // turno sin equipo confirmado
+    t.creadoOk = t.creadoPorApuntes && t.n >= MIN;
+    t.tuvoEquipo = t.equipo.length > 0;
+    t.sinLlave = t.n > 0 && !t.presentes.some(id => llaveDe.get(id));
+    const [y, m, d] = t.fecha.split('-').map(Number);
+    t.dow = new Date(y, m - 1, d).getDay();
+    const h = /^(\d{1,2})/.exec(t.rango || '');
+    t.franja = h && +h[1] >= 14 ? 't' : 'm';
+  });
+  return { turnos: [...turnos.values()], asigs, nombreDe, llaveDe, MIN, IDEAL };
+}
+
+const _stMediana = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+function _stDiasEntre(a, b) { // b - a en días (ISO yyyy-mm-dd)
+  const p = s => { const [y, m, d] = s.slice(0, 10).split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  return Math.round((p(b) - p(a)) / 86400000);
+}
+
+// Periodos alineados a meses. Devuelve {desde,hasta,meses,etiqueta} o null.
+function _stPeriodo(preset, hoy, custom, primeraFecha) {
+  const [y, m] = hoy.split('-').map(Number), mi = y * 12 + (m - 1);
+  const pad = n => String(n).padStart(2, '0');
+  const iso = (idx, ultimo) => {
+    const yy = Math.floor(idx / 12), mm = idx % 12;
+    if (!ultimo) return yy + '-' + pad(mm + 1) + '-01';
+    const d = new Date(yy, mm + 1, 0);
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  };
+  let a, b;
+  if (preset === 'mes') { a = b = mi; }
+  else if (preset === 'mesant') { a = b = mi - 1; }
+  else if (preset === '3m') { a = mi - 2; b = mi; }
+  else if (preset === '6m') { a = mi - 5; b = mi; }
+  else if (preset === 'anio') { a = y * 12; b = y * 12 + 11; }
+  else if (preset === 'anioant') { a = (y - 1) * 12; b = (y - 1) * 12 + 11; }
+  else if (preset === 'todo') {
+    const p = (primeraFecha || hoy).split('-').map(Number); a = p[0] * 12 + (p[1] - 1); b = mi;
+  } else if (preset === 'custom' && custom && custom.desde && custom.hasta) {
+    const p = custom.desde.split('-').map(Number), q = custom.hasta.split('-').map(Number);
+    a = p[0] * 12 + (p[1] - 1); b = q[0] * 12 + (q[1] - 1); if (b < a) [a, b] = [b, a];
+  } else { a = mi - 2; b = mi; }
+  const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const et = i => MES[i % 12] + ' ' + Math.floor(i / 12);
+  return { desde: iso(a, false), hasta: iso(b, true), meses: b - a + 1, a, b,
+    etiqueta: a === b ? et(a) : (Math.floor(a / 12) === Math.floor(b / 12) ? MES[a % 12] : et(a)) + ' – ' + et(b),
+    previo: preset === 'todo' ? null : { desde: iso(a - (b - a + 1), false), hasta: iso(a - 1, true) } };
+}
+
+// Agregados de un periodo [desde,hasta] (inclusive) a partir de la base.
+function _statsAgregar(base, raw, desde, hasta, hoy) {
+  const { MIN, IDEAL, nombreDe, llaveDe } = base;
+  const en = f => f >= desde && f <= hasta;
+  const T = base.turnos.filter(t => en(t.fecha));
+  const pasados = T.filter(t => t.fecha < hoy), prog = T.filter(t => t.fecha >= hoy);
+  const conEquipo = T.filter(t => t.tuvoEquipo);           // "turnos confirmados"
+  const asigP = base.asigs.filter(a => en(a.fecha));
+
+  // ── Turnos: cómo acaban (solo los ya pasados son resultados)
+  const tu = {
+    total: T.length, confirmados: conEquipo.length, pasados: pasados.length, programados: prog.length,
+    conBaja: T.filter(t => t.conBaja).length,
+    salvados: pasados.filter(t => t.salvado).length, aguantaron: pasados.filter(t => t.aguanto).length,
+    creadosPorApuntes: pasados.filter(t => t.creadoPorApuntes).length, creadosOk: pasados.filter(t => t.creadoOk).length,
+    caidos: pasados.filter(t => t.tuvoEquipo && t.n === 0).length,
+    debiles: pasados.filter(t => t.n > 0 && t.n < MIN).length,
+    bajoMin: pasados.filter(t => t.n < MIN).length,
+    completos: pasados.filter(t => t.n >= IDEAL).length,
+    justos: pasados.filter(t => t.n >= MIN && t.n < IDEAL).length,
+    sinLlave: pasados.filter(t => t.sinLlave).length,
+    confPasados: pasados.filter(t => t.tuvoEquipo).length, confProg: prog.filter(t => t.tuvoEquipo).length,
+  };
+  tu.salenPorApuntes = tu.salvados + tu.creadosOk;
+  tu.nMedia = pasados.length ? pasados.reduce((s, t) => s + t.n, 0) / pasados.length : 0;
+  tu.pctMin = pasados.length ? Math.round(100 * pasados.filter(t => t.n >= MIN).length / pasados.length) : null;
+  tu.pctBajoMin = pasados.length ? Math.round(100 * pasados.filter(t => t.n < MIN).length / pasados.length) : null;
+
+  // ── Bajas
+  const bajasP = (raw.bajas || []).filter(b => en(b.fecha));
+  const antes = { 'Mismo día o después': 0, '1 día antes': 0, '2-3 días': 0, '4-7 días': 0, 'Más de 7 días': 0 };
+  bajasP.forEach(b => {
+    if (!b.registrado_en) return;
+    const d = _stDiasEntre(b.registrado_en, b.fecha);
+    antes[d <= 0 ? 'Mismo día o después' : d === 1 ? '1 día antes' : d <= 3 ? '2-3 días' : d <= 7 ? '4-7 días' : 'Más de 7 días']++;
+  });
+  const conFecha = Object.values(antes).reduce((a, b) => a + b, 0);
+  const ba = {
+    total: bajasP.length, efectivas: bajasP.filter(b => b.activa).length, anuladas: bajasP.filter(b => !b.activa).length,
+    tasa: asigP.length ? Math.round(1000 * bajasP.length / asigP.length) / 10 : null,
+    antelacion: Object.entries(antes).map(([k, n]) => ({ k, n })),
+    ultimaHora: conFecha ? Math.round(100 * (antes['Mismo día o después'] + antes['1 día antes']) / conFecha) : null,
+    conFecha,
+  };
+
+  // ── Apuntes
+  const refsP = (raw.refs || []).filter(r => en(r.fecha));
+  const canc = raw.act ? raw.act.filter(a => a.tipo === 'apunte_cancelado' && a.fecha && en(a.fecha)) : null;
+  const primerLog = raw.act && raw.act.length ? raw.act.map(a => a.ts).sort()[0].slice(0, 10) : null;
+  const ap = {
+    total: refsP.length, aTurno: refsP.filter(r => !r.es_dia_completo && r.rango).length, diaCompleto: refsP.filter(r => r.es_dia_completo || !r.rango).length,
+    cubrenBaja: T.reduce((s, t) => s + (t.conBaja ? t.apuntes.length : 0), 0),
+    cancelados: canc ? canc.length : null, canceladosDesde: primerLog,
+  };
+
+  // ── Voluntarios
+  const activos = (raw.vols || []).filter(v => v.activo !== false);
+  const cuenta = new Map();      // turnos que SÍ hizo/hará (sin baja) en el periodo
+  const brutas = new Map();      // asignaciones brutas (incluye las que acabaron en baja)
+  const bajaSet = new Set((raw.bajas || []).filter(b => b.activa).map(b => b.voluntario_id + '|' + b.fecha + '|' + b.rango));
+  asigP.forEach(a => {
+    brutas.set(a.id, (brutas.get(a.id) || 0) + 1);
+    if (!bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) cuenta.set(a.id, (cuenta.get(a.id) || 0) + 1);
+  });
+  // Último turno de cada uno (sobre todo el histórico, no solo el periodo)
+  const ultimo = new Map(), totalHist = new Map();
+  base.asigs.forEach(a => {
+    if (a.fecha < hoy && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) {
+      totalHist.set(a.id, (totalHist.get(a.id) || 0) + 1);
+      if (!ultimo.has(a.id) || a.fecha > ultimo.get(a.id)) ultimo.set(a.id, a.fecha);
+    }
+  });
+  const bajasPorVol = new Map(); bajasP.forEach(b => bajasPorVol.set(b.voluntario_id, (bajasPorVol.get(b.voluntario_id) || 0) + 1));
+  const apPorVol = new Map(); refsP.forEach(r => apPorVol.set(r.voluntario_id, (apPorVol.get(r.voluntario_id) || 0) + 1));
+  const prox = new Map(); base.asigs.forEach(a => { if (a.fecha >= hoy && en(a.fecha) && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) prox.set(a.id, (prox.get(a.id) || 0) + 1); });
+
+  const tabla = (raw.vols || []).map(v => {
+    const hechos = cuenta.get(v.id) || 0, bruto = brutas.get(v.id) || 0, bj = bajasPorVol.get(v.id) || 0;
+    return { id: v.id, nombre: v.nombre, activo: v.activo !== false, llave: !!v.tiene_llave,
+      turnos: hechos, proximos: prox.get(v.id) || 0, bajas: bj, tasa: bruto ? Math.round(100 * bj / bruto) : null,
+      apuntes: apPorVol.get(v.id) || 0, ultimo: ultimo.get(v.id) || null, total: totalHist.get(v.id) || 0,
+      creado: v.creado_en ? v.creado_en.slice(0, 10) : null };
+  });
+  const cuentas = tabla.filter(r => r.turnos > 0).map(r => r.turnos).sort((a, b) => b - a);
+  const sumT = cuentas.reduce((a, b) => a + b, 0);
+  const top20n = Math.max(1, Math.ceil(cuentas.length * 0.2));
+  const sinTurnos = tabla.filter(r => r.activo && r.turnos === 0 && r.proximos === 0);
+  // Candidatos a dar de baja del grupo: activos, dados de alta hace >60 días y sin turno en 90 días
+  const hace90 = new Date(hoy + 'T12:00:00Z'); hace90.setUTCDate(hace90.getUTCDate() - 90);
+  const h90 = hace90.toISOString().slice(0, 10);
+  const hace60 = new Date(hoy + 'T12:00:00Z'); hace60.setUTCDate(hace60.getUTCDate() - 60);
+  const h60 = hace60.toISOString().slice(0, 10);
+  // "Dejaron de participar": tuvieron turnos, pero el último fue hace más de 90 días y no tienen ninguno próximo.
+  // "Sin estrenar": nunca han tenido un turno (siguen disponibles, no es lo mismo que haberse ido).
+  const antiguos = tabla.filter(r => r.activo && (!r.creado || r.creado < h60) && !prox.get(r.id));
+  const sugeridos = antiguos.filter(r => r.ultimo && r.ultimo < h90).sort((a, b) => a.ultimo < b.ultimo ? -1 : 1);
+  const sinEstrenar = antiguos.filter(r => !r.ultimo);
+  const vo = {
+    registrados: (raw.vols || []).length, activos: activos.length, inactivos: (raw.vols || []).length - activos.length,
+    participantes: cuentas.length, participacion: activos.length ? Math.round(100 * tabla.filter(r => r.activo && r.turnos > 0).length / activos.length) : null,
+    nuevos: (raw.vols || []).filter(v => v.creado_en && en(v.creado_en.slice(0, 10))).length,
+    sinTurnos: sinTurnos.map(r => r.nombre), sugeridos, sinEstrenar,
+    media: cuentas.length ? sumT / cuentas.length : 0, mediana: _stMediana(cuentas),
+    top3Share: sumT ? Math.round(100 * cuentas.slice(0, 3).reduce((a, b) => a + b, 0) / sumT) : null,
+    top20Share: sumT ? Math.round(100 * cuentas.slice(0, top20n).reduce((a, b) => a + b, 0) / sumT) : null,
+    portadores: activos.filter(v => v.tiene_llave).length,
+  };
+
+  // ── Por día de la semana y franja (lunes primero)
+  const orden = [1, 2, 3, 4, 5, 6, 0];
+  const celdas = { m: {}, t: {} };
+  orden.forEach(d => { celdas.m[d] = { turnos: 0, bajas: 0, debiles: 0 }; celdas.t[d] = { turnos: 0, bajas: 0, debiles: 0 }; });
+  T.forEach(t => {
+    const c = celdas[t.franja][t.dow]; c.turnos++;
+    c.bajas += t.bajasEf.length + t.bajasAn.length;
+    if (t.fecha < hoy && t.n < MIN) c.debiles++;
+  });
+  const porDia = orden.map(d => {
+    const ts = celdas.m[d].turnos + celdas.t[d].turnos, bj = celdas.m[d].bajas + celdas.t[d].bajas;
+    return { dow: d, turnos: ts, bajas: bj, tasa: ts ? Math.round(100 * bj / ts) : null };
+  });
+
+  // ── Serie mensual
+  const meses = [];
+  const [ay, am] = desde.split('-').map(Number), [by, bm] = hasta.split('-').map(Number);
+  for (let i = ay * 12 + am - 1; i <= by * 12 + bm - 1 && meses.length < 60; i++) meses.push({ k: Math.floor(i / 12) + '-' + String(i % 12 + 1).padStart(2, '0'), turnos: 0, asig: 0, bajas: 0, apuntes: 0 });
+  const mes = f => meses.find(x => x.k === f.slice(0, 7));
+  T.forEach(t => { const m = mes(t.fecha); if (m) m.turnos++; });
+  asigP.forEach(a => { const m = mes(a.fecha); if (m) m.asig++; });
+  bajasP.forEach(b => { const m = mes(b.fecha); if (m) m.bajas++; });
+  refsP.forEach(r => { const m = mes(r.fecha); if (m) m.apuntes++; });
+
+  return { desde, hasta, hoy, MIN, IDEAL, asignaciones: asigP.length, turnos: tu, bajas: ba, apuntes: ap, voluntarios: vo, porDia, celdas, meses, tabla };
+}
+
+// ── Recomendaciones automáticas a partir de las cifras (con acción concreta)
+function _statsInsights(S, P) {
+  const out = [], T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
+  const DIA = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+  const add = (nivel, titulo, texto, accion) => out.push({ nivel, titulo, texto, accion });
+  if (S.asignaciones < 10) add('info', 'Pocos datos en este periodo', `Solo hay ${S.asignaciones} asignaciones: las conclusiones ganan fiabilidad con más meses.`, 'Prueba con "Últimos 6 meses" o "Todo el histórico".');
+  if (T.caidos > 0) add('rojo', `${T.caidos} turno${T.caidos === 1 ? ' se quedó' : 's se quedaron'} sin nadie`, `Tenían equipo confirmado y las bajas lo dejaron a cero (${T.caidos} de ${T.pasados} turnos realizados).`, 'Mantén el aviso de "turno en riesgo" (48 h) y ten una lista corta de sustitutos por franja (👥 Sugerir sustitutos).');
+  if (B.tasa !== null && B.tasa >= 15) add(B.tasa >= 25 ? 'rojo' : 'ambar', `Tasa de baja del ${String(B.tasa).replace('.', ',')} %`, `${B.total} bajas sobre ${S.asignaciones} asignaciones: aproximadamente 1 de cada ${Math.round(100 / B.tasa)} plazas.`, 'Confirma asistencia 2-3 días antes y revisa a quienes acumulan bajas en la tabla de voluntarios.');
+  if (B.ultimaHora !== null && B.conFecha >= 3 && B.ultimaHora >= 35) add('ambar', `${B.ultimaHora} % de las bajas llegan de un día para otro`, 'Se comunican el mismo día o el anterior: casi no hay margen para encontrar sustituto.', 'Pide avisar con 72 h de antelación y manda un recordatorio automático a los 3 días.');
+  const mediaBaja = S.turnos.total ? B.total / S.turnos.total : 0;
+  const peor = S.porDia.filter(d => d.bajas >= 3).sort((a, b) => (b.bajas / Math.max(1, b.turnos)) - (a.bajas / Math.max(1, a.turnos)))[0];
+  if (peor && B.total >= 5 && peor.bajas / Math.max(1, peor.turnos) > 1.5 * mediaBaja) add('ambar', `Los ${DIA[peor.dow]} concentran las bajas`, `${peor.bajas} de ${B.total} bajas (${Math.round(100 * peor.bajas / B.total)} %) caen en ${DIA[peor.dow]}, con el ${S.turnos.total ? Math.round(100 * peor.turnos / S.turnos.total) : 0} % de los turnos.`, `Refuerza los equipos de ${DIA[peor.dow]} (5 en vez de 4) o revisa si esa franja es incómoda.`);
+  if (T.salvados > 0) add('verde', `Sustituciones salvó ${T.salvados} turno${T.salvados === 1 ? '' : 's'}`, `Tras las bajas, los apuntes los devolvieron al mínimo de ${S.MIN}.`, 'Sigue difundiendo el enlace: es lo que evita huecos.');
+  else if (T.conBaja > 0 && T.pasados > 0 && T.caidos + T.debiles > 0) add('ambar', 'Ningún turno con baja se recuperó por apuntes', `${T.conBaja} turnos tuvieron bajas y ninguno volvió al mínimo con apuntes.`, 'Comparte el enlace de Sustituciones en el grupo cuando haya una baja (📋 Copiar aviso).');
+  if (T.creadosOk > 0) add('verde', `${T.creadosOk} turno${T.creadosOk === 1 ? ' salió' : 's salieron'} solo por apuntes`, 'Franjas habilitadas que nadie planificó y que los voluntarios llenaron.', 'Señal de que hay demanda: habilitar más franjas puede tener respuesta.');
+  if (T.pctBajoMin !== null && T.pctBajoMin >= 25 && T.pasados >= 4) add('ambar', `${T.pctBajoMin} % de los turnos por debajo del mínimo`, `${T.bajoMin} de ${T.pasados} turnos terminaron con menos de ${S.MIN} personas.`, 'Revisa disponibilidad de esas franjas y considera captar voluntarios para ellas.');
+  if (T.sinLlave > 0) add('ambar', `${T.sinLlave} turno${T.sinLlave === 1 ? '' : 's'} sin portador de llave`, `Solo hay ${V.portadores} portador${V.portadores === 1 ? '' : 'es'} de llave entre los activos.`, 'Anima a más voluntarios de confianza a ser portadores o reparte mejor los actuales.');
+  if (V.participacion !== null && V.activos >= 8 && V.participacion < 60) add('ambar', `Solo ${V.participacion} % de los voluntarios activos hizo turno`, `${V.participantes} participaron de ${V.activos} activos.`, 'Contacta a los que no han participado y ajusta su disponibilidad, o dalos de baja del grupo si ya no colaboran.');
+  if (V.sugeridos.length) add('info', `${V.sugeridos.length} voluntario${V.sugeridos.length === 1 ? ' dejó' : 's dejaron'} de participar`, 'Tuvieron turnos, pero el último fue hace más de 90 días y no tienen ninguno próximo.', 'Contáctalos: si ya no colaboran, dalos de baja del grupo (Voluntarios → 🚪) para que no ocupen el cuadrante ni las estadísticas.');
+  if (V.sinEstrenar.length >= 3) add('info', `${V.sinEstrenar.length} voluntarios activos nunca han tenido un turno`, 'Siguen dados de alta pero no han sido asignados jamás.', 'Revisa su disponibilidad: si sus franjas ya están cubiertas puede que no hagan falta; si no responden, dalos de baja del grupo.');
+  if (V.top3Share !== null && V.participantes >= 8 && V.top3Share >= 40) add('ambar', `Los 3 más activos hacen el ${V.top3Share} % de los turnos`, `Y el 20 % más activo concentra el ${V.top20Share} %.`, 'Riesgo de agotamiento y de dependencia: reparte la carga o sube el descanso mínimo en Reglas del motor.');
+  if (A.cancelados) add('info', `${A.cancelados} apunte${A.cancelados === 1 ? '' : 's'} cancelado${A.cancelados === 1 ? '' : 's'}`, `Registrados desde ${A.canceladosDesde ? A.canceladosDesde.split('-').reverse().join('/') : 'la activación del registro'}.`, 'Cada cancelación tardía reabre el hueco: pide confirmar antes de apuntarse.');
+  if (P) {
+    if (P.bajas.tasa !== null && B.tasa !== null && B.tasa - P.bajas.tasa >= 5) add('ambar', 'Las bajas suben respecto al periodo anterior', `De ${String(P.bajas.tasa).replace('.', ',')} % a ${String(B.tasa).replace('.', ',')} %.`, 'Mira si coincide con un cambio de franjas o con periodos de vacaciones.');
+    else if (P.bajas.tasa !== null && B.tasa !== null && P.bajas.tasa - B.tasa >= 5) add('verde', 'Las bajas bajan respecto al periodo anterior', `De ${String(P.bajas.tasa).replace('.', ',')} % a ${String(B.tasa).replace('.', ',')} %.`, 'Lo que estáis haciendo funciona.');
+    if (P.turnos.nMedia && T.nMedia && T.nMedia < P.turnos.nMedia - 0.4) add('ambar', 'Los equipos son más pequeños que el periodo anterior', `Media de ${T.nMedia.toFixed(1).replace('.', ',')} frente a ${P.turnos.nMedia.toFixed(1).replace('.', ',')} personas por turno.`, 'Comprueba altas/bajas de voluntarios y disponibilidad.');
+  }
+  const peso = { rojo: 0, ambar: 1, info: 2, verde: 3 };
+  return out.sort((a, b) => peso[a.nivel] - peso[b.nivel]);
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ESTADÍSTICAS — carga de datos e interfaz
+// ══════════════════════════════════════════════════════════════
+const ST = { raw:null, ts:0, cargando:false, shell:false, preset:'3m', custom:{ desde:'', hasta:'' }, S:null, P:null, insights:[],
+  busca:'', soloSin:false, verInactivos:false, orden:{ col:'turnos', dir:-1 } };
+
+// Lectura completa paginada (PostgREST devuelve como mucho 1000 filas por llamada)
+async function sbGetAll(tabla, params) {
+  const out = [];
+  for (let off = 0; off < 100000; off += 1000) {
+    const r = await sbGet(tabla, params + '&limit=1000&offset=' + off);
+    out.push(...r);
+    if (r.length < 1000) break;
+  }
+  return out;
+}
+
+async function _stCargar(force) {
+  if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
+  const [hist, arch, bajas, refs, vols, act] = await Promise.all([
+    sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
+    sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
+    sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
+    sbGetAll('v_refuerzos', 'select=id,fecha,rango,es_dia_completo,registrado_en,nombre,voluntario_id&order=id'),
+    sbGetAll('voluntarios', 'select=id,nombre,tiene_llave,activo,creado_en&order=id'),
+    sbGetAll('actividad', 'select=id,ts,tipo,voluntario_id,fecha,rango&order=id').catch(() => null), // null = aún sin registro de actividad
+  ]);
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act };
+  ST.ts = Date.now();
+  return ST.raw;
+}
+
+function _stCalcular() {
+  const raw = ST.raw, hoy = _evHoy();
+  const base = _statsBase(raw, cargarReglas());
+  const primera = [...raw.hist, ...raw.arch].map(x => x.fecha).sort()[0];
+  const per = _stPeriodo(ST.preset, hoy, ST.custom, primera);
+  ST.per = per;
+  ST.S = _statsAgregar(base, raw, per.desde, per.hasta, hoy);
+  ST.P = per.previo ? _statsAgregar(base, raw, per.previo.desde, per.previo.hasta, hoy) : null;
+  ST.insights = _statsInsights(ST.S, ST.P);
+}
+
+async function loadEstadisticas(force) {
+  if (ST.cargando) return;
+  ST.cargando = true;
+  const c = document.getElementById('tab-estadisticas');
+  if (!ST.S) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Calculando estadísticas…</p></div>`;
+  try {
+    await _stCargar(force);
+    _stCalcular();
+    window._stOk = true;
+    ST.cargando = false;
+    renderEstadisticas();
+  } catch(e) {
+    ST.cargando = false;
+    c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${escH(e.message)}<br><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadEstadisticas(true)">↻ Reintentar</button></p></div>`;
+  }
+}
+function entrarEstadisticas() { if (ST.S) renderEstadisticas(); loadEstadisticas(!!ST.S && Date.now() - ST.ts > 60000); }
+
+function stCambiarPeriodo(p) {
+  ST.preset = p;
+  const cu = document.getElementById('st-custom'); if (cu) cu.style.display = p === 'custom' ? 'inline-flex' : 'none';
+  if (p === 'custom' && (!ST.custom.desde || !ST.custom.hasta)) {
+    const hoy = _evHoy(); ST.custom = { desde: hoy.slice(0, 4) + '-01', hasta: hoy.slice(0, 7) };
+    document.getElementById('st-desde').value = ST.custom.desde; document.getElementById('st-hasta').value = ST.custom.hasta;
+  }
+  _stCalcular(); renderEstadisticas();
+}
+function stCambiarRango() {
+  const d = document.getElementById('st-desde').value, h = document.getElementById('st-hasta').value;
+  if (!d || !h) return;
+  ST.custom = { desde: d, hasta: h }; ST.preset = 'custom'; _stCalcular(); renderEstadisticas();
+}
+
+// ── Utilidades de dibujo
+const _stPct = v => v === null || v === undefined ? '—' : String(v).replace('.', ',') + ' %';
+const _stNum = (v, d = 1) => (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toString().replace('.', ',');
+function _stDelta(cur, prev, mejorSube, unidad) {
+  if (prev === null || prev === undefined || cur === null || cur === undefined) return '';
+  const d = Math.round((cur - prev) * 10) / 10;
+  if (!d) return `<span class="st-dl" style="color:var(--label3)">= igual</span>`;
+  const bueno = mejorSube === null ? null : (d > 0) === mejorSube;
+  const col = bueno === null ? 'var(--label3)' : bueno ? 'var(--green)' : 'var(--red)';
+  return `<span class="st-dl" style="color:${col}">${d > 0 ? '▲' : '▼'} ${d > 0 ? '+' : ''}${String(d).replace('.', ',')}${unidad || ''}</span>`;
+}
+function _stBarra(etq, n, max, color, extra) {
+  return `<div class="st-fila"><div class="st-et">${etq}</div><div class="st-track"><div class="st-fill" style="width:${max ? Math.max(n ? 3 : 0, Math.round(100 * n / max)) : 0}%;background:${color}"></div></div><div class="st-val">${n}${extra || ''}</div></div>`;
+}
+function _stSerieSVG(meses) {
+  if (!meses.length) return '';
+  const W = 640, H = 200, pl = 28, pb = 26, pt = 10, pr = 6, MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const max = Math.max(1, ...meses.map(m => Math.max(m.turnos, m.bajas, m.apuntes)));
+  const gw = (W - pl - pr) / meses.length, bw = Math.min(16, gw / 4);
+  const y = v => pt + (H - pt - pb) * (1 - v / max);
+  let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;max-height:230px" role="img" aria-label="Tendencia mensual">`;
+  [0, .5, 1].forEach(f => { const v = Math.round(max * f); s += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sep)"/><text x="${pl - 4}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--label3)">${v}</text>`; });
+  meses.forEach((m, i) => {
+    const x0 = pl + i * gw + gw / 2 - bw * 1.5;
+    [[m.turnos, 'var(--blue)'], [m.bajas, 'var(--red)'], [m.apuntes, 'var(--green)']].forEach(([v, col], j) => {
+      if (v) s += `<rect x="${x0 + j * bw}" y="${y(v)}" width="${bw - 1}" height="${H - pb - y(v)}" rx="2" fill="${col}"><title>${m.k}: ${v}</title></rect>`;
+    });
+    const mm = +m.k.slice(5) - 1;
+    if (meses.length <= 14 || i % 2 === 0) s += `<text x="${pl + i * gw + gw / 2}" y="${H - 8}" font-size="9" text-anchor="middle" fill="var(--label3)">${MES[mm]}${meses.length > 12 ? ' ' + m.k.slice(2, 4) : ''}</text>`;
+  });
+  return s + '</svg>';
+}
+
+function renderEstadisticas() {
+  const c = document.getElementById('tab-estadisticas'), S = ST.S, P = ST.P;
+  if (!c || !S) return;
+  if (!ST.shell || !document.getElementById('st-body')) {
+    c.innerHTML = `
+      <div class="st-ctrl">
+        <select class="fc" id="st-preset" style="max-width:200px" onchange="stCambiarPeriodo(this.value)">
+          <option value="mes">Este mes</option><option value="mesant">Mes anterior</option>
+          <option value="3m">Últimos 3 meses</option><option value="6m">Últimos 6 meses</option>
+          <option value="anio">Este año</option><option value="anioant">Año anterior</option>
+          <option value="todo">Todo el histórico</option><option value="custom">Rango personalizado…</option>
+        </select>
+        <span id="st-custom" style="display:none;align-items:center;gap:.35rem;font-size:.75rem;color:var(--label3)">
+          desde <input type="month" class="fc" id="st-desde" style="width:auto" onchange="stCambiarRango()">
+          hasta <input type="month" class="fc" id="st-hasta" style="width:auto" onchange="stCambiarRango()">
+        </span>
+        <span id="st-etq" style="font-size:.78rem;color:var(--label3)"></span>
+        <span style="margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="stCopiarResumen()">📋 Copiar resumen</button>
+          <button class="btn btn-ghost btn-sm" onclick="stDescargarCSV()">⬇️ CSV voluntarios</button>
+        </span>
+      </div>
+      <div id="st-body"></div>`;
+    ST.shell = true;
+  }
+  document.getElementById('st-preset').value = ST.preset;
+  const cu = document.getElementById('st-custom'); cu.style.display = ST.preset === 'custom' ? 'inline-flex' : 'none';
+  if (ST.custom.desde) { document.getElementById('st-desde').value = ST.custom.desde; document.getElementById('st-hasta').value = ST.custom.hasta; }
+  document.getElementById('st-etq').innerHTML = `<b style="color:var(--label1)">${ST.per.etiqueta}</b>${P ? ' · comparado con el periodo anterior' : ''}`;
+
+  const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
+  const pT = P && P.turnos, pB = P && P.bajas, pA = P && P.apuntes, pV = P && P.voluntarios;
+  const kpi = (val, lbl, sub, col, dl) => `<div class="sbox"${col ? ` style="border-left:3px solid ${col}"` : ''}><div class="sv"${col ? ` style="color:${col}"` : ''}>${val}</div><div class="sl">${lbl}</div>${sub ? `<div class="st-sub">${sub}</div>` : ''}${dl || ''}</div>`;
+  const kpis = `<div class="stats-row st-kpis">
+    ${kpi(T.confirmados, 'Turnos confirmados', `${T.confPasados} ya realizados · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
+    ${kpi(S.asignaciones, 'Plazas asignadas', `${V.participantes} personas distintas`, '', _stDelta(S.asignaciones, P && P.asignaciones, true))}
+    ${kpi(B.total, 'Bajas', `tasa ${_stPct(B.tasa)} · ${B.anuladas} anuladas`, 'var(--red)', _stDelta(B.tasa, pB && pB.tasa, false, ' pt'))}
+    ${kpi(A.total, 'Apuntes', `${A.cubrenBaja} a turnos con baja · ${A.diaCompleto} de día completo`, 'var(--green)', _stDelta(A.total, pA && pA.total, true))}
+    ${kpi(T.salenPorApuntes, 'Salen adelante por apuntes', `${T.salvados} salvados tras baja · ${T.creadosOk} sin equipo previo`, 'var(--blue)', _stDelta(T.salenPorApuntes, pT && pT.salenPorApuntes, true))}
+    ${kpi(T.caidos, 'Turnos caídos por bajas', T.caidos ? 'se quedaron sin nadie' : 'ninguno se quedó sin nadie', T.caidos ? 'var(--red)' : 'var(--green)', _stDelta(T.caidos, pT && pT.caidos, false))}
+    ${kpi(T.pasados ? _stNum(T.nMedia) : '—', 'Personas por turno', `mínimo ${S.MIN} · ideal ${S.IDEAL}`, '', _stDelta(T.pasados ? Math.round(T.nMedia * 10) / 10 : null, pT && pT.pasados ? Math.round(pT.nMedia * 10) / 10 : null, true))}
+    ${kpi(V.participacion === null ? '—' : V.participacion + ' %', 'Participación', `${V.participantes} de ${V.activos} activos`, '', _stDelta(V.participacion, pV && pV.participacion, true, ' pt'))}
+  </div>`;
+
+  const NIV = { rojo: ['🚨', 'var(--red-soft)', 'var(--red)'], ambar: ['⚠️', 'var(--amber-soft)', 'var(--amber)'], info: ['💡', 'var(--blue-soft)', 'var(--blue)'], verde: ['✅', 'var(--green-soft)', '#146c34'] };
+  const ins = ST.insights.length ? ST.insights.map(i => `<div class="st-ins" style="background:${NIV[i.nivel][1]};border-left-color:${NIV[i.nivel][2]}">
+      <div style="font-weight:700;font-size:.82rem;color:${NIV[i.nivel][2]}">${NIV[i.nivel][0]} ${escH(i.titulo)}</div>
+      <div style="font-size:.76rem;color:var(--label2);margin-top:.15rem">${escH(i.texto)}</div>
+      <div style="font-size:.74rem;color:var(--label1);margin-top:.3rem"><b>Qué hacer:</b> ${escH(i.accion)}</div></div>`).join('')
+    : `<div style="font-size:.8rem;color:var(--label3)">Sin observaciones destacables en este periodo.</div>`;
+
+  // Cómo acaban los turnos
+  const totRes = T.pasados || 1, seg = (n, col, lbl) => n ? `<div title="${lbl}: ${n}" style="flex:${n};background:${col};min-width:6px"></div>` : '';
+  const acaban = T.pasados ? `
+    <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--surface2)">
+      ${seg(T.completos, 'var(--green)', 'Completos')}${seg(T.justos, '#7fd39b', 'Justos')}${seg(T.debiles, 'var(--amber)', 'Por debajo del mínimo')}${seg(T.caidos, 'var(--red)', 'Sin nadie')}
+    </div>
+    <div class="st-leyenda">
+      <span><i style="background:var(--green)"></i>Completos (≥${S.IDEAL}) <b>${T.completos}</b></span>
+      <span><i style="background:#7fd39b"></i>Justos (${S.MIN}-${S.IDEAL - 1}) <b>${T.justos}</b></span>
+      <span><i style="background:var(--amber)"></i>Por debajo del mínimo <b>${T.debiles}</b></span>
+      <span><i style="background:var(--red)"></i>Sin nadie <b>${T.caidos}</b></span>
+    </div>
+    <div style="font-size:.76rem;color:var(--label2);margin-top:.6rem;line-height:1.6">
+      De los <b>${T.conBaja}</b> turnos con alguna baja: <b>${T.aguantaron}</b> aguantaron con su propio equipo · <b>${T.salvados}</b> se salvaron con apuntes · <b>${T.caidos}</b> quedaron a cero.
+    </div>` : `<div style="font-size:.78rem;color:var(--label3)">Aún no hay turnos realizados en este periodo.</div>`;
+
+  // Antelación de las bajas
+  const maxAnt = Math.max(1, ...B.antelacion.map(a => a.n));
+  const ant = B.conFecha ? B.antelacion.map(a => _stBarra(a.k, a.n, maxAnt, a.k.startsWith('Mismo') || a.k.startsWith('1 ') ? 'var(--red)' : 'var(--amber)')).join('') : `<div style="font-size:.78rem;color:var(--label3)">Sin bajas en el periodo.</div>`;
+
+  // Por día de la semana
+  const DIAC = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom' };
+  const maxDia = Math.max(1, ...S.porDia.map(d => d.turnos));
+  const dias = S.porDia.map(d => `<div class="st-fila"><div class="st-et" style="width:34px">${DIAC[d.dow]}</div><div class="st-track" style="position:relative"><div class="st-fill" style="width:${Math.round(100 * d.turnos / maxDia)}%;background:var(--blue)"></div><div class="st-fill" style="position:absolute;left:0;top:0;height:100%;width:${Math.round(100 * Math.min(d.bajas, d.turnos) / maxDia)}%;background:var(--red);opacity:.85"></div></div><div class="st-val">${d.turnos}<span style="color:var(--red)"> · ${d.bajas}🏥</span></div></div>`).join('');
+
+  // Mapa día × franja
+  const maxC = Math.max(1, ...['m', 't'].flatMap(f => S.porDia.map(d => S.celdas[f][d.dow].turnos)));
+  const heat = `<table class="st-heat"><thead><tr><th></th>${S.porDia.map(d => `<th>${DIAC[d.dow]}</th>`).join('')}</tr></thead><tbody>
+    ${[['m', '☀️ Mañana'], ['t', '🌙 Tarde']].map(([f, l]) => `<tr><th>${l}</th>${S.porDia.map(d => { const x = S.celdas[f][d.dow], a = x.turnos ? .12 + .7 * x.turnos / maxC : 0;
+      return `<td style="background:${x.turnos ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}" title="${x.turnos} turnos · ${x.bajas} bajas · ${x.debiles} por debajo del mínimo">${x.turnos || ''}${x.bajas ? `<div style="font-size:.6rem;color:${a > .5 ? '#ffd0cc' : 'var(--red)'}">🏥${x.bajas}</div>` : ''}</td>`; }).join('')}</tr>`).join('')}
+    </tbody></table>`;
+
+  const hayMeses = S.meses.length > 1 || S.meses.some(m => m.turnos || m.bajas || m.apuntes);
+  c.querySelector('#st-body').innerHTML = `
+    ${kpis}
+    <div class="st-sec"><h4>💡 Qué podemos mejorar</h4><div class="st-insgrid">${ins}</div></div>
+    <div class="st-cols">
+      <div class="st-sec"><h4>🎯 Cómo acaban los turnos <span>(los ya realizados)</span></h4>${acaban}</div>
+      <div class="st-sec"><h4>⏱️ Con cuánta antelación se dan de baja</h4>${ant}${B.conFecha ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.4rem">${B.ultimaHora}% el mismo día o el anterior</div>` : ''}</div>
+    </div>
+    <div class="st-sec"><h4>📈 Tendencia mensual <span><i class="st-pt" style="background:var(--blue)"></i>turnos <i class="st-pt" style="background:var(--red)"></i>bajas <i class="st-pt" style="background:var(--green)"></i>apuntes</span></h4>${hayMeses ? _stSerieSVG(S.meses) : ''}</div>
+    <div class="st-cols">
+      <div class="st-sec"><h4>📅 Por día de la semana <span>(turnos · bajas)</span></h4>${dias}</div>
+      <div class="st-sec"><h4>🗺️ Mapa día × franja</h4>${heat}<div style="font-size:.68rem;color:var(--label3);margin-top:.4rem">Más oscuro = más turnos · 🏥 = bajas</div></div>
+    </div>
+    <div class="st-sec"><h4>👥 Voluntarios</h4>
+      <div class="st-vres">
+        <div><b>${V.activos}</b> activos<br><span>${V.inactivos} inactivos · ${V.portadores} con llave</span></div>
+        <div><b>${V.participantes}</b> participaron<br><span>media ${_stNum(V.media)} · mediana ${_stNum(V.mediana)} turnos</span></div>
+        <div><b>${V.top3Share === null ? '—' : V.top3Share + ' %'}</b> en los 3 primeros<br><span>20 % más activo: ${V.top20Share === null ? '—' : V.top20Share + ' %'}</span></div>
+        <div><b>${V.nuevos}</b> altas nuevas<br><span>${V.sinTurnos.length} activos sin turno</span></div>
+      </div>
+      ${V.sugeridos.length ? `<div class="st-sug"><b>💤 ${V.sugeridos.length} dejaron de participar</b> (último turno hace más de 90 días, ninguno próximo):
+        <div style="margin-top:.3rem">${V.sugeridos.slice(0, 12).map(r => `<span class="st-tag" onclick="abrirFicha('${escH(r.nombre).replace(/'/g, '&#39;')}','${r.id}')">${escH(r.nombre)} <i>último ${isoADMY(r.ultimo).slice(0, 5)}</i></span>`).join('')}${V.sugeridos.length > 12 ? ` <i>y ${V.sugeridos.length - 12} más</i>` : ''}</div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:.5rem" onclick="window._volFiltro='sinact';setTab('voluntarios');loadVoluntarios(true)">Gestionar en Voluntarios →</button></div>` : ''}
+      ${V.sinEstrenar.length ? `<div class="st-sug" style="background:var(--blue-soft)"><b>🆕 ${V.sinEstrenar.length} sin estrenar</b> (activos, alta de hace más de 2 meses, nunca han tenido un turno):
+        <div style="margin-top:.3rem">${V.sinEstrenar.slice(0, 10).map(r => `<span class="st-tag" onclick="abrirFicha('${escH(r.nombre).replace(/'/g, '&#39;')}','${r.id}')">${escH(r.nombre)}</span>`).join('')}${V.sinEstrenar.length > 10 ? ` <i>y ${V.sinEstrenar.length - 10} más</i>` : ''}</div></div>` : ''}
+      <div class="st-filtros">
+        <input class="fc" id="st-busca" placeholder="🔍 Buscar voluntario…" style="max-width:200px" value="${escH(ST.busca)}" oninput="ST.busca=this.value;stTabla()">
+        <label><input type="checkbox" ${ST.soloSin ? 'checked' : ''} onchange="ST.soloSin=this.checked;stTabla()"> solo sin turnos en el periodo</label>
+        <label><input type="checkbox" ${ST.verInactivos ? 'checked' : ''} onchange="ST.verInactivos=this.checked;stTabla()"> incluir inactivos</label>
+      </div>
+      <div id="st-tabla" style="overflow-x:auto"></div>
+    </div>`;
+  stTabla();
+}
+
+function stOrden(col) { ST.orden = { col, dir: ST.orden.col === col ? -ST.orden.dir : (col === 'nombre' ? 1 : -1) }; stTabla(); }
+function stFilasTabla() {
+  const q = ST.busca.trim().toLowerCase(), o = ST.orden;
+  let f = ST.S.tabla.filter(r => (ST.verInactivos || r.activo) && (!q || r.nombre.toLowerCase().includes(q)) && (!ST.soloSin || (r.turnos === 0 && r.proximos === 0)));
+  const v = r => o.col === 'nombre' ? r.nombre : o.col === 'ultimo' ? (r.ultimo || '') : (r[o.col] === null ? -1 : r[o.col]);
+  return f.sort((a, b) => (v(a) < v(b) ? -1 : v(a) > v(b) ? 1 : 0) * o.dir || a.nombre.localeCompare(b.nombre));
+}
+function stTabla() {
+  const el = document.getElementById('st-tabla'); if (!el || !ST.S) return;
+  const hoy = ST.S.hoy, filas = stFilasTabla();
+  const th = (col, lbl, ttl) => `<th onclick="stOrden('${col}')" title="${ttl || ''}" style="cursor:pointer">${lbl}${ST.orden.col === col ? (ST.orden.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`;
+  el.innerHTML = filas.length ? `<table class="st-tabla"><thead><tr>${th('nombre', 'Voluntario')}${th('turnos', 'Turnos', 'Turnos hechos o programados en el periodo, sin contar los que acabaron en baja')}${th('proximos', 'Próx.')}${th('bajas', 'Bajas')}${th('tasa', '% baja', 'Bajas sobre plazas asignadas en el periodo')}${th('apuntes', 'Apuntes')}${th('ultimo', 'Último turno')}</tr></thead><tbody>
+    ${filas.map(r => `<tr${r.activo ? '' : ' style="opacity:.5"'}>
+      <td><a href="#" style="color:var(--label1);font-weight:600;text-decoration:none" onclick="abrirFicha('${escH(r.nombre).replace(/'/g, '&#39;')}','${r.id}');return false">${escH(r.nombre)}</a>${r.llave ? ' 🔑' : ''}${r.activo ? '' : ' <i style="font-size:.65rem">inactivo</i>'}</td>
+      <td><b>${r.turnos}</b></td><td>${r.proximos || ''}</td><td style="color:${r.bajas ? 'var(--red)' : 'inherit'}">${r.bajas || ''}</td>
+      <td style="color:${r.tasa >= 25 ? 'var(--red)' : 'inherit'}">${r.tasa === null ? '' : r.tasa + ' %'}</td><td>${r.apuntes || ''}</td>
+      <td style="white-space:nowrap">${r.ultimo ? isoADMY(r.ultimo).slice(0, 5) + ' <i style="font-size:.66rem;color:var(--label3)">hace ' + _stDiasEntre(r.ultimo, hoy) + ' d</i>' : '<i style="color:var(--label4)">—</i>'}</td></tr>`).join('')}
+    </tbody></table><div style="font-size:.7rem;color:var(--label3);margin-top:.4rem">${filas.length} voluntarios · pulsa una cabecera para ordenar</div>` : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie coincide con el filtro.</div>`;
+}
+
+function stCopiarResumen() {
+  const S = ST.S; if (!S) return;
+  const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
+  const lineas = [`📈 Resumen ${ST.per.etiqueta} — Puerto de Sevilla`, '',
+    `• Turnos confirmados: ${T.confirmados} (${T.pasados} realizados, ${T.programados} próximos)`,
+    `• Plazas asignadas: ${S.asignaciones} · ${V.participantes} personas distintas (media ${_stNum(V.media)} turnos)`,
+    `• Bajas: ${B.total} (${_stPct(B.tasa)} de las plazas; ${B.anuladas} anuladas)`,
+    `• Apuntes: ${A.total} (${A.cubrenBaja} a turnos con baja)`,
+    `• Salieron adelante por apuntes: ${T.salenPorApuntes} · Turnos caídos por bajas: ${T.caidos}`,
+    `• Personas por turno: ${T.pasados ? _stNum(T.nMedia) : '—'} (mínimo ${S.MIN}, ideal ${S.IDEAL})`,
+    `• Participación: ${V.participacion === null ? '—' : V.participacion + ' %'} de ${V.activos} activos`, ''];
+  if (ST.insights.length) { lineas.push('Qué mejorar:'); ST.insights.filter(i => i.nivel !== 'verde').forEach(i => lineas.push(`- ${i.titulo}: ${i.accion}`)); }
+  const txt = lineas.join('\n');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(() => toast('Resumen copiado', 'ok'), () => window.prompt('Copia el resumen:', txt));
+  else window.prompt('Copia el resumen:', txt);
+}
+
+function stDescargarCSV() {
+  const S = ST.S; if (!S) return;
+  const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+  const filas = [['Voluntario', 'Activo', 'Llave', 'Turnos', 'Próximos', 'Bajas', '% baja', 'Apuntes', 'Último turno', 'Turnos totales'],
+    ...S.tabla.map(r => [r.nombre, r.activo ? 'sí' : 'no', r.llave ? 'sí' : 'no', r.turnos, r.proximos, r.bajas, r.tasa ?? '', r.apuntes, r.ultimo || '', r.total])];
+  const blob = new Blob(['﻿' + filas.map(f => f.map(q).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'voluntarios-' + ST.per.desde.slice(0, 7) + '_' + ST.per.hasta.slice(0, 7) + '.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
 // ── INIT

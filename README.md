@@ -143,6 +143,44 @@ vista.
 - **Turnos confirmados** ahora marca con 🏥 y tachado a quien tiene una baja
   activa en ese turno.
 
+## Estadísticas (`planificador.html` → 📈 Estadísticas)
+
+Panel de actividad de todo el histórico (historial activo + archivado, bajas,
+apuntes y voluntarios), por **periodo**: este mes, mes anterior, 3 o 6 meses,
+este año, año anterior, todo el histórico o un rango de meses a medida. Cada
+cifra se compara con el **periodo anterior** de la misma duración (▲▼).
+
+- **Cifras clave:** turnos confirmados, plazas asignadas, bajas y tasa de baja,
+  apuntes, turnos que **salen adelante por apuntes** (los salvados tras una baja
+  y los que nadie planificó), turnos **caídos por bajas** (con equipo y a cero),
+  personas por turno y participación.
+- **Cómo acaban los turnos** (completos, justos, por debajo del mínimo, sin
+  nadie), **antelación de las bajas** (cuántas llegan el mismo día o el anterior),
+  **tendencia mensual**, **por día de la semana** y **mapa día × franja**.
+- **💡 Qué podemos mejorar:** observaciones automáticas con su acción concreta
+  (tasa de baja alta, bajas de última hora, un día que concentra bajas, turnos
+  sin nadie o sin portador de llave, participación baja, dependencia de pocos
+  voluntarios…). También señala lo que va bien.
+- **Voluntarios:** tabla ordenable y filtrable (turnos, próximos, bajas, % de
+  baja, apuntes, último turno; pulsar un nombre abre su ficha). Distingue quienes
+  **dejaron de participar** (último turno hace más de 90 días) de los **sin
+  estrenar** (nunca han tenido turno). Exporta a **CSV** y copia un **resumen**
+  listo para pegar.
+- Las cancelaciones de apuntes solo cuentan desde que se ejecutó
+  `supabase/01_actividad.sql` (la vista lo indica). Los meses en los que no se
+  usó la app no dejan datos, así que no se pueden distinguir de "nadie participó".
+
+### Dar de baja del grupo (Voluntarios)
+
+Cada voluntario activo tiene **🚪 Dar de baja**: deja de aparecer en el
+cuadrante, en la disponibilidad, en el balance y entre los sustitutos sugeridos,
+pero **conserva todo su historial** para las estadísticas y se puede reactivar
+(filtro **🚪 Inactivos → ♻️ Reactivar**). Si tiene turnos o apuntes por delante,
+se ofrece quitarlo también de ellos. **🗑️ Eliminar** solo está disponible para un
+inactivo que no consta en ningún turno, baja ni apunte (se comprueba en directo);
+si consta, se queda inactivo para no falsear las estadísticas. El filtro **💤 Sin
+actividad** reúne a quienes dejaron de participar o nunca empezaron.
+
 ## Configuración
 
 Las credenciales van embebidas en cada HTML (constantes al inicio del `<script>`):

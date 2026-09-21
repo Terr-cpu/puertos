@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -414,6 +414,111 @@ function check(nombre, cond, detalle) {
   check('sin turnos desde hace más de 45 días y ninguno programado → inactivo', ina.flags.some(f => f.tipo === 'inactivo'));
   const vacio = E._fichaModelo({ hist: [], arch: [], bajas: [], refs: [], disp: [] }, hoy);
   check('voluntario sin historia: ceros y sin fallar', vacio.hechos === 0 && vacio.tasaBaja === null && vacio.ultimo === null);
+})();
+
+// ── E12: estadísticas — cifras calculadas a mano sobre un escenario cerrado ──
+(function E12() {
+  console.log('\n═══ E12 · Estadísticas: periodos, agregados e insights ═══');
+  // Periodos
+  const p3 = E._stPeriodo('3m', '2026-10-15');
+  check('"3 meses" = ago-sep-oct 2026 y su periodo previo (may-jul)', p3.desde === '2026-08-01' && p3.hasta === '2026-10-31' && p3.meses === 3 && p3.previo.desde === '2026-05-01' && p3.previo.hasta === '2026-07-31');
+  const pm = E._stPeriodo('mes', '2026-10-15');
+  check('"este mes" = octubre y previo = septiembre', pm.desde === '2026-10-01' && pm.hasta === '2026-10-31' && pm.previo.desde === '2026-09-01' && pm.previo.hasta === '2026-09-30');
+  const pa = E._stPeriodo('anio', '2026-10-15');
+  check('"este año" = 12 meses y previo = 2025', pa.desde === '2026-01-01' && pa.hasta === '2026-12-31' && pa.meses === 12 && pa.previo.desde === '2025-01-01');
+  check('"todo" empieza en el mes del primer dato y no tiene previo', E._stPeriodo('todo', '2026-10-15', null, '2026-05-09').desde === '2026-05-01' && E._stPeriodo('todo', '2026-10-15', null, '2026-05-09').previo === null);
+  const pc = E._stPeriodo('custom', '2026-10-15', { desde: '2026-09', hasta: '2026-07' });
+  check('rango personalizado con fechas invertidas se ordena solo', pc.desde === '2026-07-01' && pc.hasta === '2026-09-30' && pc.meses === 3);
+  check('febrero: último día correcto (año no bisiesto)', E._stPeriodo('mes', '2027-02-10').hasta === '2027-02-28');
+
+  // Escenario (hoy = 15/10/2026, MIN 3, IDEAL 4)
+  const ids = 'abcdefghijkl'.split('');
+  const vols = ids.map(id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: id === 'a', activo: id !== 'k', creado_en: id === 'l' ? '2026-04-01T10:00:00Z' : '2026-05-10T10:00:00Z' }));
+  const H = (fecha, rango, id) => ({ fecha, rango, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  const eq = (fecha, rango, xs) => xs.split('').map(id => H(fecha, rango, id));
+  const R1 = '10:00 a 12:00', R2 = '19:00 a 21:00';
+  const raw = {
+    vols,
+    hist: [
+      ...eq('2026-10-02', R1, 'abcd'),          // T1 completo
+      ...eq('2026-10-06', R1, 'abcd'),          // T2 baja de b, entra e → aguanta con su propio equipo
+      ...eq('2026-10-09', R2, 'efg'),           // T3 bajas e,f; entran h,i → salvado
+      ...eq('2026-10-12', R1, 'fg'),            // T4 bajas f,g → caído
+      ...eq('2026-10-13', R2, 'hi'),            // T5 solo 2 → débil
+      ...eq('2026-10-20', R1, 'abc'),           // T7 futuro
+    ],
+    arch: [...eq('2026-09-10', R1, 'abcde'), H('2026-05-05', R1, 'l')],   // T0 (mes anterior, archivado) + un turno antiguo de L, que no volvió
+    bajas: [
+      { voluntario_id: 'b', fecha: '2026-10-06', rango: R1, registrado_en: '2026-10-05T10:00:00Z', activa: true },   // 1 día
+      { voluntario_id: 'e', fecha: '2026-10-09', rango: R2, registrado_en: '2026-10-09T08:00:00Z', activa: true },   // mismo día
+      { voluntario_id: 'f', fecha: '2026-10-09', rango: R2, registrado_en: '2026-10-01T08:00:00Z', activa: true },   // >7 días
+      { voluntario_id: 'f', fecha: '2026-10-12', rango: R1, registrado_en: '2026-10-11T08:00:00Z', activa: true },   // 1 día
+      { voluntario_id: 'g', fecha: '2026-10-12', rango: R1, registrado_en: '2026-10-12T08:00:00Z', activa: true },   // mismo día
+      { voluntario_id: 'c', fecha: '2026-10-06', rango: R1, registrado_en: '2026-10-01T08:00:00Z', activa: false },  // anulada, 4-7 días
+    ],
+    refs: [
+      { voluntario_id: 'e', fecha: '2026-10-06', rango: R1, es_dia_completo: false, registrado_en: '2026-10-05T12:00:00Z' },
+      { voluntario_id: 'h', fecha: '2026-10-09', rango: R2, es_dia_completo: false, registrado_en: '2026-10-08T12:00:00Z' },
+      { voluntario_id: 'i', fecha: '2026-10-09', rango: R2, es_dia_completo: false, registrado_en: '2026-10-08T12:00:00Z' },
+      { voluntario_id: 'h', fecha: '2026-10-14', rango: R1, es_dia_completo: false, registrado_en: '2026-10-10T12:00:00Z' },   // T6 sin equipo previo
+      { voluntario_id: 'i', fecha: '2026-10-14', rango: R1, es_dia_completo: false, registrado_en: '2026-10-10T12:00:00Z' },
+      { voluntario_id: 'j', fecha: '2026-10-14', rango: R1, es_dia_completo: false, registrado_en: '2026-10-10T12:00:00Z' },
+      { voluntario_id: 'h', fecha: '2026-10-16', rango: null, es_dia_completo: true, registrado_en: '2026-10-10T12:00:00Z' },
+    ],
+    act: [{ ts: '2026-10-10T09:00:00Z', tipo: 'apunte_cancelado', voluntario_id: 'j', fecha: '2026-10-14', rango: R1 }],
+  };
+  const hoy = '2026-10-15';
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const S = E._statsAgregar(base, raw, '2026-10-01', '2026-10-31', hoy);
+  const P = E._statsAgregar(base, raw, '2026-09-01', '2026-09-30', hoy);
+  const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
+
+  check('turnos del periodo: 7 (6 pasados + 1 próximo), 6 con equipo confirmado', T.total === 7 && T.pasados === 6 && T.programados === 1 && T.confirmados === 6, `${T.total}/${T.pasados}/${T.programados}/${T.confirmados}`);
+  check('plazas asignadas: 18', S.asignaciones === 18, S.asignaciones + '');
+  check('bajas: 6 (5 efectivas, 1 anulada), tasa 33,3 %', B.total === 6 && B.efectivas === 5 && B.anuladas === 1 && B.tasa === 33.3, `${B.total}/${B.efectivas}/${B.anuladas}/${B.tasa}`);
+  const ant = Object.fromEntries(B.antelacion.map(a => [a.k, a.n]));
+  check('antelación: 2 mismo día, 2 un día antes, 1 de 4-7, 1 de más de 7', ant['Mismo día o después'] === 2 && ant['1 día antes'] === 2 && ant['4-7 días'] === 1 && ant['Más de 7 días'] === 1 && ant['2-3 días'] === 0, JSON.stringify(ant));
+  check('bajas de última hora: 4 de 6 = 67 %', B.ultimaHora === 67, B.ultimaHora + '');
+  check('apuntes: 7 (6 a turno, 1 de día completo); 3 a turnos con baja; 1 cancelado', A.total === 7 && A.aTurno === 6 && A.diaCompleto === 1 && A.cubrenBaja === 3 && A.cancelados === 1, `${A.total}/${A.aTurno}/${A.diaCompleto}/${A.cubrenBaja}/${A.cancelados}`);
+  check('turnos con baja: 3 (T2, T3, T4)', T.conBaja === 3);
+  check('T3 se salva por apuntes; T2 aguanta sola; T4 cae a cero', T.salvados === 1 && T.aguantaron === 1 && T.caidos === 1);
+  check('T6 (sin equipo, 3 apuntes) sale adelante solo por apuntes → 2 salen por apuntes', T.creadosOk === 1 && T.salenPorApuntes === 2);
+  check('cómo acaban: 2 completos, 2 justos, 1 débil, 1 sin nadie', T.completos === 2 && T.justos === 2 && T.debiles === 1 && T.caidos === 1);
+  check('personas por turno: 16/6 = 2,67; 67 % llega al mínimo', Math.abs(T.nMedia - 16 / 6) < 1e-9 && T.pctMin === 67 && T.pctBajoMin === 33);
+  check('turnos sin portador de llave: 3 (T3, T5, T6)', T.sinLlave === 3, T.sinLlave + '');
+  check('participación: 7 de 11 activos = 64 % (el inactivo no cuenta)', V.participantes === 7 && V.activos === 11 && V.inactivos === 1 && V.participacion === 64, `${V.participantes}/${V.activos}/${V.participacion}`);
+  check('concentración: 3 primeros = 62 %, 20 % más activo = 46 %', V.top3Share === 62 && V.top20Share === 46, `${V.top3Share}/${V.top20Share}`);
+  check('dejaron de participar: solo L (turno en mayo, ninguno desde entonces)', V.sugeridos.map(r => r.id).join() === 'l', V.sugeridos.map(r => r.id).join());
+  check('sin estrenar: F y J (nunca un turno hecho); K inactivo no cuenta', V.sinEstrenar.map(r => r.id).sort().join() === 'f,j', V.sinEstrenar.map(r => r.id).join());
+  check('turnos confirmados desglosados: 5 ya realizados y 1 próximo', T.confPasados === 5 && T.confProg === 1, T.confPasados + '/' + T.confProg);
+  const fila = id => S.tabla.find(r => r.id === id);
+  check('tabla: A hizo 3 turnos y tiene llave; B 2 turnos, 1 baja sobre 3 plazas (33 %)', fila('a').turnos === 3 && fila('a').llave && fila('b').turnos === 2 && fila('b').bajas === 1 && fila('b').tasa === 33, JSON.stringify({ b: fila('b') }).slice(0, 120));
+  check('último turno de E = 10/09 (el de octubre acabó en baja, el otro es el apuntado)', fila('e').ultimo === '2026-09-10');
+  check('serie mensual: 1 mes con 7 turnos, 6 bajas, 7 apuntes', S.meses.length === 1 && S.meses[0].turnos === 7 && S.meses[0].bajas === 6 && S.meses[0].apuntes === 7);
+  const dia = d => S.porDia.find(x => x.dow === d);
+  check('por día: el lunes 12/10 fue 1 turno con 2 bajas', dia(1).turnos === 1 && dia(1).bajas === 2, JSON.stringify(dia(1)));
+
+  // Periodo anterior
+  check('septiembre: 1 turno archivado, 5 plazas, sin bajas → tasa 0', P.turnos.total === 1 && P.asignaciones === 5 && P.bajas.total === 0 && P.bajas.tasa === 0);
+
+  // Insights
+  const ins = E._statsInsights(S, P), tit = ins.map(i => i.titulo).join(' | ');
+  const niv = t => ins.find(i => i.titulo.includes(t))?.nivel;
+  check('insight rojo: turno sin nadie', niv('sin nadie') === 'rojo', tit);
+  check('insight rojo: tasa de baja 33,3 %', niv('Tasa de baja') === 'rojo');
+  check('insight: bajas de un día para otro', ins.some(i => /de un día para otro/.test(i.titulo)));
+  check('insight verde: Sustituciones salvó 1 turno', niv('Sustituciones salvó') === 'verde');
+  check('insight verde: turno salido solo por apuntes', niv('solo por apuntes') === 'verde');
+  check('insight: turnos sin portador de llave', ins.some(i => /sin portador/.test(i.titulo)));
+  check('insight: voluntarios que dejaron de participar', ins.some(i => /dejó de participar|dejaron de participar/.test(i.titulo)));
+  check('no salta "sin estrenar" con solo 2 casos (mínimo 3)', !ins.some(i => /nunca han tenido/.test(i.titulo)));
+  check('no salta "3 más activos" con menos de 8 participantes', !ins.some(i => /3 más activos/.test(i.titulo)));
+  check('los insights salen ordenados: rojos primero, verdes al final', ['rojo', 'ambar', 'info', 'verde'].indexOf(ins[0].nivel) === 0 && ins[ins.length - 1].nivel === 'verde');
+
+  // Datos vacíos: no debe romper
+  const vacio = { vols: [], hist: [], arch: [], bajas: [], refs: [], act: null };
+  const Sv = E._statsAgregar(E._statsBase(vacio, {}), vacio, '2026-10-01', '2026-10-31', hoy);
+  check('sin datos: ceros y tasa nula, sin excepciones', Sv.asignaciones === 0 && Sv.bajas.tasa === null && Sv.turnos.pctMin === null && Sv.apuntes.cancelados === null && E._statsInsights(Sv, null).length >= 1);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
