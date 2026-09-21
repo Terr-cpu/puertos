@@ -158,6 +158,18 @@ anteriores), las franjas en blanco o canceladas se guardan en una tabla propia.
 Sin este paso, la importación sigue funcionando pero solo guarda las asignaciones
 (la ventana de importación lo avisa).
 
+## Ampliación D — Bajas que solo se recuerdan (mínimo por mes)
+
+Para indicar "en abril hubo al menos 2 bajas" sin saber cuáles (Estadísticas →
+🩺 Calidad de los datos → ✎ Indicar bajas).
+
+1. Supabase → **SQL Editor** → New query → pega
+   [`supabase/04_ajustes_estadisticas.sql`](supabase/04_ajustes_estadisticas.sql) → **Run**.
+   Crea la tabla `ajustes_estadisticas` (un mes, un número y una nota).
+2. Comprobar: `select * from public.ajustes_estadisticas;` debe devolver 0 filas sin error.
+
+Sin este paso, el botón "Indicar bajas" te avisa de que falta la tabla.
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro

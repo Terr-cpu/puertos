@@ -6862,9 +6862,9 @@ function _statsBase(raw, reglas) {
 // Estado de un mes según lo registrado: app (turnos y algún rastro de bajas/apuntes), manual (turnos pero ningún
 // rastro de bajas ni apuntes: probablemente gestionado fuera), vacio (sin turnos), futuro (mes en curso o posterior sin turnos).
 // `ok` = el usuario confirmó que ese mes sí se registró completo en la app.
-function _stEstadoMes(inf, k, hoy, ok) {
+function _stEstadoMes(inf, k, hoy, ok, aj) {
   if (!inf || !inf.asig) return inf && inf.noReal ? 'manual' : (k >= hoy.slice(0, 7) ? 'futuro' : 'vacio');
-  return inf.bajas + inf.apuntes > 0 || ok ? 'app' : 'manual';
+  return inf.bajas + inf.apuntes > 0 || ok || aj ? 'app' : 'manual';
 }
 const _stMediana = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
 function _stDiasEntre(a, b) { // b - a en días (ISO yyyy-mm-dd)
@@ -6906,6 +6906,7 @@ function _stPeriodo(preset, hoy, custom, primeraFecha) {
 function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   const { MIN, IDEAL, nombreDe, llaveDe } = base;
   const mesesOk = (opts && opts.mesesOk) || new Set();
+  const ajMap = new Map((raw.ajustes || []).map(a => [a.mes, a]));   // mínimo de bajas indicado a mano por mes
   const en = f => f >= desde && f <= hasta;
   const T = base.turnos.filter(t => en(t.fecha));
   const pasados = T.filter(t => t.fecha < hoy && !t.sinCubrir), prog = T.filter(t => t.fecha >= hoy && !t.sinCubrir);
@@ -6918,10 +6919,14 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   { const [ay, am] = desde.split('-').map(Number), [by, bm] = hasta.split('-').map(Number);
     for (let i = ay * 12 + am - 1; i <= by * 12 + bm - 1 && cob.length < 60; i++) {
       const k = Math.floor(i / 12) + '-' + String(i % 12 + 1).padStart(2, '0'), inf = base.mesInfo.get(k);
-      cob.push({ k, asig: inf ? inf.asig : 0, bajas: inf ? inf.bajas : 0, apuntes: inf ? inf.apuntes : 0, estado: _stEstadoMes(inf, k, hoy, mesesOk.has(k)) });
+      const aj = ajMap.get(k), reg = inf ? inf.bajas : 0;
+      cob.push({ k, asig: inf ? inf.asig : 0, bajas: reg, apuntes: inf ? inf.apuntes : 0, estado: _stEstadoMes(inf, k, hoy, mesesOk.has(k), !!aj),
+        // bajas que faltan hasta el mínimo indicado (no se sabe cuáles: solo cuentan como número)
+        estimadas: aj ? Math.max(0, (+aj.bajas_min || 0) - reg) : 0 });
     } }
   const mesesApp = new Set(cob.filter(m => m.estado === 'app').map(m => m.k));
   const asigApp = asigP.filter(a => mesesApp.has(a.fecha.slice(0, 7)));   // plazas de meses con registro fiable de bajas
+  const estimadas = cob.reduce((sum, m) => sum + m.estimadas, 0), estApp = cob.filter(m => mesesApp.has(m.k)).reduce((sum, m) => sum + m.estimadas, 0);
 
   // ── Turnos: cómo acaban (solo los ya pasados son resultados)
   const tu = {
@@ -6960,9 +6965,9 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   });
   const conFecha = Object.values(antes).reduce((a, b) => a + b, 0);
   const ba = {
-    total: bajasP.length, efectivas: bajasP.filter(b => b.activa).length, anuladas: bajasP.filter(b => !b.activa).length,
+    total: bajasP.length + estimadas, estimadas, aprox: estimadas > 0, efectivas: bajasP.filter(b => b.activa).length, anuladas: bajasP.filter(b => !b.activa).length,
     base: asigApp.length,                                              // plazas sobre las que se calcula la tasa
-    tasa: asigApp.length ? Math.round(1000 * bajasP.filter(b => mesesApp.has(b.fecha.slice(0, 7))).length / asigApp.length) / 10 : null,
+    tasa: asigApp.length ? Math.round(1000 * (bajasP.filter(b => mesesApp.has(b.fecha.slice(0, 7))).length + estApp) / asigApp.length) / 10 : null,
     antelacion: Object.entries(antes).map(([k, n]) => ({ k, n })),
     ultimaHora: conFecha ? Math.round(100 * (antes['Mismo día o después'] + antes['1 día antes']) / conFecha) : null,
     conFecha,
@@ -7063,7 +7068,7 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   bajasP.forEach(b => { const m = mes(b.fecha); if (m) m.bajas++; });
   refsP.forEach(r => { const m = mes(r.fecha); if (m) m.apuntes++; });
 
-  meses.forEach(m => { const c = cob.find(x => x.k === m.k); m.estado = c ? c.estado : 'app'; });
+  meses.forEach(m => { const c = cob.find(x => x.k === m.k); m.estado = c ? c.estado : 'app'; if (c) m.bajas += c.estimadas; });
   const cobertura = { meses: cob, vacios: cob.filter(m => m.estado === 'vacio'), manuales: cob.filter(m => m.estado === 'manual') };
   return { desde, hasta, hoy, MIN, IDEAL, cobertura, asignaciones: asigP.length, turnos: tu, bajas: ba, apuntes: ap, voluntarios: vo, porDia, celdas, meses, tabla };
 }
@@ -7082,7 +7087,7 @@ function _statsInsights(S, P) {
   const celdaMala = ['m', 't'].flatMap(f => S.porDia.map(d => ({ f, d: d.dow, ...S.celdas[f][d.dow] }))).filter(c => c.sinCubrir >= 3 && c.sinCubrir / (c.sinCubrir + c.turnos) >= 0.5).sort((a, b) => b.sinCubrir - a.sinCubrir)[0];
   if (celdaMala) add('ambar', `Los ${NOM_D[celdaMala.d]} por la ${celdaMala.f === 'm' ? 'mañana' : 'tarde'} casi nunca se cubren`, `${celdaMala.sinCubrir} de ${celdaMala.sinCubrir + celdaMala.turnos} franjas habilitadas se quedaron sin nadie.`, 'Deja de habilitar esa franja o busca voluntarios que puedan a esa hora.');
   if (T.caidos > 0) add('rojo', `${T.caidos} turno${T.caidos === 1 ? ' se quedó' : 's se quedaron'} sin nadie`, `Tenían equipo confirmado y las bajas lo dejaron a cero (${T.caidos} de ${T.pasados} turnos realizados).`, 'Mantén el aviso de "turno en riesgo" (48 h) y ten una lista corta de sustitutos por franja (👥 Sugerir sustitutos).');
-  if (B.tasa !== null && B.base >= 15 && B.tasa >= 15) add(B.tasa >= 25 ? 'rojo' : 'ambar', `Tasa de baja del ${String(B.tasa).replace('.', ',')} %`, `${B.total} bajas sobre ${S.asignaciones} asignaciones: aproximadamente 1 de cada ${Math.round(100 / B.tasa)} plazas.`, 'Confirma asistencia 2-3 días antes y revisa a quienes acumulan bajas en la tabla de voluntarios.');
+  if (B.tasa !== null && B.base >= 15 && B.tasa >= 15) add(B.tasa >= 25 ? 'rojo' : 'ambar', `Tasa de baja ${B.aprox ? 'de al menos el ' : 'del '}${String(B.tasa).replace('.', ',')} %`, `${B.aprox ? 'Al menos ' : ''}${B.total} bajas sobre ${B.base} plazas con registro${B.aprox ? ' (incluye ' + B.estimadas + ' indicadas a mano)' : ''}: aproximadamente 1 de cada ${Math.round(100 / B.tasa)} plazas.`, 'Confirma asistencia 2-3 días antes y revisa a quienes acumulan bajas en la tabla de voluntarios.');
   if (B.ultimaHora !== null && B.conFecha >= 3 && B.ultimaHora >= 35) add('ambar', `${B.ultimaHora} % de las bajas llegan de un día para otro`, 'Se comunican el mismo día o el anterior: casi no hay margen para encontrar sustituto.', 'Pide avisar con 72 h de antelación y manda un recordatorio automático a los 3 días.');
   const mediaBaja = S.turnos.total ? B.total / S.turnos.total : 0;
   const peor = S.porDia.filter(d => d.bajas >= 3).sort((a, b) => (b.bajas / Math.max(1, b.turnos)) - (a.bajas / Math.max(1, a.turnos)))[0];
@@ -7126,7 +7131,7 @@ async function sbGetAll(tabla, params) {
 
 async function _stCargar(force) {
   if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
-  const [hist, arch, bajas, refs, vols, act, noReal] = await Promise.all([
+  const [hist, arch, bajas, refs, vols, act, noReal, ajustes] = await Promise.all([
     sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
     sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
     sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
@@ -7134,8 +7139,9 @@ async function _stCargar(force) {
     sbGetAll('voluntarios', 'select=id,nombre,tiene_llave,activo,creado_en&order=id'),
     sbGetAll('actividad', 'select=id,ts,tipo,voluntario_id,fecha,rango&order=id').catch(() => null), // null = aún sin registro de actividad
     sbGetAll('turnos_no_realizados', 'select=id,fecha,rango,motivo,planificados&order=id').catch(() => null), // null = falta 03_turnos_no_realizados.sql
+    sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota&order=mes').catch(() => null),              // null = falta 04_ajustes_estadisticas.sql
   ]);
-  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act, noReal };
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act, noReal, ajustes };
   ST.ts = Date.now();
   return ST.raw;
 }
@@ -7150,7 +7156,10 @@ function stToggleMesOk(k) {
 function _stCalcular() {
   const raw = ST.raw, hoy = _evHoy();
   const base = _statsBase(raw, cargarReglas());
-  const primera = [...raw.hist, ...raw.arch].map(x => x.fecha).sort()[0];
+  // Primer mes con algún dato: turnos, franjas sin cubrir o un mínimo de bajas indicado a mano
+  const fechas = [...raw.hist, ...raw.arch].map(x => x.fecha);
+  (raw.ajustes || []).forEach(a => fechas.push(a.mes + '-01')); (raw.noReal || []).forEach(r => fechas.push(r.fecha));
+  const primera = fechas.sort()[0];
   const per = _stPeriodo(ST.preset, hoy, ST.custom, primera);
   ST.per = per;
   ST.base = base; ST.ok = _stMesesOk();
@@ -7264,7 +7273,7 @@ function renderEstadisticas() {
   const kpis = `<div class="stats-row st-kpis">
     ${kpi(T.confirmados, 'Turnos confirmados', `${T.confPasados} ya realizados · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
     ${kpi(S.asignaciones, 'Plazas asignadas', `${V.participantes} personas distintas`, '', _stDelta(S.asignaciones, P && P.asignaciones, true))}
-    ${kpi(B.total, 'Bajas', `tasa ${_stPct(B.tasa)}${B.base < S.asignaciones ? ' (sobre ' + B.base + ' plazas con registro)' : ''} · ${B.anuladas} anuladas`, 'var(--red)', _stDelta(B.tasa, pB && pB.base >= 15 && B.base >= 15 ? pB.tasa : null, false, ' pt'))}
+    ${kpi((B.aprox ? '≥ ' : '') + B.total, 'Bajas', `tasa ${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)}${B.base < S.asignaciones ? ' (sobre ' + B.base + ' plazas con registro)' : ''} · ${B.anuladas} anuladas${B.aprox ? ' · ' + B.estimadas + ' indicadas a mano' : ''}`, 'var(--red)', _stDelta(B.tasa, pB && pB.base >= 15 && B.base >= 15 ? pB.tasa : null, false, ' pt'))}
     ${kpi(A.total, 'Apuntes', `${A.cubrenBaja} a turnos con baja · ${A.diaCompleto} de día completo`, 'var(--green)', _stDelta(A.total, pA && pA.total, true))}
     ${kpi(T.salenPorApuntes, 'Salen adelante por apuntes', `${T.salvados} salvados tras baja · ${T.creadosOk} sin equipo previo`, 'var(--blue)', _stDelta(T.salenPorApuntes, pT && pT.salenPorApuntes, true))}
     ${kpi(T.pctSalen === null ? '—' : T.pctSalen + ' %', 'Turnos que salen adelante', `${T.salieron} de ${T.programados} programados · ${T.sinCubrir} sin cubrir · ${T.caidos} caídos por bajas`, T.pctSalen !== null && T.pctSalen < 75 ? 'var(--amber)' : 'var(--green)', _stDelta(T.pctSalen, pT && pT.pctSalen, true, ' pt'))}
@@ -7279,7 +7288,7 @@ function renderEstadisticas() {
       ${cv.length ? ` Sin ningún turno en la app: <b>${cv.map(fmes).join(', ')}</b>.` : ''}${cm.length ? ` Con turnos pero sin bajas ni apuntes (¿gestión manual?): <b>${cm.map(fmes).join(', ')}</b>, que no cuentan en las tasas de baja.` : ''}
       Las cifras reflejan solo lo registrado en la app.${sinTablaNR ? ' <br><b>Nota:</b> para registrar los turnos que no salieron adelante, ejecuta <b>supabase/03_turnos_no_realizados.sql</b> (ver NOTIFICACIONES.md).' : ''}</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem"><button class="btn btn-navy btn-sm" onclick="abrirImportar()">📥 Importar turnos anteriores</button>
-      <button class="btn btn-ghost btn-sm" onclick="const d=document.getElementById('st-calidad');d.open=true;d.scrollIntoView({behavior:'smooth'})">🩺 Calidad de los datos</button></div></div>` : '';
+      <button class="btn btn-ghost btn-sm" onclick="const d=document.getElementById('st-calidad');d.open=true;d.scrollIntoView({behavior:'smooth'})">🩺 Calidad de los datos · ✎ indicar bajas de un mes</button></div></div>` : '';
   const NIV = { rojo: ['🚨', 'var(--red-soft)', 'var(--red)'], ambar: ['⚠️', 'var(--amber-soft)', 'var(--amber)'], info: ['💡', 'var(--blue-soft)', 'var(--blue)'], verde: ['✅', 'var(--green-soft)', '#146c34'] };
   const ins = ST.insights.length ? ST.insights.map(i => `<div class="st-ins" style="background:${NIV[i.nivel][1]};border-left-color:${NIV[i.nivel][2]}">
       <div style="font-weight:700;font-size:.82rem;color:${NIV[i.nivel][2]}">${NIV[i.nivel][0]} ${escH(i.titulo)}</div>
@@ -7386,7 +7395,7 @@ function stCopiarResumen() {
   const lineas = [`📈 Resumen ${ST.per.etiqueta} — Puerto de Sevilla`, '',
     `• Turnos confirmados: ${T.confirmados} (${T.pasados} realizados, ${T.proximos} próximos)`,
     `• Plazas asignadas: ${S.asignaciones} · ${V.participantes} personas distintas (media ${_stNum(V.media)} turnos)`,
-    `• Bajas: ${B.total} (${_stPct(B.tasa)} de las plazas; ${B.anuladas} anuladas)`,
+    `• Bajas: ${B.aprox ? 'al menos ' : ''}${B.total} (${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)} de las plazas; ${B.anuladas} anuladas)`,
     `• Apuntes: ${A.total} (${A.cubrenBaja} a turnos con baja)`,
     `• Salen adelante: ${T.pctSalen === null ? '—' : T.pctSalen + ' %'} (${T.salieron} de ${T.programados} programados; ${T.sinCubrir} sin cubrir, ${T.caidos} caídos por bajas)`,
     `• Salieron adelante gracias a apuntes: ${T.salenPorApuntes}`,
@@ -7414,15 +7423,16 @@ function stDescargarCSV() {
 // ── 🩺 Calidad de los datos: qué meses tienen registro en la app y cuáles no
 function _stCalidadHTML() {
   const b = ST.base; if (!b) return '';
+  const ajM = new Map(((ST.raw && ST.raw.ajustes) || []).map(a => [a.mes, a]));
   const hoy = _evHoy(), ok = ST.ok || new Set(), MESN = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  const ks = [...b.mesInfo.keys()].sort(); if (!ks.length) return '';
+  const ks = [...new Set([...b.mesInfo.keys(), ...ajM.keys()])].sort(); if (!ks.length) return '';
   const filas = []; let [y, m] = ks[0].split('-').map(Number); const fin = hoy.slice(0, 7);
   for (let i = 0; i < 60; i++) {
     const k = y + '-' + String(m).padStart(2, '0'); if (k > fin) break;
-    const inf = b.mesInfo.get(k), est = _stEstadoMes(inf, k, hoy, ok.has(k));
+    const inf = b.mesInfo.get(k), aj = ajM.get(k), est = _stEstadoMes(inf, k, hoy, ok.has(k), !!aj);
     const chip = est === 'app' ? '<span style="color:#146c34">✅ Con registro</span>' : est === 'manual' ? '<span style="color:var(--amber)">✍️ Sin bajas ni apuntes</span>' : est === 'vacio' ? '<span style="color:var(--red)">⚠️ Sin datos</span>' : '<span style="color:var(--label3)">en curso</span>';
     const acc = est === 'manual' || (est === 'app' && inf && inf.bajas + inf.apuntes === 0) ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stToggleMesOk('${k}')">${ok.has(k) ? 'Quitar marca' : 'Fue un mes con registro completo'}</button>` : est === 'vacio' ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="abrirImportar()">📥 Importar</button>` : '';
-    filas.push(`<tr><td>${MESN[m - 1]} ${y}</td><td>${inf ? inf.asig : 0}</td><td>${inf ? inf.bajas : 0}</td><td>${inf ? inf.apuntes : 0}</td><td>${inf && inf.noReal ? inf.noReal : ''}</td><td>${chip}</td><td>${acc}</td></tr>`);
+    filas.push(`<tr><td>${MESN[m - 1]} ${y}</td><td>${inf ? inf.asig : 0}</td><td>${inf ? inf.bajas : 0}${aj ? ` <i style="font-size:.66rem;color:var(--amber)" title="${escH(aj.nota || 'Mínimo indicado a mano')}">· indicado ≥${aj.bajas_min}</i>` : ''}</td><td>${inf ? inf.apuntes : 0}</td><td>${inf && inf.noReal ? inf.noReal : ''}</td><td>${chip}</td><td>${acc}<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stAjustarMes('${k}')">✎ ${aj ? 'Editar bajas indicadas' : 'Indicar bajas'}</button></td></tr>`);
     if (++m > 12) { m = 1; y++; }
   }
   return `<details class="st-sec" id="st-calidad"><summary style="cursor:pointer;font-weight:700;font-size:.82rem">🩺 Calidad de los datos <span style="font-weight:400;font-size:.7rem;color:var(--label3)">— qué meses tienen registro en la app</span></summary>
@@ -7852,6 +7862,43 @@ async function impDeshacer() {
     S.volsAll = null; ST.raw = null; ST.S = null; EV.data = null;
     closeModal('mvol'); toast('Importación deshecha', 'ok'); loadEstadisticas(true);
   } catch(e) { toast('No se pudo deshacer del todo: ' + e.message, 'err'); }
+}
+
+// ── Indicar a mano "al menos N turnos con baja" en un mes (dato aproximado)
+function stAjustarMes(k) {
+  const MESN = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const inf = ST.base && ST.base.mesInfo.get(k), reg = inf ? inf.bajas : 0;
+  const aj = ((ST.raw && ST.raw.ajustes) || []).find(a => a.mes === k);
+  document.getElementById('mvol-titulo').textContent = `✎ Bajas de ${MESN[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
+  const body = document.getElementById('mvol-body');
+  if (ST.raw && ST.raw.ajustes === null) {
+    body.innerHTML = `<p style="font-size:.84rem;line-height:1.55">Para guardar este dato hay que crear antes una pequeña tabla: ejecuta <b>supabase/04_ajustes_estadisticas.sql</b> en el SQL Editor de Supabase (ver NOTIFICACIONES.md) y vuelve a abrir esta ventana.</p><div style="text-align:right;margin-top:.8rem"><button class="btn btn-ghost" onclick="closeModal('mvol')">Cerrar</button></div>`;
+    openModal('mvol'); return;
+  }
+  body.innerHTML = `
+    <p style="font-size:.82rem;line-height:1.55;margin-bottom:.7rem">Si ese mes se gestionó fuera de la app y no conservas las bajas una a una, pero sabes que hubo <b>al menos</b> un número, indícalo. Las estadísticas lo usarán como dato aproximado (saldrá como <b>≥</b>). ${reg ? `En la app ya constan <b>${reg}</b> bajas de ese mes: solo se añade lo que falte hasta el mínimo que pongas.` : 'En la app no consta ninguna baja de ese mes.'}</p>
+    <div class="fg" style="margin-bottom:.7rem"><label>Turnos con baja, como mínimo</label>
+      <input class="fc" id="aj-n" type="number" min="0" max="200" value="${aj ? aj.bajas_min : 2}" style="max-width:120px"></div>
+    <div class="fg" style="margin-bottom:.9rem"><label>Nota (opcional)</label>
+      <input class="fc" id="aj-nota" value="${escH(aj ? aj.nota || '' : '')}" placeholder="p. ej. según lo que recuerda la coordinación"></div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
+      ${aj ? `<button class="btn btn-ghost" style="color:var(--red)" onclick="stGuardarAjuste('${k}',true)">Quitar el dato</button>` : ''}
+      <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
+      <button class="btn btn-navy" id="aj-btn" onclick="stGuardarAjuste('${k}')">Guardar</button></div>`;
+  openModal('mvol');
+}
+async function stGuardarAjuste(k, quitar) {
+  const n = Math.max(0, Math.min(200, parseInt(document.getElementById('aj-n')?.value, 10) || 0));
+  const nota = (document.getElementById('aj-nota')?.value || '').trim() || null;
+  const btn = document.getElementById('aj-btn'); if (btn) { btn.disabled = true; btn.textContent = '⏳ …'; }
+  try {
+    if (quitar || n === 0) await sbDelete('ajustes_estadisticas', 'mes=eq.' + k);
+    else await sbPost('ajustes_estadisticas', [{ mes: k, bajas_min: n, nota, actualizado_en: new Date().toISOString() }], 'resolution=merge-duplicates');
+    ST.raw = null; ST.S = null;
+    closeModal('mvol'); toast(quitar || n === 0 ? 'Dato quitado' : 'Dato guardado ✓', 'ok');
+    await loadEstadisticas(true);
+    const d = document.getElementById('st-calidad'); if (d) d.open = true;
+  } catch(e) { if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } toast('No se pudo guardar: ' + e.message, 'err'); }
 }
 
 // ── Confirmar turnos desde Apuntes: el apunte pasa a ser un turno confirmado real

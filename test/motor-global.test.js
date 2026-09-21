@@ -742,5 +742,40 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('sin marca y sin nombres sigue siendo un error explicado', /No hay nombres/.test(l('14/06/2026 12-14').error));
 })();
 
+// ── E17: "al menos N bajas" indicadas a mano en un mes gestionado fuera de la app ──
+(function E17() {
+  console.log('\n═══ E17 · Bajas indicadas a mano (mínimo por mes) ═══');
+  const hoy = '2026-09-21', R1 = '10:00 a 12:00';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-03-01T10:00:00Z' });
+  const H = (fecha, id) => ({ fecha, rango: R1, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  // Abril (importado del programa: 2 turnos de 3, sin bajas conocidas) y mayo (en la app, con 3 bajas registradas)
+  const raw = {
+    vols: 'abcdef'.split('').map(V), hist: [], refs: [], act: null, noReal: [],
+    arch: [...'abc'.split('').map(i => H('2026-04-07', i)), ...'abc'.split('').map(i => H('2026-04-14', i)), ...'def'.split('').map(i => H('2026-05-05', i)), ...'def'.split('').map(i => H('2026-05-12', i))],
+    bajas: [1, 2, 3].map(n => ({ voluntario_id: 'd', fecha: '2026-05-05', rango: R1, registrado_en: '2026-05-0' + n + 'T10:00:00Z', activa: true })),
+  };
+  const agg = (ajustes) => { const r = { ...raw, ajustes }; return E._statsAgregar(E._statsBase(r, { MIN_EQ: 3, IDEAL: 4 }), r, '2026-04-01', '2026-05-31', hoy); };
+
+  const sin = agg([]);
+  const estSin = Object.fromEntries(sin.cobertura.meses.map(m => [m.k, m.estado]));
+  check('sin ajuste: abril es "manual" (sin rastro de bajas) y NO entra en la tasa (solo mayo: 3 bajas / 6 plazas = 50 %)', estSin['2026-04'] === 'manual' && sin.bajas.base === 6 && sin.bajas.tasa === 50 && !sin.bajas.aprox, `${estSin['2026-04']}/${sin.bajas.base}/${sin.bajas.tasa}`);
+
+  const con = agg([{ mes: '2026-04', bajas_min: 2, nota: 'según coordinación' }, { mes: '2026-05', bajas_min: 2, nota: null }]);
+  const estCon = Object.fromEntries(con.cobertura.meses.map(m => [m.k, m.estado]));
+  check('con "al menos 2" en abril, el mes pasa a contar para las bajas', estCon['2026-04'] === 'app' && con.bajas.base === 12, `${estCon['2026-04']}/${con.bajas.base}`);
+  check('abril aporta 2 bajas indicadas; mayo ya tenía 3 (≥ 2): no suma nada', con.bajas.estimadas === 2 && con.bajas.total === 5 && con.bajas.aprox === true, `${con.bajas.estimadas}/${con.bajas.total}`);
+  check('tasa = (3 registradas + 2 indicadas) / 12 plazas = 41,7 % y se marca como aproximada', con.bajas.tasa === 41.7 && con.bajas.aprox, con.bajas.tasa + '');
+  check('las bajas registradas siguen siendo 3 (lo indicado no se mezcla con lo real)', con.bajas.efectivas === 3 && con.bajas.anuladas === 0);
+  const ser = Object.fromEntries(con.meses.map(m => [m.k, m.bajas]));
+  check('la serie mensual muestra 2 bajas en abril y 3 en mayo', ser['2026-04'] === 2 && ser['2026-05'] === 3, JSON.stringify(ser));
+  check('lo indicado no inventa turnos ni personas: turnos, plazas y antelación no cambian', con.turnos.total === sin.turnos.total && con.asignaciones === sin.asignaciones && JSON.stringify(con.bajas.antelacion) === JSON.stringify(sin.bajas.antelacion));
+  check('un mínimo MENOR que lo ya registrado no cambia nada (mayo: mínimo 1, hay 3)', agg([{ mes: '2026-05', bajas_min: 1 }]).bajas.estimadas === 0);
+  const t2 = agg([{ mes: '2026-04', bajas_min: 6, nota: null }]);
+  check('con un mínimo mayor la tasa sube: (3 + 6) / 12 = 75 %', t2.bajas.tasa === 75 && t2.bajas.estimadas === 6, t2.bajas.tasa + '');
+  check('sin la tabla de ajustes (null) todo sigue igual que sin ajuste', E._statsAgregar(E._statsBase({ ...raw, ajustes: null }, { MIN_EQ: 3 }), { ...raw, ajustes: null }, '2026-04-01', '2026-05-31', hoy).bajas.tasa === 50);
+  check('un ajuste sin turnos ese mes (abril sin importar) cuenta en el total pero no inventa una tasa', (() => { const r = { ...raw, arch: raw.arch.filter(a => a.fecha >= '2026-05'), ajustes: [{ mes: '2026-04', bajas_min: 2 }] }; const x = E._statsAgregar(E._statsBase(r, { MIN_EQ: 3 }), r, '2026-04-01', '2026-05-31', hoy); return x.bajas.total === 5 && x.bajas.base === 6 && x.bajas.tasa === 50; })());
+  check('el insight de tasa habla de "al menos" cuando incluye lo indicado', (() => { const big = { ...raw, arch: [...raw.arch, ...[...Array(6)].flatMap((_, i) => 'abcdef'.split('').map(id => H('2026-04-' + String(20 + i).padStart(2, '0'), id)))], ajustes: [{ mes: '2026-04', bajas_min: 12 }] }; const x = E._statsAgregar(E._statsBase(big, { MIN_EQ: 3 }), big, '2026-04-01', '2026-05-31', hoy); return E._statsInsights(x, null).some(i => /de al menos el/.test(i.titulo)); })());
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);

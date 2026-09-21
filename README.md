@@ -215,6 +215,17 @@ ella se importan solo las asignaciones). Con ellas las estadísticas calculan
 (sin voluntarios / bajas / otros) y **qué días y franjas se quedan más veces sin
 cubrir** (✖ en el mapa día × franja), con recomendaciones concretas.
 
+### Bajas que solo se recuerdan ("al menos N")
+
+Si de un mes gestionado a mano no se conservan las bajas una a una, pero se sabe que
+hubo **al menos** un número (p. ej. "en abril hubo al menos 2"), se indica en
+*🩺 Calidad de los datos → ✎ Indicar bajas*. Se guarda en la tabla
+`ajustes_estadisticas` ([`supabase/04_ajustes_estadisticas.sql`](supabase/04_ajustes_estadisticas.sql)).
+Las estadísticas lo tratan como **dato aproximado**: solo suma lo que falte hasta ese
+mínimo (si el mes ya tiene más bajas registradas, no cambia nada), el mes pasa a contar
+para la tasa de baja y las cifras salen como **"≥"** (bajas, tasa, y el aviso de tasa
+habla de "al menos"). No inventa turnos, personas ni antelación: solo un número.
+
 ### Confirmar turnos desde Apuntes
 
 Cada turno de *Apuntes* tiene **✓ Confirmar turno con estos apuntes**: añade a los
