@@ -1,8 +1,11 @@
 // ══════════════════════════════════════════════════════════════
 //  notificar-telegram — Supabase Edge Function
 //  ────────────────────────────────────────────────────────────
-//  Se dispara mediante Database Webhooks de Supabase en cada INSERT sobre
-//  las tablas "bajas" y "refuerzos". Manda un aviso a Telegram directamente
+//  Se dispara mediante Database Webhooks de Supabase:
+//   - INSERT (y UPDATE que reactiva una baja) en "bajas"  → baja comunicada
+//   - INSERT en "refuerzos"                               → nuevo apunte
+//   - INSERT en "actividad" (supabase/01_actividad.sql)   → apunte cancelado / baja anulada
+//  Manda un aviso a Telegram directamente
 //  desde el servidor, así que llega aunque el planificador esté cerrado en
 //  el móvil (a diferencia del sondeo desde el navegador, que solo funciona
 //  con la app abierta).
@@ -64,19 +67,45 @@ Deno.serve(async (req) => {
     return new Response('sin body', { status: 400 });
   }
 
-  const { type, table, record } = payload || {};
-  if (type !== 'INSERT' || !record) return new Response('ignorado (no es INSERT)');
+  const { type, table, record, old_record } = payload || {};
+  if (!record || (type !== 'INSERT' && type !== 'UPDATE')) return new Response('ignorado (ni INSERT ni UPDATE)');
 
   try {
+    if (table === 'actividad') {
+      // Registro de auditoría (supabase/01_actividad.sql). Solo se avisa de lo que
+      // no genera ya su propio aviso: apuntes cancelados y bajas anuladas.
+      if (type !== 'INSERT') return new Response('ignorado');
+      const fecha = isoADMY(record.fecha);
+      const rango = record.rango || 'turno';
+      const nombre = record.nombre || '(voluntario)';
+      if (record.tipo === 'apunte_cancelado') {
+        await enviarTelegram(`❌ <b>Apunte cancelado</b>\n${nombre} ya no cubre — ${rango} del ${fecha}\n<i>${horaES()}</i>`);
+      } else if (record.tipo === 'baja_anulada') {
+        // Si la anulación va acompañada de un apunte de la misma persona es una
+        // reincorporación y ya avisó el apunte: se espera un instante y se comprueba.
+        await new Promise((r) => setTimeout(r, 2500));
+        const { data } = await sb.from('refuerzos').select('id')
+          .eq('voluntario_id', record.voluntario_id).eq('fecha', record.fecha).eq('rango', record.rango ?? '').limit(1);
+        if (data?.length) return new Response('ignorado (reincorporación ya avisada)');
+        await enviarTelegram(`↩️ <b>Baja anulada</b>\n${nombre} vuelve a asistir — ${rango} del ${fecha}\n<i>${horaES()}</i>`);
+      } else {
+        return new Response('ignorado (tipo sin aviso)');
+      }
+      return new Response('ok');
+    }
+
     if (table === 'bajas') {
-      // Solo avisar de bajas activas (una desactivación/neutralización no es un aviso nuevo)
+      // Solo avisar de bajas activas (una desactivación/neutralización no es un aviso nuevo).
+      // También cuenta el UPDATE que reactiva una baja anulada (registrarBaja hace upsert).
       if (record.activa === false) return new Response('ignorado (baja no activa)');
+      if (type === 'UPDATE' && old_record?.activa !== false) return new Response('ignorado (update sin reactivación)');
       const nombre = await nombreVoluntario(record.voluntario_id);
       const fecha = isoADMY(record.fecha);
       await enviarTelegram(
         `📤 <b>Baja comunicada</b>\n${nombre} no puede asistir — ${record.rango || 'turno'} del ${fecha}\n<i>${horaES()}</i>`
       );
     } else if (table === 'refuerzos') {
+      if (type !== 'INSERT') return new Response('ignorado');
       const nombre = await nombreVoluntario(record.voluntario_id);
       const fecha = isoADMY(record.fecha);
       const esDiaCompleto = !!record.es_dia_completo;

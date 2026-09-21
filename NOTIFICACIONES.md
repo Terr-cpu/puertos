@@ -87,6 +87,64 @@ cabeceras a mano.
   **Logs**, para ver si la función se ejecutó y qué error dio (token/chat ID
   mal puestos, tabla inesperada, etc.).
 
+## Ampliación A — Registro de actividad y avisos de cancelación
+
+Con lo anterior te avisa cuando alguien **se da de baja** o **se apunta**. Lo que no
+avisaba (ni dejaba rastro con hora en ninguna tabla) es lo contrario: un **apunte
+cancelado**, una **baja anulada** o alguien **quitado de un turno**. Esto lo resuelve.
+
+1. Supabase → **SQL Editor** → New query → pega el contenido de
+   [`supabase/01_actividad.sql`](supabase/01_actividad.sql) → **Run**. Crea la tabla
+   `actividad` y unos disparadores que anotan, con hora, cada alta/baja de apuntes,
+   bajas y equipos, lo haga quien lo haga y aunque la app esté cerrada. También hace
+   que una baja que se **vuelve a registrar** sobre otra anulada cuente como nueva
+   (antes no generaba aviso, porque el sistema la trataba como una modificación).
+2. **Edge Functions → `notificar-telegram`** → pega de nuevo el código actualizado de
+   [`index.ts`](supabase/functions/notificar-telegram/index.ts) → Deploy.
+3. **Database → Webhooks**:
+   - Edita el webhook de **`bajas`** y marca también **Update** (además de Insert).
+   - Crea uno nuevo: tabla **`actividad`**, evento **Insert**, tipo *Supabase Edge
+     Functions* → `notificar-telegram`. (Solo genera aviso para *apunte cancelado* y
+     *baja anulada*; lo demás ya tenía el suyo.)
+4. Comprobar: cancela un apunte de prueba desde Sustituciones → llega
+   "❌ Apunte cancelado". En **🛰️ En vivo** dejará de salir el aviso de que las
+   cancelaciones "se detectan solo desde este navegador": ahora salen siempre.
+
+El registro guarda 90 días (lo limpia la tarea del paso B).
+
+## Ampliación B — Aviso de "turno en riesgo"
+
+Cada hora, Supabase revisa los turnos de las **próximas 48 h** y te avisa por
+Telegram de los que no llegan al mínimo de voluntarios, con quién hay, quién dio
+baja y el enlace a Sustituciones. No repite el aviso: solo vuelve a escribir si
+cambia la situación (alguien se apunta o se da de baja), y te dice "✅ Ya cubierto"
+cuando se resuelve. No escribe entre las 22:00 y las 08:00 (hora de Madrid).
+
+1. **Edge Functions → Create a new function** → nómbrala exactamente
+   `avisos-turnos` → pega el contenido de
+   [`supabase/functions/avisos-turnos/index.ts`](supabase/functions/avisos-turnos/index.ts)
+   (un solo archivo) → Deploy.
+2. En esa función, **desactiva "Verify JWT"** (Details/Settings). Queda protegida por
+   una clave propia (siguiente paso), no por el JWT.
+3. **Secrets** de esa función (los de Telegram ya los tienes en la otra; hay que
+   repetirlos aquí porque cada función tiene los suyos):
+   - `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`
+   - `CRON_SECRET` = un texto largo cualquiera (inventado por ti)
+   - opcionales: `MIN_EQ` (mínimo por turno, 3 por defecto) y `HORIZONTE_H` (48).
+4. **SQL Editor** → abre [`supabase/02_avisos.sql`](supabase/02_avisos.sql), cambia
+   `CAMBIA_ESTE_SECRETO` por el mismo texto de `CRON_SECRET` y ejecútalo. Crea la
+   tabla `avisos_enviados` y programa la tarea horaria.
+5. **Probar sin esperar a la hora en punto**, con la función en modo simulación
+   (no envía nada, solo muestra qué avisaría):
+
+   ```bash
+   curl -X POST "https://inifdflvblnonzowbxie.supabase.co/functions/v1/avisos-turnos?dry=1" -H "x-cron-secret: TU_SECRETO"
+   ```
+
+   Para un aviso real, la misma llamada sin `?dry=1` (dentro de 08:00–21:59).
+6. Si algo falla: Edge Functions → `avisos-turnos` → **Logs**, y en SQL:
+   `select * from net._http_response order by id desc limit 5;`
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro
