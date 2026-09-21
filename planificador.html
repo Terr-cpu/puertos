@@ -310,6 +310,50 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .baja-progress-bar{height:100%;border-radius:4px;transition:width .5s ease}
 .baja-body{padding:0 1rem 1rem;display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
 @media(max-width:560px){.baja-body{grid-template-columns:1fr}}
+
+/* ── En vivo ── */
+.ev-layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:1rem;align-items:start}
+.ev-feed{background:var(--surface);border:1px solid var(--sep);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);position:sticky;top:.5rem;max-height:calc(100vh - 110px);overflow:auto}
+@media(max-width:980px){.ev-layout{grid-template-columns:1fr}.ev-feed{position:static;max-height:230px;order:-1}}
+.ev-status{display:flex;align-items:center;gap:.5rem;font-size:.74rem;color:var(--label3);margin-bottom:.8rem;flex-wrap:wrap}
+.ev-dot{width:9px;height:9px;border-radius:50%;background:var(--green);animation:evPulse 2s infinite;flex-shrink:0}
+.ev-dot.off{background:var(--amber);animation:none}
+@keyframes evPulse{0%{box-shadow:0 0 0 0 rgba(26,150,72,.5)}70%{box-shadow:0 0 0 8px rgba(26,150,72,0)}100%{box-shadow:0 0 0 0 rgba(26,150,72,0)}}
+.ev-filtros{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center;margin-bottom:.9rem}
+.ev-pill{border:1px solid var(--sep);background:var(--surface);color:var(--label2);border-radius:20px;padding:.3rem .7rem;font-size:.74rem;font-weight:600;font-family:inherit;cursor:pointer}
+.ev-pill.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.ev-dia{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:1.1rem 0 .45rem}
+.ev-dia:first-child{margin-top:0}
+.ev-dia b{font-size:.8rem;color:var(--navy);background:var(--blue-soft);padding:.25rem .6rem;border-radius:6px}
+.ev-dia i{font-style:normal;font-size:.7rem;color:var(--label3)}
+.ev-dia .ln{height:1px;flex:1;background:var(--sep);min-width:20px}
+.ev-card{background:var(--surface);border:1px solid var(--sep);border-left:4px solid var(--green);border-radius:var(--r-md);box-shadow:var(--shadow-sm);padding:.65rem .85rem;margin-bottom:.5rem}
+.ev-card.rojo{border-left-color:var(--red)}
+.ev-card.ambar{border-left-color:var(--amber)}
+.ev-card.pasado{opacity:.6}
+.ev-card.foco{animation:evFoco 1.6s ease}
+@keyframes evFoco{0%,60%{box-shadow:0 0 0 3px rgba(0,113,227,.45)}100%{box-shadow:var(--shadow-sm)}}
+.ev-card-h{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ev-hora{font-size:.92rem;font-weight:800;letter-spacing:-.01em}
+.ev-badge{font-size:.66rem;font-weight:700;padding:.16rem .55rem;border-radius:20px}
+.ev-badge.rojo{background:var(--red-soft);color:var(--red)}
+.ev-badge.ambar{background:var(--amber-soft);color:var(--amber)}
+.ev-badge.verde{background:var(--green-soft);color:#146c34}
+.ev-chips{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem}
+.ev-chip{display:inline-flex;align-items:center;gap:.28rem;padding:.2rem .55rem;border-radius:20px;font-size:.72rem;font-weight:600;border:1px solid transparent}
+.ev-chip.conf,.ev-chip.vuelve{background:var(--green-soft);color:#146c34;border-color:#b0dcc0}
+.ev-chip.apunte{background:var(--blue-soft);color:var(--blue);border-color:#b7d7f7}
+.ev-chip.baja{background:var(--red-soft);color:var(--red);border-color:#f5b8b5;text-decoration:line-through}
+.ev-chip.llave{box-shadow:0 0 0 1.5px var(--gold)}
+.ev-vacio{font-size:.74rem;color:var(--label3);font-style:italic}
+.ev-pie{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.55rem;font-size:.68rem;color:var(--label3)}
+.ev-item{display:flex;gap:.6rem;padding:.6rem .85rem;border-bottom:1px solid var(--sep);cursor:default}
+.ev-item[data-k]{cursor:pointer}
+.ev-item[data-k]:hover{background:var(--surface2)}
+.ev-ico{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
+.ev-item .t{font-size:.76rem;color:var(--label2);line-height:1.35}
+.ev-item .h{font-size:.64rem;color:var(--label3);margin-top:.12rem}
+.ev-item.nuevo .h{color:var(--blue);font-weight:700}
 .baja-col-title{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.42rem}
 .baja-vol-chip{display:inline-flex;align-items:center;gap:.28rem;font-size:.73rem;font-weight:600;padding:.26rem .6rem;border-radius:20px;margin:.12rem;border:1.5px solid transparent}
 .chip-baja{background:var(--red-soft);color:var(--red);border-color:#f5b8b5}
@@ -473,6 +517,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   </div>
   <div class="nav-sec">
     <div class="nav-lbl">Planificación</div>
+    <button class="nav-item" onclick="setTab('envivo')" id="nav-envivo"><span class="ni">🛰️</span> En vivo <span class="nbadge" id="nbadge-ev" style="display:none">0</span></button>
     <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante"><span class="ni">📅</span> Cuadrante</button>
     <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas"><span class="ni">🔑</span> Alertas <span class="nbadge" id="nbadge" style="display:none">0</span></button>
     <button class="nav-item" onclick="setTab('carga')" id="nav-carga"><span class="ni">📊</span> Balance</button>
@@ -532,6 +577,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   </div>
 
   <div class="content">
+    <div id="tab-envivo" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando vista en vivo…</p></div></div>
     <div id="tab-cuadrante" class="tab-pane active"><div class="loading"><div class="spinner"></div><p>Calculando…</p></div></div>
     <div id="tab-alertas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Comprobando alertas…</p></div></div>
     <div id="tab-carga" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div></div>
@@ -598,8 +644,9 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
+const TABS = ['envivo','cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
 const TAB_TITLES = {
+  envivo:'🛰️ En vivo · turnos, bajas y apuntes',
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
   disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
@@ -607,6 +654,7 @@ const TAB_TITLES = {
   calendario:'⚙️ Configurar calendario', reglas:'🎛️ Reglas del motor de planificación',
 };
 const TAB_ACTS = {
+  envivo:`<button class="btn btn-ghost btn-sm" onclick="loadEnVivo(true)">↻ Actualizar</button>`,
   cuadrante:`<button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
              <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()" title="Genera el PDF del cuadrante — en el diálogo elige «Guardar como PDF»">📄 <span>PDF</span></button>
              <button class="btn btn-navy btn-sm" onclick="exportarSheet()">📋 <span>Sheet</span></button>
@@ -634,6 +682,7 @@ function setTab(id) {
   document.getElementById('topbar-acts').innerHTML = TAB_ACTS[id]||'';
   tabActual = id;
   closeSidebar();
+  if (id==='envivo')                            entrarEnVivo();
   if (id==='cuadrante'      && !S.plan)         loadCuadrante();
   if (id==='alertas'        && !window._aOk)    loadAlertas();
   if (id==='carga'          && !window._cOk)    loadCarga();
@@ -3926,7 +3975,14 @@ async function loadHistorial(force) {
   const c = document.getElementById('tab-historial');
   c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando historial…</p></div>`;
   try {
-    const data = await apiGet({action:'getHistorial'});
+    const [data, bajasAct, volsTodos] = await Promise.all([
+      apiGet({action:'getHistorial'}),
+      sbGet('bajas', 'activa=eq.true&select=voluntario_id,fecha,rango').catch(() => []),
+      sbGet('voluntarios', 'select=id,nombre').catch(() => []),
+    ]);
+    // Bajas activas → "dd/mm/aaaa|rango|NOMBRE", para tacharlas en cada turno
+    const nomDe = new Map(volsTodos.map(v => [v.id, v.nombre]));
+    window._histBajas = new Set(bajasAct.map(b => isoADMY(b.fecha) + '|' + b.rango + '|' + (nomDe.get(b.voluntario_id) || '')));
     c.innerHTML = '';
     if (!data.length) {
       c.innerHTML = `<div class="empty"><span class="ei">📋</span><h4>Sin registros</h4><p>Confirma turnos para que aparezcan aquí.</p></div>`;
@@ -3943,6 +3999,8 @@ async function loadHistorial(force) {
 
 function renderHistorialPanel(c, data) {
   c.innerHTML = '';
+
+  c.insertAdjacentHTML('beforeend', `<div style="font-size:.74rem;color:var(--label3);margin-bottom:.8rem">Las bajas activas salen <b style="color:var(--red);text-decoration:line-through">tachadas</b>. Para ver bajas, apuntes y novedades juntos: <a href="#" onclick="setTab('envivo');return false" style="color:var(--blue);font-weight:600">🛰️ En vivo</a></div>`);
 
   // Stats
   const turnosUnicos = new Set(data.map(r => r.fecha+'|'+r.rango)).size;
@@ -4086,12 +4144,14 @@ function renderVistaHistorial(wrap, filt) {
             <span style="font-size:.67rem;font-weight:700;padding:.12rem .42rem;border-radius:4px;background:${tarde?'var(--amber-soft)':'var(--blue-soft)'};color:${tarde?'var(--amber)':'var(--blue)'}">${g.rango}</span>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.5rem">
-            ${g.vols.map(v => `
-              <span style="display:inline-flex;align-items:center;gap:.3rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:500">
-                ${v.nombre}
+            ${g.vols.map(v => {
+              const baja = window._histBajas?.has(v.fecha + '|' + v.rango + '|' + v.nombre);
+              return `
+              <span title="${baja ? 'Ha comunicado una baja para este turno' : ''}" style="display:inline-flex;align-items:center;gap:.3rem;background:${baja ? 'var(--red-soft)' : 'var(--surface2)'};border:1px solid ${baja ? '#f5b8b5' : 'var(--sep)'};border-radius:20px;padding:.2rem .55rem;font-size:.72rem;font-weight:${baja ? 600 : 500};${baja ? 'color:var(--red);text-decoration:line-through' : ''}">
+                ${baja ? '🏥 ' : ''}${v.nombre}
                 <button onclick="abrirEditarTurno(${JSON.stringify(v).replace(/"/g,'&quot;')})" style="background:none;border:none;cursor:pointer;color:var(--label3);font-size:.7rem;padding:0 .1rem" title="Editar">✏️</button>
                 <button onclick="borrarTurno(${JSON.stringify(v).replace(/"/g,'&quot;')})" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:.7rem;padding:0 .1rem" title="Eliminar">🗑️</button>
-              </span>`).join('')}
+              </span>`; }).join('')}
           </div>
         </div>`;
       wrap.appendChild(el);
@@ -5733,13 +5793,14 @@ async function pollActividad() {
 
   try {
     // ── Nuevas bajas ─────────────────────────────────────────
-    // La tabla bajas puede tener created_at o registrado_en — probamos ambos
+    // La columna real es registrado_en (bajas no tiene created_at: pedirla
+    // daba 400 y el .catch lo tapaba, así que las bajas nunca avisaban aquí)
     const bajas = await sbGet('bajas',
-      `activa=eq.true&select=voluntario_id,fecha,rango,created_at&order=created_at.desc&limit=20`
+      `activa=eq.true&select=voluntario_id,fecha,rango,registrado_en&order=registrado_en.desc&limit=20`
     ).catch(() => []);
 
     for (const b of bajas) {
-      const ts = b.created_at;
+      const ts = b.registrado_en;
       if (!ts || ts <= lastTs) continue;
       if (ts > maxTs) maxTs = ts;
       let nombre = '(voluntario)';
@@ -5961,6 +6022,338 @@ function borrarTelegram() {
   guardarNotifCfg(cfg);
   toast('Configuración de Telegram borrada', 'ok');
   abrirCfgNotif();
+}
+
+// ══════════════════════════════════════
+//  EN VIVO — todos los turnos, bajas, apuntes y cambios de un vistazo
+//  Cruza historial (equipo confirmado) + bajas + refuerzos (apuntes) +
+//  calendario (franjas habilitadas) en un único tablero por turno, con
+//  una línea temporal de novedades. Se refresca solo cada 30 s.
+// ══════════════════════════════════════
+const EV_REFRESH_MS = 30000;
+const EV_SNAP_KEY = 'envivo_snap', EV_LOG_KEY = 'envivo_log';
+const EV = { data:null, ts:0, timer:null, cargando:false, error:'', shell:false, ventana:'14', filtro:'todos', busca:'' };
+
+function _evIso(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _evHoy() { return _evIso(new Date()); }
+function _evSumaDias(iso, n) { const [y,m,d] = iso.split('-').map(Number); return _evIso(new Date(y, m-1, d+n)); }
+function _evFechaCorta(iso) {
+  const [y,m,d] = iso.split('-').map(Number);
+  return DIAS_ES_L[new Date(y,m-1,d).getDay()].slice(0,3) + ' ' + String(d).padStart(2,'0') + '/' + String(m).padStart(2,'0');
+}
+function _evRel(ts) {
+  const min = Math.round((Date.now() - new Date(ts).getTime()) / 60000);
+  if (min < 1) return 'ahora mismo';
+  if (min < 60) return 'hace ' + min + ' min';
+  const h = Math.round(min / 60);
+  if (h < 24) return 'hace ' + h + ' h';
+  return 'hace ' + Math.round(h / 24) + ' d';
+}
+function _evId(k) { return 'evt-' + String(k).replace(/[^\w]/g, '_'); }
+
+// Modelo puro (sin DOM): une las cuatro fuentes en turnos + eventos.
+function _evModelo(raw, hoy, reglas) {
+  const MIN = (reglas && reglas.MIN_EQ) || 3, IDEAL = (reglas && reglas.IDEAL) || 4;
+  const nombreDe = new Map((raw.vols || []).map(v => [v.id, v.nombre]));
+  const turnos = new Map(), dias = new Map();
+  const diaInfo = f => { if (!dias.has(f)) dias.set(f, { navieras:[], diaCompleto:[] }); return dias.get(f); };
+  const turno = (fecha, rango, dia) => {
+    const k = fecha + '|' + rango;
+    if (!turnos.has(k)) turnos.set(k, { k, fecha, rango, dia: dia || '', equipo:[], bajas:[], apuntes:[], abierto:false });
+    return turnos.get(k);
+  };
+
+  (raw.hist || []).forEach(h => turno(h.fecha, h.rango, h.dia).equipo.push({ id:h.voluntario_id, nombre:h.nombre, llave:!!h.tiene_llave }));
+  (raw.bajas || []).filter(b => b.activa && b.rango).forEach(b =>
+    turno(b.fecha, b.rango, b.dia).bajas.push({ id:b.voluntario_id, nombre:nombreDe.get(b.voluntario_id) || '(voluntario)', ts:b.registrado_en }));
+  (raw.refs || []).forEach(r => {
+    if (r.es_dia_completo || !r.rango) diaInfo(r.fecha).diaCompleto.push({ nombre:r.nombre, ts:r.registrado_en });
+    else turno(r.fecha, r.rango, r.dia).apuntes.push({ id:r.voluntario_id, nombre:r.nombre, llave:!!r.tiene_llave, ts:r.registrado_en });
+  });
+  (raw.cal || []).forEach(c => {
+    const navs = Array.isArray(c.navieras) ? c.navieras.map(String) : [];
+    diaInfo(c.fecha).navieras = navs.filter(n => !/^(turno:|info:|muelle:)/.test(n));
+    if (!c.activo) return;
+    navs.filter(n => n.startsWith('turno:')).forEach(n => { turno(c.fecha, n.slice(6), c.dia).abierto = true; });
+  });
+
+  const orden = { conf:0, vuelve:0, apunte:1, baja:2 };
+  turnos.forEach(t => {
+    const bajaIds = new Set(t.bajas.map(b => b.id)), apIds = new Set(t.apuntes.map(a => a.id));
+    const eqIds = new Set(t.equipo.map(e => e.id));
+    t.chips = [];
+    // Una baja con apunte de la misma persona = se reincorpora
+    t.equipo.forEach(e => t.chips.push({ ...e, tipo: bajaIds.has(e.id) ? (apIds.has(e.id) ? 'vuelve' : 'baja') : 'conf' }));
+    t.apuntes.forEach(a => { if (!eqIds.has(a.id)) t.chips.push({ ...a, tipo:'apunte' }); });
+    t.bajas.forEach(b => { if (!eqIds.has(b.id)) t.chips.push({ id:b.id, nombre:b.nombre, llave:false, tipo:'baja' }); });
+    t.chips.sort((a, b) => (orden[a.tipo] - orden[b.tipo]) || ((b.llave?1:0) - (a.llave?1:0)));
+    const pres = t.chips.filter(c => c.tipo !== 'baja');
+    t.n = pres.length;
+    t.estado = t.n === 0 ? 'vacio' : t.n < MIN ? 'falta' : 'ok';
+    t.faltan = Math.max(0, MIN - t.n);
+    // Había portador de llave en el equipo y ya no queda ninguno presente
+    t.sinLlave = t.n > 0 && !pres.some(c => c.llave) && t.equipo.some(e => e.llave);
+    t.pasado = t.fecha < hoy;
+    t.nivel = t.estado === 'vacio' ? 'rojo' : (t.estado === 'falta' || t.sinLlave) ? 'ambar' : 'verde';
+    t.atencion = !t.pasado && t.nivel !== 'verde';
+    t.novedad = [...t.bajas, ...t.apuntes].map(x => x.ts).filter(Boolean).sort().pop() || '';
+  });
+  // Franja habilitada y vacía que se pisa con un turno ya cubierto ese día
+  const hh = r => { const m = /(\d{1,2}):\d{2}\s*a\s*(\d{1,2}):\d{2}/.exec(r || ''); return m ? [+m[1], +m[2]] : null; };
+  turnos.forEach(t => {
+    if (t.n > 0 || !t.abierto) return;
+    const a = hh(t.rango); if (!a) return;
+    const otro = [...turnos.values()].find(o => o !== t && o.fecha === t.fecha && o.n > 0 && (b => b && a[0] < b[1] && b[0] < a[1])(hh(o.rango)));
+    if (otro) t.solapaCon = otro.rango;
+  });
+
+  // ── Eventos (novedades) ──
+  const ev = [];
+  const limite = new Date(Date.now() - 30 * 86400000).toISOString();
+  const dm = f => isoADMY(f).slice(0, 5);
+  (raw.bajas || []).forEach(b => {
+    if (!b.activa || !b.registrado_en || b.registrado_en < limite) return;
+    ev.push({ ts:b.registrado_en, tipo:'baja', k:b.fecha + '|' + b.rango,
+      texto:`<b>${escH(nombreDe.get(b.voluntario_id) || '(voluntario)')}</b> comunicó una baja · ${escH(b.rango || 'turno')} · ${dm(b.fecha)}` });
+  });
+  (raw.refs || []).forEach(r => {
+    if (!r.registrado_en || r.registrado_en < limite) return;
+    const dc = r.es_dia_completo || !r.rango;
+    const cubre = !dc && (turnos.get(r.fecha + '|' + r.rango)?.bajas.length > 0);
+    ev.push({ ts:r.registrado_en, tipo: dc ? 'dia' : cubre ? 'cubre' : 'apunte', k: dc ? '' : r.fecha + '|' + r.rango,
+      texto:`<b>${escH(r.nombre)}</b> ${dc ? 'se ofrece todo el día ' + dm(r.fecha) : (cubre ? 'se apuntó para cubrir una baja' : 'se apuntó') + ' · ' + escH(r.rango) + ' · ' + dm(r.fecha)}` });
+  });
+  const lotes = new Map();
+  (raw.hist || []).forEach(h => {
+    if (!h.confirmado_en || h.confirmado_en < limite) return;
+    const m = h.confirmado_en.slice(0, 16);
+    if (!lotes.has(m)) lotes.set(m, { ts:h.confirmado_en, turnos:new Map() });
+    const L = lotes.get(m); if (h.confirmado_en > L.ts) L.ts = h.confirmado_en;
+    const k = h.fecha + '|' + h.rango;
+    if (!L.turnos.has(k)) L.turnos.set(k, { k, fecha:h.fecha, rango:h.rango, nombres:[] });
+    L.turnos.get(k).nombres.push(h.nombre);
+  });
+  lotes.forEach(L => {
+    const ts = [...L.turnos.values()];
+    if (ts.length <= 3) ts.forEach(x => ev.push({ ts:L.ts, tipo:'confirm', k:x.k,
+      texto:`Equipo confirmado · ${escH(x.rango)} · ${dm(x.fecha)} — ${x.nombres.map(escH).join(', ')}` }));
+    else ev.push({ ts:L.ts, tipo:'confirm', texto:`${ts.length} turnos confirmados de una vez` });
+  });
+
+  return { hoy, MIN, IDEAL, dias, eventos:ev,
+    turnos:[...turnos.values()].sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.rango < b.rango ? -1 : a.rango > b.rango ? 1 : 0) };
+}
+
+// Cambios que no dejan marca de tiempo en la base de datos (apunte cancelado,
+// baja anulada, persona quitada de un turno): se detectan comparando con la
+// foto de la última visita y se guardan en un registro local.
+function _evDetectarCambios(raw, hoy, nombreDe) {
+  if ([raw.hist, raw.bajas, raw.refs].some(a => a.length >= 1000)) return; // lectura truncada: no fiarse
+  const snap = {};
+  raw.hist.forEach(h => { if (h.fecha >= hoy) snap['H|'+h.voluntario_id+'|'+h.fecha+'|'+h.rango] = { t:'H', n:h.nombre, f:h.fecha, r:h.rango }; });
+  raw.bajas.forEach(b => { if (b.activa && b.fecha >= hoy && b.rango) snap['B|'+b.voluntario_id+'|'+b.fecha+'|'+b.rango] = { t:'B', n:nombreDe.get(b.voluntario_id) || '(voluntario)', f:b.fecha, r:b.rango }; });
+  raw.refs.forEach(r => { if (r.fecha >= hoy) snap['R|'+r.voluntario_id+'|'+r.fecha+'|'+(r.rango||'')] = { t:'R', n:r.nombre, f:r.fecha, r:r.rango || '', dc:!!(r.es_dia_completo || !r.rango) }; });
+  let prev = null;
+  try { prev = JSON.parse(localStorage.getItem(EV_SNAP_KEY)); } catch(e) {}
+  try { localStorage.setItem(EV_SNAP_KEY, JSON.stringify(snap)); } catch(e) {}
+  if (!prev) return;
+  const ahora = new Date().toISOString(), nuevos = [];
+  for (const k in prev) {
+    const p = prev[k];
+    if (snap[k] || p.f < hoy) continue;
+    const dm = isoADMY(p.f).slice(0, 5), rg = p.r ? ' · ' + escH(p.r) : '';
+    if (p.t === 'R') nuevos.push({ ts:ahora, tipo:'cancel', k:p.dc ? '' : p.f+'|'+p.r, texto:`<b>${escH(p.n)}</b> canceló su apunte${rg} · ${dm}` });
+    else if (p.t === 'B') nuevos.push({ ts:ahora, tipo:'anulada', k:p.f+'|'+p.r, texto:`Baja anulada: <b>${escH(p.n)}</b>${rg} · ${dm}` });
+    else nuevos.push({ ts:ahora, tipo:'quitado', k:p.f+'|'+p.r, texto:`<b>${escH(p.n)}</b> ya no está en el equipo${rg} · ${dm}` });
+  }
+  if (!nuevos.length) return;
+  // Un salto enorme suele ser un archivado de mes, no cambios reales
+  const aGuardar = nuevos.length > 25 ? [{ ts:ahora, tipo:'quitado', texto:`${nuevos.length} registros desaparecidos a la vez (¿archivado de mes?)` }] : nuevos;
+  try { localStorage.setItem(EV_LOG_KEY, JSON.stringify([...aGuardar, ..._evLeerLog()].slice(0, 80))); } catch(e) {}
+}
+function _evLeerLog() { try { return JSON.parse(localStorage.getItem(EV_LOG_KEY)) || []; } catch(e) { return []; } }
+
+async function _evFetch() {
+  const desde = _evSumaDias(_evHoy(), -35), q = 'fecha=gte.' + desde;
+  const [hist, bajas, refs, vols, cal] = await Promise.all([
+    sbGet('v_historial', q + '&select=fecha,dia,rango,nombre,tiene_llave,voluntario_id,confirmado_en&order=fecha,rango&limit=1000'),
+    sbGet('bajas', q + '&select=voluntario_id,fecha,dia,rango,registrado_en,activa&limit=1000'),
+    sbGet('v_refuerzos', q + '&select=fecha,dia,rango,es_dia_completo,registrado_en,nombre,tiene_llave,voluntario_id&order=registrado_en.desc&limit=1000'),
+    sbGet('voluntarios', 'select=id,nombre'),
+    sbGet('v_calendario', q + '&order=fecha').catch(() => []),
+  ]);
+  return { hist, bajas, refs, vols, cal };
+}
+
+async function loadEnVivo(force, silencioso) {
+  if (EV.cargando) return;
+  EV.cargando = true;
+  const c = document.getElementById('tab-envivo');
+  if (!EV.data && !silencioso) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando vista en vivo…</p></div>`;
+  try {
+    const raw = await _evFetch();
+    const hoy = _evHoy();
+    _evDetectarCambios(raw, hoy, new Map(raw.vols.map(v => [v.id, v.nombre])));
+    const M = _evModelo(raw, hoy, cargarReglas());
+    M.eventos.push(..._evLeerLog());
+    M.eventos.sort((a, b) => a.ts < b.ts ? 1 : -1);
+    EV.data = M; EV.ts = Date.now(); EV.error = ''; window._evOk = true;
+  } catch(e) {
+    EV.error = e.message || 'sin conexión';
+    if (!EV.data) { c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${escH(EV.error)}<br><button class="btn btn-ghost btn-sm" style="margin-top:.75rem" onclick="loadEnVivo(true)">↻ Reintentar</button></p></div>`; EV.cargando = false; return; }
+  }
+  EV.cargando = false;
+  renderEnVivo();
+}
+
+function entrarEnVivo() {
+  if (EV.data) renderEnVivo();
+  if (!EV.data || Date.now() - EV.ts > 15000) loadEnVivo(true, !!EV.data);
+  clearInterval(EV.timer);
+  EV.timer = setInterval(() => { if (tabActual === 'envivo' && !document.hidden) loadEnVivo(true, true); }, EV_REFRESH_MS);
+}
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && tabActual === 'envivo' && EV.data && Date.now() - EV.ts > 15000) loadEnVivo(true, true);
+});
+
+function _evEnVentana() {
+  const M = EV.data, hoy = M.hoy;
+  const ini = EV.ventana === 'ult7' ? _evSumaDias(hoy, -7) : hoy;
+  const fin = /^\d+$/.test(EV.ventana) ? _evSumaDias(hoy, parseInt(EV.ventana, 10) - 1) : null;
+  return M.turnos.filter(t => t.fecha >= ini && (!fin || t.fecha <= fin));
+}
+function _evPasa(t, f, q) {
+  if (q && !t.chips.some(c => c.nombre.toLowerCase().includes(q))) return false;
+  if (f === 'atencion') return t.atencion;
+  if (f === 'bajas')    return t.bajas.length > 0;
+  if (f === 'apuntes')  return t.apuntes.length > 0;
+  if (f === 'ok')       return t.nivel === 'verde';
+  return true;
+}
+
+function renderEnVivo() {
+  const c = document.getElementById('tab-envivo'), M = EV.data;
+  if (!c || !M) return;
+  if (!EV.shell || !document.getElementById('ev-board')) {
+    c.innerHTML = `
+      <div class="ev-status" id="ev-status"></div>
+      <div class="stats-row" id="ev-kpis"></div>
+      <div class="ev-filtros">
+        <input class="fc" id="ev-busca" placeholder="🔍 Buscar voluntario…" style="max-width:200px" oninput="EV.busca=this.value;renderEnVivo()">
+        <select class="fc" id="ev-ventana" style="max-width:190px" onchange="EV.ventana=this.value;renderEnVivo()">
+          <option value="7">Próximos 7 días</option><option value="14">Próximos 14 días</option>
+          <option value="30">Próximos 30 días</option><option value="futuro">Todo lo próximo</option>
+          <option value="ult7">Desde hace 7 días</option>
+        </select>
+        <span id="ev-pills" style="display:contents"></span>
+      </div>
+      <div class="ev-layout">
+        <div id="ev-board"></div>
+        <aside class="ev-feed"><div style="padding:.7rem .85rem;border-bottom:1px solid var(--sep);font-size:.8rem;font-weight:700;position:sticky;top:0;background:var(--surface)">⚡ Últimas novedades</div><div id="ev-feed"></div></aside>
+      </div>`;
+    document.getElementById('ev-ventana').value = EV.ventana;
+    document.getElementById('ev-busca').value = EV.busca;
+    EV.shell = true;
+  }
+
+  // Estado de la conexión
+  const hora = new Date(EV.ts).toLocaleTimeString('es-ES');
+  document.getElementById('ev-status').innerHTML = EV.error
+    ? `<span class="ev-dot off"></span> Sin conexión — mostrando datos de las ${hora} <button class="btn btn-ghost btn-sm" onclick="loadEnVivo(true)">Reintentar</button>`
+    : `<span class="ev-dot"></span> <b style="color:var(--label1)">En vivo</b> · actualizado a las ${hora} · se refresca solo cada 30 s`;
+
+  // KPIs sobre la ventana elegida
+  const ven = _evEnVentana(), hace24 = new Date(Date.now() - 86400000).toISOString();
+  const atencion = ven.filter(t => t.atencion).length;
+  const nBajas = ven.filter(t => !t.pasado).reduce((a, t) => a + t.bajas.filter(b => !t.chips.some(c => c.id === b.id && c.tipo === 'vuelve')).length, 0);
+  const nAp24 = M.eventos.filter(e => ['apunte','cubre','dia'].includes(e.tipo) && e.ts >= hace24).length;
+  document.getElementById('ev-kpis').innerHTML = `
+    <div class="sbox"><div class="sv">${ven.length}</div><div class="sl">Turnos</div></div>
+    <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${atencion}</div><div class="sl">Necesitan atención</div></div>
+    <div class="sbox" style="border-left:3px solid var(--amber)"><div class="sv" style="color:var(--amber)">${nBajas}</div><div class="sl">Bajas activas</div></div>
+    <div class="sbox" style="border-left:3px solid var(--blue)"><div class="sv" style="color:var(--blue)">${nAp24}</div><div class="sl">Apuntes 24 h</div></div>`;
+  const badge = document.getElementById('nbadge-ev');
+  if (badge) { const a = M.turnos.filter(t => t.atencion && t.fecha <= _evSumaDias(M.hoy, 13)).length; badge.textContent = a; badge.style.display = a ? '' : 'none'; }
+
+  // Filtros por estado (con contadores)
+  const q = EV.busca.trim().toLowerCase();
+  const defs = [['todos','Todos'], ['atencion','⚠️ Atención'], ['bajas','🏥 Con bajas'], ['apuntes','✋ Con apuntes'], ['ok','✅ Completos']];
+  document.getElementById('ev-pills').innerHTML = defs.map(([id, lbl]) =>
+    `<button class="ev-pill ${EV.filtro === id ? 'on' : ''}" onclick="EV.filtro='${id}';renderEnVivo()">${lbl} ${ven.filter(t => _evPasa(t, id, q)).length}</button>`).join('');
+
+  // Tablero por días
+  const vis = ven.filter(t => _evPasa(t, EV.filtro, q));
+  const board = document.getElementById('ev-board');
+  if (!vis.length) {
+    board.innerHTML = `<div class="empty"><span class="ei">${ven.length ? '🔍' : '📭'}</span><h4>${ven.length ? 'Nada con ese filtro' : 'Sin turnos en este periodo'}</h4></div>`;
+  } else {
+    const porDia = new Map();
+    vis.forEach(t => { if (!porDia.has(t.fecha)) porDia.set(t.fecha, []); porDia.get(t.fecha).push(t); });
+    board.innerHTML = [...porDia.entries()].map(([f, ts]) => {
+      const inf = M.dias.get(f) || { navieras:[], diaCompleto:[] };
+      const tag = f === M.hoy ? ' · <b style="color:var(--red)">HOY</b>' : f === _evSumaDias(M.hoy, 1) ? ' · mañana' : '';
+      const dc = inf.diaCompleto.length ? `<i>📅 Se ofrecen todo el día: ${inf.diaCompleto.map(x => escH(x.nombre)).join(', ')}</i>` : '';
+      return `<div class="ev-dia"><b>${_evFechaCorta(f)}</b>${tag ? `<i>${tag}</i>` : ''}${inf.navieras.length ? `<i>🚢 ${inf.navieras.map(escH).join(' · ')}</i>` : ''}${dc}<span class="ln"></span></div>` + ts.map(_evCard).join('');
+    }).join('');
+  }
+
+  // Línea temporal
+  const feed = document.getElementById('ev-feed');
+  const ICO = { baja:['📤','var(--red)'], apunte:['✋','var(--green)'], cubre:['🔄','var(--green)'], dia:['📅','#7c3aed'],
+    confirm:['✅','var(--blue)'], cancel:['❌','var(--amber)'], anulada:['↩️','var(--amber)'], quitado:['🗑️','var(--label3)'] };
+  const evs = M.eventos.slice(0, 60);
+  feed.innerHTML = evs.length ? evs.map(e => {
+    const [ic, col] = ICO[e.tipo] || ['📌', 'var(--label3)'];
+    const nuevo = (Date.now() - new Date(e.ts).getTime()) < 7200000;
+    return `<div class="ev-item ${nuevo ? 'nuevo' : ''}" ${e.k ? `data-k="${escH(e.k)}" onclick="evFoco(this.dataset.k)"` : ''}>
+      <div class="ev-ico" style="background:${col}22;border:1.5px solid ${col}55">${ic}</div>
+      <div><div class="t">${e.texto}</div><div class="h">${_evRel(e.ts)}${nuevo ? ' · nuevo' : ''}</div></div></div>`;
+  }).join('') : `<div style="text-align:center;padding:2rem 1rem;font-size:.8rem;color:var(--label3)">Sin novedades todavía</div>`;
+}
+
+function _evCard(t) {
+  const M = EV.data;
+  const badge = t.estado === 'vacio' ? '🚨 Sin cubrir'
+    : t.estado === 'falta' ? `⚠️ Faltan ${t.faltan}`
+    : t.n >= M.IDEAL ? `✓ Completo · ${t.n}` : `✓ ${t.n} voluntarios`;
+  const tarde = parseInt(t.rango, 10) >= 14;
+  const chips = t.chips.map(c => {
+    const ic = c.tipo === 'baja' ? '🏥' : c.tipo === 'apunte' ? '✋' : c.tipo === 'vuelve' ? '↩️' : '✓';
+    const tit = c.tipo === 'baja' ? 'Baja' : c.tipo === 'apunte' ? 'Apuntado desde Sustituciones' : c.tipo === 'vuelve' ? 'Había dado baja y se ha vuelto a apuntar' : 'Confirmado';
+    return `<span class="ev-chip ${c.tipo} ${c.llave ? 'llave' : ''}" title="${tit}">${ic} ${escH(c.nombre)}${c.llave ? ' 🔑' : ''}</span>`;
+  }).join('') || `<span class="ev-vacio">${t.abierto ? 'Franja habilitada sin nadie — abierta en Sustituciones' : 'Sin voluntarios'}</span>`;
+  const pie = [];
+  if (t.solapaCon) pie.push(`<span class="ev-badge ambar" title="La franja habilitada en el calendario coincide en horas con un turno ya formado">↔ Se solapa con el turno de ${escH(t.solapaCon)}</span>`);
+  if (t.sinLlave) pie.push('<span class="ev-badge ambar">🔑 Sin portador de llave</span>');
+  if (t.atencion) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evCopiarAviso(this.dataset.k)">📋 Copiar aviso</button>`);
+  if (t.bajas.length) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="setTab('bajas')">🏥 Ver bajas</button>`);
+  if (t.novedad) pie.push(`<span>Última novedad ${_evRel(t.novedad)}</span>`);
+  return `<div class="ev-card ${t.nivel} ${t.pasado ? 'pasado' : ''}" id="${_evId(t.k)}">
+    <div class="ev-card-h">
+      <span class="ev-hora">🕒 ${escH(t.rango)} <span style="font-size:.62rem;padding:.1rem .38rem;border-radius:4px;font-weight:700;vertical-align:middle;background:${tarde ? 'var(--amber-soft)' : 'var(--blue-soft)'};color:${tarde ? 'var(--amber)' : 'var(--blue)'}">${tarde ? 'TARDE' : 'MAÑANA'}</span></span>
+      <span class="ev-badge ${t.nivel}">${badge}</span>
+    </div>
+    <div class="ev-chips">${chips}</div>
+    ${pie.length ? `<div class="ev-pie">${pie.join('')}</div>` : ''}
+  </div>`;
+}
+
+function evFoco(k) {
+  const el = document.getElementById(_evId(k));
+  if (!el) { toast('Ese turno queda fuera del periodo o filtro actual', 'err'); return; }
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+  el.classList.remove('foco'); void el.offsetWidth; el.classList.add('foco');
+}
+
+function evCopiarAviso(k) {
+  const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
+  const [fy, fm, fd] = t.fecha.split('-').map(Number);
+  const cuando = DIAS_ES_L[new Date(fy, fm - 1, fd).getDay()].toLowerCase() + ' ' + fd + '/' + String(fm).padStart(2, '0');
+  const falta = t.estado === 'vacio' ? 'Necesitamos voluntarios' : `Faltan ${t.faltan} voluntario${t.faltan === 1 ? '' : 's'}`;
+  const txt = `🚨 ${falta} el ${cuando} de ${t.rango}. Si puedes, apúntate aquí: ${SUST_URL_FIJA}`;
+  const ok = () => toast('Aviso copiado — pégalo en el grupo', 'ok');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el aviso:', txt));
+  else window.prompt('Copia el aviso:', txt);
 }
 
 // ── INIT

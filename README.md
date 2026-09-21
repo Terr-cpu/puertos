@@ -103,6 +103,34 @@ Se pueden definir excepciones por día concreto (clave `excepcion_dia` en
   Ajustes del PDF** (`localStorage` → `pdf_cfg`). El detalle horario y el muelle
   de cada día se editan en la fila de ese día en **Calendario**.
 
+## Vista "🛰️ En vivo" (`planificador.html`)
+
+Un único tablero con **todo lo que pasa en los turnos**, para no tener que
+saltar entre Bajas, Apuntes y Turnos confirmados. Cruza `historial` (equipo
+confirmado) + `bajas` + `refuerzos` (apuntes de Sustituciones) + `calendario`
+(franjas habilitadas) y se refresca sola cada 30 s mientras la pestaña está a la
+vista.
+
+- **Tarjeta por turno**, agrupada por día (con naviera y quién se ofrece "todo el
+  día"): confirmados ✓, apuntados ✋, bajas 🏥 tachadas, quien había dado baja y
+  se ha vuelto a apuntar ↩️, y el portador de llave 🔑. Semáforo: 🚨 sin cubrir ·
+  ⚠️ faltan N (según `MIN_EQ`) · ✓ completo (según `IDEAL`). También avisa si el
+  turno se quedó **sin portador de llave** tras una baja o si una franja
+  habilitada vacía **se solapa** con un turno ya formado.
+- **Filtros**: periodo, búsqueda por voluntario y estado (atención / con bajas /
+  con apuntes / completos). El icono de la barra lateral muestra cuántos turnos
+  de los próximos 14 días necesitan atención.
+- **📋 Copiar aviso**: deja en el portapapeles un texto listo para el grupo con
+  el hueco y el enlace a Sustituciones.
+- **⚡ Últimas novedades**: bajas, apuntes (y si cubren una baja), confirmaciones
+  de equipo. Pulsar una novedad salta a su turno. Lo que no deja marca de tiempo
+  en la base de datos (apunte cancelado, baja anulada, persona quitada de un
+  turno) se detecta comparando con la última visita y se guarda en el navegador
+  (`envivo_snap` / `envivo_log`): solo se ve si esa app estaba abierta al ocurrir
+  el cambio o se abre después, pero nunca lo inventa.
+- **Turnos confirmados** ahora marca con 🏥 y tachado a quien tiene una baja
+  activa en ese turno.
+
 ## Configuración
 
 Las credenciales van embebidas en cada HTML (constantes al inicio del `<script>`):

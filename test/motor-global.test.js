@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -303,6 +303,50 @@ function check(nombre, cond, detalle) {
   check('ningún día supera MAX_TURNOS_DIA', sobreMax === 0);
   check('cubre la mayoría de días (>80%)', diasConTurno / dias.length > 0.8, (100*diasConTurno/dias.length).toFixed(0) + '%');
   check('reparto de carga razonable (max-min <= 4)', Math.max(...cargas) - Math.min(...cargas) <= 4, `spread ${Math.max(...cargas)-Math.min(...cargas)}`);
+})();
+
+// ── E9: vista En vivo — une equipo, bajas, apuntes y franjas habilitadas ──
+(function E9() {
+  console.log('\n═══ E9 · En vivo: modelo unificado de turnos/bajas/apuntes ═══');
+  const hoy = '2026-10-05', f = '2026-10-07', f2 = '2026-10-08';
+  const ahora = new Date().toISOString();
+  const raw = {
+    vols: [{ id:'a', nombre:'ANA' }, { id:'b', nombre:'BEA' }, { id:'c', nombre:'CARLOS' }, { id:'d', nombre:'DIEGO' }, { id:'e', nombre:'ELSA' }],
+    hist: [
+      { fecha:f, dia:'Miercoles', rango:'10:00 a 12:00', nombre:'ANA',   tiene_llave:true,  voluntario_id:'a', confirmado_en:ahora },
+      { fecha:f, dia:'Miercoles', rango:'10:00 a 12:00', nombre:'BEA',   tiene_llave:false, voluntario_id:'b', confirmado_en:ahora },
+      { fecha:f, dia:'Miercoles', rango:'10:00 a 12:00', nombre:'CARLOS',tiene_llave:false, voluntario_id:'c', confirmado_en:ahora },
+      { fecha:f2, dia:'Jueves',   rango:'10:00 a 12:00', nombre:'DIEGO', tiene_llave:false, voluntario_id:'d', confirmado_en:ahora },
+    ],
+    bajas: [
+      { voluntario_id:'a', fecha:f, dia:'Miercoles', rango:'10:00 a 12:00', registrado_en:ahora, activa:true },   // pierde la llave
+      { voluntario_id:'d', fecha:f2, dia:'Jueves',   rango:'10:00 a 12:00', registrado_en:ahora, activa:true },
+      { voluntario_id:'e', fecha:f2, dia:'Jueves',   rango:'10:00 a 12:00', registrado_en:ahora, activa:false },  // anulada: no cuenta
+    ],
+    refs: [
+      { fecha:f2, dia:'Jueves', rango:'10:00 a 12:00', es_dia_completo:false, registrado_en:ahora, nombre:'DIEGO', tiene_llave:false, voluntario_id:'d' }, // reincorporación
+      { fecha:f,  dia:'Miercoles', rango:'10:00 a 12:00', es_dia_completo:false, registrado_en:ahora, nombre:'ELSA', tiene_llave:false, voluntario_id:'e' },
+      { fecha:f,  dia:'Miercoles', rango:null, es_dia_completo:true, registrado_en:ahora, nombre:'ELSA', tiene_llave:false, voluntario_id:'e' },
+    ],
+    cal: [
+      { fecha:f, dia:'Miercoles', activo:true, navieras:['MSC','turno:10:00 a 12:00','turno:16:00 a 18:00','muelle:Delicias'] },
+    ],
+  };
+  const M = E._evModelo(raw, hoy, { MIN_EQ:3, IDEAL:4 });
+  const t1 = M.turnos.find(t => t.k === f + '|10:00 a 12:00');
+  const t2 = M.turnos.find(t => t.k === f2 + '|10:00 a 12:00');
+  const t3 = M.turnos.find(t => t.k === f + '|16:00 a 18:00');
+  check('baja activa sale como chip "baja" y no cuenta como presente', t1.chips.find(c => c.id === 'a').tipo === 'baja');
+  check('apunte de otra persona cubre la baja: BEA+CARLOS+ELSA = 3 → ok', t1.n === 3 && t1.estado === 'ok', 'n=' + t1.n);
+  check('se detecta que el turno se quedó sin portador de llave', t1.sinLlave === true);
+  check('baja + apunte de la misma persona = se reincorpora (cuenta)', t2.chips[0].tipo === 'vuelve' && t2.n === 1);
+  check('un solo voluntario < MIN → falta 2 y nivel ámbar', t2.estado === 'falta' && t2.faltan === 2 && t2.nivel === 'ambar');
+  check('la baja anulada (activa=false) se ignora', !t2.chips.some(c => c.id === 'e'));
+  check('franja habilitada sin nadie aparece vacía y en rojo', t3 && t3.estado === 'vacio' && t3.nivel === 'rojo' && t3.abierto);
+  check('el apunte de día completo no crea turno, va al día', !M.turnos.some(t => t.k === f + '|null') && M.dias.get(f).diaCompleto.length === 1);
+  check('naviera del día sin prefijos turno:/muelle:', JSON.stringify(M.dias.get(f).navieras) === '["MSC"]');
+  check('atención: sin llave (t1) + falta (t2) + vacío (t3) = 3', M.turnos.filter(t => t.atencion).length === 3, M.turnos.filter(t => t.atencion).length + '');
+  check('hay eventos de baja, apunte que cubre, día completo y confirmación', ['baja','cubre','confirm','dia'].every(tp => M.eventos.some(e => e.tipo === tp)));
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
