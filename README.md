@@ -266,34 +266,37 @@ en `turnos_no_realizados` (origen *anulado*; hay que haber ejecutado
 turno anulado deja de generar avisos de "turno en riesgo" (hay que volver a pegar
 `avisos-turnos` en Supabase). No cambia lo que ven los voluntarios en Sustituciones.
 
-### Disponibilidad y conexión horaria
+### Horarios y disponibilidad
 
-Sección **🧭 Disponibilidad y conexión horaria** de Estadísticas: a partir del horario
-que cada voluntario registró (`disponibilidad`), se dibuja **su horario hora a hora**
-sobre el de todos los demás. Se trabaja **semana a semana** (las 5 semanas del
-formulario: días 1-7, 8-14, 15-21, 22-28 y 29 en adelante), porque no es lo mismo estar
-libre todos los martes del mes que solo el tercero. Se mide de tres formas:
+Sección **🧭 Horarios y disponibilidad** de Estadísticas. Pensada para entenderse
+leyendo, no interpretando gráficos. A partir del horario que cada voluntario registró
+(`disponibilidad`) y de los turnos que ha habido, se organiza en tres partes:
 
-- **Coincide con otros voluntarios**: qué parte de las franjas de un turno que puede
-  cubrir tienen además, **esa misma semana**, al menos `MIN_EQ − 1` voluntarios más
-  disponibles el mismo día y a la misma hora. Quien solo está libre el tercer martes y
-  ese martes nadie más lo está, sale como *muy desconectado* aunque otros voluntarios
-  también tengan los martes en otras semanas.
-- **Constancia**: en cuántas de las 5 semanas del mes está libre, de media, en los
-  días que tiene (*casi todas las semanas* / *algunas* / *solo unas pocas*).
-- **Encaja con los turnos**: qué parte de sus horas cae en días y horas donde de
-  verdad ha habido turnos (borde oscuro en el dibujo).
+1. **📌 En resumen**, en frases: cuándo se hacen turnos, cuándo hay más voluntarios
+   libres, **en qué franjas hay turnos pero faltan voluntarios**, en cuáles **sobran**
+   voluntarios donde nunca hay turnos (quizá se podrían habilitar), cuántos no tienen
+   horario registrado y **por qué no participan** los que nunca lo han hecho.
+2. **¿Cuántos voluntarios están libres cada hora?**: un mapa día × hora con el número
+   de voluntarios libres (media del mes o una semana concreta). *Borde oscuro* = ahí se
+   han hecho turnos; *borde rojo* = se han hecho turnos pero hay menos de `MIN_EQ`
+   voluntarios libres, es decir, ahí faltan voluntarios.
+3. **¿Qué le dificulta participar a cada voluntario?**: una tarjeta por voluntario con
+   **la causa principal en una frase** y su explicación —🔴/⚪ *sin horario registrado* o
+   *tramos demasiado cortos*, 🟠 *su horario cae lejos de donde se hacen turnos* o
+   *libre solo unas pocas semanas al mes*, 🟡 *coincide poco con otros voluntarios*,
+   🟢 *su horario no es el problema*—, su horario escrito con sus semanas
+   (`Mar 16–20 (solo la 3.ª sem.)`) y dibujado hora a hora. Se filtra por grupo
+   (🆕 nunca han participado, ⚠️ con alguna dificultad, 💤 dejaron de participar) y por
+   causa. Un desplegable **❓ Cómo leer el dibujo** explica los colores.
 
-En el dibujo de cada voluntario, un cuadro **más pálido** significa que está libre en
-menos semanas de las 5, y el texto de su horario dice en qué semanas
-(`Mar 16–20 (solo la 3.ª sem.)`). Hay un mapa con **todos los voluntarios** (cuántos
-están disponibles cada hora; media de las 5 semanas o una semana concreta) y una lista
-filtrable —🆕 nunca han participado, ⚠️ los menos conectados, 💤 dejaron de
-participar, todos—, ordenada de menos a más conectado, con la comparación entre
-quienes participan y quienes nunca lo han hecho, y una recomendación si el horario de
-los que nunca participaron casi no encaja. También avisa de los voluntarios activos
-que no tienen ningún horario registrado. (Una fila de disponibilidad sin semana se toma
-como "todas las semanas".)
+Se trabaja **semana a semana** (las 5 semanas del formulario: días 1-7, 8-14, 15-21,
+22-28 y 29 en adelante): dos voluntarios solo coinciden si están libres el mismo día de
+la misma semana, y no es lo mismo estar libre todos los martes que solo el tercero.
+Las tres medidas que hay detrás: **coincide con otros** (qué parte de las franjas de un
+turno que puede cubrir tienen, esa semana, al menos `MIN_EQ − 1` voluntarios más),
+**constancia** (cuántas de las 5 semanas está libre) y **encaja con los turnos** (qué
+parte de sus horas cae donde ha habido turnos). Una fila de disponibilidad sin semana se
+toma como "todas las semanas".
 
 ## Configuración
 

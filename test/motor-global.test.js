@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _dSemTxt, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -930,6 +930,44 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const union = disp.map(r => ({ ...r, semana: undefined }));
   const Du = E._dispoModelo(union, vols, { DUR: 2, MIN: 3 });
   check('juntando todas las semanas (el cálculo anterior) A parecía "bien conectado" al 100 %: por eso ahora se mide semana a semana', Du.lista.find(v => v.id === 'a').pct === 100 && Du.lista.find(v => v.id === 'a').nivel === 'bien');
+})();
+
+// ── E22: explicaciones en lenguaje llano (resumen, huecos, sobran y causa por voluntario) ──
+(function E22() {
+  console.log('\n═══ E22 · Horarios: explicaciones claras ═══');
+  const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'];
+  const vols = ids.map(id => ({ id, nombre: id.toUpperCase() + ' NOMBRE' }));
+  const disp = [
+    ...'abcd'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 14:00' })),      // sábado por la mañana: 4 voluntarios
+    { voluntario_id: 'e', dia: 'Martes', horario: '16:00 a 20:00' },                                        // martes tarde: solo E
+    ...'ghijkl'.split('').map(id => ({ voluntario_id: id, dia: 'Lunes', horario: '08:00 a 10:00' })),     // lunes por la mañana: 6 voluntarios y nunca hay turnos
+  ];
+  const dem = Array.from({ length: 7 }, () => new Array(14).fill(0));
+  [2, 3, 4, 5].forEach(i => { dem[5][i] = 2; });        // sábado 10-14 con turnos
+  [8, 9, 10, 11].forEach(i => { dem[1][i] = 1; });      // martes 16-20 con turnos
+  [2, 3].forEach(i => { dem[4][i] = 1; });              // viernes 10-12 con turnos (y nadie libre)
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, demanda: dem, nunca: new Set(['e', 'f', 'g']) });
+  const x = id => D.lista.find(v => v.id === id);
+  check('cuándo se hacen turnos, en texto: sábado 10–14 · martes 16–20 · viernes 10–12', D.demandaTxt === 'Sáb 10–14 · Mar 16–20 · Vie 10–12', D.demandaTxt);
+  check('huecos: viernes 10–12 (0 libres) y martes 16–20 (1 libre); el sábado (4 libres) no es hueco', D.huecos.length === 2 && D.huecos[0].dia === 'Vie' && D.huecos[0].desde === 10 && D.huecos[0].hasta === 12 && D.huecos[0].libres === 0 && D.huecos[1].dia === 'Mar' && D.huecos[1].desde === 16 && D.huecos[1].hasta === 20 && D.huecos[1].libres === 1, JSON.stringify(D.huecos));
+  check('sobran: lunes 8–10 con 6 voluntarios libres y ningún turno', D.sobran.length === 1 && D.sobran[0].dia === 'Lun' && D.sobran[0].desde === 8 && D.sobran[0].hasta === 10 && D.sobran[0].libres === 6, JSON.stringify(D.sobran));
+  check('causa de A–D: "Su horario no es el problema" (coinciden y caen donde hay turnos)', ['a', 'b', 'c', 'd'].every(i => x(i).diag.tipo === 'ok' && x(i).diag.nivel === 'verde' && x(i).diag.icono === '🟢'));
+  check('causa de E: solo él el martes → "Casi nadie coincide con él", con frase que lo explica', x('e').diag.tipo === 'poco' && x('e').diag.titulo === 'Casi nadie coincide con él' && /no coincide con ningún otro voluntario/.test(x('e').diag.detalle) && /hacen falta 2 para llegar a 3/.test(x('e').diag.detalle), x('e').diag.detalle);
+  check('causa de F: sin horario → "Sin horario registrado" (rojo)', x('f').diag.tipo === 'sinHorario' && x('f').diag.nivel === 'rojo' && /no puede contar con él/.test(x('f').diag.detalle));
+  check('causa de G–L: coinciden entre ellos pero su horario cae lejos de los turnos → "lejos", con el % y dónde se hacen turnos', x('g').diag.tipo === 'lejos' && x('g').diag.nivel === 'ambar' && /Solo el 0 % de sus horas libres/.test(x('g').diag.detalle) && /Sáb 10–14/.test(x('g').diag.detalle), x('g').diag.detalle);
+  check('cuentas por causa en los que nunca han participado (E, F, G): 1 sin horario, 1 poco, 1 lejos', JSON.stringify(D.motivos.nunca) === JSON.stringify({ poco: 1, sinHorario: 1, lejos: 1 }) || (D.motivos.nunca.poco === 1 && D.motivos.nunca.sinHorario === 1 && D.motivos.nunca.lejos === 1), JSON.stringify(D.motivos.nunca));
+  const lineas = E._dResumenLineas(D).join(' | ');
+  check('el resumen dice cuándo se hacen turnos, dónde faltan voluntarios y dónde sobran', /Cuándo se hacen turnos:<\/b> sobre todo Sáb 10–14/.test(lineas) && /Faltan voluntarios en franjas donde sí hay turnos:<\/b> Vie 10–12h/.test(lineas) && /Sobran voluntarios libres donde nunca hay turnos:<\/b> Lun 8–10h/.test(lineas), lineas);
+  check('el resumen cuenta a los que no tienen horario y por qué no participan los que nunca lo han hecho', /1 voluntario del grupo no tiene horario registrado/.test(lineas) && /De los 3 que nunca han participado:<\/b> 1 sin horario registrado, 1 con horario lejos de los turnos, 1 que coincide poco con otros/.test(lineas), lineas);
+  // Sin datos de turnos (demanda) no se inventan huecos ni "lejos"
+  const Dn = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 });
+  check('sin datos de turnos no se inventan huecos, sobrantes ni "horario lejos de los turnos"', Dn.huecos.length === 0 && Dn.sobran.length === 0 && Dn.demandaTxt === '' && Dn.lista.every(v => v.diag.tipo !== 'lejos'));
+  // Un voluntario con tramos de 1 hora
+  const Dc = E._dispoModelo([{ voluntario_id: 'a', dia: 'Lunes', horario: '10:00 a 11:00' }], [vols[0]], { DUR: 2, MIN: 3 });
+  check('tramos de 1 hora: causa "Sus tramos libres son demasiado cortos"', Dc.lista[0].diag.tipo === 'corto' && /menos de 2 horas seguidas/.test(Dc.lista[0].diag.detalle));
+  // Solo una semana al mes
+  const De = E._dispoModelo([{ voluntario_id: 'a', semana: 3, dia: 'Martes', horario: '16:00 a 20:00' }, ...'bcd'.split('').map(id => ({ voluntario_id: id, semana: 3, dia: 'Martes', horario: '16:00 a 20:00' }))], vols.slice(0, 4), { DUR: 2, MIN: 3 });
+  check('libre solo la 3.ª semana (aunque los demás coincidan ese día): causa "Libre solo unas pocas semanas al mes"', De.lista[0].diag.tipo === 'esporadico' && /una sola semana/.test(De.lista[0].diag.detalle) && /solo la 3\.ª sem\./.test(De.lista[0].diag.detalle), De.lista[0].diag.detalle);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

@@ -396,10 +396,16 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .st-tabla th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--label3);padding:.4rem .5rem;border-bottom:1px solid var(--sep);white-space:nowrap;user-select:none}
 .st-tabla td{padding:.4rem .5rem;border-bottom:1px solid var(--sep)}
 .st-tabla tr:hover td{background:var(--surface2)}
-.dp-fila{display:flex;gap:.8rem;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--sep);flex-wrap:wrap}
-.dp-nom{width:185px;flex-shrink:0;font-size:.78rem}
-.dp-inf{flex:1;min-width:170px}
+.dp-fila{display:flex;gap:.9rem;align-items:flex-start;padding:.65rem .7rem;margin-bottom:.4rem;background:var(--surface2);border-radius:var(--r-sm);flex-wrap:wrap}
+.dp-nom{width:215px;flex-shrink:0;font-size:.8rem}
+.dp-inf{flex:1;min-width:200px}
 .dp-strip{flex-shrink:0}
+.dp-resumen{background:var(--blue-soft);border-radius:var(--r-md);padding:.75rem .9rem;font-size:.78rem;line-height:1.6;margin-bottom:1rem}
+.dp-resumen div+div{margin-top:.3rem}
+.dp-bloque{margin-top:1.1rem;font-size:.82rem}
+.dp-ayuda{font-size:.72rem;color:var(--label3);line-height:1.6;margin:.25rem 0 .4rem}
+.dp-leer{margin-top:1rem;background:var(--surface2);border-radius:var(--r-sm);padding:.6rem .8rem}
+.dp-leer summary{cursor:pointer;font-size:.76rem;font-weight:600;color:var(--label2)}
 .st-aviso{background:var(--amber-soft);border-left:4px solid var(--amber);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:.78rem;margin-bottom:.9rem;line-height:1.5}
 details.st-sec summary{list-style:none}
 .baja-col-title{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.42rem}
@@ -7149,9 +7155,9 @@ function _statsInsights(S, P) {
   if (V.sinEvidencia.length) add('info', `${V.sinEvidencia.length} voluntario${V.sinEvidencia.length === 1 ? '' : 's'} sin turnos recientes, pero no se puede afirmar que se hayan ido`, 'Su último turno es anterior a un hueco de datos: faltan meses registrados para saberlo.', 'Importa o registra esos meses; hasta entonces no los saques del grupo solo por esto.');
   if (S.dispo && S.dispo.lista.length) {
     const D = S.dispo, nun = D.lista.filter(x => x.grupo === 'nunca');
-    const dificiles = nun.filter(x => ['aislado', 'corto', 'sin', 'poco'].includes(x.nivel) || x.encaje === 'lejos' || x.esporadico);
+    const dificiles = nun.filter(x => x.diag.tipo !== 'ok');
     const mD = D.medias;
-    if (nun.length >= 3 && dificiles.length / nun.length >= 0.4) add('ambar', `${dificiles.length} de los ${nun.length} voluntarios que nunca han participado tienen un horario que casi no encaja`, `Su horario apenas coincide con el de otros voluntarios (el mismo día de la misma semana) o con las franjas en las que se hacen turnos, está libre solo unas pocas semanas al mes, o no tienen horario registrado${mD.nunca && mD.nunca.dem !== null && mD.participa && mD.participa.dem !== null ? ` (solo el ${mD.nunca.dem} % de sus horas cae en franjas con turnos, frente al ${mD.participa.dem} % de quienes participan)` : ''}.`, `Pregúntales si pueden ampliar su disponibilidad${D.mejor ? ' hacia ' + D.mejor.dia + ' de ' + D.mejor.desde + ' a ' + D.mejor.hasta + 'h, donde más voluntarios coinciden' : ''}. Su horario está dibujado en 🧭 Disponibilidad y conexión horaria.`);
+    if (nun.length >= 3 && dificiles.length / nun.length >= 0.4) add('ambar', `${dificiles.length} de los ${nun.length} voluntarios que nunca han participado tienen un horario que casi no encaja`, `Su horario apenas coincide con el de otros voluntarios (el mismo día de la misma semana) o con las franjas en las que se hacen turnos, está libre solo unas pocas semanas al mes, o no tienen horario registrado${mD.nunca && mD.nunca.dem !== null && mD.participa && mD.participa.dem !== null ? ` (solo el ${mD.nunca.dem} % de sus horas cae en franjas con turnos, frente al ${mD.participa.dem} % de quienes participan)` : ''}.`, `Pregúntales si pueden ampliar su disponibilidad${D.mejor ? ' hacia ' + D.mejor.dia + ' de ' + D.mejor.desde + ' a ' + D.mejor.hasta + 'h, donde más voluntarios coinciden' : ''}. Verás la causa de cada uno en 🧭 Horarios y disponibilidad.`);
     if (D.sinHorario >= 2) add('info', `${D.sinHorario} voluntarios activos no tienen ningún horario registrado`, 'Sin disponibilidad, el planificador no puede contar con ellos.', 'Pídeles que rellenen su disponibilidad.');
   }
   if (V.sinEstrenar.length >= 3) add('info', `${V.sinEstrenar.length} voluntarios activos nunca han tenido un turno`, 'Siguen dados de alta pero no han sido asignados jamás.', 'Revisa su disponibilidad: si sus franjas ya están cubiertas puede que no hagan falta; si no responden, sácalos del grupo.');
@@ -8019,11 +8025,11 @@ async function apConfirmar(fecha, rango, dia) {
 
 // ══════════════════════════════════════════════════════════════
 //  DISPONIBILIDAD Y CONEXIÓN HORARIA (semana a semana)
-//  ¿Con cuántos otros voluntarios coincide el horario de cada uno? Se tiene en
-//  cuenta la SEMANA del mes: no es lo mismo estar libre todos los martes que solo
-//  el tercero, y dos voluntarios solo coinciden si están libres el mismo día de la
-//  misma semana. Un voluntario que casi no coincide con nadie lo tiene difícil
-//  para que salga un turno con él (hacen falta MIN voluntarios a la vez).
+//  ¿Cuándo hay voluntarios libres, dónde faltan y qué le dificulta participar a cada
+//  uno? Se tiene en cuenta la SEMANA del mes: no es lo mismo estar libre todos los
+//  martes que solo el tercero, y dos voluntarios solo coinciden si están libres el
+//  mismo día de la misma semana. Para hacer un turno hacen falta MIN voluntarios a
+//  la vez durante DUR horas.
 // ══════════════════════════════════════════════════════════════
 const _dDias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
 const _dCorto = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -8044,6 +8050,30 @@ function _dSemTxt(set) {
   if (a.length === _dNSEM) return 'todas las semanas';
   if (a.length === 1) return 'solo la ' + a[0] + ' sem.';
   return a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1] + ' sem.';
+}
+const _dNum = n => String(Math.round(n * 10) / 10).replace('.', ',');
+const _dLibres = n => _dNum(n) + (Math.round(n * 10) / 10 === 1 ? ' libre' : ' libres');
+
+// Tramos seguidos de horas que cumplen una condición, por día: [{d, desde, hasta, valor}]
+function _dTramos(H, h0, cond, valor) {
+  const out = [];
+  for (let d = 0; d < 7; d++) {
+    let i = 0;
+    while (i < H) {
+      if (cond(d, i)) { let j = i, sum = 0; while (j < H && cond(d, j)) { sum += valor(d, j); j++; } out.push({ d, desde: h0 + i, hasta: h0 + j, valor: sum / (j - i), suma: sum }); i = j; } else i++;
+    }
+  }
+  return out;
+}
+
+// Diagnóstico de un voluntario en lenguaje llano: una causa principal, de la más a la menos grave
+function _dDiag(x, c) {
+  if (x.nivel === 'sin') return { tipo: 'sinHorario', nivel: 'rojo', icono: '⚪', titulo: 'Sin horario registrado', detalle: 'No ha registrado su disponibilidad, así que el planificador no puede contar con él. Pídele que la rellene.' };
+  if (x.nivel === 'corto') return { tipo: 'corto', nivel: 'rojo', icono: '🔴', titulo: 'Sus tramos libres son demasiado cortos', detalle: `Solo marca tramos de menos de ${c.DUR} horas seguidas y un turno dura ${c.DUR}. Pídele que amplíe sus tramos.` };
+  if (x.encaje === 'lejos') return { tipo: 'lejos', nivel: 'ambar', icono: '🟠', titulo: 'Su horario cae lejos de donde se hacen turnos', detalle: `Solo el ${x.pctDem} % de sus horas libres coincide con días y horas en los que se han hecho turnos${c.demandaTxt ? ` (los turnos se hacen sobre todo: ${c.demandaTxt})` : ''}.` };
+  if (x.esporadico) return { tipo: 'esporadico', nivel: 'ambar', icono: '🟠', titulo: 'Libre solo unas pocas semanas al mes', detalle: `Está libre ${x.semanas === 1 ? 'una sola semana' : 'solo ' + x.semanas + ' semanas'} del mes: ${x.resumen}. Con tan pocas semanas le cuesta coincidir con un turno.` };
+  if (x.nivel === 'aislado' || x.nivel === 'poco') return { tipo: 'poco', nivel: 'ambar', icono: '🟡', titulo: x.nivel === 'aislado' ? 'Casi nadie coincide con él' : 'Coincide poco con otros voluntarios', detalle: `Cuando está libre, ${!x.mediaOtros ? 'no coincide con ningún otro voluntario' : x.mediaOtros === 1 ? 'solo coincide 1 voluntario más de media' : 'solo coinciden ' + _dNum(x.mediaOtros) + ' voluntarios más de media'} (hacen falta ${c.MIN - 1} para llegar a ${c.MIN}).` };
+  return { tipo: 'ok', nivel: 'verde', icono: '🟢', titulo: 'Su horario no es el problema', detalle: `Coincide con otros voluntarios${x.pctDem !== null ? ` y el ${x.pctDem} % de sus horas cae donde se hacen turnos` : ''}. Si no participa, el motivo no parece ser el horario (puede que no se le haya asignado o prefiera otros días).` };
 }
 
 // disp = filas {voluntario_id, semana, dia, horario}; vols = voluntarios a analizar (activos)
@@ -8076,6 +8106,7 @@ function _dispoModelo(disp, vols, o) {
   ventana.forEach(w => { for (let s = 0; s < NS; s++) for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) if (w[s][d][t]) cuentaV[s][d][t]++; });
   const media = (m, d, i) => { let sum = 0; for (let s = 0; s < NS; s++) sum += m[s][d][i]; return sum / NS; };
   const grupo = Array.from({ length: 7 }, (_, d) => Array.from({ length: H }, (_, h) => Math.round(10 * media(grupoSem, d, h)) / 10));
+  const dem = o.demanda || null;
 
   const lista = vols.map(v => {
     const a = avail.get(v.id), w = ventana.get(v.id);
@@ -8085,14 +8116,14 @@ function _dispoModelo(disp, vols, o) {
     for (let s = 0; s < NS; s++) for (let d = 0; d < 7; d++) {
       for (let h = 0; h < H; h++) if (a[s][d][h]) {
         celdas++; horasAlgunaSemana[d][h] = true; semDia[d].add(s);
-        if (o.demanda && o.demanda[d][h] > 0) celdasDem++;
+        if (dem && dem[d][h] > 0) celdasDem++;
       }
       for (let t = 0; t < NV; t++) if (w[s][d][t]) { nVent++; const otros = cuentaV[s][d][t] - 1; suma += otros; if (otros >= MIN - 1) nConect++; }   // "otros" = de esa misma semana
     }
     const horas = horasAlgunaSemana.flat().filter(Boolean).length;
     const pct = nVent ? Math.round(100 * nConect / nVent) : null;
     const nivel = horas === 0 ? 'sin' : nVent === 0 ? 'corto' : pct < 25 ? 'aislado' : pct < 60 ? 'poco' : 'bien';
-    const pctDem = o.demanda && celdas ? Math.round(100 * celdasDem / celdas) : null;
+    const pctDem = dem && celdas ? Math.round(100 * celdasDem / celdas) : null;
     const encaje = pctDem === null ? null : pctDem < 35 ? 'lejos' : pctDem < 60 ? 'medio' : 'bien';
     // Constancia: en cuántas de las 5 semanas está libre, de media, en los días que tiene
     const diasConHorario = semDia.filter(x => x.size).length;
@@ -8124,80 +8155,126 @@ function _dispoModelo(disp, vols, o) {
       grupo: o.nunca && o.nunca.has(v.id) ? 'nunca' : o.dejo && o.dejo.has(v.id) ? 'dejo' : 'participa',
     };
   });
+
+  // ── Cuándo se hacen turnos, dónde faltan voluntarios y dónde sobran
+  const demandaTxt = dem ? _dTramos(H, h0, (d, i) => dem[d][i] > 0, (d, i) => dem[d][i])
+    .sort((x, y) => y.suma - x.suma).slice(0, 4).map(t => _dCorto[t.d] + ' ' + t.desde + '–' + t.hasta).join(' · ') : '';
+  const c = { MIN, DUR, demandaTxt };
+  lista.forEach(x => { x.diag = _dDiag(x, c); });
+  // Huecos: hay turnos, pero de media hay menos de MIN voluntarios libres para cubrirlos enteros
+  const huecos = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] > 0 && dem[d][Math.min(H - 1, t + DUR - 1)] > 0 && media(cuentaV, d, t) < MIN, (d, t) => media(cuentaV, d, t))
+    .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, libres: Math.round(t.valor * 10) / 10, peso: (() => { let q = 0; for (let h = t.desde - h0; h <= Math.min(H - 1, t.hasta - h0 + DUR - 2); h++) q += dem[t.d][h]; return q; })() }))
+    .sort((x, y) => (x.libres - y.libres) || (y.peso - x.peso)).slice(0, 5) : [];
+  // Sobran: muchos voluntarios libres y, sin embargo, nunca ha habido turnos
+  const umbralSobran = Math.max(6, 2 * MIN);
+  const sobran = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] === 0 && dem[d][Math.min(H - 1, t + DUR - 1)] === 0 && media(cuentaV, d, t) >= umbralSobran, (d, t) => media(cuentaV, d, t))
+    .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, libres: Math.round(t.valor * 10) / 10 }))
+    .sort((x, y) => y.libres - x.libres).slice(0, 4) : [];
   // Mejor franja: la que, de media a lo largo de las semanas, más voluntarios pueden cubrir entera
   let mejor = null;
   for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) { const n = media(cuentaV, d, t); if (!mejor || n > mejor.n) mejor = { d, t, n }; }
   const mediaG = g => {
     const xs = lista.filter(x => x.grupo === g && x.pct !== null).map(x => x.pct), ds = lista.filter(x => x.grupo === g && x.pctDem !== null).map(x => x.pctDem), rs = lista.filter(x => x.grupo === g && x.recur !== null).map(x => x.recur);
-    const avg = a => a.length ? Math.round(a.reduce((p, c) => p + c, 0) / a.length) : null;
+    const avg = a => a.length ? Math.round(a.reduce((p, q) => p + q, 0) / a.length) : null;
     return xs.length ? { n: xs.length, pct: avg(xs), dem: avg(ds), recur: avg(rs) } : null;
   };
-  return { h0, h1, H, DUR, MIN, grupo, grupoSem, cuentaV, lista, demanda: o.demanda || null,
+  const motivos = { nunca: {}, dejo: {}, participa: {} };
+  lista.forEach(x => { motivos[x.grupo][x.diag.tipo] = (motivos[x.grupo][x.diag.tipo] || 0) + 1; });
+  return { h0, h1, H, DUR, MIN, grupo, grupoSem, cuentaV, lista, demanda: dem, demandaTxt, huecos, sobran, motivos,
     sinHorario: lista.filter(x => x.nivel === 'sin').length,
     mejor: mejor && mejor.n > 0 ? { dia: _dCorto[mejor.d], desde: h0 + mejor.t, hasta: h0 + mejor.t + DUR, n: Math.round(mejor.n * 10) / 10 } : null,
     medias: { nunca: mediaG('nunca'), dejo: mediaG('dejo'), participa: mediaG('participa') } };
 }
 
 // ── Interfaz: se pinta dentro de Estadísticas
-const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '#f5a623' : c === 2 ? '#c6d84a' : c <= 4 ? '#5bbf6a' : '#1a9648';
-const _dNivelTxt = { sin: ['Sin horario registrado', 'var(--label3)'], corto: ['Tramos más cortos que un turno', '#e5484d'], aislado: ['Muy desconectado', '#e5484d'], poco: ['Poco conectado', 'var(--amber)'], bien: ['Bien conectado', '#146c34'] };
+// Colores del dibujo de cada voluntario: cuántos OTROS voluntarios coinciden en esa hora
+const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '#f5a623' : c === 2 ? '#8fcf5a' : '#1a9648';
+const _dTipoOrden = ['sinHorario', 'corto', 'lejos', 'esporadico', 'poco', 'ok'];
+const _dTipoTxt = { sinHorario: ['⚪', 'Sin horario registrado'], corto: ['🔴', 'Tramos demasiado cortos'], lejos: ['🟠', 'Horario lejos de los turnos'], esporadico: ['🟠', 'Libre pocas semanas al mes'], poco: ['🟡', 'Coincide poco con otros'], ok: ['🟢', 'Su horario no es el problema'] };
 
 function _stDispoStrip(x, D) {
-  const c = 7, W = 14 + D.H * c, Hh = 7 * c;
+  const c = 7, W = 14 + D.H * c, Hh = 7 * c + 8;
   let s = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" style="flex-shrink:0" role="img" aria-label="Horario de ${escH(x.nombre)}">`;
   for (let d = 0; d < 7; d++) {
     s += `<text x="0" y="${d * c + c - 1}" font-size="6" fill="var(--label3)">${_dLetra[d]}</text>`;
     for (let h = 0; h < D.H; h++) {
       const o = x.mapa[d][h], n = x.sem[d][h], dm = D.demanda && D.demanda[d][h] > 0;
-      // Más pálido = libre en menos semanas del mes
-      const op = o < 0 ? 1 : (0.3 + 0.7 * n / _dNSEM).toFixed(2);
+      const op = o < 0 ? 1 : (0.3 + 0.7 * n / _dNSEM).toFixed(2);       // más pálido = libre en menos semanas del mes
       s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${_dCol(o)}" fill-opacity="${op}"${dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${o < 0 ? 'no disponible' : 'libre ' + n + ' de ' + _dNSEM + ' semanas · ' + (o === 0 ? 'ningún otro voluntario coincide' : 'coinciden ' + o + ' voluntario' + (o === 1 ? '' : 's') + ' más de media')}${dm ? ' · aquí se hacen turnos' : ''}</title></rect>`;
     }
   }
+  for (let h = 0; h < D.H; h++) if ((D.h0 + h) % 4 === 0) s += `<text x="${12 + h * c}" y="${7 * c + 7}" font-size="5.5" fill="var(--label3)">${D.h0 + h}</text>`;
   return s + '</svg>';
+}
+
+// "En resumen": frases en lenguaje llano a partir de los datos
+function _dResumenLineas(D) {
+  const l = [], n = D.lista.filter(x => x.grupo === 'nunca');
+  if (D.demandaTxt) l.push(`🗓️ <b>Cuándo se hacen turnos:</b> sobre todo ${D.demandaTxt}.`);
+  if (D.mejor) l.push(`👥 <b>Cuándo hay más voluntarios libres:</b> ${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h (de media, ${_dNum(D.mejor.n)} voluntarios pueden cubrirlo entero cada semana).`);
+  if (D.huecos.length) l.push(`⚠️ <b>Faltan voluntarios en franjas donde sí hay turnos:</b> ${D.huecos.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (de media ${_dLibres(h.libres)}, hacen falta ${D.MIN})`).join(' · ')}.`);
+  if (D.sobran.length) l.push(`💡 <b>Sobran voluntarios libres donde nunca hay turnos:</b> ${D.sobran.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (${_dLibres(h.libres)})`).join(' · ')}. Quizá se podrían habilitar franjas ahí.`);
+  if (D.sinHorario) l.push(`⚪ <b>${D.sinHorario} voluntario${D.sinHorario === 1 ? '' : 's'} del grupo no ${D.sinHorario === 1 ? 'tiene' : 'tienen'} horario registrado</b>, así que el planificador no puede contar con ${D.sinHorario === 1 ? 'él' : 'ellos'}.`);
+  if (n.length) {
+    const m = D.motivos.nunca, t = k => m[k] || 0;
+    const partes = [t('sinHorario') && `${t('sinHorario')} sin horario registrado`, (t('lejos')) && `${t('lejos')} con horario lejos de los turnos`, t('esporadico') && `${t('esporadico')} libre${t('esporadico') === 1 ? '' : 's'} solo unas pocas semanas`, t('corto') && `${t('corto')} con tramos demasiado cortos`, t('poco') && `${t('poco')} que ${t('poco') === 1 ? 'coincide' : 'coinciden'} poco con otros`].filter(Boolean);
+    l.push(`🆕 <b>De los ${n.length} que nunca han participado:</b> ${partes.length ? partes.join(', ') : 'ninguno tiene un problema de horario'}${t('ok') ? `; ${t('ok')} ${t('ok') === 1 ? 'tiene' : 'tienen'} un horario que sí encaja (el motivo no parece ser el horario)` : ''}.`);
+  }
+  return l;
 }
 
 function _stDispoHTML() {
   const S = ST.S, D = S && S.dispo;
   if (!D || !D.lista.length) return '';
   const f = ST.dispFiltro || (D.lista.some(x => x.grupo === 'nunca') ? 'nunca' : 'todos');
-  const dificil = x => ['aislado', 'corto', 'sin', 'poco'].includes(x.nivel) || x.encaje === 'lejos' || x.esporadico;
+  const dificil = x => x.diag.tipo !== 'ok';
   const cont = { nunca: D.lista.filter(x => x.grupo === 'nunca').length, dejo: D.lista.filter(x => x.grupo === 'dejo').length, todos: D.lista.length, menos: D.lista.filter(dificil).length };
-  const orden = x => x.nivel === 'sin' ? -3 : x.nivel === 'corto' ? -2 : Math.min(x.pct === null ? 100 : x.pct, x.pctDem === null ? 100 : x.pctDem, x.recur === null ? 100 : x.recur);
-  let lista = D.lista.filter(x => f === 'todos' || (f === 'menos' ? dificil(x) : x.grupo === f));
-  lista = [...lista].sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre));
+  let base = D.lista.filter(x => f === 'todos' || (f === 'menos' ? dificil(x) : x.grupo === f));
+  const motivo = ST.dispMotivo || '';
+  const porMotivo = {}; base.forEach(x => { porMotivo[x.diag.tipo] = (porMotivo[x.diag.tipo] || 0) + 1; });
+  let lista = motivo ? base.filter(x => x.diag.tipo === motivo) : base;
+  const orden = x => _dTipoOrden.indexOf(x.diag.tipo);
+  lista = [...lista].sort((a, b) => orden(a) - orden(b) || (a.pctDem ?? 100) - (b.pctDem ?? 100) || a.nombre.localeCompare(b.nombre));
   const sm = ST.dispSemana || 0, fuente = sm ? D.grupoSem[sm - 1] : D.grupo;   // 0 = media de las 5 semanas
   const max = Math.max(1, ...fuente.flat());
   const cabeceras = _dCorto.map(d => `<th>${d}</th>`).join('');
   const fmt = n => n ? (Number.isInteger(n) ? n : String(n).replace('.', ',')) : '';
-  const filasHora = Array.from({ length: D.H }, (_, h) => `<tr><th>${D.h0 + h}h</th>${_dCorto.map((_, d) => { const n = fuente[d][h], a = n ? 0.12 + 0.8 * n / max : 0, dm = D.demanda && D.demanda[d][h] > 0;
-    return `<td style="background:${n ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}${dm ? ';box-shadow:inset 0 0 0 1.5px #0a1628' : ''}" title="${_dCorto[d]} ${D.h0 + h}:00 · ${sm ? '' : 'de media '}${n} voluntario${n === 1 ? '' : 's'} disponible${n === 1 ? '' : 's'}${sm ? ' en la semana ' + sm : ''}${dm ? ' · aquí se han hecho turnos' : ''}">${fmt(n)}</td>`; }).join('')}</tr>`).join('');
-  const m = D.medias;
-  const cmp = m.nunca && m.participa ? `Los que <b>nunca han participado</b> coinciden en horario con otros voluntarios (misma semana, mismo día y hora) un <b>${m.nunca.pct} %</b> de las veces (los que participan, un ${m.participa.pct} %)${m.nunca.dem !== null && m.participa.dem !== null ? `; solo el <b>${m.nunca.dem} %</b> de sus horas cae en franjas donde se hacen turnos (los que participan, <b>${m.participa.dem} %</b>)` : ''}${m.nunca.recur !== null && m.participa.recur !== null ? `; y están libres, de media, el <b>${m.nunca.recur} %</b> de las semanas de sus días (los que participan, <b>${m.participa.recur} %</b>)` : ''}.` : '';
-  const pill = (id, lbl) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="ST.dispFiltro='${id}';ST.dispMax=25;renderEstadisticas()">${lbl} ${cont[id]}</button>`;
+  const filasHora = Array.from({ length: D.H }, (_, h) => `<tr><th>${D.h0 + h}h</th>${_dCorto.map((_, d) => { const n = fuente[d][h], a = n ? 0.12 + 0.8 * n / max : 0, dm = D.demanda && D.demanda[d][h] > 0, falta = dm && n < D.MIN;
+    return `<td style="background:${n ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}${falta ? ';box-shadow:inset 0 0 0 2px #e5484d;font-weight:800' : dm ? ';box-shadow:inset 0 0 0 1.5px #0a1628' : ''}" title="${_dCorto[d]} ${D.h0 + h}:00 · ${sm ? '' : 'de media '}${n} voluntario${n === 1 ? '' : 's'} libre${n === 1 ? '' : 's'}${sm ? ' en la semana ' + sm : ''}${falta ? ' · AQUÍ HAY TURNOS PERO FALTAN VOLUNTARIOS' : dm ? ' · aquí se han hecho turnos' : ''}">${fmt(n)}</td>`; }).join('')}</tr>`).join('');
+  const pill = (id, lbl) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="ST.dispFiltro='${id}';ST.dispMotivo='';ST.dispMax=25;renderEstadisticas()">${lbl} ${cont[id]}</button>`;
   const pillS = (n, lbl) => `<button class="ev-pill ${sm === n ? 'on' : ''}" onclick="ST.dispSemana=${n};renderEstadisticas()">${lbl}</button>`;
+  const pillM = t => `<button class="ev-pill ${motivo === t ? 'on' : ''}" onclick="ST.dispMotivo='${motivo === t ? '' : t}';ST.dispMax=25;renderEstadisticas()">${_dTipoTxt[t][0]} ${_dTipoTxt[t][1]} ${porMotivo[t]}</button>`;
   const max2 = ST.dispMax || 25, ver = lista.slice(0, max2);
-  const constTxt = x => x.constancia === null ? '' : x.constancia === 'todas' ? 'libre casi todas las semanas' : x.constancia === 'varias' ? `libre ${x.recur} % de las semanas` : `libre solo ${x.recur} % de las semanas (${x.semanas === 1 ? 'una sola semana al mes' : x.semanas + ' semanas'})`;
-  return `<div class="st-sec"><h4>🧭 Disponibilidad y conexión horaria <span>¿coincide el horario de cada voluntario con el de los demás, semana a semana?</span></h4>
-    <div style="font-size:.76rem;color:var(--label2);line-height:1.55;margin-bottom:.7rem">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>. Se tiene en cuenta la <b>semana del mes</b>: dos voluntarios solo coinciden si están libres el mismo día de la misma semana, y no es lo mismo estar libre todos los martes que solo el tercero. Abajo, el horario de cada voluntario: <b>cada cuadro es una hora</b>, su color indica <b>cuántos otros voluntarios coinciden</b> (de media en las semanas en que está libre), un cuadro <b>más pálido</b> es que está libre en menos semanas y el <b>borde oscuro</b> marca las horas en las que <b>se hacen turnos</b>.${cmp ? '<br>' + cmp : ''}${D.mejor ? `<br>Donde más voluntarios coinciden: <b>${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h</b> (de media, ${String(D.mejor.n).replace('.', ',')} voluntarios pueden cubrirla entera cada semana).` : ''}${D.sinHorario ? `<br>⚠️ ${D.sinHorario} voluntario${D.sinHorario === 1 ? '' : 's'} activo${D.sinHorario === 1 ? '' : 's'} no ${D.sinHorario === 1 ? 'tiene' : 'tienen'} ningún horario registrado.` : ''}</div>
-    <div class="st-cols">
-      <div><div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.35rem">Todos los voluntarios: cuántos están disponibles cada hora</div>
-        <div class="ev-filtros" style="margin-bottom:.4rem">${pillS(0, 'Media')}${[1, 2, 3, 4, 5].map(n => pillS(n, 'Sem. ' + n)).join('')}</div>
-        <div style="max-height:330px;overflow:auto"><table class="st-heat"><thead><tr><th></th>${cabeceras}</tr></thead><tbody>${filasHora}</tbody></table></div></div>
-      <div style="font-size:.72rem;color:var(--label2);line-height:1.7"><div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.35rem">Cómo leer los cuadritos de cada voluntario</div>
-        <span><i class="st-pt" style="background:#e5484d"></i> ningún otro voluntario coincide en esa hora</span><br><span><i class="st-pt" style="background:#f5a623"></i> 1 otro</span><br><span><i class="st-pt" style="background:#c6d84a"></i> 2 otros (ya se llega a 3)</span><br><span><i class="st-pt" style="background:#5bbf6a"></i> 3–4 otros</span><br><span><i class="st-pt" style="background:#1a9648"></i> 5 o más</span><br><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está disponible</span><br><span><i class="st-pt" style="background:#fff;border:1.5px solid #0a1628"></i> borde oscuro: horas en las que se hacen turnos</span><br><span><i class="st-pt" style="background:#1a9648;opacity:.35"></i> más pálido: libre en pocas semanas del mes</span>
-        <div style="margin-top:.6rem;color:var(--label3)"><b>Coincide con otros</b>: % de las franjas de ${D.DUR} h que puede cubrir en las que, esa misma semana, hay además al menos ${D.MIN - 1} voluntarios más.<br><b>Encaja con los turnos</b>: % de sus horas que caen en días y horas donde ha habido turnos.<br><b>Constancia</b>: en cuántas de las 5 semanas del mes está libre, de media, en los días que tiene.</div></div>
+  const color = { rojo: 'var(--red)', ambar: 'var(--amber)', verde: '#146c34' }, fondo = { rojo: 'var(--red-soft)', ambar: 'var(--amber-soft)', verde: 'var(--green-soft)' };
+  const resumen = _dResumenLineas(D);
+  return `<div class="st-sec"><h4>🧭 Horarios y disponibilidad <span>¿cuándo hay voluntarios libres y qué le dificulta participar a cada uno?</span></h4>
+    <div class="dp-resumen"><div style="font-weight:800;font-size:.8rem;margin-bottom:.35rem">📌 En resumen</div>${resumen.map(x => `<div>${x}</div>`).join('') || '<div>Aún no hay datos suficientes de horarios.</div>'}</div>
+
+    <div class="dp-bloque"><b>1 · ¿Cuántos voluntarios están libres cada hora?</b>
+      <div class="dp-ayuda">Cada número es la cantidad de voluntarios libres a esa hora (cuanto más azul, más). <b style="border:1.5px solid #0a1628;padding:0 .3rem;border-radius:3px">Borde oscuro</b> = ahí se han hecho turnos. <b style="border:2px solid #e5484d;padding:0 .3rem;border-radius:3px;color:#e5484d">Borde rojo</b> = se han hecho turnos <u>pero hay menos de ${D.MIN} voluntarios libres</u>: ahí faltan voluntarios.</div>
+      <div class="ev-filtros" style="margin:.3rem 0 .4rem"><span style="font-size:.7rem;color:var(--label3)">Ver:</span>${pillS(0, 'Media del mes')}${[1, 2, 3, 4, 5].map(n => pillS(n, n + '.ª semana')).join('')}</div>
+      <div style="max-height:340px;overflow:auto"><table class="st-heat"><thead><tr><th></th>${cabeceras}</tr></thead><tbody>${filasHora}</tbody></table></div></div>
+
+    <div class="dp-bloque"><b>2 · ¿Qué le dificulta participar a cada voluntario?</b>
+      <div class="dp-ayuda">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>. Cada voluntario tiene una frase con la causa principal y, debajo, su horario dibujado (ver «cómo leer el dibujo»).</div>
+      <div class="ev-filtros" style="margin:.4rem 0">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Con alguna dificultad')}${pill('dejo', '💤 Dejaron de participar')}${pill('todos', 'Todos')}</div>
+      ${Object.keys(porMotivo).length > 1 ? `<div class="ev-filtros" style="margin:0 0 .5rem"><span style="font-size:.7rem;color:var(--label3)">Filtrar por causa:</span>${_dTipoOrden.filter(t => porMotivo[t]).map(pillM).join('')}</div>` : ''}
+      ${ver.length ? ver.map(x => `<div class="dp-fila" style="border-left:4px solid ${color[x.diag.nivel]}">
+        <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}</a>
+          <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div>
+          ${x.nivel === 'sin' ? '' : `<div class="dp-strip" style="margin-top:.35rem">${_stDispoStrip(x, D)}</div>`}</div>
+        <div class="dp-inf"><div style="display:inline-block;font-size:.76rem;font-weight:700;color:${color[x.diag.nivel]};background:${fondo[x.diag.nivel]};border-radius:6px;padding:.15rem .5rem">${x.diag.icono} ${escH(x.diag.titulo)}</div>
+          <div style="font-size:.74rem;color:var(--label2);margin-top:.3rem;line-height:1.5">${escH(x.diag.detalle)}</div>
+          ${x.resumen ? `<div style="font-size:.68rem;color:var(--label3);margin-top:.25rem">🕐 Libre: ${escH(x.resumen)}</div>` : ''}</div></div>`).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
+      ${lista.length > max2 ? `<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="ST.dispMax=${max2 + 25};renderEstadisticas()">Ver ${Math.min(25, lista.length - max2)} más (${lista.length - max2} restantes)</button>` : ''}
     </div>
-    <div class="ev-filtros" style="margin-top:.9rem">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Los menos conectados')}${pill('dejo', '💤 Dejaron de participar')}${pill('todos', 'Todos')}</div>
-    ${ver.length ? ver.map(x => `<div class="dp-fila">
-      <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:600;text-decoration:none">${escH(x.nombre)}</a>
-        <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div></div>
-      ${x.nivel === 'sin' ? '<div class="dp-strip" style="font-size:.7rem;color:var(--label3)">—</div>' : `<div class="dp-strip">${_stDispoStrip(x, D)}</div>`}
-      <div class="dp-inf"><div style="font-size:.74rem;font-weight:700;color:${_dNivelTxt[x.nivel][1]}">${_dNivelTxt[x.nivel][0]}${x.pct !== null ? ' · coincide ' + x.pct + ' %' : ''}</div>
-        <div style="font-size:.66rem;color:${x.encaje === 'lejos' ? '#e5484d' : x.encaje === 'medio' ? 'var(--amber)' : 'var(--label3)'}">${x.pctDem !== null ? 'Encaja con los turnos: ' + x.pctDem + ' % de su horario' : ''}</div>
-        <div style="font-size:.66rem;color:${x.constancia === 'pocas' ? '#e5484d' : x.constancia === 'varias' ? 'var(--amber)' : 'var(--label3)'}">${constTxt(x)}</div>
-        <div style="font-size:.66rem;color:var(--label3)">${x.resumen ? escH(x.resumen) : 'sin horario'}${x.mediaOtros !== null ? ' · coinciden ' + String(x.mediaOtros).replace('.', ',') + ' voluntarios de media' : ''}</div></div></div>`).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
-    ${lista.length > max2 ? `<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="ST.dispMax=${max2 + 25};renderEstadisticas()">Ver ${Math.min(25, lista.length - max2)} más (${lista.length - max2} restantes)</button>` : ''}
+
+    <details class="dp-leer"><summary>❓ Cómo leer el dibujo de cada voluntario</summary>
+      <div style="font-size:.74rem;color:var(--label2);line-height:1.75;margin-top:.5rem">Cada fila es un día (L M X J V S D) y cada cuadro una hora, de ${D.h0} a ${D.h1} (los números de abajo marcan las horas). El <b>color</b> dice cuántos <b>otros voluntarios</b> están libres a esa hora:<br>
+        <span><i class="st-pt" style="background:#e5484d"></i> ninguno · </span><span><i class="st-pt" style="background:#f5a623"></i> 1 · </span><span><i class="st-pt" style="background:#8fcf5a"></i> 2 (ya se llega a ${D.MIN}) · </span><span><i class="st-pt" style="background:#1a9648"></i> 3 o más · </span><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está libre</span><br>
+        Un cuadro <b>más pálido</b> = está libre en pocas de las 5 semanas del mes. Un <b>borde oscuro</b> = ahí se han hecho turnos.<br>
+        <b>Lo ideal</b> es ver cuadros verdes con borde oscuro: ese voluntario está libre cuando hay turnos y con más gente. Si sus cuadros están rojos, pálidos o sin borde, le será difícil participar.
+        La semana del mes se tiene en cuenta: dos voluntarios solo coinciden si están libres el mismo día de la misma semana.</div></details>
   </div>`;
 }
 
