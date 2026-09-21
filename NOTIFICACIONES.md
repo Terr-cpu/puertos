@@ -199,6 +199,18 @@ Límites que conviene saber:
 - Con esto, un turno hecho solo con apuntes cuenta como turno que salió adelante si reúne
   `MIN_EQ` (3) o más voluntarios, y quienes asistieron suman en sus estadísticas.
 
+## Ampliación F — Marcar un mes como «sin actividad» o «sin datos»
+
+Para un mes que no aparece en la app y que no se puede recuperar: **sin actividad** (no hubo
+turnos, p. ej. agosto) o **sin datos** (los hubo, pero no queda registro, p. ej. julio si el
+bot que avisaba era otro). Así deja de avisarse como hueco y no cuenta en las cifras.
+
+1. Supabase → **SQL Editor** → New query → pega
+   [`supabase/06_marca_mes.sql`](supabase/06_marca_mes.sql) → **Run**
+   (requiere haber ejecutado antes el 04).
+2. En la app: **Estadísticas → 🩺 Calidad de los datos**, en la fila del mes → **🌴 No hubo
+   actividad** o **🗂️ No hay datos**. Se puede quitar con **Quitar marca**.
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro

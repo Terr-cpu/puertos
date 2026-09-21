@@ -1075,5 +1075,24 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('con equipo confirmado (A, B, C) y dos apuntados (D y E, que se da de baja después): asisten A, B, C, D', x.n === 4 && x.asisten.sort().join() === 'a,b,c,d', x.asisten.join());
 })();
 
+// ── E25: meses marcados a mano como "sin actividad" o "sin datos que recuperar" ──
+(function E25() {
+  console.log('\n═══ E25 · Meses marcados a mano ═══');
+  const hoy = '2026-09-21';
+  check('mes sin datos y sin marca = hueco ("vacio")', E._stEstadoMes(null, '2026-08', hoy, false, false, null) === 'vacio');
+  check('marcado "sin_actividad" = "sinact"; "sin_datos" = "sindatos"', E._stEstadoMes(null, '2026-08', hoy, false, false, 'sin_actividad') === 'sinact' && E._stEstadoMes(null, '2026-07', hoy, false, false, 'sin_datos') === 'sindatos');
+  check('una marca no tapa un mes que sí tiene datos', E._stEstadoMes({ asig: 4, bajas: 1, apuntes: 0 }, '2026-07', hoy, false, false, 'sin_actividad') === 'app');
+  check('el mes en curso sigue siendo "futuro" aunque tenga marca', E._stEstadoMes(null, '2026-09', hoy, false, false, 'sin_actividad') === 'futuro');
+  const V = id => ({ id, nombre: id.toUpperCase(), activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const raw = { vols: ['a', 'b', 'c'].map(V), hist: ['a', 'b', 'c'].map(id => ({ fecha: '2026-06-10', rango: '10:00 a 12:00', voluntario_id: id, nombre: id })), arch: [], refs: [], bajas: [], noReal: [], act: null,
+    ajustes: [{ mes: '2026-07', bajas_min: 0, nota: null, marca: 'sin_datos' }, { mes: '2026-08', bajas_min: 0, nota: null, marca: 'sin_actividad' }] };
+  const S = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 }), raw, '2026-07-01', '2026-08-31', hoy);
+  check('julio y agosto marcados dejan de ser huecos y quedan como marcados', S.cobertura.vacios.length === 0 && S.cobertura.marcados.length === 2 && S.cobertura.meses.map(m => m.estado).join() === 'sindatos,sinact', JSON.stringify(S.cobertura.meses.map(m => m.estado)));
+  const raw0 = { ...raw, ajustes: [] };
+  const S0 = E._statsAgregar(E._statsBase(raw0, { MIN_EQ: 3 }), raw0, '2026-07-01', '2026-08-31', hoy);
+  check('sin las marcas, esos dos meses sí salen como huecos', S0.cobertura.vacios.length === 2);
+  check('un ajuste con 0 bajas y solo marca no cuenta como "bajas indicadas"', S.cobertura.meses.every(m => m.estimadas === 0));
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);

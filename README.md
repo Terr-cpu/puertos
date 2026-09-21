@@ -232,6 +232,8 @@ hubo **al menos** un número (p. ej. "en abril hubo al menos 2"), se indica en
 `ajustes_estadisticas` ([`supabase/04_ajustes_estadisticas.sql`](supabase/04_ajustes_estadisticas.sql)).
 
 Los meses hechos solo con apuntes (sin cuadrante) se pueden reconstruir desde el chat de Telegram con **💬 Desde Telegram**: guarda los apuntes y bajas en `apuntes_archivo` / `bajas_archivo` ([`supabase/05_archivo_apuntes_bajas.sql`](supabase/05_archivo_apuntes_bajas.sql), pasos en `NOTIFICACIONES.md`, Ampliación E). En esos turnos asisten los apuntados si se llega a 3 voluntarios, y quien se apuntó y se dio de baja después no cuenta.
+
+Un mes sin ningún dato se puede marcar como **🌴 sin actividad** o **🗂️ sin datos que recuperar** (🩺 Calidad de los datos; requiere [`supabase/06_marca_mes.sql`](supabase/06_marca_mes.sql)): deja de contar como hueco.
 Las estadísticas lo tratan como **dato aproximado**: solo suma lo que falte hasta ese
 mínimo (si el mes ya tiene más bajas registradas, no cambia nada), el mes pasa a contar
 para la tasa de baja y las cifras salen como **"≥"** (bajas, tasa, y el aviso de tasa

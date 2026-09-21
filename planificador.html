@@ -6903,8 +6903,13 @@ function _statsBase(raw, reglas) {
 // Estado de un mes según lo registrado: app (turnos y algún rastro de bajas/apuntes), manual (turnos pero ningún
 // rastro de bajas ni apuntes: probablemente gestionado fuera), vacio (sin turnos), futuro (mes en curso o posterior sin turnos).
 // `ok` = el usuario confirmó que ese mes sí se registró completo en la app.
-function _stEstadoMes(inf, k, hoy, ok, aj) {
-  if (!inf || (!inf.asig && !inf.apuntes)) return inf && inf.noReal ? 'manual' : (k >= hoy.slice(0, 7) ? 'futuro' : 'vacio');
+function _stEstadoMes(inf, k, hoy, ok, aj, marca) {
+  if (!inf || (!inf.asig && !inf.apuntes)) {
+    if (inf && inf.noReal) return 'manual';
+    if (k >= hoy.slice(0, 7)) return 'futuro';
+    // Marcado a mano: 'sin_actividad' (no hubo turnos) o 'sin_datos' (los hubo, pero no queda rastro)
+    return marca === 'sin_actividad' ? 'sinact' : marca === 'sin_datos' ? 'sindatos' : 'vacio';
+  }
   return inf.bajas + inf.apuntes > 0 || ok || aj ? 'app' : 'manual';
 }
 const _stMediana = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -6965,7 +6970,7 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
     for (let i = ay * 12 + am - 1; i <= by * 12 + bm - 1 && cob.length < 60; i++) {
       const k = Math.floor(i / 12) + '-' + String(i % 12 + 1).padStart(2, '0'), inf = base.mesInfo.get(k);
       const aj = ajMap.get(k), reg = inf ? inf.bajas : 0;
-      cob.push({ k, asig: inf ? inf.asig : 0, bajas: reg, apuntes: inf ? inf.apuntes : 0, estado: _stEstadoMes(inf, k, hoy, mesesOk.has(k), !!aj),
+      cob.push({ k, asig: inf ? inf.asig : 0, bajas: reg, apuntes: inf ? inf.apuntes : 0, estado: _stEstadoMes(inf, k, hoy, mesesOk.has(k), !!(aj && +aj.bajas_min > 0), aj && aj.marca),
         // bajas que faltan hasta el mínimo indicado (no se sabe cuáles: solo cuentan como número)
         estimadas: aj ? Math.max(0, (+aj.bajas_min || 0) - reg) : 0 });
     } }
@@ -7128,7 +7133,7 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   refsP.forEach(r => { const m = mes(r.fecha); if (m) m.apuntes++; });
 
   meses.forEach(m => { const c = cob.find(x => x.k === m.k); m.estado = c ? c.estado : 'app'; if (c) m.bajas += c.estimadas; });
-  const cobertura = { meses: cob, vacios: cob.filter(m => m.estado === 'vacio'), manuales: cob.filter(m => m.estado === 'manual') };
+  const cobertura = { meses: cob, vacios: cob.filter(m => m.estado === 'vacio'), manuales: cob.filter(m => m.estado === 'manual'), marcados: cob.filter(m => m.estado === 'sinact' || m.estado === 'sindatos') };
   return { desde, hasta, hoy, MIN, IDEAL, cobertura, dispo, asignaciones: asigP.length, turnos: tu, bajas: ba, apuntes: ap, voluntarios: vo, porDia, celdas, meses, tabla };
 }
 
@@ -7205,7 +7210,8 @@ async function _stCargar(force) {
     sbGetAll('voluntarios', 'select=id,nombre,tiene_llave,activo,creado_en&order=id'),
     sbGetAll('actividad', 'select=id,ts,tipo,voluntario_id,fecha,rango&order=id').catch(() => null), // null = aún sin registro de actividad
     sbGetAll('turnos_no_realizados', 'select=id,fecha,rango,motivo,planificados,origen&order=id').catch(() => null), // null = falta 03_turnos_no_realizados.sql
-    sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota&order=mes').catch(() => null),              // null = falta 04_ajustes_estadisticas.sql
+    sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota,marca&order=mes')
+      .catch(() => sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota&order=mes')).catch(() => null),   // null = falta 04_ajustes_estadisticas.sql; sin 'marca' = falta 06_marca_mes.sql
     sbGetAll('disponibilidad', 'select=id,voluntario_id,semana,dia,horario&order=id').catch(() => []),
     sbGetAll('apuntes_archivo', 'select=id,voluntario_id,fecha,rango,es_dia_completo,registrado_en&order=id').catch(() => null),   // null = falta 05_archivo_apuntes_bajas.sql
     sbGetAll('bajas_archivo', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id').catch(() => null),
@@ -7306,7 +7312,8 @@ function _stSerieSVG(meses) {
   [0, .5, 1].forEach(f => { const v = Math.round(max * f); s += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--sep)"/><text x="${pl - 4}" y="${y(v) + 3}" font-size="9" text-anchor="end" fill="var(--label3)">${v}</text>`; });
   meses.forEach((m, i) => {
     const x0 = pl + i * gw + gw / 2 - bw * 1.5;
-    if (m.estado === 'vacio') s += `<rect x="${pl + i * gw + 2}" y="${pt}" width="${gw - 4}" height="${H - pb - pt}" rx="4" fill="var(--surface2)"><title>Sin datos en la app</title></rect><text x="${pl + i * gw + gw / 2}" y="${(H - pb + pt) / 2}" font-size="8" text-anchor="middle" fill="var(--label3)">sin datos</text>`;
+    if (m.estado === 'sinact') s += `<rect x="${pl + i * gw + 2}" y="${pt}" width="${gw - 4}" height="${H - pb - pt}" rx="4" fill="var(--surface2)"><title>Marcado: no hubo actividad</title></rect><text x="${pl + i * gw + gw / 2}" y="${(H - pb + pt) / 2}" font-size="8" text-anchor="middle" fill="var(--label3)">sin actividad</text>`;
+    if (m.estado === 'vacio' || m.estado === 'sindatos') s += `<rect x="${pl + i * gw + 2}" y="${pt}" width="${gw - 4}" height="${H - pb - pt}" rx="4" fill="var(--surface2)"><title>Sin datos en la app</title></rect><text x="${pl + i * gw + gw / 2}" y="${(H - pb + pt) / 2}" font-size="8" text-anchor="middle" fill="var(--label3)">sin datos</text>`;
     [[m.turnos, 'var(--blue)'], [m.bajas, 'var(--red)'], [m.apuntes, 'var(--green)']].forEach(([v, col], j) => {
       if (v) s += `<rect x="${x0 + j * bw}" y="${y(v)}" width="${bw - 1}" height="${H - pb - y(v)}" rx="2" fill="${col}"><title>${m.k}: ${v}</title></rect>`;
     });
@@ -7513,14 +7520,14 @@ function _stCalidadHTML() {
   const filas = []; let [y, m] = ks[0].split('-').map(Number); const fin = hoy.slice(0, 7);
   for (let i = 0; i < 60; i++) {
     const k = y + '-' + String(m).padStart(2, '0'); if (k > fin) break;
-    const inf = b.mesInfo.get(k), aj = ajM.get(k), est = _stEstadoMes(inf, k, hoy, ok.has(k), !!aj);
-    const chip = est === 'app' ? '<span style="color:#146c34">✅ Con registro</span>' : est === 'manual' ? '<span style="color:var(--amber)">✍️ Sin bajas ni apuntes</span>' : est === 'vacio' ? '<span style="color:var(--red)">⚠️ Sin datos</span>' : '<span style="color:var(--label3)">en curso</span>';
-    const acc = est === 'manual' || (est === 'app' && inf && inf.bajas + inf.apuntes === 0) ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stToggleMesOk('${k}')">${ok.has(k) ? 'Quitar marca' : 'Fue un mes con registro completo'}</button>` : est === 'vacio' ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="abrirImportar()">📥 Importar</button>` : '';
+    const inf = b.mesInfo.get(k), aj = ajM.get(k), est = _stEstadoMes(inf, k, hoy, ok.has(k), !!(aj && +aj.bajas_min > 0), aj && aj.marca);
+    const chip = est === 'app' ? '<span style="color:#146c34">✅ Con registro</span>' : est === 'manual' ? '<span style="color:var(--amber)">✍️ Sin bajas ni apuntes</span>' : est === 'vacio' ? '<span style="color:var(--red)">⚠️ Sin datos</span>' : est === 'sinact' ? '<span style="color:var(--label3)">🌴 Sin actividad</span>' : est === 'sindatos' ? '<span style="color:var(--label3)">🗂️ Sin datos que recuperar</span>' : '<span style="color:var(--label3)">en curso</span>';
+    const acc = est === 'manual' || (est === 'app' && inf && inf.bajas + inf.apuntes === 0) ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stToggleMesOk('${k}')">${ok.has(k) ? 'Quitar marca' : 'Fue un mes con registro completo'}</button>` : est === 'vacio' ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="abrirImportar()">📥 Importar</button><button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" title="Ese mes no hubo turnos" onclick="stMarcarMes('${k}','sin_actividad')">🌴 No hubo actividad</button><button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" title="Hubo turnos, pero no queda ningún registro" onclick="stMarcarMes('${k}','sin_datos')">🗂️ No hay datos</button>` : (est === 'sinact' || est === 'sindatos') ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stMarcarMes('${k}',null)">Quitar marca</button>` : '';
     filas.push(`<tr><td>${MESN[m - 1]} ${y}</td><td>${inf ? inf.asig : 0}</td><td>${inf ? inf.bajas : 0}${aj ? ` <i style="font-size:.66rem;color:var(--amber)" title="${escH(aj.nota || 'Mínimo indicado a mano')}">· indicado ≥${aj.bajas_min}</i>` : ''}</td><td>${inf ? inf.apuntes : 0}</td><td>${inf && inf.noReal ? inf.noReal : ''}</td><td>${chip}</td><td>${acc}<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stAjustarMes('${k}')">✎ ${aj ? 'Editar bajas indicadas' : 'Indicar bajas'}</button></td></tr>`);
     if (++m > 12) { m = 1; y++; }
   }
   return `<details class="st-sec" id="st-calidad"><summary style="cursor:pointer;font-weight:700;font-size:.82rem">🩺 Calidad de los datos <span style="font-weight:400;font-size:.7rem;color:var(--label3)">— qué meses tienen registro en la app</span></summary>
-    <div style="font-size:.74rem;color:var(--label2);margin:.6rem 0">Un mes sin bajas ni apuntes registrados se considera gestionado fuera de la app: cuenta para turnos y participación, pero no para las tasas de baja. Si de verdad fue un mes tranquilo, márcalo.</div>
+    <div style="font-size:.74rem;color:var(--label2);margin:.6rem 0">Un mes sin bajas ni apuntes registrados se considera gestionado fuera de la app: cuenta para turnos y participación, pero no para las tasas de baja. Si de verdad fue un mes tranquilo, márcalo. Un mes <b>sin datos</b> puede marcarse como <b>🌴 sin actividad</b> (no hubo turnos) o <b>🗂️ no hay datos</b> (los hubo, pero no queda rastro): así deja de avisarse como hueco y no cuenta en las cifras.</div>
     <table class="st-tabla"><thead><tr><th>Mes</th><th>Plazas</th><th>Bajas</th><th>Apuntes</th><th title="Franjas que no salieron adelante">Sin cubrir</th><th>Estado</th><th></th></tr></thead><tbody>${filas.join('')}</tbody></table></details>`;
 }
 
@@ -8005,6 +8012,18 @@ function stAjustarMes(k) {
       <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
       <button class="btn btn-navy" id="aj-btn" onclick="stGuardarAjuste('${k}')">Guardar</button></div>`;
   openModal('mvol');
+}
+async function stMarcarMes(k, marca) {
+  if (ST.raw && ST.raw.ajustes === null) { toast('Falta crear la tabla: ejecuta supabase/04_ajustes_estadisticas.sql y 06_marca_mes.sql', 'err'); return; }
+  try {
+    const aj = ((ST.raw && ST.raw.ajustes) || []).find(a => a.mes === k);
+    if (!marca && aj && !(+aj.bajas_min > 0)) await sbDelete('ajustes_estadisticas', 'mes=eq.' + k);
+    else await sbPost('ajustes_estadisticas', [{ mes: k, marca: marca || null, actualizado_en: new Date().toISOString() }], 'resolution=merge-duplicates');
+    ST.raw = null; ST.S = null;
+    toast(marca ? 'Mes marcado ✓' : 'Marca quitada', 'ok');
+    await loadEstadisticas(true);
+    const d = document.getElementById('st-calidad'); if (d) d.open = true;
+  } catch(e) { toast(/marca/.test(e.message) ? 'Falta ejecutar supabase/06_marca_mes.sql (ver NOTIFICACIONES.md)' : 'No se pudo guardar: ' + e.message, 'err'); }
 }
 async function stGuardarAjuste(k, quitar) {
   const n = Math.max(0, Math.min(200, parseInt(document.getElementById('aj-n')?.value, 10) || 0));
