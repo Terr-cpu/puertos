@@ -150,6 +150,13 @@ apuntes y voluntarios), por **periodo**: este mes, mes anterior, 3 o 6 meses,
 este año, año anterior, todo el histórico o un rango de meses a medida. Cada
 cifra se compara con el **periodo anterior** de la misma duración (▲▼).
 
+- **Criterio de "turno hecho"** (igual para todos los meses y para los turnos
+  formados solo por apuntes): un turno **se confirmó / se hizo si hubo 3 o más
+  personas** (el equipo que sigue tras las bajas + los apuntados; el mínimo es
+  `MIN_EQ` de *Reglas del motor*). Con menos —incluso con 1 o 2 personas que sí
+  acudieron— o con ninguna, **cuenta como no realizado**. Así, un turno con 3
+  confirmados del que se dan de baja 2 (queda 1) no se cuenta como hecho. Las
+  personas que sí acudieron siguen sumando en su ficha y en la tabla de voluntarios.
 - **Cifras clave:** turnos confirmados, plazas asignadas, bajas y tasa de baja,
   apuntes, turnos que **salen adelante por apuntes** (los salvados tras una baja
   y los que nadie planificó), turnos **caídos por bajas** (con equipo y a cero),

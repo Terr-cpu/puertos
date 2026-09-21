@@ -6911,7 +6911,10 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   const T = base.turnos.filter(t => en(t.fecha));
   const pasados = T.filter(t => t.fecha < hoy && !t.sinCubrir), prog = T.filter(t => t.fecha >= hoy && !t.sinCubrir);
   const nrPasados = T.filter(t => t.fecha < hoy && t.sinCubrir);      // franjas que no salieron adelante (registradas)
-  const conEquipo = T.filter(t => t.tuvoEquipo);           // "turnos confirmados"
+  // Criterio: un turno "se confirmó/se hizo" si hubo MIN o más personas (equipo que sigue + apuntados);
+  // con menos, o ninguna, cuenta como no realizado. Vale igual para turnos con equipo confirmado que para
+  // los formados solo por apuntes.
+  const hecho = t => !t.sinCubrir && t.n >= MIN;
   const asigP = base.asigs.filter(a => en(a.fecha));
 
   // ── Calidad de los datos de cada mes del periodo
@@ -6930,7 +6933,7 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
 
   // ── Turnos: cómo acaban (solo los ya pasados son resultados)
   const tu = {
-    total: T.filter(t => !t.sinCubrir).length, confirmados: conEquipo.length, pasados: pasados.length,
+    total: T.filter(t => !t.sinCubrir).length, confirmados: T.filter(hecho).length, pasados: pasados.length,
     conBaja: T.filter(t => t.conBaja).length,
     salvados: pasados.filter(t => t.salvado).length, aguantaron: pasados.filter(t => t.aguanto).length,
     creadosPorApuntes: pasados.filter(t => t.creadoPorApuntes).length, creadosOk: pasados.filter(t => t.creadoOk).length,
@@ -6940,15 +6943,16 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
     completos: pasados.filter(t => t.n >= IDEAL).length,
     justos: pasados.filter(t => t.n >= MIN && t.n < IDEAL).length,
     sinLlave: pasados.filter(t => t.sinLlave).length,
-    confPasados: pasados.filter(t => t.tuvoEquipo).length, confProg: prog.filter(t => t.tuvoEquipo).length,
+    confPasados: pasados.filter(hecho).length, confProg: prog.filter(hecho).length,
   };
   tu.salenPorApuntes = tu.salvados + tu.creadosOk;
   // ¿Salió adelante lo que se programó? (solo lo ya pasado)
   tu.sinCubrir = nrPasados.length;
   tu.motivos = { 'sin voluntarios': nrPasados.filter(t => t.motivoNR === 'sin voluntarios').length, bajas: nrPasados.filter(t => t.motivoNR === 'bajas').length, otro: nrPasados.filter(t => !['sin voluntarios', 'bajas'].includes(t.motivoNR)).length };
-  tu.salieron = pasados.filter(t => t.n > 0).length;
-  tu.noSalieron = tu.caidos + tu.sinCubrir;
-  tu.programados = tu.salieron + tu.noSalieron;                        // (sobrescribe el recuento de turnos próximos: ver 'proximos')
+  tu.salieron = pasados.filter(hecho).length;                          // se hicieron: MIN o más personas
+  tu.sinNadie = pasados.filter(t => t.n === 0).length;                 // (ya no se cuentan aparte: son parte de 'no se hicieron')
+  tu.noSalieron = tu.bajoMin + tu.sinCubrir;                          // menos de MIN personas (o ninguna) + franjas registradas sin cubrir
+  tu.programados = tu.salieron + tu.noSalieron;                        // turnos ya pasados que estaban programados o habilitados
   tu.proximos = prog.length;
   tu.pctSalen = tu.programados ? Math.round(100 * tu.salieron / tu.programados) : null;
   tu.nMedia = pasados.length ? pasados.reduce((s, t) => s + t.n, 0) / pasados.length : 0;
@@ -7082,7 +7086,7 @@ function _statsInsights(S, P) {
   if (S.cobertura.vacios.length) add('ambar', `Sin datos en ${S.cobertura.vacios.length} mes${S.cobertura.vacios.length === 1 ? '' : 'es'} del periodo`, `${S.cobertura.vacios.map(fm).join(', ')}: no hay ningún turno registrado en la app, así que no cuentan.`, 'Si se gestionaron fuera de la app, recupéralos con 📥 Importar turnos anteriores.');
   if (S.cobertura.manuales.length) add('info', `${S.cobertura.manuales.length} mes${S.cobertura.manuales.length === 1 ? '' : 'es'} con turnos pero sin bajas ni apuntes`, `${S.cobertura.manuales.map(fm).join(', ')}: parecen gestionados fuera de la app. Cuentan para turnos y participación, no para las tasas de baja.`, 'Si en realidad fue un mes tranquilo registrado en la app, márcalo en 🩺 Calidad de los datos.');
   if (S.asignaciones < 10) add('info', 'Pocos datos en este periodo', `Solo hay ${S.asignaciones} asignaciones: las conclusiones ganan fiabilidad con más meses.`, 'Prueba con "Últimos 6 meses" o "Todo el histórico".');
-  if (T.programados >= 8 && T.pctSalen !== null && T.pctSalen < 75) add(T.pctSalen < 50 ? 'rojo' : 'ambar', `Solo salen adelante ${T.salieron} de ${T.programados} turnos programados (${T.pctSalen} %)`, `${T.sinCubrir} franjas se quedaron sin nadie${T.caidos ? ` y ${T.caidos} se cayeron por bajas` : ''}.`, 'Habilita solo las franjas que suelen cubrirse, o capta voluntarios para las que se quedan vacías (mira el mapa día × franja).');
+  if (T.programados >= 8 && T.pctSalen !== null && T.pctSalen < 75) add(T.pctSalen < 50 ? 'rojo' : 'ambar', `Solo salen adelante ${T.salieron} de ${T.programados} turnos programados (${T.pctSalen} %)`, `No se hicieron ${T.noSalieron} turnos (menos de ${S.MIN} personas): ${T.sinCubrir} franjas sin cubrir, ${T.sinNadie} sin nadie y ${T.debiles} con solo 1-${S.MIN - 1} personas.`, 'Habilita solo las franjas que suelen cubrirse, o capta voluntarios para las que se quedan vacías (mira el mapa día × franja).');
   const NOM_D = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
   const celdaMala = ['m', 't'].flatMap(f => S.porDia.map(d => ({ f, d: d.dow, ...S.celdas[f][d.dow] }))).filter(c => c.sinCubrir >= 3 && c.sinCubrir / (c.sinCubrir + c.turnos) >= 0.5).sort((a, b) => b.sinCubrir - a.sinCubrir)[0];
   if (celdaMala) add('ambar', `Los ${NOM_D[celdaMala.d]} por la ${celdaMala.f === 'm' ? 'mañana' : 'tarde'} casi nunca se cubren`, `${celdaMala.sinCubrir} de ${celdaMala.sinCubrir + celdaMala.turnos} franjas habilitadas se quedaron sin nadie.`, 'Deja de habilitar esa franja o busca voluntarios que puedan a esa hora.');
@@ -7271,12 +7275,12 @@ function renderEstadisticas() {
   const pT = P && P.turnos, pB = P && P.bajas, pA = P && P.apuntes, pV = P && P.voluntarios;
   const kpi = (val, lbl, sub, col, dl) => `<div class="sbox"${col ? ` style="border-left:3px solid ${col}"` : ''}><div class="sv"${col ? ` style="color:${col}"` : ''}>${val}</div><div class="sl">${lbl}</div>${sub ? `<div class="st-sub">${sub}</div>` : ''}${dl || ''}</div>`;
   const kpis = `<div class="stats-row st-kpis">
-    ${kpi(T.confirmados, 'Turnos confirmados', `${T.confPasados} ya realizados · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
+    ${kpi(T.confirmados, 'Turnos confirmados', `con ${S.MIN} o más personas · ${T.confPasados} ya hechos · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
     ${kpi(S.asignaciones, 'Plazas asignadas', `${V.participantes} personas distintas`, '', _stDelta(S.asignaciones, P && P.asignaciones, true))}
     ${kpi((B.aprox ? '≥ ' : '') + B.total, 'Bajas', `tasa ${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)}${B.base < S.asignaciones ? ' (sobre ' + B.base + ' plazas con registro)' : ''} · ${B.anuladas} anuladas${B.aprox ? ' · ' + B.estimadas + ' indicadas a mano' : ''}`, 'var(--red)', _stDelta(B.tasa, pB && pB.base >= 15 && B.base >= 15 ? pB.tasa : null, false, ' pt'))}
     ${kpi(A.total, 'Apuntes', `${A.cubrenBaja} a turnos con baja · ${A.diaCompleto} de día completo`, 'var(--green)', _stDelta(A.total, pA && pA.total, true))}
     ${kpi(T.salenPorApuntes, 'Salen adelante por apuntes', `${T.salvados} salvados tras baja · ${T.creadosOk} sin equipo previo`, 'var(--blue)', _stDelta(T.salenPorApuntes, pT && pT.salenPorApuntes, true))}
-    ${kpi(T.pctSalen === null ? '—' : T.pctSalen + ' %', 'Turnos que salen adelante', `${T.salieron} de ${T.programados} programados · ${T.sinCubrir} sin cubrir · ${T.caidos} caídos por bajas`, T.pctSalen !== null && T.pctSalen < 75 ? 'var(--amber)' : 'var(--green)', _stDelta(T.pctSalen, pT && pT.pctSalen, true, ' pt'))}
+    ${kpi(T.pctSalen === null ? '—' : T.pctSalen + ' %', 'Turnos que salen adelante', `${T.salieron} de ${T.programados} · no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} personas`, T.pctSalen !== null && T.pctSalen < 75 ? 'var(--amber)' : 'var(--green)', _stDelta(T.pctSalen, pT && pT.pctSalen, true, ' pt'))}
     ${kpi(T.pasados ? _stNum(T.nMedia) : '—', 'Personas por turno', `mínimo ${S.MIN} · ideal ${S.IDEAL}`, '', _stDelta(T.pasados ? Math.round(T.nMedia * 10) / 10 : null, pT && pT.pasados ? Math.round(pT.nMedia * 10) / 10 : null, true))}
     ${kpi(V.participacion === null ? '—' : V.participacion + ' %', 'Participación', `${V.participantes} de ${V.activos} activos`, '', _stDelta(V.participacion, pV && pV.participacion, true, ' pt'))}
   </div>`;
@@ -7300,13 +7304,13 @@ function renderEstadisticas() {
   const totRes = T.pasados || 1, seg = (n, col, lbl) => n ? `<div title="${lbl}: ${n}" style="flex:${n};background:${col};min-width:6px"></div>` : '';
   const acaban = (T.pasados || T.sinCubrir) ? `
     <div style="display:flex;height:22px;border-radius:6px;overflow:hidden;background:var(--surface2)">
-      ${seg(T.completos, 'var(--green)', 'Completos')}${seg(T.justos, '#7fd39b', 'Justos')}${seg(T.debiles, 'var(--amber)', 'Por debajo del mínimo')}${seg(T.caidos, 'var(--red)', 'Caídos por bajas')}${seg(T.sinCubrir, 'repeating-linear-gradient(45deg,#c9ccd6,#c9ccd6 4px,#e4e6ec 4px,#e4e6ec 8px)', 'Sin cubrir')}
+      ${seg(T.completos, 'var(--green)', 'Completos')}${seg(T.justos, '#7fd39b', 'Justos')}${seg(T.debiles, 'var(--amber)', 'Menos del mínimo: no se hicieron')}${seg(T.caidos, 'var(--red)', 'Caídos por bajas')}${seg(T.sinCubrir, 'repeating-linear-gradient(45deg,#c9ccd6,#c9ccd6 4px,#e4e6ec 4px,#e4e6ec 8px)', 'Sin cubrir')}
     </div>
     <div class="st-leyenda">
       <span><i style="background:var(--green)"></i>Completos (≥${S.IDEAL}) <b>${T.completos}</b></span>
-      <span><i style="background:#7fd39b"></i>Justos (${S.MIN}-${S.IDEAL - 1}) <b>${T.justos}</b></span>
-      <span><i style="background:var(--amber)"></i>Por debajo del mínimo <b>${T.debiles}</b></span>
-      <span><i style="background:var(--red)"></i>Caídos por bajas <b>${T.caidos}</b></span>
+      <span><i style="background:#7fd39b"></i>Justos (${S.IDEAL - 1 > S.MIN ? S.MIN + '-' + (S.IDEAL - 1) : S.MIN} personas) <b>${T.justos}</b></span>
+      <span><i style="background:var(--amber)"></i>Menos de ${S.MIN} personas: no se hicieron <b>${T.debiles}</b></span>
+      <span><i style="background:var(--red)"></i>Sin nadie (bajas) <b>${T.caidos}</b></span>
       <span><i style="background:repeating-linear-gradient(45deg,#c9ccd6,#c9ccd6 3px,#e4e6ec 3px,#e4e6ec 6px)"></i>Sin cubrir (nadie se apuntó) <b>${T.sinCubrir}</b></span>
     </div>
     ${T.sinCubrir ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.4rem">Motivos de lo que no salió adelante: ${T.motivos['sin voluntarios']} sin voluntarios · ${T.motivos.bajas} por bajas · ${T.motivos.otro} otros</div>` : ''}
@@ -7393,11 +7397,11 @@ function stCopiarResumen() {
   const S = ST.S; if (!S) return;
   const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
   const lineas = [`📈 Resumen ${ST.per.etiqueta} — Puerto de Sevilla`, '',
-    `• Turnos confirmados: ${T.confirmados} (${T.pasados} realizados, ${T.proximos} próximos)`,
+    `• Turnos confirmados (${S.MIN} o más personas): ${T.confirmados} (${T.confPasados} ya hechos, ${T.confProg} próximos)`,
     `• Plazas asignadas: ${S.asignaciones} · ${V.participantes} personas distintas (media ${_stNum(V.media)} turnos)`,
     `• Bajas: ${B.aprox ? 'al menos ' : ''}${B.total} (${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)} de las plazas; ${B.anuladas} anuladas)`,
     `• Apuntes: ${A.total} (${A.cubrenBaja} a turnos con baja)`,
-    `• Salen adelante: ${T.pctSalen === null ? '—' : T.pctSalen + ' %'} (${T.salieron} de ${T.programados} programados; ${T.sinCubrir} sin cubrir, ${T.caidos} caídos por bajas)`,
+    `• Salen adelante: ${T.pctSalen === null ? '—' : T.pctSalen + ' %'} (${T.salieron} de ${T.programados}; no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} personas)`,
     `• Salieron adelante gracias a apuntes: ${T.salenPorApuntes}`,
     `• Personas por turno: ${T.pasados ? _stNum(T.nMedia) : '—'} (mínimo ${S.MIN}, ideal ${S.IDEAL})`,
     `• Participación: ${V.participacion === null ? '—' : V.participacion + ' %'} de ${V.activos} activos`, ''];

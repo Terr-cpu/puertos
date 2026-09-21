@@ -473,7 +473,7 @@ function check(nombre, cond, detalle) {
   const P = E._statsAgregar(base, raw, '2026-09-01', '2026-09-30', hoy);
   const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
 
-  check('turnos del periodo: 7 (6 pasados + 1 próximo), 6 con equipo confirmado', T.total === 7 && T.pasados === 6 && T.proximos === 1 && T.confirmados === 6, `${T.total}/${T.pasados}/${T.proximos}/${T.confirmados}`);
+  check('turnos del periodo: 7 (6 pasados + 1 próximo); confirmados = con 3 o más personas: T1, T2, T3, T6 y el próximo = 5', T.total === 7 && T.pasados === 6 && T.proximos === 1 && T.confirmados === 5, `${T.total}/${T.pasados}/${T.proximos}/${T.confirmados}`);
   check('plazas asignadas: 18', S.asignaciones === 18, S.asignaciones + '');
   check('bajas: 6 (5 efectivas, 1 anulada), tasa 33,3 %', B.total === 6 && B.efectivas === 5 && B.anuladas === 1 && B.tasa === 33.3, `${B.total}/${B.efectivas}/${B.anuladas}/${B.tasa}`);
   const ant = Object.fromEntries(B.antelacion.map(a => [a.k, a.n]));
@@ -490,7 +490,7 @@ function check(nombre, cond, detalle) {
   check('concentración: 3 primeros = 62 %, 20 % más activo = 46 %', V.top3Share === 62 && V.top20Share === 46, `${V.top3Share}/${V.top20Share}`);
   check('dejaron de participar: solo L (turno en mayo, ninguno desde entonces)', V.sugeridos.map(r => r.id).join() === 'l', V.sugeridos.map(r => r.id).join());
   check('sin estrenar: F y J (nunca un turno hecho); K inactivo no cuenta', V.sinEstrenar.map(r => r.id).sort().join() === 'f,j', V.sinEstrenar.map(r => r.id).join());
-  check('turnos confirmados desglosados: 5 ya realizados y 1 próximo', T.confPasados === 5 && T.confProg === 1, T.confPasados + '/' + T.confProg);
+  check('turnos confirmados desglosados: 4 ya hechos y 1 próximo', T.confPasados === 4 && T.confProg === 1, T.confPasados + '/' + T.confProg);
   const fila = id => S.tabla.find(r => r.id === id);
   check('tabla: A hizo 3 turnos y tiene llave; B 2 turnos, 1 baja sobre 3 plazas (33 %)', fila('a').turnos === 3 && fila('a').llave && fila('b').turnos === 2 && fila('b').bajas === 1 && fila('b').tasa === 33, JSON.stringify({ b: fila('b') }).slice(0, 120));
   check('último turno de E = 10/09 (el de octubre acabó en baja, el otro es el apuntado)', fila('e').ultimo === '2026-09-10');
@@ -626,14 +626,14 @@ function check(nombre, cond, detalle) {
   const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
   const S = E._statsAgregar(base, raw, '2026-05-01', '2026-05-31', hoy);
   const T = S.turnos;
-  check('4 turnos con gente y 6 registrados como no realizados', T.total === 4 && T.confirmados === 4 && T.sinCubrir === 6, `${T.total}/${T.confirmados}/${T.sinCubrir}`);
-  check('salen adelante 4 de 10 programados = 40 %', T.salieron === 4 && T.noSalieron === 6 && T.programados === 10 && T.pctSalen === 40, `${T.salieron}/${T.noSalieron}/${T.programados}/${T.pctSalen}`);
+  check('4 turnos con gente (3 con 3 o más = confirmados) y 6 registrados como no realizados', T.total === 4 && T.confirmados === 3 && T.sinCubrir === 6, `${T.total}/${T.confirmados}/${T.sinCubrir}`);
+  check('salen adelante 3 de 10 = 30 % (el del 9/5 tuvo solo 2 personas → no se hizo; + 6 sin cubrir)', T.salieron === 3 && T.noSalieron === 7 && T.programados === 10 && T.pctSalen === 30, `${T.salieron}/${T.noSalieron}/${T.programados}/${T.pctSalen}`);
   check('motivos: 5 sin voluntarios/otros y 1 por bajas', T.motivos['sin voluntarios'] === 4 && T.motivos.bajas === 1 && T.motivos.otro === 1, JSON.stringify(T.motivos));
   check('las franjas sin cubrir no cuentan como turnos con gente (media de personas no se hunde)', Math.abs(T.nMedia - 3) < 1e-9, T.nMedia + '');
   check('mapa: los domingos por la tarde tienen 4 sin cubrir y 0 turnos; el domingo entero suma 5', S.celdas.t[0].sinCubrir === 4 && S.celdas.t[0].turnos === 0 && S.porDia.find(d => d.dow === 0).sinCubrir === 5, `${S.celdas.t[0].sinCubrir}/${S.porDia.find(d => d.dow === 0).sinCubrir}`);
   check('la serie mensual solo cuenta turnos con gente (4)', S.meses.length === 1 && S.meses[0].turnos === 4);
   const ins = E._statsInsights(S, null), tit = ins.map(i => i.titulo).join(' | ');
-  check('insight rojo: solo salen adelante 4 de 10 (40 %)', ins.some(i => i.nivel === 'rojo' && /Solo salen adelante 4 de 10/.test(i.titulo)), tit);
+  check('insight rojo: solo salen adelante 3 de 10 (30 %)', ins.some(i => i.nivel === 'rojo' && /Solo salen adelante 3 de 10/.test(i.titulo)), tit);
   check('insight: los domingos por la tarde casi nunca se cubren', ins.some(i => /domingos por la tarde casi nunca/.test(i.titulo)), tit);
   check('mayo sin bajas ni apuntes sigue siendo "manual" y con datos (tiene turnos)', S.cobertura.manuales.length === 1 && S.cobertura.vacios.length === 0);
   // un mes con SOLO turnos sin cubrir cuenta como con datos manuales, no como vacío
@@ -641,7 +641,7 @@ function check(nombre, cond, detalle) {
   // si un registro de no realizado coincide con un turno que sí tiene gente, manda la gente
   const raw2 = { ...raw, noReal: [{ fecha: '2026-05-02', rango: R1, motivo: 'otro', planificados: 0 }] };
   const S2 = E._statsAgregar(E._statsBase(raw2, { MIN_EQ: 3, IDEAL: 4 }), raw2, '2026-05-01', '2026-05-31', hoy);
-  check('conflicto: turno con gente registrado también como no realizado → cuenta como realizado', S2.turnos.sinCubrir === 0 && S2.turnos.salieron === 4);
+  check('conflicto: turno con gente registrado también como no realizado → manda la gente (sinCubrir 0; salen 3 con 3 o más)', S2.turnos.sinCubrir === 0 && S2.turnos.salieron === 3);
   // sin tabla (null) no rompe
   const raw3 = { ...raw, noReal: null };
   check('sin la tabla turnos_no_realizados (null) todo sigue funcionando', E._statsAgregar(E._statsBase(raw3, { MIN_EQ: 3 }), raw3, '2026-05-01', '2026-05-31', hoy).turnos.sinCubrir === 0);
@@ -775,6 +775,42 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('sin la tabla de ajustes (null) todo sigue igual que sin ajuste', E._statsAgregar(E._statsBase({ ...raw, ajustes: null }, { MIN_EQ: 3 }), { ...raw, ajustes: null }, '2026-04-01', '2026-05-31', hoy).bajas.tasa === 50);
   check('un ajuste sin turnos ese mes (abril sin importar) cuenta en el total pero no inventa una tasa', (() => { const r = { ...raw, arch: raw.arch.filter(a => a.fecha >= '2026-05'), ajustes: [{ mes: '2026-04', bajas_min: 2 }] }; const x = E._statsAgregar(E._statsBase(r, { MIN_EQ: 3 }), r, '2026-04-01', '2026-05-31', hoy); return x.bajas.total === 5 && x.bajas.base === 6 && x.bajas.tasa === 50; })());
   check('el insight de tasa habla de "al menos" cuando incluye lo indicado', (() => { const big = { ...raw, arch: [...raw.arch, ...[...Array(6)].flatMap((_, i) => 'abcdef'.split('').map(id => H('2026-04-' + String(20 + i).padStart(2, '0'), id)))], ajustes: [{ mes: '2026-04', bajas_min: 12 }] }; const x = E._statsAgregar(E._statsBase(big, { MIN_EQ: 3 }), big, '2026-04-01', '2026-05-31', hoy); return E._statsInsights(x, null).some(i => /de al menos el/.test(i.titulo)); })());
+})();
+
+// ── E18: criterio "3 o más personas = se hizo; menos, o ninguna = no realizado" ──
+(function E18() {
+  console.log('\n═══ E18 · Criterio: 3 o más personas = turno hecho ═══');
+  const hoy = '2026-09-21';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const H = (fecha, rango, id) => ({ fecha, rango, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  const RM = '10:00 a 12:00', RT = '19:00 a 21:00', RN = '20:00 a 22:00';
+  const raw = {
+    vols: 'abcdefghij'.split('').map(V), arch: [], act: null, noReal: [],
+    hist: [
+      ...'abcd'.split('').map(i => H('2026-09-15', RM, i)),          // 4 personas, sin bajas → se hace
+      ...'efg'.split('').map(i => H('2026-09-15', RT, i)),           // 3 confirmados, 2 de baja → queda 1 → NO se hace (el caso real del día 15)
+    ],
+    bajas: [{ voluntario_id: 'e', fecha: '2026-09-15', rango: RT, registrado_en: '2026-09-13T10:00:00Z', activa: true }, { voluntario_id: 'f', fecha: '2026-09-15', rango: RT, registrado_en: '2026-09-14T10:00:00Z', activa: true }],
+    refs: [
+      ...'hij'.split('').map(i => ({ voluntario_id: i, fecha: '2026-09-06', rango: RM, es_dia_completo: false, registrado_en: '2026-09-01T10:00:00Z' })),   // solo apuntes, 3 → se hace
+      ...'ab'.split('').map(i => ({ voluntario_id: i, fecha: '2026-09-06', rango: RN, es_dia_completo: false, registrado_en: '2026-09-01T10:00:00Z' })),    // solo apuntes, 2 → no
+      { voluntario_id: 'c', fecha: '2026-09-05', rango: RN, es_dia_completo: false, registrado_en: '2026-09-01T10:00:00Z' },                                    // 1 apunte → no
+    ],
+  };
+  const S = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 }), raw, '2026-09-01', '2026-09-30', hoy);
+  const T = S.turnos;
+  check('5 turnos pasados: se hacen 2 (4 personas el 15 por la mañana; 3 apuntes el 6) y no se hacen 3', T.pasados === 5 && T.salieron === 2 && T.noSalieron === 3 && T.programados === 5, `${T.pasados}/${T.salieron}/${T.noSalieron}/${T.programados}`);
+  check('el turno del 15 con 2 bajas (queda 1 persona) NO cuenta como hecho: salen adelante 40 %, no 100 %', T.pctSalen === 40, T.pctSalen + '');
+  check('turnos confirmados = solo los de 3 o más personas (2), incluido el formado solo por apuntes', T.confirmados === 2 && T.confPasados === 2, `${T.confirmados}/${T.confPasados}`);
+  check('desglose de los que no se hicieron: los tres tienen 1 o 2 personas ("menos de 3"), ninguno a cero', T.debiles === 3 && T.sinNadie === 0 && T.sinCubrir === 0, `${T.debiles}/${T.sinNadie}/${T.sinCubrir}`);
+  check('el turno formado solo por apuntes con 3 sale adelante "por apuntes"', T.creadosOk === 1 && T.salenPorApuntes >= 1);
+  // Si además se cae la última persona, pasa a "sin nadie"
+  const raw2 = { ...raw, bajas: [...raw.bajas, { voluntario_id: 'g', fecha: '2026-09-15', rango: RT, registrado_en: '2026-09-15T08:00:00Z', activa: true }] };
+  const S2 = E._statsAgregar(E._statsBase(raw2, { MIN_EQ: 3, IDEAL: 4 }), raw2, '2026-09-01', '2026-09-30', hoy);
+  check('si se da de baja también la tercera persona: el turno queda a cero ("sin nadie")', S2.turnos.sinNadie === 1 && S2.turnos.caidos === 1 && S2.turnos.debiles === 2);
+  // El criterio usa el mínimo de las reglas (MIN_EQ)
+  const S3 = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 2, IDEAL: 4 }), raw, '2026-09-01', '2026-09-30', hoy);
+  check('con MIN_EQ = 2 el turno de 2 apuntes también se hace (el mínimo sale de Reglas del motor)', S3.turnos.salieron === 3 && S3.turnos.pctSalen === 60, `${S3.turnos.salieron}/${S3.turnos.pctSalen}`);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
