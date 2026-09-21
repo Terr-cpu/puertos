@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -1092,6 +1092,44 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const S0 = E._statsAgregar(E._statsBase(raw0, { MIN_EQ: 3 }), raw0, '2026-07-01', '2026-08-31', hoy);
   check('sin las marcas, esos dos meses sí salen como huecos', S0.cobertura.vacios.length === 2);
   check('un ajuste con 0 bajas y solo marca no cuenta como "bajas indicadas"', S.cobertura.meses.every(m => m.estimadas === 0));
+})();
+
+// ── E26: cómo salió un turno, indicado a mano (gracias a apuntes / cuántos asistieron) y estadística global ──
+(function E26() {
+  console.log('\n═══ E26 · Turnos indicados a mano ═══');
+  const hoy = '2026-09-21', R1 = '10:00 a 12:00', R2 = '19:00 a 21:00';
+  const V = id => ({ id, nombre: id.toUpperCase(), activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const H = (fecha, rango, ids) => ids.map(id => ({ fecha, rango, voluntario_id: id, nombre: id }));
+  const raw = {
+    vols: 'abcdefg'.split('').map(V), arch: [], refs: [], bajas: [], noReal: [], act: null,
+    hist: [...H('2026-06-10', R1, ['a', 'b', 'c']), ...H('2026-06-17', R1, ['a', 'b', 'c']), ...H('2026-06-24', R2, ['a', 'b']), ...H('2026-07-08', R1, ['d', 'e', 'f'])],
+    resultados: [
+      { id: 1, fecha: '2026-06-10', rango: R1, por_apuntes: true, asistentes: null },     // se iba a caer y lo salvaron los apuntes
+      { id: 2, fecha: '2026-06-17', rango: R1, por_apuntes: false, asistentes: 4 },        // 3 confirmados y acabaron siendo 4
+      { id: 3, fecha: '2026-06-24', rango: R2, por_apuntes: true, asistentes: 3 },         // con 2 en el registro, vinieron 3 gracias a apuntes
+      { id: 4, fecha: '2026-12-01', rango: R1, por_apuntes: true, asistentes: 5 },         // turno que no existe: se ignora
+    ] };
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const t = k => base.turnos.find(x => x.k === k);
+  const t1 = t('2026-06-10|' + R1), t2 = t('2026-06-17|' + R1), t3 = t('2026-06-24|' + R2), t4 = t('2026-07-08|' + R1);
+  check('«salió gracias a apuntes» marcado a mano: cuenta como salvado por apuntes y con baja', t1.salvado === true && t1.conBaja === true && t1.apuntesManual === true && t1.n === 3);
+  check('«asistieron 4» sube el número de personas (de 3 a 4) sin marcarlo como apuntes', t2.n === 4 && t2.nReg === 3 && !t2.salvado && !t2.apuntesManual);
+  check('indicar 3 asistentes en un turno con 2 en el registro lo convierte en turno hecho (2 → 3)', t3.nReg === 2 && t3.n === 3 && t3.salvado === true);
+  check('sin nada indicado, el turno se queda como consta en el registro', t4.n === 3 && !t4.salvado && !t4.res);
+  check('un resultado para un turno que no existe se ignora (no crea turnos fantasma)', base.turnos.length === 4 && !base.turnos.some(x => x.fecha === '2026-12-01'));
+  const G = E._stApuntesGlobal(base, hoy);
+  check('estadística global: 4 turnos realizados, 2 gracias a los apuntes (50 %), los dos indicados a mano', G.hechos === 4 && G.porApuntes === 2 && G.pct === 50 && G.manual === 2, JSON.stringify(G));
+  check('desglose por mes: junio 3 realizados y 2 por apuntes; julio 1 y 0', JSON.stringify(G.meses.map(m => [m.k, m.hechos, m.porApuntes])) === '[["2026-06",3,2],["2026-07",1,0]]', JSON.stringify(G.meses));
+  const S = E._statsAgregar(base, raw, '2026-06-01', '2026-07-31', hoy);
+  check('el periodo lo refleja: salen adelante por apuntes = 2 y el turno con 4 cuenta como "completo"', S.turnos.salenPorApuntes === 2 && S.turnos.completos === 1 && S.turnos.salvados === 2, JSON.stringify({ s: S.turnos.salenPorApuntes, c: S.turnos.completos }));
+  const Gp = E._stApuntesGlobal(E._statsBase({ ...raw, hist: raw.hist, resultados: [{ id: 9, fecha: '2026-06-24', rango: R2, por_apuntes: true, asistentes: 2 }] }, { MIN_EQ: 3 }), hoy);
+  check('marcar «gracias a apuntes» pero con menos de 3 asistentes no cuenta (el turno no se hizo)', Gp.porApuntes === 0 && Gp.hechos === 3, JSON.stringify(Gp));
+  // Un turno formado solo por apuntes (sin equipo) se cuenta por el registro, sin marca
+  const rawAp = { vols: 'abc'.split('').map(V), arch: [], hist: [], noReal: [], act: null, bajas: [], resultados: [],
+    refs: 'abc'.split('').map(id => ({ voluntario_id: id, fecha: '2026-07-12', rango: R1, es_dia_completo: false, registrado_en: '2026-07-10T00:00:00Z' })) };
+  const Ga = E._stApuntesGlobal(E._statsBase(rawAp, { MIN_EQ: 3 }), hoy);
+  check('un turno formado solo por apuntes cuenta como salido gracias a apuntes sin marca manual', Ga.hechos === 1 && Ga.porApuntes === 1 && Ga.manual === 0);
+  check('los turnos futuros no entran en el histórico', E._stApuntesGlobal(base, '2026-06-15').hechos === 1);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

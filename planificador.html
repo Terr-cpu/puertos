@@ -6852,6 +6852,7 @@ function _statsBase(raw, reglas) {
   (raw.bajas || []).forEach(b => { if (!b.rango) return; const t = get(b.fecha, b.rango); (b.activa ? t.bajasEf : t.bajasAn).push(b.voluntario_id); if (b.activa) ts(t.bajaTs || (t.bajaTs = {}), b.voluntario_id, b.registrado_en); });
   (raw.refs || []).forEach(r => { if (r.es_dia_completo || !r.rango) return; const t = get(r.fecha, r.rango); if (!t.apuntes.includes(r.voluntario_id)) t.apuntes.push(r.voluntario_id); ts(t.apTs || (t.apTs = {}), r.voluntario_id, r.registrado_en); });
   (raw.noReal || []).forEach(r => { get(r.fecha, r.rango).noReal = r; });
+  (raw.resultados || []).forEach(r => { const t = turnos.get(r.fecha + '|' + r.rango); if (t) t.res = r; });   // cómo salió, indicado a mano
 
   turnos.forEach(t => {
     const bajaEf = new Set(t.bajasEf), ap = new Set(t.apuntes), eq = new Set(t.equipo);
@@ -6862,7 +6863,8 @@ function _statsBase(raw, reglas) {
     const desdeApunte = t.equipo.filter(id => !bajaEf.has(id) && ap.has(id));      // apuntados que ya se confirmaron en el equipo
     const nuevos  = t.apuntes.filter(id => !eq.has(id) && !(bajaEf.has(id) && !apDespues(id)));   // apuntados de fuera (y no se dieron de baja después)
     t.presentes = [...propios, ...desdeApunte, ...vuelven, ...nuevos];
-    t.n = t.presentes.length;
+    t.n = t.nReg = t.presentes.length;                                             // nReg = lo que dice el registro
+    if (t.res && t.res.asistentes !== null && t.res.asistentes !== undefined) t.n = +t.res.asistentes;   // lo indicado a mano manda
     t.nPropio = propios.length;
     t.bajaReal = t.bajasEf.filter(id => !ap.has(id) || !apDespues(id)).length;     // bajas que siguen en pie
     t.conBaja = t.bajasEf.length + t.bajasAn.length > 0;
@@ -6871,6 +6873,9 @@ function _statsBase(raw, reglas) {
     // Turno sin equipo propio ni bajas cuya gente viene toda de apuntes (confirmados o no)
     t.creadoPorApuntes = t.bajasEf.length === 0 && propios.length === 0 && vuelven.length === 0 && desdeApunte.length + nuevos.length > 0;
     t.creadoOk = t.creadoPorApuntes && t.n >= MIN;
+    // Indicado a mano: el turno se iba a caer por las bajas y salió gracias a los apuntes
+    t.apuntesManual = !!(t.res && t.res.por_apuntes);
+    if (t.apuntesManual) { t.conBaja = true; t.salvado = t.n >= MIN; t.aguanto = false; t.creadoOk = false; }
     t.tuvoEquipo = t.equipo.length > 0;
     // Asistencia: el equipo que sigue, más los apuntados de fuera SI el turno se hizo (MIN o más). Sin equipo (turnos
     // formados solo por apuntes) los apuntados cuentan como asistentes únicamente cuando el turno salió adelante.
@@ -6898,6 +6903,20 @@ function _statsBase(raw, reglas) {
   const datosMeses = [...mesInfo.values()].filter(m => m.asig > 0 || m.asist > 0).map(m => m.k).sort();
   const anulados = new Set([...turnos.values()].filter(t => t.anulado).map(t => t.k));
   return { turnos: [...turnos.values()], asigs, asist, nombreDe, llaveDe, MIN, IDEAL, DUR, mesInfo, datosMeses, anulados };
+}
+
+// Turnos que salieron gracias a los apuntes, de todo el histórico (los ya pasados), con el desglose por mes.
+// Cuenta los que el registro muestra (bajas + apuntes) y los que se han indicado a mano.
+function _stApuntesGlobal(base, hoy) {
+  const meses = new Map(); let hechos = 0, porApuntes = 0, manual = 0;
+  base.turnos.forEach(t => {
+    if (t.fecha >= hoy || t.sinCubrir || t.n < base.MIN) return;
+    const k = t.fecha.slice(0, 7); if (!meses.has(k)) meses.set(k, { k, hechos: 0, porApuntes: 0, manual: 0 });
+    const m = meses.get(k), ap = t.salvado || t.creadoOk;
+    m.hechos++; hechos++;
+    if (ap) { m.porApuntes++; porApuntes++; if (t.apuntesManual) { m.manual++; manual++; } }
+  });
+  return { hechos, porApuntes, manual, pct: hechos ? Math.round(100 * porApuntes / hechos) : null, meses: [...meses.values()].sort((a, b) => a.k.localeCompare(b.k)) };
 }
 
 // Estado de un mes según lo registrado: app (turnos y algún rastro de bajas/apuntes), manual (turnos pero ningún
@@ -7202,7 +7221,7 @@ async function sbGetAll(tabla, params) {
 
 async function _stCargar(force) {
   if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
-  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp, apArch, baArch] = await Promise.all([
+  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp, apArch, baArch, resultados] = await Promise.all([
     sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
     sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
     sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
@@ -7215,12 +7234,13 @@ async function _stCargar(force) {
     sbGetAll('disponibilidad', 'select=id,voluntario_id,semana,dia,horario&order=id').catch(() => []),
     sbGetAll('apuntes_archivo', 'select=id,voluntario_id,fecha,rango,es_dia_completo,registrado_en&order=id').catch(() => null),   // null = falta 05_archivo_apuntes_bajas.sql
     sbGetAll('bajas_archivo', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id').catch(() => null),
+    sbGetAll('turnos_resultado', 'select=id,fecha,rango,por_apuntes,asistentes,nota&order=id').catch(() => null),   // null = falta 07_turnos_resultado.sql
   ]);
   // Apuntes y bajas de meses antiguos (archivo) junto a los vivos, sin duplicar
   const kR = r => r.voluntario_id + '|' + r.fecha + '|' + (r.rango || '') + '|' + (r.es_dia_completo ? 1 : 0), kB = b => b.voluntario_id + '|' + b.fecha + '|' + (b.rango || '');
   const vivosR = new Set(refs.map(kR)), vivasB = new Set(bajas.map(kB));
   const refsTodos = [...refs, ...(apArch || []).filter(a => !vivosR.has(kR(a)))], bajasTodas = [...bajas, ...(baArch || []).filter(b => !vivasB.has(kB(b)))];
-  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas: bajasTodas, refs: refsTodos, vols, act, noReal, ajustes, disp, apArch, baArch };
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas: bajasTodas, refs: refsTodos, vols, act, noReal, ajustes, disp, apArch, baArch, resultados };
   ST.ts = Date.now();
   return ST.raw;
 }
@@ -7419,11 +7439,18 @@ function renderEstadisticas() {
       return `<td style="background:${x.turnos ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}" title="${x.turnos} turnos · ${x.bajas} bajas · ${x.debiles} por debajo del mínimo · ${x.sinCubrir} sin cubrir">${x.turnos || ''}${x.bajas ? `<div style="font-size:.6rem;color:${a > .5 ? '#ffd0cc' : 'var(--red)'}">🏥${x.bajas}</div>` : ''}${x.sinCubrir ? `<div style="font-size:.6rem;color:${a > .5 ? '#ffd0cc' : '#8a8fa8'}">✖${x.sinCubrir}</div>` : ''}</td>`; }).join('')}</tr>`).join('')}
     </tbody></table>`;
 
+  const AG = _stApuntesGlobal(ST.base, _evHoy()), MESL = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  const apGlobal = AG.hechos ? `<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:baseline;margin-bottom:.6rem">
+      <div><span style="font-size:1.7rem;font-weight:800;color:var(--blue)">${AG.porApuntes}</span> <span style="font-size:.78rem;color:var(--label2)">de <b>${AG.hechos}</b> turnos realizados salieron gracias a los apuntes${AG.pct !== null ? ` (<b>${AG.pct} %</b>)` : ''}</span></div>
+      ${AG.manual ? `<div style="font-size:.72rem;color:var(--amber)">✍ ${AG.manual} indicados a mano</div>` : ''}</div>
+    <table class="st-tabla"><thead><tr><th>Mes</th><th>Turnos realizados</th><th>Gracias a apuntes</th><th></th><th></th></tr></thead><tbody>${AG.meses.map(m => `<tr><td>${MESL[+m.k.slice(5) - 1]} ${m.k.slice(0, 4)}</td><td>${m.hechos}</td><td><b>${m.porApuntes}</b>${m.manual ? ` <i style="font-size:.66rem;color:var(--amber)">· ✍ ${m.manual}</i>` : ''}</td><td style="min-width:90px">${_stBarra('', m.porApuntes, Math.max(1, m.hechos), 'var(--blue)')}</td><td><button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stTurnosMes('${m.k}')">🧾 Indicar</button></td></tr>`).join('')}</tbody></table>
+    <div style="font-size:.7rem;color:var(--label3);margin-top:.5rem;line-height:1.5">Vale para todo el histórico, sin depender del periodo elegido. Cuenta los turnos que el registro muestra que se salvaron tras una baja o que se formaron solo con apuntes, más los que tú indiques con <b>🧾 Indicar</b> (también en 🩺 Calidad de los datos).</div>` : `<div style="font-size:.78rem;color:var(--label3)">Aún no hay turnos realizados.</div>`;
   const hayMeses = S.meses.length > 1 || S.meses.some(m => m.turnos || m.bajas || m.apuntes);
   c.querySelector('#st-body').innerHTML = `
     ${aviso}
     ${kpis}
     <div class="st-sec"><h4>💡 Qué podemos mejorar</h4><div class="st-insgrid">${ins}</div></div>
+    <div class="st-sec"><h4>🙋 Turnos que salieron gracias a los apuntes <span>histórico completo</span></h4>${apGlobal}</div>
     <div class="st-cols">
       <div class="st-sec"><h4>🎯 Cómo acaban los turnos <span>(los ya realizados)</span></h4>${acaban}</div>
       <div class="st-sec"><h4>⏱️ Con cuánta antelación se dan de baja</h4>${ant}${B.conFecha ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.4rem">${B.ultimaHora}% el mismo día o el anterior</div>` : ''}</div>
@@ -7523,7 +7550,7 @@ function _stCalidadHTML() {
     const inf = b.mesInfo.get(k), aj = ajM.get(k), est = _stEstadoMes(inf, k, hoy, ok.has(k), !!(aj && +aj.bajas_min > 0), aj && aj.marca);
     const chip = est === 'app' ? '<span style="color:#146c34">✅ Con registro</span>' : est === 'manual' ? '<span style="color:var(--amber)">✍️ Sin bajas ni apuntes</span>' : est === 'vacio' ? '<span style="color:var(--red)">⚠️ Sin datos</span>' : est === 'sinact' ? '<span style="color:var(--label3)">🌴 Sin actividad</span>' : est === 'sindatos' ? '<span style="color:var(--label3)">🗂️ Sin datos que recuperar</span>' : '<span style="color:var(--label3)">en curso</span>';
     const acc = est === 'manual' || (est === 'app' && inf && inf.bajas + inf.apuntes === 0) ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stToggleMesOk('${k}')">${ok.has(k) ? 'Quitar marca' : 'Fue un mes con registro completo'}</button>` : est === 'vacio' ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="abrirImportar()">📥 Importar</button><button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" title="Ese mes no hubo turnos" onclick="stMarcarMes('${k}','sin_actividad')">🌴 No hubo actividad</button><button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" title="Hubo turnos, pero no queda ningún registro" onclick="stMarcarMes('${k}','sin_datos')">🗂️ No hay datos</button>` : (est === 'sinact' || est === 'sindatos') ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stMarcarMes('${k}',null)">Quitar marca</button>` : '';
-    filas.push(`<tr><td>${MESN[m - 1]} ${y}</td><td>${inf ? inf.asig : 0}</td><td>${inf ? inf.bajas : 0}${aj ? ` <i style="font-size:.66rem;color:var(--amber)" title="${escH(aj.nota || 'Mínimo indicado a mano')}">· indicado ≥${aj.bajas_min}</i>` : ''}</td><td>${inf ? inf.apuntes : 0}</td><td>${inf && inf.noReal ? inf.noReal : ''}</td><td>${chip}</td><td>${acc}<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stAjustarMes('${k}')">✎ ${aj ? 'Editar bajas indicadas' : 'Indicar bajas'}</button></td></tr>`);
+    filas.push(`<tr><td>${MESN[m - 1]} ${y}</td><td>${inf ? inf.asig : 0}</td><td>${inf ? inf.bajas : 0}${aj ? ` <i style="font-size:.66rem;color:var(--amber)" title="${escH(aj.nota || 'Mínimo indicado a mano')}">· indicado ≥${aj.bajas_min}</i>` : ''}</td><td>${inf ? inf.apuntes : 0}</td><td>${inf && inf.noReal ? inf.noReal : ''}</td><td>${chip}</td><td>${acc}<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stAjustarMes('${k}')">✎ ${aj ? 'Editar bajas indicadas' : 'Indicar bajas'}</button>${b.turnos.some(t => t.fecha.startsWith(k) && !t.sinCubrir) ? `<button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.15rem .5rem" onclick="stTurnosMes('${k}')">🧾 Turnos</button>` : ''}</td></tr>`);
     if (++m > 12) { m = 1; y++; }
   }
   return `<details class="st-sec" id="st-calidad"><summary style="cursor:pointer;font-weight:700;font-size:.82rem">🩺 Calidad de los datos <span style="font-weight:400;font-size:.7rem;color:var(--label3)">— qué meses tienen registro en la app</span></summary>
@@ -8013,6 +8040,57 @@ function stAjustarMes(k) {
       <button class="btn btn-navy" id="aj-btn" onclick="stGuardarAjuste('${k}')">Guardar</button></div>`;
   openModal('mvol');
 }
+// 🧾 Cómo salió cada turno de un mes: «salió gracias a apuntes» y «cuántos asistieron», indicado a mano
+function stTurnosMes(k) {
+  const MESN = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const body = document.getElementById('mvol-body'), b = ST.base;
+  document.getElementById('mvol-titulo').textContent = `🧾 Turnos de ${MESN[+k.slice(5) - 1]} ${k.slice(0, 4)}`;
+  if (!b) return;
+  if (ST.raw && ST.raw.resultados === null) {
+    body.innerHTML = `<p style="font-size:.84rem;line-height:1.55">Para guardar esto hay que crear antes una pequeña tabla: ejecuta <b>supabase/07_turnos_resultado.sql</b> en el SQL Editor de Supabase (ver NOTIFICACIONES.md) y vuelve a abrir esta ventana.</p><div style="text-align:right;margin-top:.8rem"><button class="btn btn-ghost" onclick="closeModal('mvol')">Cerrar</button></div>`;
+    openModal('mvol'); return;
+  }
+  const ts = b.turnos.filter(t => t.fecha.startsWith(k) && !t.sinCubrir).sort((x, y) => (x.fecha + x.rango).localeCompare(y.fecha + y.rango));
+  const fila = (t, i) => {
+    const r = t.res, auto = !t.apuntesManual && (t.salvado || t.creadoOk);
+    return `<div style="border:1px solid var(--sep);border-radius:var(--r-sm);padding:.5rem .65rem;margin-bottom:.35rem;${t.anulado ? 'opacity:.55' : ''}" data-i="${i}">
+      <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;font-size:.78rem"><b>${_evFechaCorta(t.fecha)} · ${escH(t.rango)}</b><span style="color:var(--label3)">Registro: ${t.nReg} ${t.nReg === 1 ? 'persona' : 'personas'}${t.bajasEf.length ? ` · ${t.bajasEf.length} baja${t.bajasEf.length === 1 ? '' : 's'}` : ''}${t.apuntes.length ? ` · ${t.apuntes.length} apunte${t.apuntes.length === 1 ? '' : 's'}` : ''}${t.anulado ? ' · 🚫 anulado' : ''}</span></div>
+      <div style="display:flex;gap:.9rem;flex-wrap:wrap;align-items:center;margin-top:.35rem;font-size:.76rem">
+        <label style="display:flex;gap:.3rem;align-items:center"><input type="checkbox" class="tr-ap" ${r && r.por_apuntes ? 'checked' : ''} ${t.anulado ? 'disabled' : ''}> Se iba a caer por bajas y salió gracias a los apuntes</label>
+        <label style="display:flex;gap:.3rem;align-items:center">Asistieron <input class="fc tr-n" type="number" min="0" max="50" style="width:70px;padding:.2rem .4rem" value="${r && r.asistentes !== null && r.asistentes !== undefined ? r.asistentes : ''}" placeholder="${t.nReg}" ${t.anulado ? 'disabled' : ''}></label>
+        ${auto ? '<span style="font-size:.68rem;color:#146c34">✓ el registro ya lo cuenta como salvado por apuntes</span>' : ''}
+      </div></div>`;
+  };
+  body.innerHTML = ts.length ? `
+    <p style="font-size:.8rem;line-height:1.55;margin-bottom:.6rem">Indica cómo salió cada turno cuando el registro no lo cuenta bien. <b>«Salió gracias a los apuntes»</b>: iba a quedarse sin gente por las bajas y los apuntes lo salvaron. <b>«Asistieron»</b>: cuántas personas vinieron en total (p. ej. 3 confirmadas y acabaron siendo 4); si lo dejas vacío se usa lo que consta.</p>
+    <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.6rem"><button class="btn btn-ghost btn-sm" onclick="document.querySelectorAll('#mvol-body .tr-ap:not(:disabled)').forEach(c=>c.checked=true)">✓ Marcar todos «gracias a apuntes»</button><button class="btn btn-ghost btn-sm" onclick="document.querySelectorAll('#mvol-body .tr-ap').forEach(c=>c.checked=false)">Quitar todas las marcas</button></div>
+    <div style="max-height:52vh;overflow:auto">${ts.map(fila).join('')}</div>
+    <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.8rem"><button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button><button class="btn btn-navy" id="tr-btn" onclick="stGuardarTurnosMes('${k}')">Guardar</button></div>`
+    : `<p style="font-size:.84rem">Ese mes no tiene turnos registrados. Impórtalos antes con <b>📥 Importar turnos anteriores</b>.</p><div style="text-align:right;margin-top:.8rem"><button class="btn btn-ghost" onclick="closeModal('mvol')">Cerrar</button></div>`;
+  ST.turnosModal = ts;
+  openModal('mvol');
+}
+async function stGuardarTurnosMes(k) {
+  const ts = ST.turnosModal || [], btn = document.getElementById('tr-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando…'; }
+  try {
+    const subir = [], borrar = [];
+    document.querySelectorAll('#mvol-body [data-i]').forEach(el => {
+      const t = ts[+el.dataset.i]; if (!t || t.anulado) return;
+      const por = el.querySelector('.tr-ap').checked, v = el.querySelector('.tr-n').value.trim(), n = v === '' ? null : Math.max(0, Math.min(50, parseInt(v, 10) || 0));
+      const antes = t.res, igual = antes ? (!!antes.por_apuntes === por && (antes.asistentes ?? null) === n) : (!por && n === null);
+      if (igual) return;
+      if (!por && n === null) { if (antes && antes.id) borrar.push(antes.id); return; }
+      subir.push({ fecha: t.fecha, rango: t.rango, por_apuntes: por, asistentes: n, actualizado_en: new Date().toISOString() });
+    });
+    if (subir.length) await sbPost('turnos_resultado?on_conflict=fecha,rango', subir, 'resolution=merge-duplicates');
+    if (borrar.length) await sbDelete('turnos_resultado', 'id=in.(' + borrar.join(',') + ')');
+    ST.raw = null; ST.S = null;
+    closeModal('mvol'); toast(subir.length + borrar.length ? 'Guardado ✓' : 'Sin cambios', 'ok');
+    await loadEstadisticas(true);
+  } catch(e) { if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } toast('No se pudo guardar: ' + e.message, 'err'); }
+}
+
 async function stMarcarMes(k, marca) {
   if (ST.raw && ST.raw.ajustes === null) { toast('Falta crear la tabla: ejecuta supabase/04_ajustes_estadisticas.sql y 06_marca_mes.sql', 'err'); return; }
   try {
