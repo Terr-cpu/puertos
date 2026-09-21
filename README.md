@@ -185,11 +185,35 @@ con datos posteriores a su último turno (si hay un hueco de meses sin registrar
 por medio, se muestra aparte como "sin datos suficientes"). Y las tasas solo se
 comentan a partir de 15 plazas con registro.
 
-**📥 Importar turnos anteriores** recupera esos meses: pegas una línea por turno
-(`12/06/2026  10:00 a 12:00  ANA GARCIA, LUIS PEREZ, …`; acepta tabuladores, `;`,
-franjas `19-21`, fechas `d/m/aa`, etc.), ves una **previsualización** (líneas que no
-se entienden, nombres dudosos que eliges tú, duplicados) y solo entonces se guarda,
-como turnos realizados en el archivo del mes. Solo admite meses anteriores al actual.
+**📥 Importar turnos anteriores** recupera esos meses. Dos formas:
+
+- **PDF del "Programa de Predicación"** (uno o varios a la vez). Se leen en el
+  navegador con pdf.js (no se suben a ningún sitio): fecha, franja y equipo de cada
+  turno. Los nombres vienen pegados en el PDF, así que se separan usando tu lista de
+  voluntarios como diccionario (respeta nombres de 3 palabras y distingue nombres
+  que comparten apellido). El año se toma del nombre del archivo (`…Mayo26.pdf`) y se
+  comprueba que los días de la semana cuadren. Solo sirve para PDF con texto: el que
+  genera esta app es una imagen, pero esos meses ya están en la app.
+- **Texto pegado**, una línea por turno (`12/06/2026  10:00 a 12:00  ANA GARCIA,
+  LUIS PEREZ`; acepta tabuladores, `;`, franjas `19-21`, fechas `d/m/aa`…).
+
+Antes de guardar hay una **previsualización**: líneas que no se entienden,
+duplicados de lo que ya estaba, y los **nombres dudosos**, que eliges tú
+(sugiere "¿quizá es…?" para erratas como *Daneil*→*Daniel*, con **✨ Aceptar
+sugerencias claras**; quien ya no está en tu lista se puede **crear como voluntario
+inactivo** para que su historia cuente, o se omite). Al terminar se puede **↩︎
+deshacer** toda la importación. Solo admite meses anteriores al actual.
+
+**Turnos que no salieron adelante.** Las franjas que aparecen en blanco en el
+programa (nadie se apuntó) se guardan como *sin cubrir*, y en la previsualización
+puedes marcar un turno con gente como *no salió adelante* (por bajas, otro motivo).
+También en texto: `14/06/2026 12-14 sin voluntarios` o `… cancelado`. Se guardan en
+la tabla `turnos_no_realizados` (hay que ejecutar antes
+[`supabase/03_turnos_no_realizados.sql`](supabase/03_turnos_no_realizados.sql); sin
+ella se importan solo las asignaciones). Con ellas las estadísticas calculan
+**qué porcentaje de los turnos programados salen adelante**, por qué no salen
+(sin voluntarios / bajas / otros) y **qué días y franjas se quedan más veces sin
+cubrir** (✖ en el mapa día × franja), con recomendaciones concretas.
 
 ### Confirmar turnos desde Apuntes
 

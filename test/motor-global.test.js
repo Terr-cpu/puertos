@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -473,7 +473,7 @@ function check(nombre, cond, detalle) {
   const P = E._statsAgregar(base, raw, '2026-09-01', '2026-09-30', hoy);
   const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
 
-  check('turnos del periodo: 7 (6 pasados + 1 próximo), 6 con equipo confirmado', T.total === 7 && T.pasados === 6 && T.programados === 1 && T.confirmados === 6, `${T.total}/${T.pasados}/${T.programados}/${T.confirmados}`);
+  check('turnos del periodo: 7 (6 pasados + 1 próximo), 6 con equipo confirmado', T.total === 7 && T.pasados === 6 && T.proximos === 1 && T.confirmados === 6, `${T.total}/${T.pasados}/${T.proximos}/${T.confirmados}`);
   check('plazas asignadas: 18', S.asignaciones === 18, S.asignaciones + '');
   check('bajas: 6 (5 efectivas, 1 anulada), tasa 33,3 %', B.total === 6 && B.efectivas === 5 && B.anuladas === 1 && B.tasa === 33.3, `${B.total}/${B.efectivas}/${B.anuladas}/${B.tasa}`);
   const ant = Object.fromEntries(B.antelacion.map(a => [a.k, a.n]));
@@ -605,6 +605,141 @@ function check(nombre, cond, detalle) {
   check('registro con el formato de historial_archivo: semana, día sin tilde, mes_archivo', reg.fecha === '2026-06-12' && reg.dia === 'Viernes' && reg.semana === 2 && reg.mes_archivo === '2026-06' && reg.nombre_snap && reg.rango === '10:00 a 12:00', JSON.stringify(reg));
   const dia = E._impPlan(E._impParsear('11/06/2026 19-21 MARIA SOTO', 2026), vols, new Set(), hoy, {}).registros[0];
   check('día sin tilde: jueves y miércoles/sábado como en la base de datos', dia.dia === 'Jueves' && E._impPlan(E._impParsear('10/06/2026 19-21 MARIA SOTO', 2026), vols, new Set(), hoy, {}).registros[0].dia === 'Miercoles');
+})();
+
+// ── E15: turnos que no salieron adelante en las estadísticas ──
+(function E15() {
+  console.log('\n═══ E15 · Estadísticas: turnos que no salieron adelante ═══');
+  const hoy = '2026-10-15', R1 = '10:00 a 12:00', R2 = '16:00 a 18:00';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-04-01T10:00:00Z' });
+  const H = (fecha, rango, id) => ({ fecha, rango, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  const raw = {
+    vols: 'abcd'.split('').map(V),
+    hist: [], bajas: [], refs: [], act: null,
+    arch: [...'abcd'.split('').map(i => H('2026-05-02', R1, i)), ...'ab'.split('').map(i => H('2026-05-09', R1, i)), ...'abc'.split('').map(i => H('2026-05-16', R1, i)), ...'abc'.split('').map(i => H('2026-05-23', R1, i))],
+    noReal: [
+      { fecha: '2026-05-03', rango: R2, motivo: 'sin voluntarios', planificados: 0 }, { fecha: '2026-05-10', rango: R2, motivo: 'sin voluntarios', planificados: 0 },
+      { fecha: '2026-05-17', rango: R2, motivo: 'sin voluntarios', planificados: 0 }, { fecha: '2026-05-24', rango: R2, motivo: 'sin voluntarios', planificados: 0 },   // 4 domingos por la tarde
+      { fecha: '2026-05-30', rango: R1, motivo: 'bajas', planificados: 3 }, { fecha: '2026-05-31', rango: R1, motivo: 'otro', planificados: 0 },
+    ],
+  };
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const S = E._statsAgregar(base, raw, '2026-05-01', '2026-05-31', hoy);
+  const T = S.turnos;
+  check('4 turnos con gente y 6 registrados como no realizados', T.total === 4 && T.confirmados === 4 && T.sinCubrir === 6, `${T.total}/${T.confirmados}/${T.sinCubrir}`);
+  check('salen adelante 4 de 10 programados = 40 %', T.salieron === 4 && T.noSalieron === 6 && T.programados === 10 && T.pctSalen === 40, `${T.salieron}/${T.noSalieron}/${T.programados}/${T.pctSalen}`);
+  check('motivos: 5 sin voluntarios/otros y 1 por bajas', T.motivos['sin voluntarios'] === 4 && T.motivos.bajas === 1 && T.motivos.otro === 1, JSON.stringify(T.motivos));
+  check('las franjas sin cubrir no cuentan como turnos con gente (media de personas no se hunde)', Math.abs(T.nMedia - 3) < 1e-9, T.nMedia + '');
+  check('mapa: los domingos por la tarde tienen 4 sin cubrir y 0 turnos; el domingo entero suma 5', S.celdas.t[0].sinCubrir === 4 && S.celdas.t[0].turnos === 0 && S.porDia.find(d => d.dow === 0).sinCubrir === 5, `${S.celdas.t[0].sinCubrir}/${S.porDia.find(d => d.dow === 0).sinCubrir}`);
+  check('la serie mensual solo cuenta turnos con gente (4)', S.meses.length === 1 && S.meses[0].turnos === 4);
+  const ins = E._statsInsights(S, null), tit = ins.map(i => i.titulo).join(' | ');
+  check('insight rojo: solo salen adelante 4 de 10 (40 %)', ins.some(i => i.nivel === 'rojo' && /Solo salen adelante 4 de 10/.test(i.titulo)), tit);
+  check('insight: los domingos por la tarde casi nunca se cubren', ins.some(i => /domingos por la tarde casi nunca/.test(i.titulo)), tit);
+  check('mayo sin bajas ni apuntes sigue siendo "manual" y con datos (tiene turnos)', S.cobertura.manuales.length === 1 && S.cobertura.vacios.length === 0);
+  // un mes con SOLO turnos sin cubrir cuenta como con datos manuales, no como vacío
+  check('mes con solo franjas sin cubrir (sin asignaciones) = "manual", no "vacío"', E._stEstadoMes({ asig: 0, bajas: 0, apuntes: 0, noReal: 3 }, '2026-06', hoy, false) === 'manual');
+  // si un registro de no realizado coincide con un turno que sí tiene gente, manda la gente
+  const raw2 = { ...raw, noReal: [{ fecha: '2026-05-02', rango: R1, motivo: 'otro', planificados: 0 }] };
+  const S2 = E._statsAgregar(E._statsBase(raw2, { MIN_EQ: 3, IDEAL: 4 }), raw2, '2026-05-01', '2026-05-31', hoy);
+  check('conflicto: turno con gente registrado también como no realizado → cuenta como realizado', S2.turnos.sinCubrir === 0 && S2.turnos.salieron === 4);
+  // sin tabla (null) no rompe
+  const raw3 = { ...raw, noReal: null };
+  check('sin la tabla turnos_no_realizados (null) todo sigue funcionando', E._statsAgregar(E._statsBase(raw3, { MIN_EQ: 3 }), raw3, '2026-05-01', '2026-05-31', hoy).turnos.sinCubrir === 0);
+})();
+
+// ── E16: lector del "Programa de Predicación" (PDF) y turnos que no salieron adelante ──
+(function E16() {
+  console.log('\n═══ E16 · Importar programas en PDF ═══');
+  const nm = ['ANA PEREZ', 'LUIS MARTIN', 'MARIA DIAZ', 'PEDRO RUIZ', 'LAURA GIL', 'JOSE MANUEL VEGA', 'CARLA SOTO', 'ANA DIAZ'];
+  const vols = nm.map((n, i) => ({ id: String(i + 1), nombre: n }));
+  // Mismo formato que el programa real (texto en orden de lectura), con datos inventados
+  const programa = `PROGRAMA PREDICACIÓN PUERTO - MAYO
+Sábado 9
+ BARCO UNO &
+BARCO DOS |
+LLegada prevista entre
+las 13:00 y 15:00
+TURNO
+12:00-14:00
+  Ana Perez Luis Martin Maria Diaz Pedro Ruiz
+TURNO
+14:00-16:00
+TURNO
+16:00-18:00
+  Laura Gil Jose Manuel Vega Carla Soto
+Domingo 10
+ BARCO UNO |
+Salida prevista a las
+23:00
+ Delicias
+TURNO
+10:00-12:00
+  Ana Diaz Luis Martin
+TURNO
+12:00-14.00
+TURNO
+14:00-16:00
+Jueves 14
+ BARCO TRES |
+Estancia todo el día
+Martes 12
+ BARCO TRES |
+Llegada prevista entre
+las 16:00 Y 18:00
+TURNO
+17:00-19:00
+  Persona Desconocida Ana Perez Luis Marting
+TURNO
+19:00-21:00
+  Maria Diaz Pedro Ruiz Laura Gill
+Nota: El nombre sombreado del voluntario indica que tiene llave y por tanto está asignado a recoger.
+Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
+  check('se reconoce como programa y se detecta el mes', E._impEsPrograma(programa) && !E._impEsPrograma('12/06/2026 10-12 ANA PEREZ'));
+  const seg = t => E._impSegmentar(t, vols);
+  check('segmenta nombres pegados: 4 personas de 2 palabras', JSON.stringify(seg('Ana Perez Luis Martin Maria Diaz Pedro Ruiz')) === JSON.stringify(['Ana Perez', 'Luis Martin', 'Maria Diaz', 'Pedro Ruiz']), JSON.stringify(seg('Ana Perez Luis Martin Maria Diaz Pedro Ruiz')));
+  check('respeta nombres de 3 palabras del diccionario (Jose Manuel Vega)', seg('Laura Gil Jose Manuel Vega Carla Soto').join('|') === 'Laura Gil|Jose Manuel Vega|Carla Soto');
+  check('con nombres que comparten palabras (Ana Diaz / Ana Perez / Maria Diaz) elige la coincidencia exacta', seg('Maria Diaz Ana Perez Ana Diaz').join('|') === 'Maria Diaz|Ana Perez|Ana Diaz', seg('Maria Diaz Ana Perez Ana Diaz').join('|'));
+  check('un nombre suelto que existe entero no se inventa (una sola palabra no basta)', seg('Luis Martin Pedro').join('|') === 'Luis Martin|Pedro');
+  check('nombres que no están en la lista se agrupan de 2 en 2', seg('Persona Desconocida Ana Perez').join('|') === 'Persona Desconocida|Ana Perez' && seg('Aaa Bbb Ccc Ddd').join('|') === 'Aaa Bbb|Ccc Ddd');
+
+  const r = E._impParsearPrograma(programa, 2026, vols);
+  const k = (f, ra) => r.turnos.find(t => t.fecha === f && t.rango === ra);
+  check('lee 8 turnos (3 + 3 + 2; el día de "Estancia todo el día" sin franjas no cuenta)', r.turnos.length === 8, r.turnos.length + '');
+  check('fecha, franja y equipo del sábado 9 (12-14)', k('2026-05-09', '12:00 a 14:00').nombres.join('|') === 'Ana Perez|Luis Martin|Maria Diaz|Pedro Ruiz');
+  check('franja con typo "12:00-14.00" se normaliza a 12:00 a 14:00', !!k('2026-05-10', '12:00 a 14:00'));
+  check('las franjas en blanco son turnos sin cubrir', k('2026-05-09', '14:00 a 16:00').cancelado && k('2026-05-10', '12:00 a 14:00').cancelado && k('2026-05-10', '14:00 a 16:00').nombres.length === 0);
+  check('los días vienen en el orden del programa aunque el texto salte (jueves sin turnos, martes 12 después)', !!k('2026-05-12', '17:00 a 19:00') && !!k('2026-05-12', '19:00 a 21:00'));
+  check('el pie ("Nota: …") no se cuela como nombres del último turno', k('2026-05-12', '19:00 a 21:00').nombres.join('|') === 'Maria Diaz|Pedro Ruiz|Laura Gill', k('2026-05-12', '19:00 a 21:00').nombres.join('|'));
+  check('mayo de 2026: los días de la semana cuadran → sin avisos', r.avisos.length === 0, r.avisos.join(' / '));
+  const r25 = E._impParsearPrograma(programa, 2025, vols);
+  check('con el año equivocado (2025) avisa de que los días de la semana no cuadran', r25.avisos.some(a => /no coinciden con el día de la semana/.test(a)), r25.avisos.join(' / '));
+
+  // Sugerencias para erratas
+  const sug = t => E._impSugerir(t, vols).map(x => x.v.nombre);
+  check('errata "Luis Marting" → sugiere LUIS MARTIN', sug('Luis Marting')[0] === 'LUIS MARTIN');
+  check('errata "Laura Gill" → sugiere LAURA GIL', sug('Laura Gill')[0] === 'LAURA GIL');
+  check('un nombre sin parecido no sugiere nada', sug('Persona Desconocida').length === 0);
+  check('no confunde nombres cortos distintos (EMI ≠ ANA)', sug('Emi Perez').length === 0);
+
+  // Plan de importación
+  const hoy = '2026-09-21', parsed = E._impFusionar([r]);
+  let plan = E._impPlan(parsed, vols, new Set(), hoy, {}, {});
+  const nrKeys = plan.noRealizados.map(n => n.fecha + ' ' + n.rango).sort();
+  check('turnos sin cubrir → a no realizados con motivo "sin voluntarios" (3)', plan.noRealizados.length === 3 && plan.noRealizados.every(n => n.motivo === 'sin voluntarios' && n.planificados === 0), nrKeys.join(' | '));
+  check('asignaciones con gente reconocida: 4 + 3 + 2 + 1 (Ana Perez) + 2 (Maria Diaz, Pedro Ruiz) = 12', plan.registros.length === 12, plan.registros.length + '');
+  check('nombres dudosos: Persona Desconocida, Luis Marting y Laura Gill, con sugerencia para las erratas', plan.sinResolver.map(x => x.txt).sort().join('|') === 'Laura Gill|Luis Marting|Persona Desconocida' && plan.sinResolver.find(x => x.txt === 'Luis Marting').sug[0].v.nombre === 'LUIS MARTIN');
+  plan = E._impPlan(parsed, vols, new Set(), hoy, { 'LUIS MARTING': '2', 'LAURA GILL': '5', 'PERSONA DESCONOCIDA': '__nuevo__' }, { omitirVacios: { '2026-05-10|14:00 a 16:00': true }, marcados: { '2026-05-09|16:00 a 18:00': 'bajas' } });
+  check('resueltos, y "Persona Desconocida" se crea como voluntario inactivo nuevo', plan.sinResolver.length === 0 && plan.nuevos.length === 1 && plan.nuevos[0].nombre === 'PERSONA DESCONOCIDA' && plan.registros.some(r => r.voluntario_id === 'nuevo:PERSONA DESCONOCIDA'));
+  check('un vacío omitido no se registra: 2 vacíos + 1 turno marcado = 3 no realizados', plan.noRealizados.length === 3 && !plan.noRealizados.some(n => n.fecha === '2026-05-10' && n.rango === '14:00 a 16:00'), plan.noRealizados.length + '');
+  const marc = plan.noRealizados.find(n => n.rango === '16:00 a 18:00');
+  check('turno con gente marcado "no salió adelante" (por bajas): pasa a no realizados con sus 3 previstos y su gente NO se importa', marc && marc.motivo === 'bajas' && marc.planificados === 3 && !plan.registros.some(r => r.fecha === '2026-05-09' && r.rango === '16:00 a 18:00'), JSON.stringify(marc));
+  check('lo ya registrado como no realizado no se repite', E._impPlan(parsed, vols, new Set(), hoy, {}, { existentesNR: new Set(['2026-05-09|14:00 a 16:00']) }).noRealizadosDup === 1);
+
+  // Formato de líneas con marca de "no salió"
+  const l = t => E._impParsearLinea(t, 2026);
+  check('línea "sin voluntarios" → turno cancelado sin gente', l('14/06/2026 12-14 sin voluntarios').cancelado === true && l('14/06/2026 12-14 sin voluntarios').nombres.length === 0 && l('14/06/2026 12-14 sin voluntarios').motivo === 'sin voluntarios');
+  check('línea con nombres y "cancelado" → cancelado con su equipo previsto', l('15/06/2026 10-12 ANA PEREZ, LUIS MARTIN cancelado').cancelado === true && l('15/06/2026 10-12 ANA PEREZ, LUIS MARTIN cancelado').nombres.length === 2 && l('15/06/2026 10-12 ANA PEREZ, LUIS MARTIN cancelado').motivo === 'otro');
+  check('sin marca y sin nombres sigue siendo un error explicado', /No hay nombres/.test(l('14/06/2026 12-14').error));
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

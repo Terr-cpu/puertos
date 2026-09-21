@@ -145,6 +145,19 @@ cuando se resuelve. No escribe entre las 22:00 y las 08:00 (hora de Madrid).
 6. Si algo falla: Edge Functions → `avisos-turnos` → **Logs**, y en SQL:
    `select * from net._http_response order by id desc limit 5;`
 
+## Ampliación C — Turnos que no salieron adelante (para las estadísticas)
+
+Al importar cuadrantes de meses anteriores (Estadísticas → 📥 Importar turnos
+anteriores), las franjas en blanco o canceladas se guardan en una tabla propia.
+
+1. Supabase → **SQL Editor** → New query → pega el contenido de
+   [`supabase/03_turnos_no_realizados.sql`](supabase/03_turnos_no_realizados.sql) →
+   **Run**. Crea la tabla `turnos_no_realizados` (solo fechas y franjas, sin nombres).
+2. Comprobar: `select * from public.turnos_no_realizados;` debe devolver 0 filas sin error.
+
+Sin este paso, la importación sigue funcionando pero solo guarda las asignaciones
+(la ventana de importación lo avisa).
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro
