@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -811,6 +811,94 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   // El criterio usa el mínimo de las reglas (MIN_EQ)
   const S3 = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 2, IDEAL: 4 }), raw, '2026-09-01', '2026-09-30', hoy);
   check('con MIN_EQ = 2 el turno de 2 apuntes también se hace (el mínimo sale de Reglas del motor)', S3.turnos.salieron === 3 && S3.turnos.pctSalen === 60, `${S3.turnos.salieron}/${S3.turnos.pctSalen}`);
+})();
+
+// ── E19: turno anulado a mano (Bajas → Anular turno) ──
+(function E19() {
+  console.log('\n═══ E19 · Anular turno ═══');
+  const hoy = '2026-09-21', RM = '10:00 a 12:00', RT = '19:00 a 21:00';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const H = (fecha, rango, id) => ({ fecha, rango, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  const mk = origen => ({
+    vols: 'abcdefg'.split('').map(V), arch: [], refs: [], bajas: [], act: null,
+    hist: [...'abc'.split('').map(i => H('2026-09-15', RT, i)), ...'defg'.split('').map(i => H('2026-09-15', RM, i))],
+    noReal: [{ fecha: '2026-09-15', rango: RT, motivo: 'bajas', planificados: 3, origen }],
+  });
+  const agg = raw => E._statsAgregar(E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 }), raw, '2026-09-01', '2026-09-30', hoy);
+  const A = agg(mk('anulado')), I = agg(mk('importado'));
+  check('anulado a mano con 3 voluntarios apuntados: NO cuenta como hecho (manda el anulado)', A.turnos.salieron === 1 && A.turnos.sinCubrir === 1 && A.turnos.anulados === 1 && A.turnos.programados === 2 && A.turnos.pctSalen === 50, JSON.stringify({ s: A.turnos.salieron, nc: A.turnos.sinCubrir, an: A.turnos.anulados, p: A.turnos.programados, pct: A.turnos.pctSalen }));
+  check('sin anular (registro importado con gente): manda la gente y se cuenta como hecho', I.turnos.salieron === 2 && I.turnos.anulados === 0);
+  check('el motivo "bajas" se refleja en el desglose', A.turnos.motivos.bajas === 1);
+  check('las plazas del turno anulado no cuentan (solo las 4 del otro turno)', A.asignaciones === 4, A.asignaciones + '');
+  const fila = id => A.tabla.find(r => r.id === id);
+  check('quienes estaban en el turno anulado no suman asistencia (A: 0 turnos); los del otro sí (D: 1)', fila('a').turnos === 0 && fila('a').total === 0 && fila('a').ultimo === null && fila('d').turnos === 1);
+  check('los turnos confirmados excluyen el anulado', A.turnos.confirmados === 1);
+  // Ficha
+  const F = E._fichaModelo({ hist: [{ fecha: '2026-09-15', rango: RT }], arch: [], bajas: [], refs: [], disp: [], media60: 1, anulados: new Set(['2026-09-15|' + RT]) }, hoy);
+  const F0 = E._fichaModelo({ hist: [{ fecha: '2026-09-15', rango: RT }], arch: [], bajas: [], refs: [], disp: [], media60: 1 }, hoy);
+  check('ficha: un turno anulado no cuenta como turno hecho (0 frente a 1 sin anular)', F.hechos === 0 && F0.hechos === 1);
+  // En vivo
+  const M = E._evModelo({ vols: [], hist: [...'abc'.split('').map(i => ({ ...H('2026-10-07', RT, i), tiene_llave: false })) ], bajas: [], refs: [], cal: [], anulRows: [{ fecha: '2026-10-07', rango: RT }] }, '2026-10-05', { MIN_EQ: 3, IDEAL: 4 });
+  const t = M.turnos[0];
+  check('En vivo: el turno anulado sale en gris, sin "atención"', t.anulado === true && t.nivel === 'gris' && t.atencion === false);
+  const M2 = E._evModelo({ vols: [], hist: [...'ab'.split('').map(i => ({ ...H('2026-10-07', RT, i), tiene_llave: false }))], bajas: [], refs: [], cal: [], anulRows: [] }, '2026-10-05', { MIN_EQ: 3, IDEAL: 4 });
+  check('En vivo: sin anular, el mismo turno con solo 2 sí pide atención', M2.turnos[0].atencion === true && M2.turnos[0].anulado === false);
+})();
+
+// ── E20: disponibilidad y conexión horaria ──
+(function E20() {
+  console.log('\n═══ E20 · Conexión horaria entre voluntarios ═══');
+  check('horas cubiertas por completo: 10-13 → 10, 11, 12', E._dispoHoras('10:00 a 13:00', 8, 22).join() === '10,11,12');
+  check('con minutos: 09:30 a 12:30 → 10 y 11 (solo horas completas)', E._dispoHoras('09:30 a 12:30', 8, 22).join() === '10,11');
+  check('se recorta al horario de trabajo (8-22)', E._dispoHoras('06:00 a 09:00', 8, 22).join() === '8' && E._dispoHoras('20:00 a 23:00', 8, 22).join() === '20,21');
+  check('horario vacío o mal escrito → ninguna hora', E._dispoHoras('', 8, 22).length === 0 && E._dispoHoras('mañanas', 8, 22).length === 0);
+
+  const vols = 'abcdef'.split('').map(id => ({ id, nombre: id.toUpperCase() + ' NOMBRE' }));
+  const disp = [
+    ...'abc'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 14:00' })),
+    { voluntario_id: 'd', dia: 'Sábado', horario: '10:00 a 12:00' },            // con tilde: se normaliza
+    { voluntario_id: 'd', dia: 'Domingo', horario: '16:00 a 20:00' },           // solo, nadie más el domingo
+    { voluntario_id: 'e', dia: 'Lunes', horario: '08:00 a 10:00' },             // solo, nadie más el lunes
+    { voluntario_id: 'zz', dia: 'Lunes', horario: '08:00 a 10:00' },            // no es del grupo: se ignora
+  ];
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, nunca: new Set(['e', 'f']), dejo: new Set(['d']) });
+  const x = id => D.lista.find(v => v.id === id);
+  check('A, B, C coinciden entre sí todo el sábado: conexión 100 % y "bien conectado"', x('a').pct === 100 && x('a').nivel === 'bien' && x('a').nVent === 3, JSON.stringify({ p: x('a').pct, n: x('a').nVent }));
+  check('D: el sábado coincide con 3 (1 franja conectada) pero el domingo con nadie → 25 % "poco conectado"', x('d').pct === 25 && x('d').nivel === 'poco' && x('d').nVent === 4, JSON.stringify({ p: x('d').pct, n: x('d').nVent }));
+  check('E: solo el lunes por la mañana y nadie más → 0 % "muy desconectado"', x('e').pct === 0 && x('e').nivel === 'aislado' && x('e').mediaOtros === 0);
+  check('F sin ningún horario → "sin horario" (y se cuenta aparte)', x('f').nivel === 'sin' && x('f').pct === null && D.sinHorario === 1);
+  check('el que no es del grupo (zz) no aparece', !x('zz') && D.lista.length === 6);
+  check('mapa de grupo: sábado a las 10h están disponibles 4 (A, B, C, D), a las 12h solo 3', D.grupo[5][2] === 4 && D.grupo[5][4] === 3, D.grupo[5][2] + '/' + D.grupo[5][4]);
+  check('en el dibujo de A, a las 10h coinciden 3 más y a las 14h no está disponible', x('a').mapa[5][2] === 3 && x('a').mapa[5][6] === -1);
+  check('mejor franja: sábado de 10 a 12 con 4 voluntarios que la cubren entera', D.mejor && D.mejor.dia === 'Sáb' && D.mejor.desde === 10 && D.mejor.hasta === 12 && D.mejor.n === 4, JSON.stringify(D.mejor));
+  check('resumen legible del horario', x('a').resumen === 'Sáb 10–14' && x('d').resumen === 'Sáb 10–12 · Dom 16–20', x('d').resumen);
+  check('medias por grupo: participan 100 %, nunca han participado 0 % (F sin horario no cuenta)', D.medias.participa.pct === 100 && D.medias.nunca.pct === 0 && D.medias.nunca.n === 1, JSON.stringify(D.medias));
+  // Encaje con los turnos que de verdad se hacen (borde oscuro): demanda = 7 días × 14 horas
+  const dem = Array.from({ length: 7 }, () => new Array(14).fill(0)); dem[5][2] = 3; dem[5][3] = 3;   // sábado 10 y 11 h
+  const Dd = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, demanda: dem });
+  const y = id => Dd.lista.find(v => v.id === id);
+  check('encaje: A (sáb 10-14, turnos a las 10 y 11) tiene 2 de 4 horas en franjas con turnos = 50 % "medio"', y('a').pctDem === 50 && y('a').encaje === 'medio', JSON.stringify({ p: y('a').pctDem, e: y('a').encaje }));
+  check('encaje: E (lunes 8-10, sin turnos ese día) = 0 % "lejos"', y('e').pctDem === 0 && y('e').encaje === 'lejos');
+  check('encaje: D (sáb 10-12 con turnos; domingo sin) = 2 de 6 horas = 33 % "lejos"', y('d').pctDem === 33 && y('d').encaje === 'lejos', y('d').pctDem + '');
+  check('sin horario no tiene encaje (null) y sin matriz de demanda tampoco se calcula', y('f').pctDem === null && E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 }).lista[0].pctDem === null);
+  const corto = E._dispoModelo([{ voluntario_id: 'a', dia: 'Lunes', horario: '10:00 a 11:00' }], [vols[0]], { DUR: 2, MIN: 3 });
+  check('un tramo más corto que un turno (1 h) no permite ninguna franja: "tramos más cortos que un turno"', corto.lista[0].nivel === 'corto' && corto.lista[0].nVent === 0);
+  const mas = E._dispoModelo([], vols, { DUR: 2, MIN: 3 });
+  check('sin datos de disponibilidad: todos "sin horario" y sin mejor franja', mas.sinHorario === 6 && mas.mejor === null);
+
+  // Integración con las estadísticas: solo voluntarios activos y agrupados por participación
+  const V = (id, activo) => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo, creado_en: '2026-04-01T10:00:00Z' });
+  const raw = { vols: [V('a', true), V('b', true), V('c', true), V('e', true), V('f', true), V('g', true), V('x', false)],
+    hist: [], bajas: [], refs: [], act: null, noReal: [],
+    arch: ['a', 'b', 'c'].map(id => ({ fecha: '2026-06-06', rango: '10:00 a 12:00', voluntario_id: id, nombre: id })),
+    disp: [...'abc'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 14:00' })),
+      { voluntario_id: 'e', dia: 'Lunes', horario: '08:00 a 10:00' }, { voluntario_id: 'g', dia: 'Martes', horario: '20:00 a 22:00' }, { voluntario_id: 'x', dia: 'Sabado', horario: '10:00 a 14:00' }] };
+  const S = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4, DUR: 2 }), raw, '2026-06-01', '2026-06-30', '2026-09-21');
+  const g = id => S.dispo.lista.find(v => v.id === id);
+  check('en Estadísticas: 6 activos (el que está fuera del grupo no entra) y "nunca participaron" = E, F, G', S.dispo.lista.length === 6 && ['e', 'f', 'g'].every(i => g(i).grupo === 'nunca') && ['a', 'b', 'c'].every(i => g(i).grupo === 'participa'), S.dispo.lista.map(v => v.id + ':' + v.grupo).join(' '));
+  const ins = E._statsInsights(S, null);
+  check('recomendación: 3 de los 3 que nunca participaron tienen un horario que casi no encaja, con la mejor franja', ins.some(i => /3 de los 3 voluntarios que nunca han participado tienen un horario que casi no encaja/.test(i.titulo) && /Sáb de 10 a 12h/.test(i.accion)), ins.map(i => i.titulo).join(' | '));
+  check('recomendación: 1 voluntario activo sin horario no genera aviso (mínimo 2)', !ins.some(i => /sin horario|ningún horario/.test(i.titulo)) || S.dispo.sinHorario >= 2);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

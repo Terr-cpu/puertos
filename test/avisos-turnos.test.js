@@ -37,7 +37,7 @@ function cargar({ ahoraUTC, datos, avisados, env = {} }) {
         then(ok, ko) {
           let r;
           if (q.op === 'select') {
-            const mapa = { v_historial: datos.hist, bajas: datos.bajas, v_refuerzos: datos.refs, v_calendario: datos.cal, voluntarios: datos.vols, avisos_enviados: [...avisados].map(([clave, n]) => ({ clave, n })) };
+            const mapa = { v_historial: datos.hist, bajas: datos.bajas, v_refuerzos: datos.refs, v_calendario: datos.cal, turnos_no_realizados: datos.noReal || [], voluntarios: datos.vols, avisos_enviados: [...avisados].map(([clave, n]) => ({ clave, n })) };
             r = { data: mapa[tabla] || [], error: null };
           } else { escrituras.push({ tabla, op: q.op, fila: q.fila, filtros: q.filtros }); r = { data: null, error: null }; }
           return Promise.resolve(r).then(ok, ko);
@@ -154,6 +154,14 @@ function escenario() {
   r = cargar({ ahoraUTC: AHORA, datos: e, avisados: new Map() });
   const d7 = await (await r.handler(req('sec', '?dry=1'))).json();
   check('baja + apunte de la misma persona = presente (3 de 4 vuelven)', d7.turnos.find((t) => t.clave === D25 + '|10:00 a 12:00').n === 3);
+
+  // 7b · Turno anulado a mano: no se avisa (y se limpia su aviso anterior)
+  e = escenario(); e.noReal = [{ fecha: D25, rango: '10:00 a 12:00' }];
+  r = cargar({ ahoraUTC: AHORA, datos: e, avisados: new Map([[D25 + '|10:00 a 12:00', 0]]) });
+  const dAn = await (await r.handler(req('sec', '?dry=1'))).json();
+  check('un turno anulado a mano desaparece de los avisos (10-12 vacío)', !dAn.turnos.some((t) => t.clave === D25 + '|10:00 a 12:00') && dAn.turnos.some((t) => t.clave === D25 + '|16:00 a 18:00'));
+  await r.handler(req('sec'));
+  check('y no se le manda ningún mensaje; su aviso anterior se limpia', !/10:00 a 12:00/.test(r.telegram[0]?.body.text || '') && r.escrituras.some((w) => w.op === 'delete' && w.filtros.some(([, v]) => v === D25 + '|10:00 a 12:00')));
 
   // 8 · Hora de pared de Madrid, con cambio horario (invierno = UTC+1)
   const inv = cargar({ ahoraUTC: '2026-12-10T08:30:00Z', datos: e, avisados: new Map() });

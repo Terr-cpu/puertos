@@ -142,6 +142,10 @@ cuando se resuelve. No escribe entre las 22:00 y las 08:00 (hora de Madrid).
    ```
 
    Para un aviso real, la misma llamada sin `?dry=1` (dentro de 08:00–21:59).
+   **Turnos anulados.** Si en el planificador anulas un turno (Bajas → 🚫 Anular
+   turno), esta función deja de avisar de él. Si ya la tenías desplegada, **vuelve
+   a pegar el código actualizado** de `index.ts` y pulsa Deploy (necesita la tabla
+   de la Ampliación C; si aún no existe, la ignora).
 6. Si algo falla: Edge Functions → `avisos-turnos` → **Logs**, y en SQL:
    `select * from net._http_response order by id desc limit 5;`
 

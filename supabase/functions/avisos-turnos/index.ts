@@ -55,7 +55,7 @@ function horas(rango: string): [number, number] | null {
 
 /** Turnos cuya hora de inicio queda dentro del horizonte, con su recuento de presentes. */
 function evaluarTurnos(
-  datos: { hist: any[]; bajas: any[]; refs: any[]; cal: any[]; vols: any[] },
+  datos: { hist: any[]; bajas: any[]; refs: any[]; cal: any[]; vols: any[]; noReal?: any[] },
   ahoraMs: number, cfg: Cfg,
 ): Turno[] {
   const nombreDe = new Map<string, string>((datos.vols || []).map((v) => [v.id, v.nombre]));
@@ -93,8 +93,11 @@ function evaluarTurnos(
     res.push(t);
   }
 
+  // Turnos anulados a mano (planificador → Bajas → Anular turno): no hay nada que avisar
+  const anulados = new Set<string>((datos.noReal || []).map((r) => r.fecha + '|' + r.rango));
   const out: Turno[] = [];
   for (const t of res) {
+    if (anulados.has(t.fecha + '|' + t.rango)) continue;
     const ini = inicioTurnoMs(t.fecha, t.rango);
     if (ini === null) continue;
     const horasHasta = (ini - ahoraMs) / 3600000;
@@ -211,18 +214,19 @@ Deno.serve(async (req) => {
     const hoy = new Date(ahora).toISOString().slice(0, 10);
     const hasta = new Date(ahora + (CFG.horizonteH / 24 + 2) * 86400000).toISOString().slice(0, 10);
     const q = (t: string, cols: string) => sb.from(t).select(cols).gte('fecha', hoy).lte('fecha', hasta);
-    const [hist, bajas, refs, cal, vols, av] = await Promise.all([
+    const [hist, bajas, refs, cal, vols, av, nr] = await Promise.all([
       q('v_historial', 'fecha,rango,nombre,voluntario_id'),
       q('bajas', 'fecha,rango,voluntario_id,activa'),
       q('v_refuerzos', 'fecha,rango,nombre,voluntario_id,es_dia_completo'),
       q('v_calendario', 'fecha,activo,navieras'),
       sb.from('voluntarios').select('id,nombre'),
       sb.from('avisos_enviados').select('clave,n'),
+      q('turnos_no_realizados', 'fecha,rango'),   // si la tabla aún no existe se ignora
     ]);
     for (const r of [hist, bajas, refs, cal, vols, av]) if (r.error) throw new Error(r.error.message);
 
     const turnos = evaluarTurnos(
-      { hist: hist.data!, bajas: bajas.data!, refs: refs.data!, cal: cal.data!, vols: vols.data! }, ahora, CFG);
+      { hist: hist.data!, bajas: bajas.data!, refs: refs.data!, cal: cal.data!, vols: vols.data!, noReal: nr.error ? [] : (nr.data as any[]) }, ahora, CFG);
     const avisados = new Map<string, number>((av.data || []).map((a: any) => [a.clave, a.n]));
     const acciones = decidir(turnos, avisados, CFG);
     const texto = mensaje(acciones, URL_SUST);

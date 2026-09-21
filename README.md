@@ -61,7 +61,7 @@ El descanso/disponibilidad que ves en el selector y en "Disponibles
 adicionales" se recalcula **en vivo** cada vez que añades, cambias o quitas a
 alguien — quitar a un voluntario de un turno lo libera al instante en el resto
 del cuadrante (no hace falta un ↻ Recalc.). La sección "Todos los
-voluntarios" avisa si esa persona ya está asignada cerca de esa fecha antes de
+voluntarios" avisa si ese voluntario ya está asignado cerca de esa fecha antes de
 añadirla como excepción.
 
 Parámetros en **Reglas del motor** (se guardan en `localStorage` →
@@ -131,7 +131,7 @@ vista.
 - **📊 Ficha de voluntario** (pulsa un nombre en En vivo, o *Voluntarios → 📊
   Ficha*): turnos hechos y próximos, bajas y tasa de baja, apuntes (y cancelados),
   último turno, carga de los últimos 60 días frente a la media del grupo, turnos
-  por mes y avisos automáticos (🔥 carga alta, 💤 inactivo, ⚠️ bajas frecuentes).
+  por mes y avisos automáticos (🔥 carga alta, 💤 sin turnos recientes, ⚠️ bajas frecuentes).
 - **⚡ Últimas novedades**: bajas, apuntes (y si cubren una baja), confirmaciones
   de equipo. Pulsar una novedad salta a su turno. Lo que no deja marca de tiempo
   en las tablas (apunte cancelado, baja anulada, persona quitada de un turno) sale
@@ -152,15 +152,15 @@ cifra se compara con el **periodo anterior** de la misma duración (▲▼).
 
 - **Criterio de "turno hecho"** (igual para todos los meses y para los turnos
   formados solo por apuntes): un turno **se confirmó / se hizo si hubo 3 o más
-  personas** (el equipo que sigue tras las bajas + los apuntados; el mínimo es
-  `MIN_EQ` de *Reglas del motor*). Con menos —incluso con 1 o 2 personas que sí
+  voluntarios** (el equipo que sigue tras las bajas + los apuntados; el mínimo es
+  `MIN_EQ` de *Reglas del motor*). Con menos —incluso con 1 o 2 voluntarios que sí
   acudieron— o con ninguna, **cuenta como no realizado**. Así, un turno con 3
   confirmados del que se dan de baja 2 (queda 1) no se cuenta como hecho. Las
-  personas que sí acudieron siguen sumando en su ficha y en la tabla de voluntarios.
+  voluntarios que sí acudieron siguen sumando en su ficha y en la tabla de voluntarios.
 - **Cifras clave:** turnos confirmados, plazas asignadas, bajas y tasa de baja,
   apuntes, turnos que **salen adelante por apuntes** (los salvados tras una baja
   y los que nadie planificó), turnos **caídos por bajas** (con equipo y a cero),
-  personas por turno y participación.
+  voluntarios por turno y participación.
 - **Cómo acaban los turnos** (completos, justos, por debajo del mínimo, sin
   nadie), **antelación de las bajas** (cuántas llegan el mismo día o el anterior),
   **tendencia mensual**, **por día de la semana** y **mapa día × franja**.
@@ -207,8 +207,8 @@ comentan a partir de 15 plazas con registro.
 Antes de guardar hay una **previsualización**: líneas que no se entienden,
 duplicados de lo que ya estaba, y los **nombres dudosos**, que eliges tú
 (sugiere "¿quizá es…?" para erratas como *Daneil*→*Daniel*, con **✨ Aceptar
-sugerencias claras**; quien ya no está en tu lista se puede **crear como voluntario
-inactivo** para que su historia cuente, o se omite). Al terminar se puede **↩︎
+sugerencias claras**; quien ya no está en tu lista se puede **añadir como voluntario
+fuera del grupo** para que su historia cuente, o se omite). Al terminar se puede **↩︎
 deshacer** toda la importación. Solo admite meses anteriores al actual.
 
 **Turnos que no salieron adelante.** Las franjas que aparecen en blanco en el
@@ -231,7 +231,7 @@ hubo **al menos** un número (p. ej. "en abril hubo al menos 2"), se indica en
 Las estadísticas lo tratan como **dato aproximado**: solo suma lo que falte hasta ese
 mínimo (si el mes ya tiene más bajas registradas, no cambia nada), el mes pasa a contar
 para la tasa de baja y las cifras salen como **"≥"** (bajas, tasa, y el aviso de tasa
-habla de "al menos"). No inventa turnos, personas ni antelación: solo un número.
+habla de "al menos"). No inventa turnos, voluntarios ni antelación: solo un número.
 
 ### Confirmar turnos desde Apuntes
 
@@ -241,16 +241,46 @@ a ser un turno confirmado real (cuadrante, PDF, descansos y estadísticas). Quie
 ya están en el equipo se marcan como *✓ EN EL EQUIPO*. En las estadísticas ese
 turno sigue contando como "salido adelante por apuntes".
 
-### Dar de baja del grupo (Voluntarios)
+### Sacar del grupo (Voluntarios)
 
-Cada voluntario activo tiene **🚪 Dar de baja**: deja de aparecer en el
+Cada voluntario activo tiene **🚪 Sacar del grupo**: deja de aparecer en el
 cuadrante, en la disponibilidad, en el balance y entre los sustitutos sugeridos,
-pero **conserva todo su historial** para las estadísticas y se puede reactivar
-(filtro **🚪 Inactivos → ♻️ Reactivar**). Si tiene turnos o apuntes por delante,
-se ofrece quitarlo también de ellos. **🗑️ Eliminar** solo está disponible para un
-inactivo que no consta en ningún turno, baja ni apunte (se comprueba en directo);
-si consta, se queda inactivo para no falsear las estadísticas. El filtro **💤 Sin
-actividad** reúne a quienes dejaron de participar o nunca empezaron.
+pero **conserva todo su historial** para las estadísticas y se puede volver a añadir
+(filtro **🚪 Fuera del grupo → ♻️ Volver al grupo**). Si tiene turnos o apuntes por
+delante, se ofrece quitarlo también de ellos. **🗑️ Eliminar** solo está disponible
+para alguien fuera del grupo que no consta en ningún turno, baja ni apunte (se
+comprueba en directo); si consta, se queda fuera del grupo para no falsear las
+estadísticas. El filtro **💤 Sin actividad** reúne a quienes dejaron de participar o
+nunca empezaron.
+
+### Anular un turno
+
+En **Bajas**, cada turno tiene **🚫 Anular turno** (y en **En vivo**, los turnos con
+bajas o con atención): lo marca como **turno no realizado** y cuenta así en las
+estadísticas aunque hubiera voluntarios apuntados (sus plazas y su asistencia a ese
+turno no cuentan). No borra a nadie del turno y se puede **↩︎ Restaurar**. Se guarda
+en `turnos_no_realizados` (origen *anulado*; hay que haber ejecutado
+[`supabase/03_turnos_no_realizados.sql`](supabase/03_turnos_no_realizados.sql)). Un
+turno anulado deja de generar avisos de "turno en riesgo" (hay que volver a pegar
+`avisos-turnos` en Supabase). No cambia lo que ven los voluntarios en Sustituciones.
+
+### Disponibilidad y conexión horaria
+
+Sección **🧭 Disponibilidad y conexión horaria** de Estadísticas: a partir del horario
+que cada voluntario registró (`disponibilidad`), se dibuja **su horario hora a hora**
+sobre el de todos los demás y se mide de dos formas:
+
+- **Coincide con otros voluntarios**: qué parte de las franjas de un turno que puede
+  cubrir tienen además, a la vez, al menos `MIN_EQ − 1` voluntarios más disponibles.
+- **Encaja con los turnos**: qué parte de sus horas cae en días y horas donde de
+  verdad ha habido turnos (borde oscuro en el dibujo).
+
+Hay un mapa con **todos los voluntarios** (cuántos están disponibles cada hora) y una
+lista filtrable —🆕 nunca han participado, ⚠️ los menos conectados, 💤 dejaron de
+participar, todos—, ordenada de menos a más conectado, con la comparación entre
+quienes participan y quienes nunca lo han hecho, y una recomendación si el horario de
+los que nunca participaron casi no encaja. También avisa de los voluntarios activos
+que no tienen ningún horario registrado.
 
 ## Configuración
 

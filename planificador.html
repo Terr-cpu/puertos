@@ -331,6 +331,8 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .ev-card.rojo{border-left-color:var(--red)}
 .ev-card.ambar{border-left-color:var(--amber)}
 .ev-card.pasado{opacity:.6}
+.ev-card.gris{border-left-color:var(--label4);opacity:.75}
+.ev-badge.gris{background:var(--surface2);color:var(--label2)}
 .ev-card.foco{animation:evFoco 1.6s ease}
 @keyframes evFoco{0%,60%{box-shadow:0 0 0 3px rgba(0,113,227,.45)}100%{box-shadow:var(--shadow-sm)}}
 .ev-card-h{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap}
@@ -394,6 +396,10 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .st-tabla th{text-align:left;font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;color:var(--label3);padding:.4rem .5rem;border-bottom:1px solid var(--sep);white-space:nowrap;user-select:none}
 .st-tabla td{padding:.4rem .5rem;border-bottom:1px solid var(--sep)}
 .st-tabla tr:hover td{background:var(--surface2)}
+.dp-fila{display:flex;gap:.8rem;align-items:center;padding:.5rem .2rem;border-bottom:1px solid var(--sep);flex-wrap:wrap}
+.dp-nom{width:185px;flex-shrink:0;font-size:.78rem}
+.dp-inf{flex:1;min-width:170px}
+.dp-strip{flex-shrink:0}
 .st-aviso{background:var(--amber-soft);border-left:4px solid var(--amber);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:.78rem;margin-bottom:.9rem;line-height:1.5}
 details.st-sec summary{list-style:none}
 .baja-col-title{font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--label3);margin-bottom:.42rem}
@@ -3106,15 +3112,15 @@ function renderListaVoluntarios() {
   const t = window._volTabla || [], hoy = _evHoy(), f = window._volFiltro, q = (window._volBusca || '').trim().toLowerCase();
   const activos = t.filter(r => r.activo), inact = t.filter(r => !r.activo), sinAct = t.filter(r => _volSinActividad(r));
   const res = document.getElementById('vol-resumen');
-  if (res) res.textContent = `${activos.length} activos${inact.length ? ' · ' + inact.length + ' inactivos' : ''}`;
-  const defs = [['activos', 'Activos', activos.length], ['sinact', '💤 Sin actividad', sinAct.length], ['inactivos', '🚪 Inactivos', inact.length], ['todos', 'Todos', t.length]];
+  if (res) res.textContent = `${activos.length} activos${inact.length ? ' · ' + inact.length + ' fuera del grupo' : ''}`;
+  const defs = [['activos', 'Activos', activos.length], ['sinact', '💤 Sin actividad', sinAct.length], ['inactivos', '🚪 Fuera del grupo', inact.length], ['todos', 'Todos', t.length]];
   const pills = document.getElementById('vol-pills');
   if (pills) pills.innerHTML = defs.map(([id, l, n]) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="window._volFiltro='${id}';renderListaVoluntarios()">${l} ${n}</button>`).join('');
   let lista = f === 'activos' ? activos : f === 'sinact' ? sinAct : f === 'inactivos' ? inact : t;
   if (q) lista = lista.filter(r => r.nombre.toLowerCase().includes(q));
   lista = [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre));
   const c = document.getElementById('vol-lista'); if (!c) return;
-  if (!lista.length) { c.innerHTML = `<div class="empty"><span class="ei">${f === 'inactivos' ? '🚪' : '🔍'}</span><h4>${f === 'inactivos' ? 'Nadie inactivo' : 'Sin resultados'}</h4>${f === 'inactivos' ? '<p>Aquí aparecerán los voluntarios que des de baja del grupo.</p>' : ''}</div>`; return; }
+  if (!lista.length) { c.innerHTML = `<div class="empty"><span class="ei">${f === 'inactivos' ? '🚪' : '🔍'}</span><h4>${f === 'inactivos' ? 'Nadie fuera del grupo' : 'Sin resultados'}</h4>${f === 'inactivos' ? '<p>Aquí aparecerán los voluntarios que saques del grupo.</p>' : ''}</div>`; return; }
   c.innerHTML = lista.map((r, i) => {
     const nom = r.nombre, nAttr = escH(nom).replace(/'/g, '&#39;'), ini = nom.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
     const info = r.ultimo ? `último turno hace ${_stDiasEntre(r.ultimo, hoy)} d · ${r.total} en total` : (r.proximos ? `${r.proximos} próximo${r.proximos === 1 ? '' : 's'}` : 'sin turnos todavía');
@@ -3123,14 +3129,14 @@ function renderListaVoluntarios() {
       <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nAttr}', ${r.llave})">✏️ Editar</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
       <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nAttr}')">📋 Turnos</button>
-      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirDesactivar('${r.id}')" title="Dar de baja del grupo (reversible)">🚪 Dar de baja</button>` : `
-      <button class="btn btn-green btn-sm" onclick="reactivarVoluntario('${r.id}')">♻️ Reactivar</button>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirDesactivar('${r.id}')" title="Sacar del grupo (reversible): deja de salir en el cuadrante y en los sustitutos, pero se conserva su historial">🚪 Sacar del grupo</button>` : `
+      <button class="btn btn-green btn-sm" onclick="reactivarVoluntario('${r.id}')">♻️ Volver al grupo</button>
       <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
       <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirEliminar('${r.id}')" title="${r.historia ? 'Tiene historial: solo se puede eliminar si no consta en ningún turno' : 'Eliminar definitivamente'}">🗑️ Eliminar</button>`;
     return `<div class="vol-row2" style="animation-delay:${i * .015}s;${r.activo ? '' : 'opacity:.75'}">
       <div class="vavatar">${ini}</div>
       <div class="vinfo2">
-        <div class="vn">${escH(nom)}${r.llave ? ' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>' : ''}${r.activo ? '' : ' <span style="font-size:.6rem;background:var(--surface2);color:var(--label3);padding:.08rem .4rem;border-radius:3px">Inactivo</span>'}${{ dejo: ' <span title="Dejó de participar: su último turno fue hace más de 90 días y no tiene ninguno próximo" style="font-size:.7rem">💤</span>', nuevo: ' <span title="Nunca ha tenido un turno" style="font-size:.7rem">🆕</span>', dudoso: ' <span title="Sin turnos recientes, pero faltan meses registrados para saber si se fue" style="font-size:.7rem">❔</span>' }[_volSinActividad(r)] || ''}</div>
+        <div class="vn">${escH(nom)}${r.llave ? ' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>' : ''}${r.activo ? '' : ' <span style="font-size:.6rem;background:var(--surface2);color:var(--label3);padding:.08rem .4rem;border-radius:3px">Fuera del grupo</span>'}${{ dejo: ' <span title="Dejó de participar: su último turno fue hace más de 90 días y no tiene ninguno próximo" style="font-size:.7rem">💤</span>', nuevo: ' <span title="Nunca ha tenido un turno" style="font-size:.7rem">🆕</span>', dudoso: ' <span title="Sin turnos recientes, pero faltan meses registrados para saber si se fue" style="font-size:.7rem">❔</span>' }[_volSinActividad(r)] || ''}</div>
         <div class="vm2">${info}</div>
       </div>
       <div class="vol-acts">${acts}</div></div>`;
@@ -3142,7 +3148,7 @@ function _volPorId(id) { return (window._volTabla || []).find(r => r.id === id);
 
 async function abrirDesactivar(id) {
   const r = _volPorId(id); if (!r) return;
-  document.getElementById('mvol-titulo').textContent = '🚪 Dar de baja del grupo';
+  document.getElementById('mvol-titulo').textContent = '🚪 Sacar del grupo';
   const body = document.getElementById('mvol-body');
   body.innerHTML = `<div class="loading" style="padding:1.5rem 0"><div class="spinner"></div></div>`; openModal('mvol');
   try {
@@ -3160,7 +3166,7 @@ async function abrirDesactivar(id) {
         <label style="display:flex;gap:.45rem;align-items:flex-start;margin-top:.55rem;font-weight:600"><input type="checkbox" id="des-quitar" checked style="margin-top:.15rem"> Quitarlo también de esos turnos y apuntes futuros (los turnos quedarán con un hueco que cubrir)</label></div>` : ''}
       <div style="display:flex;gap:.5rem;justify-content:flex-end">
         <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
-        <button class="btn btn-navy" id="des-btn" onclick="ejecutarDesactivar('${id}')">🚪 Dar de baja del grupo</button>
+        <button class="btn btn-navy" id="des-btn" onclick="ejecutarDesactivar('${id}')">🚪 Sacar del grupo</button>
       </div>`;
   } catch(e) { body.innerHTML = `<p style="color:var(--red)">Error: ${escH(e.message)}</p>`; }
 }
@@ -3183,9 +3189,9 @@ async function ejecutarDesactivar(id) {
     await sbPatch('voluntarios', 'id=eq.' + id, { activo: false });
     _volRefrescarTodo();
     closeModal('mvol');
-    toast(`${r.nombre} dado de baja del grupo`, 'ok');
+    toast(`${r.nombre} sacado del grupo`, 'ok');
     window._volFiltro = 'activos'; loadVoluntarios(true);
-  } catch(e) { btn.disabled = false; btn.textContent = '🚪 Dar de baja del grupo'; toast('Error: ' + e.message, 'err'); }
+  } catch(e) { btn.disabled = false; btn.textContent = '🚪 Sacar del grupo'; toast('Error: ' + e.message, 'err'); }
 }
 
 async function reactivarVoluntario(id) {
@@ -3193,7 +3199,7 @@ async function reactivarVoluntario(id) {
   try {
     await sbPatch('voluntarios', 'id=eq.' + id, { activo: true });
     _volRefrescarTodo();
-    toast(`${r.nombre} reactivado ✓`, 'ok');
+    toast(`${r.nombre} vuelve a estar en el grupo ✓`, 'ok');
     window._volFiltro = 'activos'; loadVoluntarios(true);
   } catch(e) { toast('Error: ' + e.message, 'err'); }
 }
@@ -3203,7 +3209,7 @@ function abrirEliminar(id) {
   const r = _volPorId(id); if (!r) return;
   document.getElementById('mvol-titulo').textContent = '🗑️ Eliminar voluntario';
   document.getElementById('mvol-body').innerHTML = r.historia ? `
-    <p style="font-size:.84rem;line-height:1.55;margin-bottom:.9rem"><b>${escH(r.nombre)}</b> consta en turnos, bajas o apuntes. Si lo eliminaras se perdería su historia y <b>las estadísticas dejarían de ser fiables</b>, así que se queda como inactivo: no aparece en ningún sitio salvo en el filtro "Inactivos" y en las estadísticas.</p>
+    <p style="font-size:.84rem;line-height:1.55;margin-bottom:.9rem"><b>${escH(r.nombre)}</b> consta en turnos, bajas o apuntes. Si lo eliminaras se perdería su historia y <b>las estadísticas dejarían de ser fiables</b>, así que se queda fuera del grupo: no aparece en ningún sitio salvo en el filtro "Fuera del grupo" y en las estadísticas.</p>
     <div style="text-align:right"><button class="btn btn-ghost" onclick="closeModal('mvol')">Entendido</button></div>` : `
     <p style="font-size:.84rem;line-height:1.55;margin-bottom:.9rem"><b>${escH(r.nombre)}</b> no consta en ningún turno, baja ni apunte. Se eliminará definitivamente junto con su disponibilidad. <b>No se puede deshacer.</b></p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end">
@@ -3222,7 +3228,7 @@ async function ejecutarEliminar(id) {
       sbGet('bajas', 'voluntario_id=eq.' + id + '&select=id&limit=1'),
       sbGet('refuerzos', 'voluntario_id=eq.' + id + '&select=id&limit=1'),
     ]);
-    if (h.length || b.length || f.length) throw new Error('ahora consta en algún turno; se mantiene como inactivo');
+    if (h.length || b.length || f.length) throw new Error('ahora consta en algún turno; se mantiene fuera del grupo');
     await sbDelete('disponibilidad', 'voluntario_id=eq.' + id).catch(() => {});
     await sbDelete('voluntarios', 'id=eq.' + id);
     _volRefrescarTodo();
@@ -3492,12 +3498,13 @@ async function loadBajas(force) {
     const [bajasRaw, ofertaRaw, volsRaw] = await Promise.all([
       rpc('get_bajas_dashboard'),
       rpc('get_oferta_simple'),
-      sbGet('voluntarios','select=nombre&activo=eq.true&order=nombre')
+      sbGet('voluntarios','select=nombre&activo=eq.true&order=nombre'),
+      _cargarAnulados()
     ]);
     const arr  = Array.isArray(bajasRaw)  ? bajasRaw  : [];
     const oarr = Array.isArray(ofertaRaw) ? ofertaRaw : [];
     window._bajasData   = { turnos: arr, total: arr.length,
-      pendientes: arr.filter(t=>!t.cubierto).length,
+      pendientes: arr.filter(t=>!t.cubierto && !_esAnulado(t)).length,
       totalBajas: arr.reduce((a,t)=>a+(Array.isArray(t.bajas)?t.bajas.length:0),0),
       totalAltas: arr.reduce((a,t)=>a+(Array.isArray(t.refuerzos)?t.refuerzos.length:0),0) };
     window._ofertaBajas = oarr;
@@ -3852,8 +3859,8 @@ function abrirURLSust() {
 // ── TAB ACTIVIDAD ─────────────────────────────────────────
 function renderActividadBajas(c) {
   const turnos     = window._bajasData?.turnos || [];
-  const pendientes = turnos.filter(t => !t.cubierto);
-  const resueltos  = turnos.filter(t => t.cubierto);
+  const pendientes = turnos.filter(t => !t.cubierto && !_esAnulado(t));
+  const resueltos  = turnos.filter(t => t.cubierto || _esAnulado(t));
 
   // Botón registrar baja
   const addBar = document.createElement('div');
@@ -3898,7 +3905,8 @@ function renderActividadBajas(c) {
 
 function buildBajaCard(t, uid) {
   const tarde    = parseInt((t.rango||'').split(':')[0]) >= 14;
-  const resuelto = t.cubierto;
+  const anulado  = _esAnulado(t);
+  const resuelto = t.cubierto || anulado;
   const equipo   = Array.isArray(t.equipo)    ? t.equipo    : [];
   const bajas    = Array.isArray(t.bajas)     ? t.bajas     : [];
   const refs     = Array.isArray(t.refuerzos) ? t.refuerzos : [];
@@ -3918,12 +3926,16 @@ function buildBajaCard(t, uid) {
   const card = document.createElement('div');
   card.id    = 'baja-card-'+uid;
   card.style = `background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);
-    margin-bottom:.75rem;overflow:hidden;border:1px solid ${resuelto?'#b0dcc0':'#f5b8b5'};
+    margin-bottom:.75rem;overflow:hidden;border:1px solid ${anulado?'#c8ccd8':resuelto?'#b0dcc0':'#f5b8b5'};
     animation:fadeUp .3s ease both`;
 
-  const accentBg = resuelto
+  const accentBg = anulado
+    ? 'linear-gradient(90deg,#8a8fa8,#c8ccd8)'
+    : resuelto
     ? 'linear-gradient(90deg,var(--green-dark),#34c759)'
     : 'linear-gradient(90deg,var(--red),#ff7061)';
+  // Cuántos vamos a ser si nada más cambia: equipo que sigue + apuntados
+  const presentesN = [...personas.values()].filter(p => p.estado !== 'baja').length;
 
   // Personas HTML
   const personasHTML = [...personas.values()].map(p => {
@@ -3969,11 +3981,16 @@ function buildBajaCard(t, uid) {
           </span>
         </div>
       </div>
-      <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;
-        background:${resuelto?'var(--green-soft)':'var(--red-soft)'};
-        color:${resuelto?'var(--green-dark)':'var(--red)'}">
-        ${resuelto?'✓ Resuelto':'⚠️ '+bajasActivas.length+' pendiente'+(bajasActivas.length!==1?'s':'')}
-      </span>
+      <div style="display:flex;align-items:center;gap:.4rem;flex-wrap:wrap">
+        <span style="font-size:.68rem;font-weight:700;padding:.2rem .65rem;border-radius:20px;
+          background:${anulado?'var(--surface2)':resuelto?'var(--green-soft)':'var(--red-soft)'};
+          color:${anulado?'var(--label2)':resuelto?'var(--green-dark)':'var(--red)'}">
+          ${anulado?'🚫 Turno anulado':resuelto?'✓ Resuelto':'⚠️ '+bajasActivas.length+' pendiente'+(bajasActivas.length!==1?'s':'')}
+        </span>
+        ${anulado
+          ? `<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="restaurarTurno('${dmyAIso(t.fecha)}','${t.rango}','bajas')" title="Vuelve a contar como turno normal">↩︎ Restaurar turno</button>`
+          : `<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem;color:var(--red)" onclick="anularTurno('${dmyAIso(t.fecha)}','${t.rango}',${presentesN},'bajas','bajas')" title="Marca el turno como no realizado: cuenta así en las estadísticas">🚫 Anular turno</button>`}
+      </div>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;padding:0 1rem .9rem">
@@ -6281,6 +6298,7 @@ function _evModelo(raw, hoy, reglas) {
   });
 
   const orden = { conf:0, vuelve:0, apunte:1, baja:2 };
+  const anul = new Set((raw.anulRows || []).map(a => a.fecha + '|' + a.rango));   // turnos anulados a mano
   turnos.forEach(t => {
     const bajaIds = new Set(t.bajas.map(b => b.id)), apIds = new Set(t.apuntes.map(a => a.id));
     const eqIds = new Set(t.equipo.map(e => e.id));
@@ -6297,8 +6315,9 @@ function _evModelo(raw, hoy, reglas) {
     // Había portador de llave en el equipo y ya no queda ninguno presente
     t.sinLlave = t.n > 0 && !pres.some(c => c.llave) && t.equipo.some(e => e.llave);
     t.pasado = t.fecha < hoy;
-    t.nivel = t.estado === 'vacio' ? 'rojo' : (t.estado === 'falta' || t.sinLlave) ? 'ambar' : 'verde';
-    t.atencion = !t.pasado && t.nivel !== 'verde';
+    t.anulado = anul.has(t.k);
+    t.nivel = t.anulado ? 'gris' : t.estado === 'vacio' ? 'rojo' : (t.estado === 'falta' || t.sinLlave) ? 'ambar' : 'verde';
+    t.atencion = !t.pasado && !t.anulado && t.nivel !== 'verde';
     t.novedad = [...t.bajas, ...t.apuntes].map(x => x.ts).filter(Boolean).sort().pop() || '';
   });
   // Franja habilitada y vacía que se pisa con un turno ya cubierto ese día
@@ -6391,16 +6410,17 @@ function _evLeerLog() { try { return JSON.parse(localStorage.getItem(EV_LOG_KEY)
 async function _evFetch() {
   const desde = _evSumaDias(_evHoy(), -35), q = 'fecha=gte.' + desde;
   const hace30 = new Date(Date.now() - 30 * 86400000).toISOString();
-  const [hist, bajas, refs, vols, cal, actividad] = await Promise.all([
+  const [hist, bajas, refs, vols, cal, anulRows, actividad] = await Promise.all([
     sbGet('v_historial', q + '&select=fecha,dia,rango,nombre,tiene_llave,voluntario_id,confirmado_en&order=fecha,rango&limit=1000'),
     sbGet('bajas', q + '&select=voluntario_id,fecha,dia,rango,registrado_en,activa&limit=1000'),
     sbGet('v_refuerzos', q + '&select=fecha,dia,rango,es_dia_completo,registrado_en,nombre,tiene_llave,voluntario_id&order=registrado_en.desc&limit=1000'),
     sbGet('voluntarios', 'select=id,nombre'),
     sbGet('v_calendario', q + '&order=fecha').catch(() => []),
+    sbGet('turnos_no_realizados', q + '&origen=eq.anulado&select=fecha,rango').catch(() => []),
     // null = la tabla aún no existe (no se ha ejecutado supabase/01_actividad.sql)
     sbGet('actividad', 'ts=gte.' + hace30 + '&tipo=in.(apunte_cancelado,baja_anulada,equipo_quitado)&order=ts.desc&limit=200').catch(() => null),
   ]);
-  return { hist, bajas, refs, vols, cal, actividad };
+  return { hist, bajas, refs, vols, cal, anulRows, actividad };
 }
 
 async function loadEnVivo(force, silencioso) {
@@ -6534,7 +6554,7 @@ function renderEnVivo() {
 
 function _evCard(t) {
   const M = EV.data;
-  const badge = t.estado === 'vacio' ? '🚨 Sin cubrir'
+  const badge = t.anulado ? '🚫 Anulado' : t.estado === 'vacio' ? '🚨 Sin cubrir'
     : t.estado === 'falta' ? `⚠️ Faltan ${t.faltan}`
     : t.n >= M.IDEAL ? `✓ Completo · ${t.n}` : `✓ ${t.n} voluntarios`;
   const tarde = parseInt(t.rango, 10) >= 14;
@@ -6545,9 +6565,11 @@ function _evCard(t) {
   }).join('') || `<span class="ev-vacio">${t.abierto ? 'Franja habilitada sin nadie — abierta en Sustituciones' : 'Sin voluntarios'}</span>`;
   const pie = [];
   if (t.solapaCon) pie.push(`<span class="ev-badge ambar" title="La franja habilitada en el calendario coincide en horas con un turno ya formado">↔ Se solapa con el turno de ${escH(t.solapaCon)}</span>`);
-  if (t.sinLlave) pie.push('<span class="ev-badge ambar">🔑 Sin portador de llave</span>');
-  if (t.atencion) pie.push(`<button class="btn btn-navy btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evSugerir(this.dataset.k)">👥 Sugerir sustitutos</button>`);
-  if (t.atencion) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evCopiarAviso(this.dataset.k)">📋 Copiar aviso</button>`);
+  if (t.anulado) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="restaurarTurno('${t.fecha}','${escH(t.rango)}','envivo')">↩︎ Restaurar turno</button>`);
+  else if (!t.pasado && (t.atencion || t.bajas.length)) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem;color:var(--red)" onclick="anularTurno('${t.fecha}','${escH(t.rango)}',${t.n},'${t.bajas.length ? 'bajas' : 'sin voluntarios'}','envivo')" title="Marca el turno como no realizado: cuenta así en las estadísticas">🚫 Anular turno</button>`);
+  if (t.sinLlave && !t.anulado) pie.push('<span class="ev-badge ambar">🔑 Sin portador de llave</span>');
+  if (t.atencion && !t.anulado) pie.push(`<button class="btn btn-navy btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evSugerir(this.dataset.k)">👥 Sugerir sustitutos</button>`);
+  if (t.atencion && !t.anulado) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evCopiarAviso(this.dataset.k)">📋 Copiar aviso</button>`);
   if (t.bajas.length) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="setTab('bajas')">🏥 Ver bajas</button>`);
   if (t.novedad) pie.push(`<span>Última novedad ${_evRel(t.novedad)}</span>`);
   return `<div class="ev-card ${t.nivel} ${t.pasado ? 'pasado' : ''}" id="${_evId(t.k)}">
@@ -6639,7 +6661,7 @@ async function evSugerir(k) {
     body.innerHTML = `
       <div style="font-size:.78rem;color:var(--label2);margin-bottom:.75rem">${falta}${t.n ? ' · ya hay: ' + t.chips.filter(c => c.tipo !== 'baja').map(c => escH(c.nombre)).join(', ') : ''}</div>
       ${utiles.length ? `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:.4rem">✅ Pueden cubrir (${utiles.length})</div>${utiles.map(c => fila(c, false)).join('')}`
-        : `<div class="empty" style="padding:1rem"><span class="ei">😔</span><h4>Nadie cubre el turno completo</h4><p>${parciales.length ? 'Estas personas podrían cubrir una parte:' : 'Ningún voluntario libre con horario y descanso válidos.'}</p></div>`}
+        : `<div class="empty" style="padding:1rem"><span class="ei">😔</span><h4>Nadie cubre el turno completo</h4><p>${parciales.length ? 'Estos voluntarios podrían cubrir una parte:' : 'Ningún voluntario libre con horario y descanso válidos.'}</p></div>`}
       ${parciales.length ? `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin:.7rem 0 .4rem">⏰ Solo parte del turno (${parciales.length})</div>${parciales.map(c => fila(c, false)).join('')}` : ''}
       ${bloq.length ? `<details style="margin-top:.6rem"><summary style="font-size:.7rem;color:var(--label3);cursor:pointer">🔒 ${bloq.length} no disponibles (descanso u horario)</summary><div style="margin-top:.4rem">${bloq.map(c => fila(c, true)).join('')}</div></details>` : ''}
       <div style="font-size:.66rem;color:var(--label3);margin-top:.8rem;line-height:1.4">📋 copia el mensaje · 💬 abre WhatsApp para elegir contacto · ✓ Asignar lo apunta directamente al turno (queda como apunte).</div>`;
@@ -6686,6 +6708,7 @@ function _fichaModelo(raw, hoy) {
   const bajaAct = new Set((raw.bajas || []).filter(b => b.activa).map(b => b.fecha + '|' + b.rango));
   const visto = new Set(), asignados = [];
   [...(raw.hist || []), ...(raw.arch || [])].forEach(x => {
+    if (raw.anulados && raw.anulados.has(x.fecha + '|' + x.rango)) return;   // turno anulado: no hubo turno
     const k = x.fecha + '|' + x.rango; if (visto.has(k)) return; visto.add(k);
     asignados.push({ fecha: x.fecha, rango: x.rango, baja: bajaAct.has(k) });
   });
@@ -6735,7 +6758,7 @@ async function abrirFicha(nombre, id) {
       id = v[0].id;
     }
     const hoy = _evHoy(), d60 = _evSumaDias(hoy, -60), q = 'voluntario_id=eq.' + id;
-    const [vol, hist, arch, bajas, refs, disp, canc, gH, gA] = await Promise.all([
+    const [vol, hist, arch, bajas, refs, disp, canc, gH, gA, anulR] = await Promise.all([
       sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'),
       sbGet('v_historial', q + '&select=fecha,rango&order=fecha'),
       sbGet('historial_archivo', q + '&select=fecha,rango').catch(() => []),
@@ -6745,11 +6768,12 @@ async function abrirFicha(nombre, id) {
       sbGet('actividad', q + '&tipo=eq.apunte_cancelado&select=id').catch(() => null),
       sbGet('v_historial', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id'),
       sbGet('historial_archivo', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id').catch(() => []),
+      sbGet('turnos_no_realizados', 'origen=eq.anulado&select=fecha,rango').catch(() => []),
     ]);
     const cuenta = new Map();
     [...gH, ...gA].forEach(r => cuenta.set(r.voluntario_id, (cuenta.get(r.voluntario_id) || 0) + 1));
     const media60 = cuenta.size ? [...cuenta.values()].reduce((a, b) => a + b, 0) / cuenta.size : 0;
-    const F = _fichaModelo({ hist, arch, bajas, refs, disp, media60, cancelados: canc ? canc.length : null }, hoy);
+    const F = _fichaModelo({ hist, arch, bajas, refs, disp, media60, cancelados: canc ? canc.length : null, anulados: new Set(anulR.map(a => a.fecha + '|' + a.rango)) }, hoy);
     const v = vol[0] || { nombre, tiene_llave: false, activo: true };
     const ini = v.nombre.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
     const max = Math.max(1, ...F.meses.map(m => m.n));
@@ -6764,7 +6788,7 @@ async function abrirFicha(nombre, id) {
         <div class="vavatar" style="width:46px;height:46px;font-size:.95rem">${ini}</div>
         <div style="flex:1;min-width:0">
           <div style="font-size:1.05rem;font-weight:800">${escH(v.nombre)}</div>
-          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${v.tiene_llave ? '🔑 Portador de llave · ' : ''}${v.activo === false ? 'Inactivo' : 'Activo'}${v.creado_en ? ' · alta ' + isoADMY(v.creado_en.slice(0, 10)) : ''}</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${v.tiene_llave ? '🔑 Portador de llave · ' : ''}${v.activo === false ? 'Fuera del grupo' : 'Activo'}${v.creado_en ? ' · alta ' + isoADMY(v.creado_en.slice(0, 10)) : ''}</div>
         </div>
       </div>
       ${F.flags.map(f => `<div style="display:flex;gap:.5rem;align-items:center;background:${FI[f.tipo][1]};color:${FI[f.tipo][2]};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.35rem;font-size:.76rem;font-weight:600"><span>${FI[f.tipo][0]}</span>${escH(f.txt)}</div>`).join('')}
@@ -6805,7 +6829,7 @@ async function abrirFicha(nombre, id) {
 
 // Un "turno" = fecha + franja. Una sola pasada sobre TODO el histórico; los periodos solo filtran.
 function _statsBase(raw, reglas) {
-  const MIN = (reglas && reglas.MIN_EQ) || 3, IDEAL = (reglas && reglas.IDEAL) || 4;
+  const MIN = (reglas && reglas.MIN_EQ) || 3, IDEAL = (reglas && reglas.IDEAL) || 4, DUR = (reglas && reglas.DUR) || 2;
   const nombreDe = new Map((raw.vols || []).map(v => [v.id, v.nombre]));
   const llaveDe  = new Map((raw.vols || []).map(v => [v.id, !!v.tiene_llave]));
   const visto = new Set(), asigs = [];
@@ -6840,7 +6864,8 @@ function _statsBase(raw, reglas) {
     t.creadoPorApuntes = t.bajasEf.length === 0 && propios.length === 0 && vuelven.length === 0 && desdeApunte.length + nuevos.length > 0;
     t.creadoOk = t.creadoPorApuntes && t.n >= MIN;
     t.tuvoEquipo = t.equipo.length > 0;
-    t.sinCubrir = !!t.noReal && t.n === 0;                                         // franja registrada como 'no salió adelante'
+    t.anulado = !!t.noReal && t.noReal.origen === 'anulado';                        // anulado a mano: manda sobre la gente que hubiera
+    t.sinCubrir = !!t.noReal && (t.anulado || t.n === 0);                          // franja registrada como 'no salió adelante'
     t.motivoNR = t.noReal ? (t.noReal.motivo || 'otro') : '';
     t.sinLlave = t.n > 0 && !t.presentes.some(id => llaveDe.get(id));
     const [y, m, d] = t.fecha.split('-').map(Number);
@@ -6856,7 +6881,8 @@ function _statsBase(raw, reglas) {
   (raw.refs || []).forEach(r => mi(r.fecha).apuntes++);
   (raw.noReal || []).forEach(r => mi(r.fecha).noReal++);
   const datosMeses = [...mesInfo.values()].filter(m => m.asig > 0).map(m => m.k).sort();
-  return { turnos: [...turnos.values()], asigs, nombreDe, llaveDe, MIN, IDEAL, mesInfo, datosMeses };
+  const anulados = new Set([...turnos.values()].filter(t => t.anulado).map(t => t.k));
+  return { turnos: [...turnos.values()], asigs, nombreDe, llaveDe, MIN, IDEAL, DUR, mesInfo, datosMeses, anulados };
 }
 
 // Estado de un mes según lo registrado: app (turnos y algún rastro de bajas/apuntes), manual (turnos pero ningún
@@ -6911,11 +6937,12 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   const T = base.turnos.filter(t => en(t.fecha));
   const pasados = T.filter(t => t.fecha < hoy && !t.sinCubrir), prog = T.filter(t => t.fecha >= hoy && !t.sinCubrir);
   const nrPasados = T.filter(t => t.fecha < hoy && t.sinCubrir);      // franjas que no salieron adelante (registradas)
-  // Criterio: un turno "se confirmó/se hizo" si hubo MIN o más personas (equipo que sigue + apuntados);
+  // Criterio: un turno "se confirmó/se hizo" si hubo MIN o más voluntarios (equipo que sigue + apuntados);
   // con menos, o ninguna, cuenta como no realizado. Vale igual para turnos con equipo confirmado que para
   // los formados solo por apuntes.
   const hecho = t => !t.sinCubrir && t.n >= MIN;
-  const asigP = base.asigs.filter(a => en(a.fecha));
+  // Un turno anulado no cuenta: ni sus plazas ni la asistencia de quienes estaban apuntados
+  const asigP = base.asigs.filter(a => en(a.fecha) && !base.anulados.has(a.fecha + '|' + a.rango));
 
   // ── Calidad de los datos de cada mes del periodo
   const cob = [];
@@ -6948,10 +6975,11 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   tu.salenPorApuntes = tu.salvados + tu.creadosOk;
   // ¿Salió adelante lo que se programó? (solo lo ya pasado)
   tu.sinCubrir = nrPasados.length;
+  tu.anulados = nrPasados.filter(t => t.anulado).length;
   tu.motivos = { 'sin voluntarios': nrPasados.filter(t => t.motivoNR === 'sin voluntarios').length, bajas: nrPasados.filter(t => t.motivoNR === 'bajas').length, otro: nrPasados.filter(t => !['sin voluntarios', 'bajas'].includes(t.motivoNR)).length };
-  tu.salieron = pasados.filter(hecho).length;                          // se hicieron: MIN o más personas
+  tu.salieron = pasados.filter(hecho).length;                          // se hicieron: MIN o más voluntarios
   tu.sinNadie = pasados.filter(t => t.n === 0).length;                 // (ya no se cuentan aparte: son parte de 'no se hicieron')
-  tu.noSalieron = tu.bajoMin + tu.sinCubrir;                          // menos de MIN personas (o ninguna) + franjas registradas sin cubrir
+  tu.noSalieron = tu.bajoMin + tu.sinCubrir;                          // menos de MIN voluntarios (o ninguna) + franjas registradas sin cubrir
   tu.programados = tu.salieron + tu.noSalieron;                        // turnos ya pasados que estaban programados o habilitados
   tu.proximos = prog.length;
   tu.pctSalen = tu.programados ? Math.round(100 * tu.salieron / tu.programados) : null;
@@ -6999,14 +7027,14 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   // Último turno de cada uno (sobre todo el histórico, no solo el periodo)
   const ultimo = new Map(), totalHist = new Map();
   base.asigs.forEach(a => {
-    if (a.fecha < hoy && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) {
+    if (a.fecha < hoy && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango) && !base.anulados.has(a.fecha + '|' + a.rango)) {
       totalHist.set(a.id, (totalHist.get(a.id) || 0) + 1);
       if (!ultimo.has(a.id) || a.fecha > ultimo.get(a.id)) ultimo.set(a.id, a.fecha);
     }
   });
   const bajasPorVol = new Map(); bajasP.forEach(b => bajasPorVol.set(b.voluntario_id, (bajasPorVol.get(b.voluntario_id) || 0) + 1));
   const apPorVol = new Map(); refsP.forEach(r => apPorVol.set(r.voluntario_id, (apPorVol.get(r.voluntario_id) || 0) + 1));
-  const prox = new Map(); base.asigs.forEach(a => { if (a.fecha >= hoy && en(a.fecha) && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) prox.set(a.id, (prox.get(a.id) || 0) + 1); });
+  const prox = new Map(); base.asigs.forEach(a => { if (a.fecha >= hoy && en(a.fecha) && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango) && !base.anulados.has(a.fecha + '|' + a.rango)) prox.set(a.id, (prox.get(a.id) || 0) + 1); });
 
   const tabla = (raw.vols || []).map(v => {
     const hechos = cuenta.get(v.id) || 0, bruto = brutas.get(v.id) || 0, bj = bajasPorVol.get(v.id) || 0;
@@ -7046,6 +7074,18 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
     portadores: activos.filter(v => v.tiene_llave).length,
   };
 
+  // ── Disponibilidad y conexión horaria de los voluntarios activos
+  const nuncaIds = new Set(tabla.filter(r => r.activo && !r.ultimo && !r.proximos).map(r => r.id));   // nunca han hecho un turno
+  const dejoIds = new Set(sugeridos.map(r => r.id));
+  // Demanda real: en qué días y horas ha habido turnos (con gente o habilitados sin cubrir), en todo el histórico
+  const demanda = Array.from({ length: 7 }, () => new Array(14).fill(0));
+  base.turnos.filter(t => (t.n > 0 || t.sinCubrir) && !t.anulado).forEach(t => {
+    const m = /(\d{1,2}):\d{2}\s*a\s*(\d{1,2}):\d{2}/.exec(t.rango || ''); if (!m) return;
+    const dow = (t.dow + 6) % 7;                                  // lunes = 0
+    for (let h = +m[1]; h < +m[2]; h++) if (h >= 8 && h < 22) demanda[dow][h - 8]++;
+  });
+  const dispo = _dispoModelo(raw.disp || [], activos, { DUR: base.DUR, MIN, nunca: nuncaIds, dejo: dejoIds, demanda });
+
   // ── Por día de la semana y franja (lunes primero)
   const orden = [1, 2, 3, 4, 5, 6, 0];
   const celdas = { m: {}, t: {} };
@@ -7074,7 +7114,7 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
 
   meses.forEach(m => { const c = cob.find(x => x.k === m.k); m.estado = c ? c.estado : 'app'; if (c) m.bajas += c.estimadas; });
   const cobertura = { meses: cob, vacios: cob.filter(m => m.estado === 'vacio'), manuales: cob.filter(m => m.estado === 'manual') };
-  return { desde, hasta, hoy, MIN, IDEAL, cobertura, asignaciones: asigP.length, turnos: tu, bajas: ba, apuntes: ap, voluntarios: vo, porDia, celdas, meses, tabla };
+  return { desde, hasta, hoy, MIN, IDEAL, cobertura, dispo, asignaciones: asigP.length, turnos: tu, bajas: ba, apuntes: ap, voluntarios: vo, porDia, celdas, meses, tabla };
 }
 
 // ── Recomendaciones automáticas a partir de las cifras (con acción concreta)
@@ -7086,7 +7126,7 @@ function _statsInsights(S, P) {
   if (S.cobertura.vacios.length) add('ambar', `Sin datos en ${S.cobertura.vacios.length} mes${S.cobertura.vacios.length === 1 ? '' : 'es'} del periodo`, `${S.cobertura.vacios.map(fm).join(', ')}: no hay ningún turno registrado en la app, así que no cuentan.`, 'Si se gestionaron fuera de la app, recupéralos con 📥 Importar turnos anteriores.');
   if (S.cobertura.manuales.length) add('info', `${S.cobertura.manuales.length} mes${S.cobertura.manuales.length === 1 ? '' : 'es'} con turnos pero sin bajas ni apuntes`, `${S.cobertura.manuales.map(fm).join(', ')}: parecen gestionados fuera de la app. Cuentan para turnos y participación, no para las tasas de baja.`, 'Si en realidad fue un mes tranquilo registrado en la app, márcalo en 🩺 Calidad de los datos.');
   if (S.asignaciones < 10) add('info', 'Pocos datos en este periodo', `Solo hay ${S.asignaciones} asignaciones: las conclusiones ganan fiabilidad con más meses.`, 'Prueba con "Últimos 6 meses" o "Todo el histórico".');
-  if (T.programados >= 8 && T.pctSalen !== null && T.pctSalen < 75) add(T.pctSalen < 50 ? 'rojo' : 'ambar', `Solo salen adelante ${T.salieron} de ${T.programados} turnos programados (${T.pctSalen} %)`, `No se hicieron ${T.noSalieron} turnos (menos de ${S.MIN} personas): ${T.sinCubrir} franjas sin cubrir, ${T.sinNadie} sin nadie y ${T.debiles} con solo 1-${S.MIN - 1} personas.`, 'Habilita solo las franjas que suelen cubrirse, o capta voluntarios para las que se quedan vacías (mira el mapa día × franja).');
+  if (T.programados >= 8 && T.pctSalen !== null && T.pctSalen < 75) add(T.pctSalen < 50 ? 'rojo' : 'ambar', `Solo salen adelante ${T.salieron} de ${T.programados} turnos programados (${T.pctSalen} %)`, `No se hicieron ${T.noSalieron} turnos (menos de ${S.MIN} voluntarios o anulados): ${T.sinCubrir} sin cubrir o anulados${T.anulados ? ' (' + T.anulados + ' anulados a mano)' : ''}, ${T.sinNadie} sin nadie y ${T.debiles} con solo 1-${S.MIN - 1} voluntarios.`, 'Habilita solo las franjas que suelen cubrirse, o capta voluntarios para las que se quedan vacías (mira el mapa día × franja).');
   const NOM_D = ['domingos', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábados'];
   const celdaMala = ['m', 't'].flatMap(f => S.porDia.map(d => ({ f, d: d.dow, ...S.celdas[f][d.dow] }))).filter(c => c.sinCubrir >= 3 && c.sinCubrir / (c.sinCubrir + c.turnos) >= 0.5).sort((a, b) => b.sinCubrir - a.sinCubrir)[0];
   if (celdaMala) add('ambar', `Los ${NOM_D[celdaMala.d]} por la ${celdaMala.f === 'm' ? 'mañana' : 'tarde'} casi nunca se cubren`, `${celdaMala.sinCubrir} de ${celdaMala.sinCubrir + celdaMala.turnos} franjas habilitadas se quedaron sin nadie.`, 'Deja de habilitar esa franja o busca voluntarios que puedan a esa hora.');
@@ -7099,18 +7139,25 @@ function _statsInsights(S, P) {
   if (T.salvados > 0) add('verde', `Sustituciones salvó ${T.salvados} turno${T.salvados === 1 ? '' : 's'}`, `Tras las bajas, los apuntes los devolvieron al mínimo de ${S.MIN}.`, 'Sigue difundiendo el enlace: es lo que evita huecos.');
   else if (T.conBaja > 0 && T.pasados > 0 && T.caidos + T.debiles > 0) add('ambar', 'Ningún turno con baja se recuperó por apuntes', `${T.conBaja} turnos tuvieron bajas y ninguno volvió al mínimo con apuntes.`, 'Comparte el enlace de Sustituciones en el grupo cuando haya una baja (📋 Copiar aviso).');
   if (T.creadosOk > 0) add('verde', `${T.creadosOk} turno${T.creadosOk === 1 ? ' salió' : 's salieron'} solo por apuntes`, 'Franjas habilitadas que nadie planificó y que los voluntarios llenaron.', 'Señal de que hay demanda: habilitar más franjas puede tener respuesta.');
-  if (T.pctBajoMin !== null && T.pctBajoMin >= 25 && T.pasados >= 4) add('ambar', `${T.pctBajoMin} % de los turnos por debajo del mínimo`, `${T.bajoMin} de ${T.pasados} turnos terminaron con menos de ${S.MIN} personas.`, 'Revisa disponibilidad de esas franjas y considera captar voluntarios para ellas.');
+  if (T.pctBajoMin !== null && T.pctBajoMin >= 25 && T.pasados >= 4) add('ambar', `${T.pctBajoMin} % de los turnos por debajo del mínimo`, `${T.bajoMin} de ${T.pasados} turnos terminaron con menos de ${S.MIN} voluntarios.`, 'Revisa disponibilidad de esas franjas y considera captar voluntarios para ellas.');
   if (T.sinLlave > 0) add('ambar', `${T.sinLlave} turno${T.sinLlave === 1 ? '' : 's'} sin portador de llave`, `Solo hay ${V.portadores} portador${V.portadores === 1 ? '' : 'es'} de llave entre los activos.`, 'Anima a más voluntarios de confianza a ser portadores o reparte mejor los actuales.');
-  if (V.participacion !== null && V.activos >= 8 && V.participacion < 60) add('ambar', `Solo ${V.participacion} % de los voluntarios activos hizo turno`, `${V.participantes} participaron de ${V.activos} activos.`, 'Contacta a los que no han participado y ajusta su disponibilidad, o dalos de baja del grupo si ya no colaboran.');
-  if (V.sugeridos.length) add('info', `${V.sugeridos.length} voluntario${V.sugeridos.length === 1 ? ' dejó' : 's dejaron'} de participar`, 'Tuvieron turnos, pero el último fue hace más de 90 días y no tienen ninguno próximo.', 'Contáctalos: si ya no colaboran, dalos de baja del grupo (Voluntarios → 🚪) para que no ocupen el cuadrante ni las estadísticas.');
-  if (V.sinEvidencia.length) add('info', `${V.sinEvidencia.length} voluntario${V.sinEvidencia.length === 1 ? '' : 's'} sin turnos recientes, pero no se puede afirmar que se hayan ido`, 'Su último turno es anterior a un hueco de datos: faltan meses registrados para saberlo.', 'Importa o registra esos meses; hasta entonces no los des de baja solo por esto.');
-  if (V.sinEstrenar.length >= 3) add('info', `${V.sinEstrenar.length} voluntarios activos nunca han tenido un turno`, 'Siguen dados de alta pero no han sido asignados jamás.', 'Revisa su disponibilidad: si sus franjas ya están cubiertas puede que no hagan falta; si no responden, dalos de baja del grupo.');
+  if (V.participacion !== null && V.activos >= 8 && V.participacion < 60) add('ambar', `Solo ${V.participacion} % de los voluntarios activos hizo turno`, `${V.participantes} participaron de ${V.activos} activos.`, 'Contacta a los que no han participado y ajusta su disponibilidad, o sácalos del grupo si ya no colaboran.');
+  if (V.sugeridos.length) add('info', `${V.sugeridos.length} voluntario${V.sugeridos.length === 1 ? ' dejó' : 's dejaron'} de participar`, 'Tuvieron turnos, pero el último fue hace más de 90 días y no tienen ninguno próximo.', 'Contáctalos: si ya no colaboran, sácalos del grupo (Voluntarios → 🚪) para que no ocupen el cuadrante ni las estadísticas.');
+  if (V.sinEvidencia.length) add('info', `${V.sinEvidencia.length} voluntario${V.sinEvidencia.length === 1 ? '' : 's'} sin turnos recientes, pero no se puede afirmar que se hayan ido`, 'Su último turno es anterior a un hueco de datos: faltan meses registrados para saberlo.', 'Importa o registra esos meses; hasta entonces no los saques del grupo solo por esto.');
+  if (S.dispo && S.dispo.lista.length) {
+    const D = S.dispo, nun = D.lista.filter(x => x.grupo === 'nunca');
+    const dificiles = nun.filter(x => ['aislado', 'corto', 'sin', 'poco'].includes(x.nivel) || x.encaje === 'lejos');
+    const mD = D.medias;
+    if (nun.length >= 3 && dificiles.length / nun.length >= 0.4) add('ambar', `${dificiles.length} de los ${nun.length} voluntarios que nunca han participado tienen un horario que casi no encaja`, `Su horario apenas coincide con el de otros voluntarios o con las franjas en las que se hacen turnos, o no tienen horario registrado${mD.nunca && mD.nunca.dem !== null && mD.participa && mD.participa.dem !== null ? ` (solo el ${mD.nunca.dem} % de sus horas cae en franjas con turnos, frente al ${mD.participa.dem} % de quienes participan)` : ''}.`, `Pregúntales si pueden ampliar su disponibilidad${D.mejor ? ' hacia ' + D.mejor.dia + ' de ' + D.mejor.desde + ' a ' + D.mejor.hasta + 'h, donde más voluntarios coinciden' : ''}. Su horario está dibujado en 🧭 Disponibilidad y conexión horaria.`);
+    if (D.sinHorario >= 2) add('info', `${D.sinHorario} voluntarios activos no tienen ningún horario registrado`, 'Sin disponibilidad, el planificador no puede contar con ellos.', 'Pídeles que rellenen su disponibilidad.');
+  }
+  if (V.sinEstrenar.length >= 3) add('info', `${V.sinEstrenar.length} voluntarios activos nunca han tenido un turno`, 'Siguen dados de alta pero no han sido asignados jamás.', 'Revisa su disponibilidad: si sus franjas ya están cubiertas puede que no hagan falta; si no responden, sácalos del grupo.');
   if (V.top3Share !== null && V.participantes >= 8 && V.top3Share >= 40) add('ambar', `Los 3 más activos hacen el ${V.top3Share} % de los turnos`, `Y el 20 % más activo concentra el ${V.top20Share} %.`, 'Riesgo de agotamiento y de dependencia: reparte la carga o sube el descanso mínimo en Reglas del motor.');
   if (A.cancelados) add('info', `${A.cancelados} apunte${A.cancelados === 1 ? '' : 's'} cancelado${A.cancelados === 1 ? '' : 's'}`, `Registrados desde ${A.canceladosDesde ? A.canceladosDesde.split('-').reverse().join('/') : 'la activación del registro'}.`, 'Cada cancelación tardía reabre el hueco: pide confirmar antes de apuntarse.');
   if (P) {
     if (P.bajas.base >= 15 && B.base >= 15 && P.bajas.tasa !== null && B.tasa !== null && B.tasa - P.bajas.tasa >= 5) add('ambar', 'Las bajas suben respecto al periodo anterior', `De ${String(P.bajas.tasa).replace('.', ',')} % a ${String(B.tasa).replace('.', ',')} %.`, 'Mira si coincide con un cambio de franjas o con periodos de vacaciones.');
     else if (P.bajas.base >= 15 && B.base >= 15 && P.bajas.tasa !== null && B.tasa !== null && P.bajas.tasa - B.tasa >= 5) add('verde', 'Las bajas bajan respecto al periodo anterior', `De ${String(P.bajas.tasa).replace('.', ',')} % a ${String(B.tasa).replace('.', ',')} %.`, 'Lo que estáis haciendo funciona.');
-    if (P.turnos.nMedia && T.nMedia && T.nMedia < P.turnos.nMedia - 0.4) add('ambar', 'Los equipos son más pequeños que el periodo anterior', `Media de ${T.nMedia.toFixed(1).replace('.', ',')} frente a ${P.turnos.nMedia.toFixed(1).replace('.', ',')} personas por turno.`, 'Comprueba altas/bajas de voluntarios y disponibilidad.');
+    if (P.turnos.nMedia && T.nMedia && T.nMedia < P.turnos.nMedia - 0.4) add('ambar', 'Los equipos son más pequeños que el periodo anterior', `Media de ${T.nMedia.toFixed(1).replace('.', ',')} frente a ${P.turnos.nMedia.toFixed(1).replace('.', ',')} voluntarios por turno.`, 'Comprueba altas/bajas de voluntarios y disponibilidad.');
   }
   const peso = { rojo: 0, ambar: 1, info: 2, verde: 3 };
   return out.sort((a, b) => peso[a.nivel] - peso[b.nivel]);
@@ -7135,17 +7182,18 @@ async function sbGetAll(tabla, params) {
 
 async function _stCargar(force) {
   if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
-  const [hist, arch, bajas, refs, vols, act, noReal, ajustes] = await Promise.all([
+  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp] = await Promise.all([
     sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
     sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
     sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
     sbGetAll('v_refuerzos', 'select=id,fecha,rango,es_dia_completo,registrado_en,nombre,voluntario_id&order=id'),
     sbGetAll('voluntarios', 'select=id,nombre,tiene_llave,activo,creado_en&order=id'),
     sbGetAll('actividad', 'select=id,ts,tipo,voluntario_id,fecha,rango&order=id').catch(() => null), // null = aún sin registro de actividad
-    sbGetAll('turnos_no_realizados', 'select=id,fecha,rango,motivo,planificados&order=id').catch(() => null), // null = falta 03_turnos_no_realizados.sql
+    sbGetAll('turnos_no_realizados', 'select=id,fecha,rango,motivo,planificados,origen&order=id').catch(() => null), // null = falta 03_turnos_no_realizados.sql
     sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota&order=mes').catch(() => null),              // null = falta 04_ajustes_estadisticas.sql
+    sbGetAll('disponibilidad', 'select=id,voluntario_id,dia,horario&order=id').catch(() => []),
   ]);
-  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act, noReal, ajustes };
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act, noReal, ajustes, disp };
   ST.ts = Date.now();
   return ST.raw;
 }
@@ -7275,13 +7323,13 @@ function renderEstadisticas() {
   const pT = P && P.turnos, pB = P && P.bajas, pA = P && P.apuntes, pV = P && P.voluntarios;
   const kpi = (val, lbl, sub, col, dl) => `<div class="sbox"${col ? ` style="border-left:3px solid ${col}"` : ''}><div class="sv"${col ? ` style="color:${col}"` : ''}>${val}</div><div class="sl">${lbl}</div>${sub ? `<div class="st-sub">${sub}</div>` : ''}${dl || ''}</div>`;
   const kpis = `<div class="stats-row st-kpis">
-    ${kpi(T.confirmados, 'Turnos confirmados', `con ${S.MIN} o más personas · ${T.confPasados} ya hechos · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
-    ${kpi(S.asignaciones, 'Plazas asignadas', `${V.participantes} personas distintas`, '', _stDelta(S.asignaciones, P && P.asignaciones, true))}
+    ${kpi(T.confirmados, 'Turnos confirmados', `con ${S.MIN} o más voluntarios · ${T.confPasados} ya hechos · ${T.confProg} próximos`, '', _stDelta(T.confirmados, pT && pT.confirmados, true))}
+    ${kpi(S.asignaciones, 'Plazas asignadas', `${V.participantes} voluntarios distintas`, '', _stDelta(S.asignaciones, P && P.asignaciones, true))}
     ${kpi((B.aprox ? '≥ ' : '') + B.total, 'Bajas', `tasa ${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)}${B.base < S.asignaciones ? ' (sobre ' + B.base + ' plazas con registro)' : ''} · ${B.anuladas} anuladas${B.aprox ? ' · ' + B.estimadas + ' indicadas a mano' : ''}`, 'var(--red)', _stDelta(B.tasa, pB && pB.base >= 15 && B.base >= 15 ? pB.tasa : null, false, ' pt'))}
     ${kpi(A.total, 'Apuntes', `${A.cubrenBaja} a turnos con baja · ${A.diaCompleto} de día completo`, 'var(--green)', _stDelta(A.total, pA && pA.total, true))}
     ${kpi(T.salenPorApuntes, 'Salen adelante por apuntes', `${T.salvados} salvados tras baja · ${T.creadosOk} sin equipo previo`, 'var(--blue)', _stDelta(T.salenPorApuntes, pT && pT.salenPorApuntes, true))}
-    ${kpi(T.pctSalen === null ? '—' : T.pctSalen + ' %', 'Turnos que salen adelante', `${T.salieron} de ${T.programados} · no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} personas`, T.pctSalen !== null && T.pctSalen < 75 ? 'var(--amber)' : 'var(--green)', _stDelta(T.pctSalen, pT && pT.pctSalen, true, ' pt'))}
-    ${kpi(T.pasados ? _stNum(T.nMedia) : '—', 'Personas por turno', `mínimo ${S.MIN} · ideal ${S.IDEAL}`, '', _stDelta(T.pasados ? Math.round(T.nMedia * 10) / 10 : null, pT && pT.pasados ? Math.round(pT.nMedia * 10) / 10 : null, true))}
+    ${kpi(T.pctSalen === null ? '—' : T.pctSalen + ' %', 'Turnos que salen adelante', `${T.salieron} de ${T.programados} · no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir o anulados, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} voluntarios`, T.pctSalen !== null && T.pctSalen < 75 ? 'var(--amber)' : 'var(--green)', _stDelta(T.pctSalen, pT && pT.pctSalen, true, ' pt'))}
+    ${kpi(T.pasados ? _stNum(T.nMedia) : '—', 'Voluntarios por turno', `mínimo ${S.MIN} · ideal ${S.IDEAL}`, '', _stDelta(T.pasados ? Math.round(T.nMedia * 10) / 10 : null, pT && pT.pasados ? Math.round(pT.nMedia * 10) / 10 : null, true))}
     ${kpi(V.participacion === null ? '—' : V.participacion + ' %', 'Participación', `${V.participantes} de ${V.activos} activos`, '', _stDelta(V.participacion, pV && pV.participacion, true, ' pt'))}
   </div>`;
 
@@ -7308,10 +7356,10 @@ function renderEstadisticas() {
     </div>
     <div class="st-leyenda">
       <span><i style="background:var(--green)"></i>Completos (≥${S.IDEAL}) <b>${T.completos}</b></span>
-      <span><i style="background:#7fd39b"></i>Justos (${S.IDEAL - 1 > S.MIN ? S.MIN + '-' + (S.IDEAL - 1) : S.MIN} personas) <b>${T.justos}</b></span>
-      <span><i style="background:var(--amber)"></i>Menos de ${S.MIN} personas: no se hicieron <b>${T.debiles}</b></span>
+      <span><i style="background:#7fd39b"></i>Justos (${S.IDEAL - 1 > S.MIN ? S.MIN + '-' + (S.IDEAL - 1) : S.MIN} voluntarios) <b>${T.justos}</b></span>
+      <span><i style="background:var(--amber)"></i>Menos de ${S.MIN} voluntarios: no se hicieron <b>${T.debiles}</b></span>
       <span><i style="background:var(--red)"></i>Sin nadie (bajas) <b>${T.caidos}</b></span>
-      <span><i style="background:repeating-linear-gradient(45deg,#c9ccd6,#c9ccd6 3px,#e4e6ec 3px,#e4e6ec 6px)"></i>Sin cubrir (nadie se apuntó) <b>${T.sinCubrir}</b></span>
+      <span><i style="background:repeating-linear-gradient(45deg,#c9ccd6,#c9ccd6 3px,#e4e6ec 3px,#e4e6ec 6px)"></i>Sin cubrir o anulados <b>${T.sinCubrir}</b></span>
     </div>
     ${T.sinCubrir ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.4rem">Motivos de lo que no salió adelante: ${T.motivos['sin voluntarios']} sin voluntarios · ${T.motivos.bajas} por bajas · ${T.motivos.otro} otros</div>` : ''}
     <div style="font-size:.76rem;color:var(--label2);margin-top:.6rem;line-height:1.6">
@@ -7351,7 +7399,7 @@ function renderEstadisticas() {
     ${_stCalidadHTML()}
     <div class="st-sec"><h4>👥 Voluntarios</h4>
       <div class="st-vres">
-        <div><b>${V.activos}</b> activos<br><span>${V.inactivos} inactivos · ${V.portadores} con llave</span></div>
+        <div><b>${V.activos}</b> activos<br><span>${V.inactivos} fuera del grupo · ${V.portadores} con llave</span></div>
         <div><b>${V.participantes}</b> participaron<br><span>media ${_stNum(V.media)} · mediana ${_stNum(V.mediana)} turnos</span></div>
         <div><b>${V.top3Share === null ? '—' : V.top3Share + ' %'}</b> en los 3 primeros<br><span>20 % más activo: ${V.top20Share === null ? '—' : V.top20Share + ' %'}</span></div>
         <div><b>${V.nuevos}</b> altas nuevas<br><span>${V.sinTurnos.length} activos sin turno</span></div>
@@ -7366,10 +7414,11 @@ function renderEstadisticas() {
       <div class="st-filtros">
         <input class="fc" id="st-busca" placeholder="🔍 Buscar voluntario…" style="max-width:200px" value="${escH(ST.busca)}" oninput="ST.busca=this.value;stTabla()">
         <label><input type="checkbox" ${ST.soloSin ? 'checked' : ''} onchange="ST.soloSin=this.checked;stTabla()"> solo sin turnos en el periodo</label>
-        <label><input type="checkbox" ${ST.verInactivos ? 'checked' : ''} onchange="ST.verInactivos=this.checked;stTabla()"> incluir inactivos</label>
+        <label><input type="checkbox" ${ST.verInactivos ? 'checked' : ''} onchange="ST.verInactivos=this.checked;stTabla()"> incluir los que están fuera del grupo</label>
       </div>
       <div id="st-tabla" style="overflow-x:auto"></div>
-    </div>`;
+    </div>
+    ${_stDispoHTML()}`;
   stTabla();
 }
 
@@ -7386,7 +7435,7 @@ function stTabla() {
   const th = (col, lbl, ttl) => `<th onclick="stOrden('${col}')" title="${ttl || ''}" style="cursor:pointer">${lbl}${ST.orden.col === col ? (ST.orden.dir < 0 ? ' ▼' : ' ▲') : ''}</th>`;
   el.innerHTML = filas.length ? `<table class="st-tabla"><thead><tr>${th('nombre', 'Voluntario')}${th('turnos', 'Turnos', 'Turnos hechos o programados en el periodo, sin contar los que acabaron en baja')}${th('proximos', 'Próx.')}${th('bajas', 'Bajas')}${th('tasa', '% baja', 'Bajas sobre plazas asignadas en el periodo')}${th('apuntes', 'Apuntes')}${th('ultimo', 'Último turno')}</tr></thead><tbody>
     ${filas.map(r => `<tr${r.activo ? '' : ' style="opacity:.5"'}>
-      <td><a href="#" style="color:var(--label1);font-weight:600;text-decoration:none" onclick="abrirFicha('${escH(r.nombre).replace(/'/g, '&#39;')}','${r.id}');return false">${escH(r.nombre)}</a>${r.llave ? ' 🔑' : ''}${r.activo ? '' : ' <i style="font-size:.65rem">inactivo</i>'}</td>
+      <td><a href="#" style="color:var(--label1);font-weight:600;text-decoration:none" onclick="abrirFicha('${escH(r.nombre).replace(/'/g, '&#39;')}','${r.id}');return false">${escH(r.nombre)}</a>${r.llave ? ' 🔑' : ''}${r.activo ? '' : ' <i style="font-size:.65rem">fuera del grupo</i>'}</td>
       <td><b>${r.turnos}</b></td><td>${r.proximos || ''}</td><td style="color:${r.bajas ? 'var(--red)' : 'inherit'}">${r.bajas || ''}</td>
       <td style="color:${r.tasa >= 25 ? 'var(--red)' : 'inherit'}">${r.tasa === null ? '' : r.tasa + ' %'}</td><td>${r.apuntes || ''}</td>
       <td style="white-space:nowrap">${r.ultimo ? isoADMY(r.ultimo).slice(0, 5) + ' <i style="font-size:.66rem;color:var(--label3)">hace ' + _stDiasEntre(r.ultimo, hoy) + ' d</i>' : '<i style="color:var(--label4)">—</i>'}</td></tr>`).join('')}
@@ -7397,13 +7446,13 @@ function stCopiarResumen() {
   const S = ST.S; if (!S) return;
   const T = S.turnos, B = S.bajas, A = S.apuntes, V = S.voluntarios;
   const lineas = [`📈 Resumen ${ST.per.etiqueta} — Puerto de Sevilla`, '',
-    `• Turnos confirmados (${S.MIN} o más personas): ${T.confirmados} (${T.confPasados} ya hechos, ${T.confProg} próximos)`,
-    `• Plazas asignadas: ${S.asignaciones} · ${V.participantes} personas distintas (media ${_stNum(V.media)} turnos)`,
+    `• Turnos confirmados (${S.MIN} o más voluntarios): ${T.confirmados} (${T.confPasados} ya hechos, ${T.confProg} próximos)`,
+    `• Plazas asignadas: ${S.asignaciones} · ${V.participantes} voluntarios distintas (media ${_stNum(V.media)} turnos)`,
     `• Bajas: ${B.aprox ? 'al menos ' : ''}${B.total} (${B.aprox ? '≥ ' : ''}${_stPct(B.tasa)} de las plazas; ${B.anuladas} anuladas)`,
     `• Apuntes: ${A.total} (${A.cubrenBaja} a turnos con baja)`,
-    `• Salen adelante: ${T.pctSalen === null ? '—' : T.pctSalen + ' %'} (${T.salieron} de ${T.programados}; no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} personas)`,
+    `• Salen adelante: ${T.pctSalen === null ? '—' : T.pctSalen + ' %'} (${T.salieron} de ${T.programados}; no se hicieron ${T.noSalieron}: ${T.sinCubrir} sin cubrir o anulados, ${T.sinNadie} sin nadie, ${T.debiles} con menos de ${S.MIN} voluntarios)`,
     `• Salieron adelante gracias a apuntes: ${T.salenPorApuntes}`,
-    `• Personas por turno: ${T.pasados ? _stNum(T.nMedia) : '—'} (mínimo ${S.MIN}, ideal ${S.IDEAL})`,
+    `• Voluntarios por turno: ${T.pasados ? _stNum(T.nMedia) : '—'} (mínimo ${S.MIN}, ideal ${S.IDEAL})`,
     `• Participación: ${V.participacion === null ? '—' : V.participacion + ' %'} de ${V.activos} activos`, ''];
   if (ST.insights.length) { lineas.push('Qué mejorar:'); ST.insights.filter(i => i.nivel !== 'verde').forEach(i => lineas.push(`- ${i.titulo}: ${i.accion}`)); }
   const txt = lineas.join('\n');
@@ -7777,8 +7826,8 @@ function impPintar() {
   const conGente = turnosOk.filter(t => t.nombres.length && !t.cancelado);
   const opts = x => {
     const sug = (x.sug || []).map(s => s.v), otros = (x.cands.length ? x.cands : IMP.vols).filter(v => !sug.some(s => s.id === v.id));
-    const o = v => `<option value="${v.id}">${escH(v.nombre)}${v.activo === false ? ' (inactivo)' : ''}</option>`;
-    return `<option value="__" disabled selected>— elegir —</option>${sug.length ? `<optgroup label="¿Quizá es…?">${sug.map(o).join('')}</optgroup>` : ''}<optgroup label="Todos">${otros.map(o).join('')}</optgroup><option value="__nuevo__">➕ Crear como voluntario inactivo (ya no está en el grupo)</option><option value="">Omitir a esta persona</option>`;
+    const o = v => `<option value="${v.id}">${escH(v.nombre)}${v.activo === false ? ' (fuera del grupo)' : ''}</option>`;
+    return `<option value="__" disabled selected>— elegir —</option>${sug.length ? `<optgroup label="¿Quizá es…?">${sug.map(o).join('')}</optgroup>` : ''}<optgroup label="Todos">${otros.map(o).join('')}</optgroup><option value="__nuevo__">➕ Añadir como voluntario fuera del grupo (ya no colabora)</option><option value="">Omitir a esta persona</option>`;
   };
   const pend = P.sinResolver.length, sugeribles = P.sinResolver.filter(x => (x.sug || []).length && x.txt.trim().split(/\s+/).length >= 2).length;
   const NR_MOT = { 'sin voluntarios': 'Sin voluntarios', bajas: 'Por bajas', otro: 'Otro motivo' };
@@ -7806,8 +7855,8 @@ function impPintar() {
       ${pend ? `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.6rem .7rem;font-size:.76rem;margin-bottom:.7rem"><div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap"><b style="color:var(--amber)">Elige a quién corresponde cada nombre dudoso</b>${sugeribles ? `<button class="btn btn-ghost btn-sm" onclick="impAceptarSugerencias()">✨ Aceptar sugerencias claras</button>` : ''}</div>
         ${P.sinResolver.map(x => `<div style="display:flex;gap:.5rem;align-items:center;margin-top:.4rem;flex-wrap:wrap"><span style="flex:1;min-width:130px;font-weight:600">${escH(x.txt)} <i style="font-weight:400;color:var(--label3)">${x.sug && x.sug.length ? 'parecido a ' + escH(x.sug[0].v.nombre) : x.tipo === 'ambiguo' ? 'varias coincidencias' : 'no está en la lista'}</i></span>
           <select class="fc" style="max-width:250px" onchange="impElegir('${escH(x.key)}',this.value)">${opts(x)}</select></div>`).join('')}</div>` : ''}
-      ${P.nuevos.length ? `<div style="font-size:.72rem;color:var(--label2);margin-bottom:.5rem">➕ Se crearán como <b>voluntarios inactivos</b>: ${P.nuevos.map(n => escH(n.nombre)).join(', ')}</div>` : ''}
-      ${turnosOk.length ? `<div style="max-height:230px;overflow:auto;font-size:.72rem;border:1px solid var(--sep);border-radius:var(--r-sm)"><table class="st-tabla"><thead><tr><th>Fecha</th><th>Franja</th><th>Personas</th><th>Resultado</th></tr></thead><tbody>${filas}</tbody></table></div>${turnosOk.length > 120 ? `<div style="font-size:.68rem;color:var(--label3)">Mostrando los 120 primeros</div>` : ''}` : ''}
+      ${P.nuevos.length ? `<div style="font-size:.72rem;color:var(--label2);margin-bottom:.5rem">➕ Se añadirán como <b>voluntarios fuera del grupo</b> (ya no colaboran, pero su historia cuenta): ${P.nuevos.map(n => escH(n.nombre)).join(', ')}</div>` : ''}
+      ${turnosOk.length ? `<div style="max-height:230px;overflow:auto;font-size:.72rem;border:1px solid var(--sep);border-radius:var(--r-sm)"><table class="st-tabla"><thead><tr><th>Fecha</th><th>Franja</th><th>Voluntarios</th><th>Resultado</th></tr></thead><tbody>${filas}</tbody></table></div>${turnosOk.length > 120 ? `<div style="font-size:.68rem;color:var(--label3)">Mostrando los 120 primeros</div>` : ''}` : ''}
       <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:.8rem;align-items:center;flex-wrap:wrap">
         <span style="font-size:.72rem;color:var(--label3);flex:1;min-width:160px">${P.registros.length || P.noRealizados.length ? `Se guardarán ${P.registros.length} asignaciones (${new Set(P.registros.map(r => r.fecha + '|' + r.rango)).size} turnos)${P.noRealizados.length ? ` y ${P.noRealizados.length} turnos que no salieron adelante` : ''}${pend ? ' — los nombres sin resolver quedan fuera' : ''}.` : 'Nada que importar todavía.'}</span>
         <button class="btn btn-green" id="imp-btn" ${P.registros.length || (P.noRealizados.length && IMP.tablaNR) ? '' : 'disabled'} onclick="impEjecutar()">📥 Importar</button>
@@ -7819,7 +7868,7 @@ async function impEjecutar() {
   const P = IMP.plan; if (!P) return;
   const nr = IMP.tablaNR ? P.noRealizados : [];
   if (!P.registros.length && !nr.length) return;
-  if (!confirm(`¿Guardar ${P.registros.length} asignaciones${nr.length ? ` y ${nr.length} turnos que no salieron adelante` : ''}${P.nuevos.length ? `, creando ${P.nuevos.length} voluntarios inactivos` : ''}?\n\nDespués podrás deshacerlo desde esta misma ventana.`)) return;
+  if (!confirm(`¿Guardar ${P.registros.length} asignaciones${nr.length ? ` y ${nr.length} turnos que no salieron adelante` : ''}${P.nuevos.length ? `, añadiendo ${P.nuevos.length} voluntarios fuera del grupo` : ''}?\n\nDespués podrás deshacerlo desde esta misma ventana.`)) return;
   const btn = document.getElementById('imp-btn'); btn.disabled = true; btn.textContent = '⏳ Guardando…';
   const hecho = { vols: [], arch: [], nr: [] };
   try {
@@ -7840,7 +7889,7 @@ async function impEjecutar() {
     document.getElementById('mvol-body').innerHTML = `
       <div style="text-align:center;padding:1rem .5rem"><div style="font-size:2rem">✅</div>
         <h4 style="margin:.4rem 0">Importación completada</h4>
-        <p style="font-size:.82rem;color:var(--label2);line-height:1.6">${hecho.arch.length} asignaciones · ${hecho.nr.length} turnos que no salieron adelante${hecho.vols.length ? ` · ${hecho.vols.length} voluntarios inactivos creados` : ''}</p>
+        <p style="font-size:.82rem;color:var(--label2);line-height:1.6">${hecho.arch.length} asignaciones · ${hecho.nr.length} turnos que no salieron adelante${hecho.vols.length ? ` · ${hecho.vols.length} voluntarios fuera del grupo añadidos` : ''}</p>
         <div style="display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap">
           <button class="btn btn-ghost" onclick="impDeshacer()">↩︎ Deshacer esta importación</button>
           <button class="btn btn-navy" onclick="closeModal('mvol');loadEstadisticas(true)">Ver estadísticas</button></div></div>`;
@@ -7856,7 +7905,7 @@ async function impEjecutar() {
 
 async function impDeshacer() {
   const h = IMP.ultimos; if (!h) return;
-  if (!confirm('¿Deshacer la importación? Se borrarán las asignaciones, los turnos sin cubrir y los voluntarios creados en ella.')) return;
+  if (!confirm('¿Deshacer la importación? Se borrarán las asignaciones, los turnos sin cubrir y los voluntarios añadidos en ella.')) return;
   try {
     const lote = async (tabla, ids) => { for (let i = 0; i < ids.length; i += 40) await sbDelete(tabla, 'id=in.(' + ids.slice(i, i + 40).join(',') + ')'); };
     if (h.arch.length) await lote('historial_archivo', h.arch);
@@ -7866,6 +7915,40 @@ async function impDeshacer() {
     S.volsAll = null; ST.raw = null; ST.S = null; EV.data = null;
     closeModal('mvol'); toast('Importación deshecha', 'ok'); loadEstadisticas(true);
   } catch(e) { toast('No se pudo deshacer del todo: ' + e.message, 'err'); }
+}
+
+// ── Anular turno: queda como turno NO realizado y cuenta así en las estadísticas ─────────────
+// Se guarda en turnos_no_realizados (origen 'anulado'). No borra a nadie de la lista de apuntados ni del
+// historial: solo dice "este turno no se hizo". Se puede restaurar cuando se quiera.
+function _esAnulado(t) { return !!(window._anulados && window._anulados.has(dmyAIso(t.fecha) + '|' + t.rango)); }
+async function _cargarAnulados() {
+  const r = await sbGet('turnos_no_realizados', 'select=fecha,rango,motivo,origen&origen=eq.anulado').catch(() => null);
+  window._anuladosDisponible = r !== null;     // false = falta ejecutar 03_turnos_no_realizados.sql
+  window._anulados = r === null ? null : new Map(r.map(a => [a.fecha + '|' + a.rango, a]));
+  return window._anulados;
+}
+function _anulRefrescar(vista) {
+  ST.raw = null; ST.S = null; EV.data = null; window._bOk = false;
+  if (vista === 'bajas') loadBajas(true); else loadEnVivo(true, true);
+}
+async function anularTurno(fecha, rango, presentes, motivo, vista) {
+  if (window._anuladosDisponible === false) { toast('Para anular turnos hay que ejecutar antes supabase/03_turnos_no_realizados.sql (ver NOTIFICACIONES.md)', 'err'); return; }
+  const cuando = _evFechaCorta(fecha) + ' · ' + rango;
+  if (!confirm(`¿Anular el turno ${cuando}?\n\nQuedará como turno NO realizado (${motivo === 'bajas' ? 'por bajas' : 'sin voluntarios suficientes'}) y contará así en las estadísticas.\nNo se borra a ningún voluntario del turno y puedes restaurarlo cuando quieras.`)) return;
+  try {
+    await sbDelete('turnos_no_realizados', 'fecha=eq.' + fecha + '&rango=eq.' + encodeURIComponent(rango));   // por si ya constaba como sin cubrir
+    await sbPost('turnos_no_realizados', [{ fecha, rango, motivo, planificados: presentes || 0, origen: 'anulado' }]);
+    toast('Turno anulado ✓', 'ok');
+    _anulRefrescar(vista);
+  } catch(e) { toast('No se pudo anular: ' + e.message, 'err'); }
+}
+async function restaurarTurno(fecha, rango, vista) {
+  if (!confirm(`¿Restaurar el turno ${_evFechaCorta(fecha)} · ${rango}? Volverá a contar como un turno normal.`)) return;
+  try {
+    await sbDelete('turnos_no_realizados', 'fecha=eq.' + fecha + '&rango=eq.' + encodeURIComponent(rango) + '&origen=eq.anulado');
+    toast('Turno restaurado ✓', 'ok');
+    _anulRefrescar(vista);
+  } catch(e) { toast('No se pudo restaurar: ' + e.message, 'err'); }
 }
 
 // ── Indicar a mano "al menos N turnos con baja" en un mes (dato aproximado)
@@ -7921,6 +8004,147 @@ async function apConfirmar(fecha, rango, dia) {
     toast(`Turno confirmado (${pend.length} en el equipo) ✓`, 'ok');
     loadApuntes(true);
   } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DISPONIBILIDAD Y CONEXIÓN HORARIA
+//  ¿Con cuántos otros voluntarios coincide el horario de cada uno? Un voluntario
+//  cuyas franjas casi no coinciden con las de los demás lo tiene difícil para que
+//  salga un turno con él (hace falta juntar MIN voluntarios a la vez).
+// ══════════════════════════════════════════════════════════════
+const _dDias = ['Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado', 'Domingo'];
+const _dCorto = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const _dLetra = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+
+// "10:00 a 13:00" → horas enteras cubiertas por completo (10, 11, 12)
+function _dispoHoras(horario, h0, h1) {
+  const m = /(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/.exec(horario || '');
+  if (!m) return [];
+  const ini = Math.ceil(+m[1] + +m[2] / 60), fin = Math.floor(+m[3] + +m[4] / 60), out = [];
+  for (let h = Math.max(ini, h0); h < Math.min(fin, h1); h++) out.push(h);
+  return out;
+}
+
+// disp = filas de disponibilidad {voluntario_id, dia, horario}; vols = voluntarios a analizar (activos)
+// o = { DUR (horas de un turno), MIN (voluntarios para hacer turno), h0, h1, nunca:Set, dejo:Set,
+//       demanda: matriz 7×H con cuántos turnos ha habido en cada día/hora (para medir el encaje) }
+function _dispoModelo(disp, vols, o) {
+  o = o || {};
+  const h0 = o.h0 ?? 8, h1 = o.h1 ?? 22, DUR = o.DUR || 2, MIN = o.MIN || 3, H = h1 - h0, NV = Math.max(0, H - DUR + 1);
+  const dIdx = d => _dDias.indexOf(normDia(d));
+  const avail = new Map(vols.map(v => [v.id, Array.from({ length: 7 }, () => new Array(H).fill(false))]));
+  (disp || []).forEach(r => {
+    const a = avail.get(r.voluntario_id), d = dIdx(r.dia);
+    if (!a || d < 0) return;
+    _dispoHoras(r.horario, h0, h1).forEach(h => { a[d][h - h0] = true; });        // unión de todas las semanas del mes
+  });
+  // Ventanas de turno (DUR horas seguidas) que cada voluntario puede cubrir enteras
+  const ventana = new Map();
+  avail.forEach((a, id) => {
+    const w = Array.from({ length: 7 }, () => new Array(NV).fill(false));
+    for (let d = 0; d < 7; d++) for (let s = 0; s < NV; s++) { let ok = true; for (let k = 0; k < DUR; k++) if (!a[d][s + k]) { ok = false; break; } w[d][s] = ok; }
+    ventana.set(id, w);
+  });
+  const grupo = Array.from({ length: 7 }, () => new Array(H).fill(0));      // voluntarios disponibles en cada hora
+  avail.forEach(a => { for (let d = 0; d < 7; d++) for (let h = 0; h < H; h++) if (a[d][h]) grupo[d][h]++; });
+  const cuentaV = Array.from({ length: 7 }, () => new Array(NV).fill(0));   // voluntarios que cubren cada ventana entera
+  ventana.forEach(w => { for (let d = 0; d < 7; d++) for (let s = 0; s < NV; s++) if (w[d][s]) cuentaV[d][s]++; });
+
+  const rangos = a => a.map((dia, d) => {
+    const partes = []; let i = 0;
+    while (i < H) { if (dia[i]) { let j = i; while (j < H && dia[j]) j++; partes.push((h0 + i) + '–' + (h0 + j)); i = j; } else i++; }
+    return partes.length ? _dCorto[d] + ' ' + partes.join(', ') : '';
+  }).filter(Boolean).join(' · ');
+
+  const lista = vols.map(v => {
+    const a = avail.get(v.id), w = ventana.get(v.id);
+    let horas = 0, nVent = 0, nConect = 0, suma = 0;
+    a.forEach(dia => dia.forEach(x => { if (x) horas++; }));
+    // Encaje: qué parte de sus horas cae donde de verdad se hacen turnos
+    let horasDem = 0;
+    if (o.demanda) a.forEach((dia, d) => dia.forEach((x, hh) => { if (x && o.demanda[d][hh] > 0) horasDem++; }));
+    const pctDem = o.demanda && horas ? Math.round(100 * horasDem / horas) : null;
+    const encaje = pctDem === null ? null : pctDem < 35 ? 'lejos' : pctDem < 60 ? 'medio' : 'bien';
+    for (let d = 0; d < 7; d++) for (let s = 0; s < NV; s++) if (w[d][s]) { nVent++; const otros = cuentaV[d][s] - 1; suma += otros; if (otros >= MIN - 1) nConect++; }
+    const pct = nVent ? Math.round(100 * nConect / nVent) : null;
+    const nivel = horas === 0 ? 'sin' : nVent === 0 ? 'corto' : pct < 25 ? 'aislado' : pct < 60 ? 'poco' : 'bien';
+    return {
+      id: v.id, nombre: v.nombre, horas, dias: a.filter(dia => dia.some(Boolean)).length, nVent, pct, nivel, pctDem, encaje,
+      mediaOtros: nVent ? Math.round(10 * suma / nVent) / 10 : null,
+      resumen: rangos(a),
+      // para dibujar: por día y hora, cuántos OTROS voluntarios coinciden (−1 = no está disponible)
+      mapa: a.map((dia, d) => dia.map((x, hh) => x ? grupo[d][hh] - 1 : -1)),
+      grupo: o.nunca && o.nunca.has(v.id) ? 'nunca' : o.dejo && o.dejo.has(v.id) ? 'dejo' : 'participa',
+    };
+  });
+  // Mejor franja: la ventana con más voluntarios que pueden cubrirla entera
+  let mejor = null;
+  for (let d = 0; d < 7; d++) for (let s = 0; s < NV; s++) if (!mejor || cuentaV[d][s] > mejor.n) mejor = { d, s, n: cuentaV[d][s] };
+  const media = g => {
+    const xs = lista.filter(x => x.grupo === g && x.pct !== null).map(x => x.pct), ds = lista.filter(x => x.grupo === g && x.pctDem !== null).map(x => x.pctDem);
+    return xs.length ? { n: xs.length, pct: Math.round(xs.reduce((a, b) => a + b, 0) / xs.length), dem: ds.length ? Math.round(ds.reduce((a, b) => a + b, 0) / ds.length) : null } : null;
+  };
+  return { h0, h1, H, DUR, MIN, grupo, cuentaV, lista, demanda: o.demanda || null,
+    sinHorario: lista.filter(x => x.nivel === 'sin').length,
+    mejor: mejor && mejor.n ? { dia: _dCorto[mejor.d], desde: h0 + mejor.s, hasta: h0 + mejor.s + DUR, n: mejor.n } : null,
+    medias: { nunca: media('nunca'), dejo: media('dejo'), participa: media('participa') } };
+}
+
+// ── Interfaz: se pinta dentro de Estadísticas
+const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '#f5a623' : c === 2 ? '#c6d84a' : c <= 4 ? '#5bbf6a' : '#1a9648';
+const _dNivelTxt = { sin: ['Sin horario registrado', 'var(--label3)'], corto: ['Tramos más cortos que un turno', '#e5484d'], aislado: ['Muy desconectado', '#e5484d'], poco: ['Poco conectado', 'var(--amber)'], bien: ['Bien conectado', '#146c34'] };
+
+function _stDispoStrip(x, D) {
+  const c = 7, W = 14 + D.H * c, Hh = 7 * c;
+  let s = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" style="flex-shrink:0" role="img" aria-label="Horario de ${escH(x.nombre)}">`;
+  for (let d = 0; d < 7; d++) {
+    s += `<text x="0" y="${d * c + c - 1}" font-size="6" fill="var(--label3)">${_dLetra[d]}</text>`;
+    for (let h = 0; h < D.H; h++) {
+      const o = x.mapa[d][h];
+      const dm = D.demanda && D.demanda[d][h] > 0;
+      s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${_dCol(o)}"${dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${o < 0 ? 'no disponible' : o === 0 ? 'ningún otro voluntario coincide' : o + ' voluntario' + (o === 1 ? '' : 's') + ' más coinciden'}${dm ? ' · aquí se hacen turnos' : ''}</title></rect>`;
+    }
+  }
+  return s + '</svg>';
+}
+
+function _stDispoHTML() {
+  const S = ST.S, D = S && S.dispo;
+  if (!D || !D.lista.length) return '';
+  const f = ST.dispFiltro || (D.lista.some(x => x.grupo === 'nunca') ? 'nunca' : 'todos');
+  const cont = { nunca: D.lista.filter(x => x.grupo === 'nunca').length, dejo: D.lista.filter(x => x.grupo === 'dejo').length, todos: D.lista.length,
+    menos: D.lista.filter(x => ['aislado', 'corto', 'sin', 'poco'].includes(x.nivel) || x.encaje === 'lejos').length };
+  const orden = x => x.nivel === 'sin' ? -3 : x.nivel === 'corto' ? -2 : Math.min(x.pct === null ? 100 : x.pct, x.pctDem === null ? 100 : x.pctDem);
+  const dificil = x => ['aislado', 'corto', 'sin', 'poco'].includes(x.nivel) || x.encaje === 'lejos';
+  let lista = D.lista.filter(x => f === 'todos' || (f === 'menos' ? dificil(x) : x.grupo === f));
+  lista = [...lista].sort((a, b) => orden(a) - orden(b) || a.nombre.localeCompare(b.nombre));
+  const max = Math.max(1, ...D.grupo.flat());
+  const cabeceras = _dCorto.map(d => `<th>${d}</th>`).join('');
+  const filasHora = Array.from({ length: D.H }, (_, h) => `<tr><th>${D.h0 + h}h</th>${_dCorto.map((_, d) => { const n = D.grupo[d][h], a = n ? 0.12 + 0.8 * n / max : 0;
+    return `<td style="background:${n ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}${D.demanda && D.demanda[d][h] > 0 ? ';box-shadow:inset 0 0 0 1.5px #0a1628' : ''}" title="${_dCorto[d]} ${D.h0 + h}:00 · ${n} voluntario${n === 1 ? '' : 's'} disponible${n === 1 ? '' : 's'}${D.demanda && D.demanda[d][h] > 0 ? ' · aquí se han hecho turnos' : ''}">${n || ''}</td>`; }).join('')}</tr>`).join('');
+  const m = D.medias;
+  const cmp = m.nunca && m.participa ? `Los que <b>nunca han participado</b> coinciden en horario con otros voluntarios un <b>${m.nunca.pct} %</b> de las veces (los que participan, un ${m.participa.pct} %)${m.nunca.dem !== null && m.participa.dem !== null ? ` y solo el <b>${m.nunca.dem} %</b> de sus horas cae en franjas donde se hacen turnos (los que participan, un <b>${m.participa.dem} %</b>)` : ''}.` : '';
+  const pill = (id, lbl) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="ST.dispFiltro='${id}';ST.dispMax=25;renderEstadisticas()">${lbl} ${cont[id]}</button>`;
+  const max2 = ST.dispMax || 25, ver = lista.slice(0, max2);
+  return `<div class="st-sec"><h4>🧭 Disponibilidad y conexión horaria <span>¿coincide el horario de cada voluntario con el de los demás?</span></h4>
+    <div style="font-size:.76rem;color:var(--label2);line-height:1.55;margin-bottom:.7rem">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>. Cada voluntario tiene abajo su horario dibujado: <b>cada cuadro es una hora</b>, su color indica <b>cuántos otros voluntarios coinciden</b> en ella y el <b>borde oscuro</b> marca las horas en las que <b>se hacen turnos</b>. Quien casi no coincide con nadie, o cuyo horario cae lejos de donde se hacen los turnos, lo tiene difícil para participar aunque quiera.${cmp ? '<br>' + cmp : ''}${D.mejor ? `<br>Donde más voluntarios coinciden: <b>${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h</b> (${D.mejor.n} voluntarios pueden cubrirla entera).` : ''}${D.sinHorario ? `<br>⚠️ ${D.sinHorario} voluntario${D.sinHorario === 1 ? '' : 's'} activo${D.sinHorario === 1 ? '' : 's'} no ${D.sinHorario === 1 ? 'tiene' : 'tienen'} ningún horario registrado.` : ''}</div>
+    <div class="st-cols">
+      <div><div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.35rem">Todos los voluntarios: cuántos están disponibles cada hora</div>
+        <div style="max-height:330px;overflow:auto"><table class="st-heat"><thead><tr><th></th>${cabeceras}</tr></thead><tbody>${filasHora}</tbody></table></div></div>
+      <div style="font-size:.72rem;color:var(--label2);line-height:1.7"><div style="font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin-bottom:.35rem">Cómo leer los cuadritos de cada voluntario</div>
+        <span><i class="st-pt" style="background:#e5484d"></i> ningún otro voluntario coincide en esa hora</span><br><span><i class="st-pt" style="background:#f5a623"></i> 1 otro</span><br><span><i class="st-pt" style="background:#c6d84a"></i> 2 otros (ya se llega a 3)</span><br><span><i class="st-pt" style="background:#5bbf6a"></i> 3–4 otros</span><br><span><i class="st-pt" style="background:#1a9648"></i> 5 o más</span><br><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está disponible</span><br><span><i class="st-pt" style="background:#fff;border:1.5px solid #0a1628"></i> borde oscuro: horas en las que se hacen turnos</span>
+        <div style="margin-top:.6rem;color:var(--label3)"><b>Coincide con otros</b>: % de las franjas de ${D.DUR} h que puede cubrir en las que además coinciden al menos ${D.MIN - 1} voluntarios más.<br><b>Encaja con los turnos</b>: % de sus horas que caen en días y horas donde ha habido turnos.</div></div>
+    </div>
+    <div class="ev-filtros" style="margin-top:.9rem">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Los menos conectados')}${pill('dejo', '💤 Dejaron de participar')}${pill('todos', 'Todos')}</div>
+    ${ver.length ? ver.map(x => `<div class="dp-fila">
+      <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:600;text-decoration:none">${escH(x.nombre)}</a>
+        <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div></div>
+      ${x.nivel === 'sin' ? '<div class="dp-strip" style="font-size:.7rem;color:var(--label3)">—</div>' : `<div class="dp-strip">${_stDispoStrip(x, D)}</div>`}
+      <div class="dp-inf"><div style="font-size:.74rem;font-weight:700;color:${_dNivelTxt[x.nivel][1]}">${_dNivelTxt[x.nivel][0]}${x.pct !== null ? ' · ' + x.pct + ' %' : ''}</div>
+        <div style="font-size:.66rem;color:${x.encaje === 'lejos' ? '#e5484d' : x.encaje === 'medio' ? 'var(--amber)' : 'var(--label3)'}">${x.pctDem !== null ? 'Encaja con los turnos: ' + x.pctDem + ' % de su horario' : ''}</div>
+        <div style="font-size:.66rem;color:var(--label3)">${x.resumen ? escH(x.resumen) : 'sin horario'}${x.mediaOtros !== null ? ' · coinciden ' + String(x.mediaOtros).replace('.', ',') + ' voluntarios de media' : ''}</div></div></div>`).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
+    ${lista.length > max2 ? `<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="ST.dispMax=${max2 + 25};renderEstadisticas()">Ver ${Math.min(25, lista.length - max2)} más (${lista.length - max2} restantes)</button>` : ''}
+  </div>`;
 }
 
 // ── INIT
