@@ -122,12 +122,24 @@ vista.
   de los próximos 14 días necesitan atención.
 - **📋 Copiar aviso**: deja en el portapapeles un texto listo para el grupo con
   el hueco y el enlace a Sustituciones.
+- **👥 Sugerir sustitutos** (en los turnos que necesitan atención): lista de
+  quién puede cubrir, con el mismo cálculo de disponibilidad y descanso que la
+  pestaña Bajas, más una comprobación propia de que su **horario cubra las horas
+  del turno** (separa "cubren todo el turno", "solo parte" y "no disponibles").
+  Quien se ofreció ese día sube arriba. Por candidato: 📋 copiar mensaje,
+  💬 abrir WhatsApp con el texto ya escrito y ✓ Asignar (lo apunta al turno).
+- **📊 Ficha de voluntario** (pulsa un nombre en En vivo, o *Voluntarios → 📊
+  Ficha*): turnos hechos y próximos, bajas y tasa de baja, apuntes (y cancelados),
+  último turno, carga de los últimos 60 días frente a la media del grupo, turnos
+  por mes y avisos automáticos (🔥 carga alta, 💤 inactivo, ⚠️ bajas frecuentes).
 - **⚡ Últimas novedades**: bajas, apuntes (y si cubren una baja), confirmaciones
   de equipo. Pulsar una novedad salta a su turno. Lo que no deja marca de tiempo
-  en la base de datos (apunte cancelado, baja anulada, persona quitada de un
-  turno) se detecta comparando con la última visita y se guarda en el navegador
-  (`envivo_snap` / `envivo_log`): solo se ve si esa app estaba abierta al ocurrir
-  el cambio o se abre después, pero nunca lo inventa.
+  en las tablas (apunte cancelado, baja anulada, persona quitada de un turno) sale
+  de la tabla **`actividad`**, que rellenan unos disparadores de la base de datos
+  ([`supabase/01_actividad.sql`](supabase/01_actividad.sql)) — queda registrado
+  siempre. Si aún no la has creado, la vista lo detecta comparando con la última
+  visita y lo guarda en el navegador (`envivo_snap` / `envivo_log`): solo se ve si
+  esa app estaba abierta, pero nunca lo inventa.
 - **Turnos confirmados** ahora marca con 🏥 y tachado a quien tiene una baja
   activa en ese turno.
 
@@ -158,7 +170,13 @@ página sobrevive a que Android mate la pestaña en segundo plano). Por eso el
 aviso a Telegram lo dispara Supabase directamente al insertarse la fila —
 `supabase/functions/notificar-telegram/` + dos Database Webhooks. Se despliega
 entero desde el panel de Supabase, sin CLI. Guía paso a paso:
-[`NOTIFICACIONES.md`](NOTIFICACIONES.md).
+[`NOTIFICACIONES.md`](NOTIFICACIONES.md), que incluye además:
+
+- **Avisos de cancelación** (apunte cancelado, baja anulada) gracias al registro
+  de actividad (`supabase/01_actividad.sql`).
+- **Aviso de turno en riesgo**: cada hora revisa los turnos de las próximas 48 h y
+  avisa por Telegram de los que no llegan al mínimo, sin repetirse
+  (`supabase/functions/avisos-turnos` + `supabase/02_avisos.sql`).
 
 ## Pruebas
 
@@ -169,6 +187,15 @@ franjas habilitadas, mes completo):
 
 ```bash
 node test/motor-global.test.js
+```
+
+Incluye además el modelo de la vista *En vivo* y de la ficha de voluntario. La
+función `avisos-turnos` tiene su propia prueba, que carga el `index.ts` tal cual
+con Supabase, Telegram y el reloj simulados (autorización, horario, no repetir,
+"ya cubierto", cambio horario):
+
+```bash
+node test/avisos-turnos.test.js
 ```
 
 ## Despliegue

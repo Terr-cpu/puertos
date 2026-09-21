@@ -3042,6 +3042,7 @@ async function loadVoluntarios(force) {
         <div class="vol-acts">
           <button class="btn btn-ghost btn-sm" data-vnom="${nom.replace(/"/g,'&quot;')}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Nombre</button>
           <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nom.replace(/'/g,"\\'")}', ${llave})">✏️ Editar</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nom.replace(/'/g,"\\'")}')">📊 Ficha</button>
           <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nom.replace(/'/g,"\\'")}')">📋 Turnos</button>
         </div>`;
       c.appendChild(el);
@@ -5372,7 +5373,8 @@ async function apAbrirCandidatos(btn, fecha, rango, dia) {
     const data = await rpc('quien_puede_cubrir', {
       p_semana: semana, p_dia: normDia(dia), p_rango: rango, p_fecha: fiso
     });
-    const cands = Array.isArray(data) ? data : [];
+    // El RPC devuelve {candidatos:[{nombre,llave,dias,estado,horario}]}; los bloqueados por descanso no valen
+    const cands = (Array.isArray(data) ? data : (data?.candidatos || [])).filter(c => c.estado !== 'bloqueado');
     if (!cands.length) {
       panel.innerHTML = `<div style="font-size:.78rem;color:var(--label3);font-style:italic;padding:.3rem 0">Sin candidatos disponibles para este turno.</div>`;
       return;
@@ -5384,15 +5386,15 @@ async function apAbrirCandidatos(btn, fecha, rango, dia) {
       <div style="display:flex;flex-direction:column;gap:.25rem">
         ${cands.slice(0,8).map((v,i) => {
           const ini = (v.nombre||'?').split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
-          const descanso = v.dias_descanso != null ? v.dias_descanso+'d descanso' : '';
-          const urgente = v.dias_descanso != null && v.dias_descanso < 5;
+          const descanso = v.dias != null ? (v.dias >= 99 ? 'Voluntario nuevo' : v.dias+'d descanso') : '';
+          const urgente = v.dias != null && v.dias < 5;
           return `<div style="display:flex;align-items:center;gap:.5rem;padding:.32rem .55rem;
             border-radius:var(--r-sm);background:${i===0?'var(--blue-soft)':'var(--surface2)'};
             border:1px solid ${i===0?'rgba(0,113,227,.2)':'var(--sep)'}">
             <div style="width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--gold);
               display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:700;flex-shrink:0">${ini}</div>
             <div style="flex:1">
-              <div style="font-size:.78rem;font-weight:600">${v.nombre}${v.tiene_llave?' 🔑':''}</div>
+              <div style="font-size:.78rem;font-weight:600">${v.nombre}${v.llave?' 🔑':''}</div>
               ${descanso?`<div style="font-size:.62rem;color:${urgente?'var(--amber)':'var(--label3)'}">${descanso}</div>`:''}
             </div>
             ${i===0?`<span style="font-size:.58rem;font-weight:700;padding:.1rem .38rem;border-radius:4px;background:var(--blue);color:#fff">Mejor opción</span>`:''}
@@ -6123,6 +6125,18 @@ function _evModelo(raw, hoy, reglas) {
     ev.push({ ts:r.registrado_en, tipo: dc ? 'dia' : cubre ? 'cubre' : 'apunte', k: dc ? '' : r.fecha + '|' + r.rango,
       texto:`<b>${escH(r.nombre)}</b> ${dc ? 'se ofrece todo el día ' + dm(r.fecha) : (cubre ? 'se apuntó para cubrir una baja' : 'se apuntó') + ' · ' + escH(r.rango) + ' · ' + dm(r.fecha)}` });
   });
+  // Registro de auditoría (supabase/01_actividad.sql): lo que no deja marca en las otras tablas
+  (raw.actividad || []).forEach(a => {
+    if (!a.ts || a.ts < limite) return;
+    const nom = escH(a.nombre || '(voluntario)'), rg = a.rango ? ' · ' + escH(a.rango) : '', d = a.fecha ? ' · ' + dm(a.fecha) : '';
+    const k = a.fecha && a.rango ? a.fecha + '|' + a.rango : '';
+    if (a.tipo === 'apunte_cancelado') ev.push({ ts:a.ts, tipo:'cancel', k, texto:`<b>${nom}</b> canceló su apunte${rg}${d}` });
+    else if (a.tipo === 'baja_anulada') {
+      const vuelve = (raw.refs || []).some(r => r.voluntario_id === a.voluntario_id && r.fecha === a.fecha && r.rango === a.rango);
+      ev.push({ ts:a.ts, tipo:'anulada', k, texto: vuelve ? `<b>${nom}</b> se reincorporó${rg}${d}` : `Baja anulada: <b>${nom}</b>${rg}${d}` });
+    }
+    else if (a.tipo === 'equipo_quitado') ev.push({ ts:a.ts, tipo:'quitado', k, texto:`<b>${nom}</b> ya no está en el equipo${rg}${d}` });
+  });
   const lotes = new Map();
   (raw.hist || []).forEach(h => {
     if (!h.confirmado_en || h.confirmado_en < limite) return;
@@ -6175,14 +6189,17 @@ function _evLeerLog() { try { return JSON.parse(localStorage.getItem(EV_LOG_KEY)
 
 async function _evFetch() {
   const desde = _evSumaDias(_evHoy(), -35), q = 'fecha=gte.' + desde;
-  const [hist, bajas, refs, vols, cal] = await Promise.all([
+  const hace30 = new Date(Date.now() - 30 * 86400000).toISOString();
+  const [hist, bajas, refs, vols, cal, actividad] = await Promise.all([
     sbGet('v_historial', q + '&select=fecha,dia,rango,nombre,tiene_llave,voluntario_id,confirmado_en&order=fecha,rango&limit=1000'),
     sbGet('bajas', q + '&select=voluntario_id,fecha,dia,rango,registrado_en,activa&limit=1000'),
     sbGet('v_refuerzos', q + '&select=fecha,dia,rango,es_dia_completo,registrado_en,nombre,tiene_llave,voluntario_id&order=registrado_en.desc&limit=1000'),
     sbGet('voluntarios', 'select=id,nombre'),
     sbGet('v_calendario', q + '&order=fecha').catch(() => []),
+    // null = la tabla aún no existe (no se ha ejecutado supabase/01_actividad.sql)
+    sbGet('actividad', 'ts=gte.' + hace30 + '&tipo=in.(apunte_cancelado,baja_anulada,equipo_quitado)&order=ts.desc&limit=200').catch(() => null),
   ]);
-  return { hist, bajas, refs, vols, cal };
+  return { hist, bajas, refs, vols, cal, actividad };
 }
 
 async function loadEnVivo(force, silencioso) {
@@ -6193,10 +6210,12 @@ async function loadEnVivo(force, silencioso) {
   try {
     const raw = await _evFetch();
     const hoy = _evHoy();
-    _evDetectarCambios(raw, hoy, new Map(raw.vols.map(v => [v.id, v.nombre])));
+    // Con la auditoría en la base de datos no hace falta detectar cambios a mano
+    EV.auditoria = raw.actividad !== null;
+    if (!EV.auditoria) _evDetectarCambios(raw, hoy, new Map(raw.vols.map(v => [v.id, v.nombre])));
     const M = _evModelo(raw, hoy, cargarReglas());
-    M.eventos.push(..._evLeerLog());
-    M.eventos.sort((a, b) => a.ts < b.ts ? 1 : -1);
+    if (!EV.auditoria) M.eventos.push(..._evLeerLog());
+    M.eventos.sort((a, b) => new Date(b.ts) - new Date(a.ts));
     EV.data = M; EV.ts = Date.now(); EV.error = ''; window._evOk = true;
   } catch(e) {
     EV.error = e.message || 'sin conexión';
@@ -6309,6 +6328,7 @@ function renderEnVivo() {
       <div class="ev-ico" style="background:${col}22;border:1.5px solid ${col}55">${ic}</div>
       <div><div class="t">${e.texto}</div><div class="h">${_evRel(e.ts)}${nuevo ? ' · nuevo' : ''}</div></div></div>`;
   }).join('') : `<div style="text-align:center;padding:2rem 1rem;font-size:.8rem;color:var(--label3)">Sin novedades todavía</div>`;
+  if (!EV.auditoria) feed.insertAdjacentHTML('beforeend', `<div style="padding:.7rem .85rem;font-size:.68rem;color:var(--label3);line-height:1.45">ℹ️ Las cancelaciones se detectan solo desde este navegador. Para registrarlas siempre, ejecuta <b>supabase/01_actividad.sql</b> (ver NOTIFICACIONES.md).</div>`);
 }
 
 function _evCard(t) {
@@ -6320,11 +6340,12 @@ function _evCard(t) {
   const chips = t.chips.map(c => {
     const ic = c.tipo === 'baja' ? '🏥' : c.tipo === 'apunte' ? '✋' : c.tipo === 'vuelve' ? '↩️' : '✓';
     const tit = c.tipo === 'baja' ? 'Baja' : c.tipo === 'apunte' ? 'Apuntado desde Sustituciones' : c.tipo === 'vuelve' ? 'Había dado baja y se ha vuelto a apuntar' : 'Confirmado';
-    return `<span class="ev-chip ${c.tipo} ${c.llave ? 'llave' : ''}" title="${tit}">${ic} ${escH(c.nombre)}${c.llave ? ' 🔑' : ''}</span>`;
+    return `<span class="ev-chip ${c.tipo} ${c.llave ? 'llave' : ''}" style="cursor:pointer" data-n="${escH(c.nombre)}" data-id="${escH(c.id || '')}" onclick="abrirFicha(this.dataset.n,this.dataset.id)" title="${tit} · pulsa para ver su ficha">${ic} ${escH(c.nombre)}${c.llave ? ' 🔑' : ''}</span>`;
   }).join('') || `<span class="ev-vacio">${t.abierto ? 'Franja habilitada sin nadie — abierta en Sustituciones' : 'Sin voluntarios'}</span>`;
   const pie = [];
   if (t.solapaCon) pie.push(`<span class="ev-badge ambar" title="La franja habilitada en el calendario coincide en horas con un turno ya formado">↔ Se solapa con el turno de ${escH(t.solapaCon)}</span>`);
   if (t.sinLlave) pie.push('<span class="ev-badge ambar">🔑 Sin portador de llave</span>');
+  if (t.atencion) pie.push(`<button class="btn btn-navy btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evSugerir(this.dataset.k)">👥 Sugerir sustitutos</button>`);
   if (t.atencion) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evCopiarAviso(this.dataset.k)">📋 Copiar aviso</button>`);
   if (t.bajas.length) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="setTab('bajas')">🏥 Ver bajas</button>`);
   if (t.novedad) pie.push(`<span>Última novedad ${_evRel(t.novedad)}</span>`);
@@ -6354,6 +6375,225 @@ function evCopiarAviso(k) {
   const ok = () => toast('Aviso copiado — pégalo en el grupo', 'ok');
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el aviso:', txt));
   else window.prompt('Copia el aviso:', txt);
+}
+
+// ── Sugerir sustitutos desde En vivo ─────────────────────────
+// Usa el mismo RPC que la pestaña Bajas (quien_puede_cubrir) y lo cruza con lo
+// que ya sabe En vivo: quien ya está en el turno o dio baja no se propone, y
+// quien se ofreció "todo el día" sube arriba.
+function _evCuando(fecha) {
+  const [y, m, d] = fecha.split('-').map(Number);
+  return DIAS_ES_L[new Date(y, m - 1, d).getDay()].toLowerCase() + ' ' + d + '/' + String(m).padStart(2, '0');
+}
+function _evSemanaDia(fecha) {
+  const [y, m, d] = fecha.split('-').map(Number);
+  return { semana: d <= 7 ? 1 : d <= 14 ? 2 : d <= 21 ? 3 : d <= 28 ? 4 : 5, dia: normDia(DIAS_ES_L[new Date(y, m - 1, d).getDay()]) };
+}
+function _evMensajeSust(nombre, t) {
+  const pila = (nombre || '').split(' ')[0].toLowerCase().replace(/^./, c => c.toUpperCase());
+  return `Hola ${pila}, ¿podrías cubrir el turno del ${_evCuando(t.fecha)} de ${t.rango} en el Puerto? Si puedes, apúntate aquí: ${SUST_URL_FIJA}`;
+}
+
+async function evSugerir(k) {
+  const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
+  document.getElementById('mvol-titulo').textContent = `👥 Sustitutos — ${_evFechaCorta(t.fecha)} · ${t.rango}`;
+  const body = document.getElementById('mvol-body');
+  body.innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Buscando candidatos…</p></div>`;
+  openModal('mvol');
+  try {
+    const sd = _evSemanaDia(t.fecha);
+    const data = await rpc('quien_puede_cubrir', { p_semana: sd.semana, p_dia: sd.dia, p_rango: t.rango, p_fecha: t.fecha });
+    const yaEn = new Set(t.chips.map(c => c.nombre.toUpperCase()));
+    const ofrecidos = new Set(((EV.data.dias.get(t.fecha) || {}).diaCompleto || []).map(x => x.nombre.toUpperCase()));
+    const cands = (Array.isArray(data) ? data : (data?.candidatos || [])).filter(c => !yaEn.has(String(c.nombre).toUpperCase()));
+    // Orden: ofrecidos ese día, luego disponibles antes que reducidos; más descanso primero
+    const peso = c => (ofrecidos.has(c.nombre.toUpperCase()) ? -100 : 0) + (c.estado === 'reducido' ? 50 : 0) - Math.min(c.dias || 0, 30);
+    // El RPC solo mira semana/día: se comprueba aquí si su horario cubre las horas del turno
+    const hr = /(\d{1,2}):\d{2}\s*a\s*(\d{1,2}):\d{2}/.exec(t.rango);
+    const cob = c => {
+      const h = /(\d{1,2}):\d{2}\s*a\s*(\d{1,2}):\d{2}/.exec(c.horario || '');
+      if (!h || !hr) return 'total';
+      const [i, o, r0, r1] = [+h[1], +h[2], +hr[1], +hr[2]];
+      return i <= r0 && o >= r1 ? 'total' : Math.min(o, r1) - Math.max(i, r0) > 0 ? 'parcial' : 'nada';
+    };
+    const libres = cands.filter(c => c.estado !== 'bloqueado');
+    const utiles = libres.filter(c => cob(c) === 'total').sort((a, b) => peso(a) - peso(b));
+    const parciales = libres.filter(c => cob(c) === 'parcial').sort((a, b) => peso(a) - peso(b));
+    const bloq = cands.filter(c => c.estado === 'bloqueado' || cob(c) === 'nada');
+    const falta = t.estado === 'vacio' ? 'Sin nadie apuntado' : t.faltan ? `Faltan ${t.faltan}` : 'Turno completo';
+    const fila = (c, bloqueado) => {
+      const nom = escH(c.nombre), ofr = ofrecidos.has(c.nombre.toUpperCase());
+      return `<div style="display:flex;align-items:center;gap:.55rem;background:${c.estado === 'reducido' ? 'var(--amber-soft)' : bloqueado ? 'var(--surface2)' : 'var(--green-soft)'};border-radius:var(--r-sm);padding:.5rem .65rem;margin-bottom:.28rem;opacity:${bloqueado ? .6 : 1}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:.82rem;font-weight:600">${c.llave ? '🔑 ' : ''}${nom}${ofr ? ' <span style="font-size:.6rem;font-weight:700;background:#7c3aed;color:#fff;padding:.08rem .35rem;border-radius:4px">📅 se ofreció ese día</span>' : ''}</div>
+          <div style="font-size:.65rem;color:var(--label3)">🕐 ${escH(c.horario || '')}${cob(c) === 'parcial' ? ' <b style="color:var(--amber)">(solo parte del turno)</b>' : cob(c) === 'nada' ? ' <b style="color:var(--red)">(fuera de su horario)</b>' : ''} · ${c.dias >= 99 ? 'Voluntario nuevo' : c.dias + ' d descanso'}${c.estado === 'reducido' ? ' · descanso reducido' : ''}</div>
+        </div>
+        ${bloqueado ? '' : `<div style="display:flex;gap:.25rem;flex-shrink:0">
+          <button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.25rem .5rem" data-n="${nom}" data-k="${escH(t.k)}" onclick="evMsgSust(this.dataset.n,this.dataset.k,'copiar')" title="Copiar mensaje">📋</button>
+          <button class="btn btn-ghost btn-sm" style="font-size:.66rem;padding:.25rem .5rem" data-n="${nom}" data-k="${escH(t.k)}" onclick="evMsgSust(this.dataset.n,this.dataset.k,'wa')" title="Abrir WhatsApp con el mensaje">💬</button>
+          <button class="btn btn-green btn-sm" style="font-size:.66rem;padding:.25rem .55rem" data-n="${nom}" data-k="${escH(t.k)}" onclick="evAsignarSust(this)">✓ Asignar</button>
+        </div>`}
+      </div>`;
+    };
+    body.innerHTML = `
+      <div style="font-size:.78rem;color:var(--label2);margin-bottom:.75rem">${falta}${t.n ? ' · ya hay: ' + t.chips.filter(c => c.tipo !== 'baja').map(c => escH(c.nombre)).join(', ') : ''}</div>
+      ${utiles.length ? `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:.4rem">✅ Pueden cubrir (${utiles.length})</div>${utiles.map(c => fila(c, false)).join('')}`
+        : `<div class="empty" style="padding:1rem"><span class="ei">😔</span><h4>Nadie cubre el turno completo</h4><p>${parciales.length ? 'Estas personas podrían cubrir una parte:' : 'Ningún voluntario libre con horario y descanso válidos.'}</p></div>`}
+      ${parciales.length ? `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--amber);margin:.7rem 0 .4rem">⏰ Solo parte del turno (${parciales.length})</div>${parciales.map(c => fila(c, false)).join('')}` : ''}
+      ${bloq.length ? `<details style="margin-top:.6rem"><summary style="font-size:.7rem;color:var(--label3);cursor:pointer">🔒 ${bloq.length} no disponibles (descanso u horario)</summary><div style="margin-top:.4rem">${bloq.map(c => fila(c, true)).join('')}</div></details>` : ''}
+      <div style="font-size:.66rem;color:var(--label3);margin-top:.8rem;line-height:1.4">📋 copia el mensaje · 💬 abre WhatsApp para elegir contacto · ✓ Asignar lo apunta directamente al turno (queda como apunte).</div>`;
+  } catch(e) {
+    body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
+  }
+}
+
+function evMsgSust(nombre, k, modo) {
+  const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
+  const txt = _evMensajeSust(nombre, t);
+  if (modo === 'wa') { window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank', 'noopener'); return; }
+  const ok = () => toast('Mensaje copiado', 'ok');
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el mensaje:', txt));
+  else window.prompt('Copia el mensaje:', txt);
+}
+
+async function evAsignarSust(btn) {
+  const t = EV.data?.turnos.find(x => x.k === btn.dataset.k); if (!t) return;
+  const nombre = btn.dataset.n;
+  if (!confirm(`¿Apuntar a ${nombre} al turno ${t.rango} del ${_evFechaCorta(t.fecha)}?`)) return;
+  btn.disabled = true; btn.textContent = '…';
+  try {
+    const sd = _evSemanaDia(t.fecha);
+    await apiPost({ accion:'registrarRefuerzo', nombre, fecha:t.fecha, rango:t.rango, semana:sd.semana, dia:sd.dia });
+    window._bOk = false; window._apOk = false;
+    toast(`${nombre} apuntado ✓`, 'ok');
+    closeModal('mvol');
+    loadEnVivo(true, true);
+  } catch(e) { btn.disabled = false; btn.textContent = '✓ Asignar'; toast('Error: ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════
+//  FICHA DE VOLUNTARIO — actividad, fiabilidad y carga de un vistazo
+//  Se abre desde Voluntarios (📊 Ficha) y pulsando un nombre en En vivo.
+// ══════════════════════════════════════
+function _fDias(a, b) { // días entre dos fechas ISO (b - a)
+  const p = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+  return Math.round((p(b) - p(a)) / 86400000);
+}
+
+// Modelo puro: recibe las filas ya leídas y calcula todo. `hoy` = yyyy-mm-dd.
+function _fichaModelo(raw, hoy) {
+  const bajaAct = new Set((raw.bajas || []).filter(b => b.activa).map(b => b.fecha + '|' + b.rango));
+  const visto = new Set(), asignados = [];
+  [...(raw.hist || []), ...(raw.arch || [])].forEach(x => {
+    const k = x.fecha + '|' + x.rango; if (visto.has(k)) return; visto.add(k);
+    asignados.push({ fecha: x.fecha, rango: x.rango, baja: bajaAct.has(k) });
+  });
+  asignados.sort((a, b) => a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : a.rango < b.rango ? -1 : 1);
+  const hechos = asignados.filter(a => a.fecha < hoy && !a.baja);
+  const proximos = asignados.filter(a => a.fecha >= hoy && !a.baja);
+  const bajasTotal = (raw.bajas || []).length;
+  const bajasActivas = (raw.bajas || []).filter(b => b.activa && b.fecha >= hoy).length;
+  const tasaBaja = asignados.length ? Math.round(100 * bajasTotal / asignados.length) : null;
+  const desde60 = _evSumaDias(hoy, -60);
+  const n60 = hechos.filter(a => a.fecha >= desde60).length;
+  const ultimo = hechos.length ? hechos[hechos.length - 1] : null;
+  const diasDesde = ultimo ? _fDias(ultimo.fecha, hoy) : null;
+
+  // Turnos por mes (últimos 6, incluido el actual)
+  const [hy, hm] = hoy.split('-').map(Number), meses = [];
+  for (let i = 5; i >= 0; i--) { const d = new Date(hy, hm - 1 - i, 1); meses.push({ k: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), n: 0 }); }
+  [...hechos, ...proximos].forEach(a => { const m = meses.find(x => x.k === a.fecha.slice(0, 7)); if (m) m.n++; });
+
+  const apuntes = raw.refs || [];
+  const media60 = raw.media60 || 0;
+  const flags = [];
+  if (media60 && n60 >= 3 && n60 > 1.5 * media60) flags.push({ tipo: 'carga', txt: `Carga alta: ${n60} turnos en 60 días (media ${media60.toFixed(1).replace('.', ',')})` });
+  if (asignados.length && diasDesde !== null && diasDesde > 45 && !proximos.length) flags.push({ tipo: 'inactivo', txt: `Sin turnos desde hace ${diasDesde} días y ninguno programado` });
+  if (bajasTotal >= 3 && tasaBaja >= 25) flags.push({ tipo: 'bajas', txt: `Bajas frecuentes: ${bajasTotal} sobre ${asignados.length} turnos (${tasaBaja} %)` });
+  if (apuntes.length >= 3 && !hechos.length && !proximos.length) flags.push({ tipo: 'apuntes', txt: 'Se apunta a menudo pero no consta ningún turno confirmado' });
+
+  const dias = [...new Set((raw.disp || []).filter(d => d.horario).map(d => normDia(d.dia)))];
+  return {
+    hechos: hechos.length, proximos, hechosLista: hechos.slice(-5).reverse(), bajasTotal, bajasActivas, tasaBaja, n60, media60,
+    ultimo, diasDesde, meses, apuntes: apuntes.length,
+    apuntesDia: apuntes.filter(r => r.es_dia_completo || !r.rango).length,
+    cancelados: raw.cancelados === null || raw.cancelados === undefined ? null : raw.cancelados,
+    flags, diasDispo: dias, huecosDispo: (raw.disp || []).filter(d => d.horario).length,
+  };
+}
+
+async function abrirFicha(nombre, id) {
+  document.getElementById('mvol-titulo').textContent = '📊 Ficha — ' + nombre;
+  const body = document.getElementById('mvol-body');
+  body.innerHTML = `<div class="loading" style="padding:2rem 0"><div class="spinner"></div><p>Cargando ficha…</p></div>`;
+  openModal('mvol');
+  try {
+    if (!id) {
+      const v = await sbGet('voluntarios', 'nombre=ilike.' + encodeURIComponent(nombre) + '&select=id');
+      if (!v.length) throw new Error('Voluntario no encontrado');
+      id = v[0].id;
+    }
+    const hoy = _evHoy(), d60 = _evSumaDias(hoy, -60), q = 'voluntario_id=eq.' + id;
+    const [vol, hist, arch, bajas, refs, disp, canc, gH, gA] = await Promise.all([
+      sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'),
+      sbGet('v_historial', q + '&select=fecha,rango&order=fecha'),
+      sbGet('historial_archivo', q + '&select=fecha,rango').catch(() => []),
+      sbGet('bajas', q + '&select=fecha,rango,activa,registrado_en'),
+      sbGet('refuerzos', q + '&select=fecha,rango,es_dia_completo,registrado_en'),
+      sbGet('disponibilidad', q + '&select=semana,dia,horario').catch(() => []),
+      sbGet('actividad', q + '&tipo=eq.apunte_cancelado&select=id').catch(() => null),
+      sbGet('v_historial', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id'),
+      sbGet('historial_archivo', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id').catch(() => []),
+    ]);
+    const cuenta = new Map();
+    [...gH, ...gA].forEach(r => cuenta.set(r.voluntario_id, (cuenta.get(r.voluntario_id) || 0) + 1));
+    const media60 = cuenta.size ? [...cuenta.values()].reduce((a, b) => a + b, 0) / cuenta.size : 0;
+    const F = _fichaModelo({ hist, arch, bajas, refs, disp, media60, cancelados: canc ? canc.length : null }, hoy);
+    const v = vol[0] || { nombre, tiene_llave: false, activo: true };
+    const ini = v.nombre.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
+    const max = Math.max(1, ...F.meses.map(m => m.n));
+    const MES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const fmt = f => isoADMY(f).slice(0, 5);
+    const kpi = (v, l, col) => `<div class="sbox"${col ? ` style="border-left:3px solid ${col}"` : ''}><div class="sv"${col ? ` style="color:${col}"` : ''}>${v}</div><div class="sl">${l}</div></div>`;
+    const lista = (arr, vacio) => arr.length ? arr.map(a => `<div style="display:flex;justify-content:space-between;font-size:.76rem;padding:.28rem 0;border-bottom:1px solid var(--sep)"><span>${_evFechaCorta(a.fecha)}</span><span style="color:var(--label3)">${escH(a.rango)}</span></div>`).join('') : `<div style="font-size:.74rem;color:var(--label4);padding:.3rem 0">${vacio}</div>`;
+    const FI = { carga: ['🔥', 'var(--amber-soft)', 'var(--amber)'], inactivo: ['💤', 'var(--surface2)', 'var(--label3)'], bajas: ['⚠️', 'var(--red-soft)', 'var(--red)'], apuntes: ['❔', 'var(--blue-soft)', 'var(--blue)'] };
+    const nomAttr = escH(v.nombre).replace(/'/g, '&#39;');
+    body.innerHTML = `
+      <div style="display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem">
+        <div class="vavatar" style="width:46px;height:46px;font-size:.95rem">${ini}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:1.05rem;font-weight:800">${escH(v.nombre)}</div>
+          <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${v.tiene_llave ? '🔑 Portador de llave · ' : ''}${v.activo === false ? 'Inactivo' : 'Activo'}${v.creado_en ? ' · alta ' + isoADMY(v.creado_en.slice(0, 10)) : ''}</div>
+        </div>
+      </div>
+      ${F.flags.map(f => `<div style="display:flex;gap:.5rem;align-items:center;background:${FI[f.tipo][1]};color:${FI[f.tipo][2]};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.35rem;font-size:.76rem;font-weight:600"><span>${FI[f.tipo][0]}</span>${escH(f.txt)}</div>`).join('')}
+      <div class="stats-row" style="margin:.7rem 0">
+        ${kpi(F.hechos, 'Turnos hechos')}
+        ${kpi(F.proximos.length, 'Próximos', 'var(--blue)')}
+        ${kpi(F.bajasTotal + (F.bajasTotal && F.tasaBaja !== null ?` <span style="font-size:.6em;color:var(--label3)">${F.tasaBaja}%</span>` : ''), F.bajasActivas ? `Bajas (${F.bajasActivas} activas)` : 'Bajas', F.bajasTotal ? 'var(--red)' : '')}
+        ${kpi(F.apuntes, 'Apuntes' + (F.cancelados ? ` · ${F.cancelados} cancel.` : ''), 'var(--green)')}
+      </div>
+      <div style="font-size:.76rem;color:var(--label2);margin-bottom:.9rem;line-height:1.55">
+        ${F.ultimo ? `Último turno: <b>${_evFechaCorta(F.ultimo.fecha)}</b> (hace ${F.diasDesde} d)` : 'Aún no ha hecho ningún turno'}
+        ${F.proximos.length ? ` · Próximo: <b>${_evFechaCorta(F.proximos[0].fecha)}</b> ${escH(F.proximos[0].rango)}` : ''}<br>
+        Últimos 60 días: <b>${F.n60}</b> turno${F.n60 === 1 ? '' : 's'}${F.media60 ? ` (media del grupo ${F.media60.toFixed(1).replace('.', ',')})` : ''}
+        ${F.huecosDispo ? `<br>Disponibilidad: ${F.huecosDispo} franjas · ${F.diasDispo.map(d => d.slice(0, 3)).join(', ')}` : ''}
+      </div>
+      <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.4rem">Turnos por mes</div>
+      <div style="display:flex;align-items:flex-end;gap:.5rem;height:74px;margin-bottom:1rem">
+        ${F.meses.map(m => `<div style="flex:1;text-align:center"><div style="font-size:.66rem;font-weight:700;color:var(--label2)">${m.n || ''}</div><div style="height:${Math.max(3, Math.round(46 * m.n / max))}px;background:${m.n ? 'var(--blue)' : 'var(--sep)'};border-radius:4px 4px 0 0"></div><div style="font-size:.6rem;color:var(--label3);margin-top:.15rem">${MES[+m.k.slice(5) - 1]}</div></div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        <div><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.3rem">Próximos</div>${lista(F.proximos.slice(0, 5), 'Ninguno programado')}</div>
+        <div><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.3rem">Últimos</div>${lista(F.hechosLista, 'Sin turnos hechos')}</div>
+      </div>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem">
+        <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nomAttr}')">📋 Todos sus turnos</button>
+        <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nomAttr}', ${!!v.tiene_llave})">✏️ Disponibilidad</button>
+      </div>`;
+  } catch(e) {
+    body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
+  }
 }
 
 // ── INIT

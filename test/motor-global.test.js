@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -347,6 +347,73 @@ function check(nombre, cond, detalle) {
   check('naviera del día sin prefijos turno:/muelle:', JSON.stringify(M.dias.get(f).navieras) === '["MSC"]');
   check('atención: sin llave (t1) + falta (t2) + vacío (t3) = 3', M.turnos.filter(t => t.atencion).length === 3, M.turnos.filter(t => t.atencion).length + '');
   check('hay eventos de baja, apunte que cubre, día completo y confirmación', ['baja','cubre','confirm','dia'].every(tp => M.eventos.some(e => e.tipo === tp)));
+})();
+
+// ── E10: eventos que vienen del registro de actividad (auditoría en la base de datos) ──
+(function E10() {
+  console.log('\n═══ E10 · En vivo: novedades desde la tabla actividad ═══');
+  const ahora = new Date().toISOString();
+  const raw = {
+    vols: [{ id:'a', nombre:'ANA' }, { id:'b', nombre:'BEA' }],
+    hist: [], bajas: [], cal: [],
+    refs: [{ fecha:'2026-10-07', dia:'Miercoles', rango:'10:00 a 12:00', es_dia_completo:false, registrado_en:ahora, nombre:'BEA', tiene_llave:false, voluntario_id:'b' }],
+    actividad: [
+      { ts: ahora, tipo:'apunte_cancelado', voluntario_id:'a', nombre:'ANA', fecha:'2026-10-07', rango:'10:00 a 12:00' },
+      { ts: ahora, tipo:'baja_anulada', voluntario_id:'b', nombre:'BEA', fecha:'2026-10-07', rango:'10:00 a 12:00' },   // BEA tiene apunte igual → reincorporación
+      { ts: ahora, tipo:'baja_anulada', voluntario_id:'a', nombre:'ANA', fecha:'2026-10-09', rango:'10:00 a 12:00' },   // sin apunte → anulada a secas
+      { ts: ahora, tipo:'equipo_quitado', voluntario_id:'a', nombre:'ANA', fecha:'2026-10-07', rango:'10:00 a 12:00' },
+    ],
+  };
+  const M = E._evModelo(raw, '2026-10-05', { MIN_EQ:3, IDEAL:4 });
+  const tipos = M.eventos.map(e => e.tipo);
+  check('apunte cancelado → evento "cancel"', tipos.includes('cancel') && /canceló su apunte/.test(M.eventos.find(e => e.tipo === 'cancel').texto));
+  check('baja anulada + apunte de la misma persona → "se reincorporó"', M.eventos.some(e => e.tipo === 'anulada' && /BEA<\/b> se reincorporó/.test(e.texto)));
+  check('baja anulada sin apunte → "Baja anulada"', M.eventos.some(e => e.tipo === 'anulada' && /Baja anulada: <b>ANA/.test(e.texto)));
+  check('persona quitada del equipo → evento "quitado"', tipos.includes('quitado'));
+  check('los eventos con turno enlazan a su tarjeta (k)', M.eventos.find(e => e.tipo === 'cancel').k === '2026-10-07|10:00 a 12:00');
+})();
+
+// ── E11: ficha de voluntario ──
+(function E11() {
+  console.log('\n═══ E11 · Ficha de voluntario ═══');
+  const hoy = '2026-10-15';
+  const raw = {
+    hist: [
+      { fecha:'2026-10-02', rango:'10:00 a 12:00' }, { fecha:'2026-10-06', rango:'10:00 a 12:00' },
+      { fecha:'2026-10-09', rango:'10:00 a 12:00' },                 // este tendrá baja activa
+      { fecha:'2026-10-20', rango:'19:00 a 21:00' },                 // próximo
+      { fecha:'2026-10-22', rango:'19:00 a 21:00' },                 // próximo con baja activa
+    ],
+    arch: [
+      { fecha:'2026-09-05', rango:'10:00 a 12:00' }, { fecha:'2026-09-12', rango:'10:00 a 12:00' },
+      { fecha:'2026-10-02', rango:'10:00 a 12:00' },                 // duplicado del historial → no cuenta doble
+    ],
+    bajas: [
+      { fecha:'2026-10-09', rango:'10:00 a 12:00', activa:true },
+      { fecha:'2026-10-22', rango:'19:00 a 21:00', activa:true },
+      { fecha:'2026-09-19', rango:'10:00 a 12:00', activa:false },
+    ],
+    refs: [{ fecha:'2026-10-25', rango:'10:00 a 12:00', es_dia_completo:false }, { fecha:'2026-10-26', rango:null, es_dia_completo:true }],
+    disp: [{ semana:1, dia:'Sábado', horario:'10:00 a 13:00' }, { semana:2, dia:'Sabado', horario:'10:00 a 13:00' }, { semana:1, dia:'Lunes', horario:null }],
+    media60: 2, cancelados: 1,
+  };
+  const F = E._fichaModelo(raw, hoy);
+  check('turnos hechos = pasados sin baja, sin duplicar el archivo (02/10, 06/10, 05/09, 12/09 = 4)', F.hechos === 4, F.hechos + '');
+  check('próximos = futuros sin baja (solo el 20/10)', F.proximos.length === 1 && F.proximos[0].fecha === '2026-10-20');
+  check('bajas: 3 en total y 1 activa próxima', F.bajasTotal === 3 && F.bajasActivas === 1, `${F.bajasTotal}/${F.bajasActivas}`);
+  check('tasa de baja = 3 bajas / 7 turnos asignados = 43 %', F.tasaBaja === 43, F.tasaBaja + '');
+  check('últimos 60 días: 02/10 y 06/10 y 12/09 y 05/09 dentro (4)', F.n60 === 4, F.n60 + '');
+  check('último turno 06/10 → hace 9 días', F.ultimo.fecha === '2026-10-06' && F.diasDesde === 9, F.diasDesde + '');
+  check('carga alta: 4 turnos con media 2 (>1,5×)', F.flags.some(f => f.tipo === 'carga'));
+  check('bajas frecuentes: ≥3 y ≥25 %', F.flags.some(f => f.tipo === 'bajas'));
+  check('no se marca inactivo (tiene turno reciente)', !F.flags.some(f => f.tipo === 'inactivo'));
+  check('apuntes: 2 (1 de día completo) y 1 cancelado', F.apuntes === 2 && F.apuntesDia === 1 && F.cancelados === 1);
+  check('turnos por mes: sep 2, oct 3 (2 hechos + 1 próximo)', F.meses.find(m => m.k === '2026-09').n === 2 && F.meses.find(m => m.k === '2026-10').n === 3);
+  check('disponibilidad: 2 franjas con horario, un solo día (Sábado)', F.huecosDispo === 2 && F.diasDispo.length === 1);
+  const ina = E._fichaModelo({ hist: [{ fecha:'2026-07-01', rango:'10:00 a 12:00' }], arch: [], bajas: [], refs: [], disp: [], media60: 2 }, hoy);
+  check('sin turnos desde hace más de 45 días y ninguno programado → inactivo', ina.flags.some(f => f.tipo === 'inactivo'));
+  const vacio = E._fichaModelo({ hist: [], arch: [], bajas: [], refs: [], disp: [] }, hoy);
+  check('voluntario sin historia: ceros y sin fallar', vacio.hechos === 0 && vacio.tasaBaja === null && vacio.ultimo === null);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
