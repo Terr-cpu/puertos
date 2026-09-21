@@ -214,23 +214,27 @@ bot que avisaba era otro). Así deja de avisarse como hueco y no cuenta en las c
 ## Ampliación G — Cómo salió cada turno (indicado a mano) y estadística de apuntes
 
 Para turnos cuyo registro no cuenta lo que pasó, sobre todo de meses gestionados fuera de la
-app: el que **se iba a caer por las bajas y salió gracias a los apuntes**, o el que tenía 3
+app: el que **se iba a caer por las bajas y salió gracias a los apuntes**, el que **solo estaba en apuntes y salió adelante**, o el que tenía 3
 confirmadas y **acabaron siendo 4**.
 
 1. Supabase → **SQL Editor** → New query → pega
-   [`supabase/07_turnos_resultado.sql`](supabase/07_turnos_resultado.sql) → **Run**.
+   [`supabase/07_turnos_resultado.sql`](supabase/07_turnos_resultado.sql) → **Run** (si ya lo
+   habías ejecutado, vuelve a ejecutarlo: añade la columna `tipo`).
 2. En la app: **Estadísticas → 🩺 Calidad de los datos → 🧾 Turnos** (fila del mes), o
    **🙋 Turnos que salieron gracias a los apuntes → 🧾 Indicar**. Para cada turno:
-   - *Se iba a caer por bajas y salió gracias a los apuntes* (hay botón para marcar todos los del mes).
+   - **🛟 Salvado por apuntes**: tenía equipo confirmado, se iba a caer por las bajas y los apuntes
+     lo salvaron.
+   - **🆕 Solo en apuntes**: no tenía cuadrante, solo estaba disponible en apuntes y salió adelante
+     (como junio y julio si se hicieron así). Hay botones para marcar todos los del mes de una u otra manera.
    - *Asistieron*: cuántas personas vinieron en total. Vacío = lo que consta.
 
-Lo indicado manda sobre el registro. Si marcas «gracias a apuntes» pero el turno no llega a
+Lo indicado manda sobre el registro. Si marcas cualquiera de las dos pero el turno no llega a
 `MIN_EQ` (3) personas, no cuenta como realizado. Solo se pueden indicar turnos que ya existen en
 la app (si falta alguno, impórtalo antes).
 
 La sección **🙋 Turnos que salieron gracias a los apuntes** da la cifra de todo el histórico
-(sin depender del periodo) con el desglose por mes; junta lo que el registro muestra (turnos
-salvados tras una baja o formados solo con apuntes) y lo indicado a mano (✍).
+(sin depender del periodo) con el desglose por mes, separando 🛟 salvados tras una baja y 🆕 solo en
+apuntes; junta lo que el registro muestra y lo indicado a mano (✍).
 
 ## Qué queda igual
 

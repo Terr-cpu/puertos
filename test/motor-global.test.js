@@ -1132,5 +1132,32 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('los turnos futuros no entran en el histórico', E._stApuntesGlobal(base, '2026-06-15').hechos === 1);
 })();
 
+// ── E27: dos maneras de salir gracias a apuntes: salvado tras baja vs solo disponible en apuntes ──
+(function E27() {
+  console.log('\n═══ E27 · Salvado por apuntes vs solo en apuntes ═══');
+  const hoy = '2026-09-21', R1 = '10:00 a 12:00';
+  const V = id => ({ id, nombre: id.toUpperCase(), activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const H = (fecha, ids) => ids.map(id => ({ fecha, rango: R1, voluntario_id: id, nombre: id }));
+  const raw = { vols: 'abcdef'.split('').map(V), arch: [], refs: [], bajas: [], noReal: [], act: null,
+    hist: [...H('2026-06-02', ['a', 'b', 'c']), ...H('2026-06-09', ['a', 'b', 'c']), ...H('2026-06-16', ['a', 'b', 'c']), ...H('2026-06-23', ['a', 'b', 'c'])],
+    resultados: [
+      { id: 1, fecha: '2026-06-02', rango: R1, por_apuntes: true, tipo: 'salvado', asistentes: null },
+      { id: 2, fecha: '2026-06-09', rango: R1, por_apuntes: true, tipo: 'solo_apuntes', asistentes: null },
+      { id: 3, fecha: '2026-06-16', rango: R1, por_apuntes: true, tipo: null, asistentes: null },        // filas antiguas sin tipo = salvado
+    ] };
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const t = d => base.turnos.find(x => x.k === d + '|' + R1);
+  check('«salvado»: se iba a caer por bajas, cuenta como salvado y con baja, no como solo apuntes', t('2026-06-02').salvado && t('2026-06-02').conBaja && !t('2026-06-02').creadoOk && t('2026-06-02').tipoManual === 'salvado');
+  check('«solo en apuntes»: cuenta como salido solo con apuntes, no como salvado ni como turno con baja', t('2026-06-09').creadoOk && t('2026-06-09').creadoPorApuntes && !t('2026-06-09').salvado && !t('2026-06-09').conBaja && t('2026-06-09').tipoManual === 'solo_apuntes');
+  check('una marca antigua sin tipo se entiende como «salvado»', t('2026-06-16').tipoManual === 'salvado' && t('2026-06-16').salvado);
+  const G = E._stApuntesGlobal(base, hoy);
+  check('global: 4 realizados, 2 salvados, 1 solo en apuntes, total 3 gracias a apuntes (75 %)', G.hechos === 4 && G.salvados === 2 && G.soloApuntes === 1 && G.porApuntes === 3 && G.pct === 75, JSON.stringify(G));
+  check('por mes: junio 4 realizados, 2 salvados y 1 solo apuntes', G.meses.length === 1 && G.meses[0].salvados === 2 && G.meses[0].soloApuntes === 1 && G.meses[0].porApuntes === 3);
+  const S = E._statsAgregar(base, raw, '2026-06-01', '2026-06-30', hoy);
+  check('el periodo separa "salvados tras baja" (2) de "sin equipo previo" (1)', S.turnos.salvados === 2 && S.turnos.creadosOk === 1 && S.turnos.salenPorApuntes === 3, JSON.stringify({ s: S.turnos.salvados, c: S.turnos.creadosOk }));
+  const raw2 = { ...raw, resultados: [{ id: 1, fecha: '2026-06-09', rango: R1, por_apuntes: true, tipo: 'solo_apuntes', asistentes: 2 }] };
+  check('«solo en apuntes» con menos de 3 asistentes no cuenta como realizado', E._stApuntesGlobal(E._statsBase(raw2, { MIN_EQ: 3 }), hoy).soloApuntes === 0);
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);

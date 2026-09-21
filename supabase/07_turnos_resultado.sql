@@ -2,7 +2,9 @@
 --  07 · Cómo salió un turno (indicado a mano)
 --  ────────────────────────────────────────────────────────────
 --  Para turnos de meses gestionados fuera de la app (o cuyo registro no cuenta lo que pasó):
---    por_apuntes → el turno se iba a caer por las bajas y salió gracias a los apuntes
+--    por_apuntes + tipo → salió gracias a los apuntes, de dos maneras distintas:
+--        'salvado'      = tenía equipo, se iba a caer por las bajas y los apuntes lo salvaron
+--        'solo_apuntes' = solo estaba disponible en apuntes (sin cuadrante) y salió adelante
 --    asistentes  → cuántas personas vinieron en total (p. ej. 3 confirmados y acabaron siendo 4)
 --  Las estadísticas lo usan por encima de lo que muestre el registro.
 --
@@ -23,6 +25,11 @@ create table if not exists public.turnos_resultado (
   actualizado_en timestamptz not null default now(),
   unique (fecha, rango)
 );
+
+-- Si ya habías ejecutado una versión anterior de este script, esto añade la columna que falta
+alter table public.turnos_resultado add column if not exists tipo text;
+alter table public.turnos_resultado drop constraint if exists turnos_resultado_tipo_chk;
+alter table public.turnos_resultado add constraint turnos_resultado_tipo_chk check (tipo is null or tipo in ('salvado', 'solo_apuntes'));
 
 alter table public.turnos_resultado enable row level security;
 
