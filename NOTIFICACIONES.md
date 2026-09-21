@@ -174,6 +174,31 @@ Para indicar "en abril hubo al menos 2 bajas" sin saber cuáles (Estadísticas �
 
 Sin este paso, el botón "Indicar bajas" te avisa de que falta la tabla.
 
+## Ampliación E — Apuntes y bajas de meses hechos solo con apuntes (Telegram)
+
+Para meses como julio y agosto, gestionados con el formulario de **apuntes** de
+Sustituciones y sin cuadrante, los avisos que el bot te mandó a Telegram guardan quién
+se apuntó y quién se dio de baja. La app los lee del chat exportado.
+
+1. Supabase → **SQL Editor** → New query → pega
+   [`supabase/05_archivo_apuntes_bajas.sql`](supabase/05_archivo_apuntes_bajas.sql) → **Run**.
+   Crea `apuntes_archivo` y `bajas_archivo`. Son tablas aparte a propósito: `refuerzos`
+   y `bajas` disparan avisos a Telegram y no quieres un mensaje por cada apunte antiguo.
+2. En **Telegram Desktop**: abre el chat del bot → ⋮ → **Exportar historial del chat** →
+   marca solo *Mensajes de texto* → formato **JSON** → Exportar.
+3. En la app: **📈 Estadísticas → 💬 Desde Telegram** → elige el `result.json`. Revisa la
+   vista previa (apuntes y bajas nuevos, cuáles ya existían, cuántos turnos llegan a 3),
+   asigna a quién corresponde cada nombre dudoso y pulsa **Importar**. Se puede
+   **deshacer** desde la misma ventana.
+
+Límites que conviene saber:
+- Solo se importan turnos **anteriores al mes en curso** (los actuales ya están en la app).
+- La hora de cada apunte/baja es la del **aviso**, que puede retrasarse si la app estaba cerrada.
+- Antes de septiembre, cancelar un apunte o anular una baja no mandaba aviso, así que esos
+  apuntes figurarán como apuntados.
+- Con esto, un turno hecho solo con apuntes cuenta como turno que salió adelante si reúne
+  `MIN_EQ` (3) o más voluntarios, y quienes asistieron suman en sus estadísticas.
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro

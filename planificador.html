@@ -6765,22 +6765,20 @@ async function abrirFicha(nombre, id) {
       id = v[0].id;
     }
     const hoy = _evHoy(), d60 = _evSumaDias(hoy, -60), q = 'voluntario_id=eq.' + id;
-    const [vol, hist, arch, bajas, refs, disp, canc, gH, gA, anulR] = await Promise.all([
+    // La asistencia sale del mismo cálculo que las estadísticas: equipo + apuntados de turnos que se hicieron
+    const rawS = await _stCargar(false), baseS = _statsBase(rawS, cargarReglas());
+    const asistV = baseS.asist.filter(a => a.id === id).map(a => ({ fecha: a.fecha, rango: a.rango }));
+    const bajas = rawS.bajas.filter(b => b.voluntario_id === id), refs = rawS.refs.filter(r => r.voluntario_id === id);
+    const [vol, disp, canc, anulR] = await Promise.all([
       sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'),
-      sbGet('v_historial', q + '&select=fecha,rango&order=fecha'),
-      sbGet('historial_archivo', q + '&select=fecha,rango').catch(() => []),
-      sbGet('bajas', q + '&select=fecha,rango,activa,registrado_en'),
-      sbGet('refuerzos', q + '&select=fecha,rango,es_dia_completo,registrado_en'),
       sbGet('disponibilidad', q + '&select=semana,dia,horario').catch(() => []),
       sbGet('actividad', q + '&tipo=eq.apunte_cancelado&select=id').catch(() => null),
-      sbGet('v_historial', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id'),
-      sbGet('historial_archivo', 'fecha=gte.' + d60 + '&fecha=lt.' + hoy + '&select=voluntario_id').catch(() => []),
       sbGet('turnos_no_realizados', 'origen=eq.anulado&select=fecha,rango').catch(() => []),
     ]);
     const cuenta = new Map();
-    [...gH, ...gA].forEach(r => cuenta.set(r.voluntario_id, (cuenta.get(r.voluntario_id) || 0) + 1));
+    baseS.asist.forEach(a => { if (a.fecha >= d60 && a.fecha < hoy) cuenta.set(a.id, (cuenta.get(a.id) || 0) + 1); });
     const media60 = cuenta.size ? [...cuenta.values()].reduce((a, b) => a + b, 0) / cuenta.size : 0;
-    const F = _fichaModelo({ hist, arch, bajas, refs, disp, media60, cancelados: canc ? canc.length : null, anulados: new Set(anulR.map(a => a.fecha + '|' + a.rango)), umbralDias: Math.round(_stMesesSinPart() * 30.4375) }, hoy);
+    const F = _fichaModelo({ hist: asistV, arch: [], bajas, refs, disp, media60, cancelados: canc ? canc.length : null, anulados: new Set(anulR.map(a => a.fecha + '|' + a.rango)), umbralDias: Math.round(_stMesesSinPart() * 30.4375) }, hoy);
     const v = vol[0] || { nombre, tiene_llave: false, activo: true };
     const ini = v.nombre.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
     const max = Math.max(1, ...F.meses.map(m => m.n));
@@ -6850,20 +6848,23 @@ function _statsBase(raw, reglas) {
   const turnos = new Map();
   const get = (f, r) => { const k = f + '|' + r; if (!turnos.has(k)) turnos.set(k, { k, fecha: f, rango: r, equipo: [], bajasEf: [], bajasAn: [], apuntes: [] }); return turnos.get(k); };
   asigs.forEach(a => get(a.fecha, a.rango).equipo.push(a.id));
-  (raw.bajas || []).forEach(b => { if (b.rango) (b.activa ? get(b.fecha, b.rango).bajasEf : get(b.fecha, b.rango).bajasAn).push(b.voluntario_id); });
-  (raw.refs || []).forEach(r => { if (!r.es_dia_completo && r.rango) get(r.fecha, r.rango).apuntes.push(r.voluntario_id); });
+  const ts = (o, id, v) => { o[id] = !o[id] || (v || '') > o[id] ? (v || '') : o[id]; };          // última marca de tiempo por voluntario
+  (raw.bajas || []).forEach(b => { if (!b.rango) return; const t = get(b.fecha, b.rango); (b.activa ? t.bajasEf : t.bajasAn).push(b.voluntario_id); if (b.activa) ts(t.bajaTs || (t.bajaTs = {}), b.voluntario_id, b.registrado_en); });
+  (raw.refs || []).forEach(r => { if (r.es_dia_completo || !r.rango) return; const t = get(r.fecha, r.rango); if (!t.apuntes.includes(r.voluntario_id)) t.apuntes.push(r.voluntario_id); ts(t.apTs || (t.apTs = {}), r.voluntario_id, r.registrado_en); });
   (raw.noReal || []).forEach(r => { get(r.fecha, r.rango).noReal = r; });
 
   turnos.forEach(t => {
     const bajaEf = new Set(t.bajasEf), ap = new Set(t.apuntes), eq = new Set(t.equipo);
+    // Si alguien tiene baja y apunte en el mismo turno, manda lo último que hizo (sin fechas, se entiende que vuelve)
+    const apDespues = id => (t.apTs && t.apTs[id] || '') >= (t.bajaTs && t.bajaTs[id] || '');
     const propios = t.equipo.filter(id => !bajaEf.has(id) && !ap.has(id));         // equipo original que sigue
-    const vuelven = t.equipo.filter(id => bajaEf.has(id) && ap.has(id));           // dieron baja y se volvieron a apuntar
+    const vuelven = t.equipo.filter(id => bajaEf.has(id) && ap.has(id) && apDespues(id));   // dieron baja y se volvieron a apuntar
     const desdeApunte = t.equipo.filter(id => !bajaEf.has(id) && ap.has(id));      // apuntados que ya se confirmaron en el equipo
-    const nuevos  = t.apuntes.filter(id => !eq.has(id));                           // apuntados aún sin confirmar
+    const nuevos  = t.apuntes.filter(id => !eq.has(id) && !(bajaEf.has(id) && !apDespues(id)));   // apuntados de fuera (y no se dieron de baja después)
     t.presentes = [...propios, ...desdeApunte, ...vuelven, ...nuevos];
     t.n = t.presentes.length;
     t.nPropio = propios.length;
-    t.bajaReal = t.bajasEf.filter(id => !ap.has(id)).length;                       // bajas que siguen en pie
+    t.bajaReal = t.bajasEf.filter(id => !ap.has(id) || !apDespues(id)).length;     // bajas que siguen en pie
     t.conBaja = t.bajasEf.length + t.bajasAn.length > 0;
     t.salvado = t.bajaReal > 0 && t.n >= MIN && t.nPropio < MIN;                   // llegó al mínimo gracias a apuntes
     t.aguanto = t.bajaReal > 0 && t.nPropio >= MIN;                                // con bajas, sin necesitar apuntes
@@ -6871,6 +6872,9 @@ function _statsBase(raw, reglas) {
     t.creadoPorApuntes = t.bajasEf.length === 0 && propios.length === 0 && vuelven.length === 0 && desdeApunte.length + nuevos.length > 0;
     t.creadoOk = t.creadoPorApuntes && t.n >= MIN;
     t.tuvoEquipo = t.equipo.length > 0;
+    // Asistencia: el equipo que sigue, más los apuntados de fuera SI el turno se hizo (MIN o más). Sin equipo (turnos
+    // formados solo por apuntes) los apuntados cuentan como asistentes únicamente cuando el turno salió adelante.
+    t.asisten = [...propios, ...desdeApunte, ...vuelven, ...(t.n >= MIN ? nuevos : [])];
     t.anulado = !!t.noReal && t.noReal.origen === 'anulado';                        // anulado a mano: manda sobre la gente que hubiera
     t.sinCubrir = !!t.noReal && (t.anulado || t.n === 0);                          // franja registrada como 'no salió adelante'
     t.motivoNR = t.noReal ? (t.noReal.motivo || 'otro') : '';
@@ -6882,21 +6886,25 @@ function _statsBase(raw, reglas) {
   });
   // Calidad de los datos por mes: la app solo sabe lo que se registró en ella
   const mesInfo = new Map();
-  const mi = f => { const k = f.slice(0, 7); if (!mesInfo.has(k)) mesInfo.set(k, { k, asig: 0, bajas: 0, apuntes: 0, noReal: 0 }); return mesInfo.get(k); };
+  const mi = f => { const k = f.slice(0, 7); if (!mesInfo.has(k)) mesInfo.set(k, { k, asig: 0, asist: 0, bajas: 0, apuntes: 0, noReal: 0 }); return mesInfo.get(k); };
   asigs.forEach(a => mi(a.fecha).asig++);
   (raw.bajas || []).forEach(b => mi(b.fecha).bajas++);
   (raw.refs || []).forEach(r => mi(r.fecha).apuntes++);
   (raw.noReal || []).forEach(r => mi(r.fecha).noReal++);
-  const datosMeses = [...mesInfo.values()].filter(m => m.asig > 0).map(m => m.k).sort();
+  // Asistencia por voluntario (equipo o apuntes), sin los turnos anulados
+  const asist = [];
+  turnos.forEach(t => { if (!t.anulado) t.asisten.forEach(id => asist.push({ id, fecha: t.fecha, rango: t.rango })); });
+  asist.forEach(a => { mi(a.fecha).asist++; });
+  const datosMeses = [...mesInfo.values()].filter(m => m.asig > 0 || m.asist > 0).map(m => m.k).sort();
   const anulados = new Set([...turnos.values()].filter(t => t.anulado).map(t => t.k));
-  return { turnos: [...turnos.values()], asigs, nombreDe, llaveDe, MIN, IDEAL, DUR, mesInfo, datosMeses, anulados };
+  return { turnos: [...turnos.values()], asigs, asist, nombreDe, llaveDe, MIN, IDEAL, DUR, mesInfo, datosMeses, anulados };
 }
 
 // Estado de un mes según lo registrado: app (turnos y algún rastro de bajas/apuntes), manual (turnos pero ningún
 // rastro de bajas ni apuntes: probablemente gestionado fuera), vacio (sin turnos), futuro (mes en curso o posterior sin turnos).
 // `ok` = el usuario confirmó que ese mes sí se registró completo en la app.
 function _stEstadoMes(inf, k, hoy, ok, aj) {
-  if (!inf || !inf.asig) return inf && inf.noReal ? 'manual' : (k >= hoy.slice(0, 7) ? 'futuro' : 'vacio');
+  if (!inf || (!inf.asig && !inf.apuntes)) return inf && inf.noReal ? 'manual' : (k >= hoy.slice(0, 7) ? 'futuro' : 'vacio');
   return inf.bajas + inf.apuntes > 0 || ok || aj ? 'app' : 'manual';
 }
 const _stMediana = a => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
@@ -7027,21 +7035,19 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   const cuenta = new Map();      // turnos que SÍ hizo/hará (sin baja) en el periodo
   const brutas = new Map();      // asignaciones brutas (incluye las que acabaron en baja)
   const bajaSet = new Set((raw.bajas || []).filter(b => b.activa).map(b => b.voluntario_id + '|' + b.fecha + '|' + b.rango));
-  asigP.forEach(a => {
-    if (mesesApp.has(a.fecha.slice(0, 7))) brutas.set(a.id, (brutas.get(a.id) || 0) + 1);
-    if (!bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango)) cuenta.set(a.id, (cuenta.get(a.id) || 0) + 1);
-  });
+  asigP.forEach(a => { if (mesesApp.has(a.fecha.slice(0, 7))) brutas.set(a.id, (brutas.get(a.id) || 0) + 1); });
+  base.asist.forEach(a => { if (en(a.fecha)) cuenta.set(a.id, (cuenta.get(a.id) || 0) + 1); });
   // Último turno de cada uno (sobre todo el histórico, no solo el periodo)
   const ultimo = new Map(), totalHist = new Map();
-  base.asigs.forEach(a => {
-    if (a.fecha < hoy && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango) && !base.anulados.has(a.fecha + '|' + a.rango)) {
+  base.asist.forEach(a => {
+    if (a.fecha < hoy) {
       totalHist.set(a.id, (totalHist.get(a.id) || 0) + 1);
       if (!ultimo.has(a.id) || a.fecha > ultimo.get(a.id)) ultimo.set(a.id, a.fecha);
     }
   });
   const bajasPorVol = new Map(); bajasP.forEach(b => bajasPorVol.set(b.voluntario_id, (bajasPorVol.get(b.voluntario_id) || 0) + 1));
   const apPorVol = new Map(); refsP.forEach(r => apPorVol.set(r.voluntario_id, (apPorVol.get(r.voluntario_id) || 0) + 1));
-  const prox = new Map(); base.asigs.forEach(a => { if (a.fecha >= hoy && en(a.fecha) && !bajaSet.has(a.id + '|' + a.fecha + '|' + a.rango) && !base.anulados.has(a.fecha + '|' + a.rango)) prox.set(a.id, (prox.get(a.id) || 0) + 1); });
+  const prox = new Map(); base.asist.forEach(a => { if (a.fecha >= hoy && en(a.fecha)) prox.set(a.id, (prox.get(a.id) || 0) + 1); });
 
   const tabla = (raw.vols || []).map(v => {
     const hechos = cuenta.get(v.id) || 0, bruto = brutas.get(v.id) || 0, bj = bajasPorVol.get(v.id) || 0;
@@ -7191,7 +7197,7 @@ async function sbGetAll(tabla, params) {
 
 async function _stCargar(force) {
   if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
-  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp] = await Promise.all([
+  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp, apArch, baArch] = await Promise.all([
     sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
     sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
     sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
@@ -7201,8 +7207,14 @@ async function _stCargar(force) {
     sbGetAll('turnos_no_realizados', 'select=id,fecha,rango,motivo,planificados,origen&order=id').catch(() => null), // null = falta 03_turnos_no_realizados.sql
     sbGetAll('ajustes_estadisticas', 'select=mes,bajas_min,nota&order=mes').catch(() => null),              // null = falta 04_ajustes_estadisticas.sql
     sbGetAll('disponibilidad', 'select=id,voluntario_id,semana,dia,horario&order=id').catch(() => []),
+    sbGetAll('apuntes_archivo', 'select=id,voluntario_id,fecha,rango,es_dia_completo,registrado_en&order=id').catch(() => null),   // null = falta 05_archivo_apuntes_bajas.sql
+    sbGetAll('bajas_archivo', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id').catch(() => null),
   ]);
-  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas, refs, vols, act, noReal, ajustes, disp };
+  // Apuntes y bajas de meses antiguos (archivo) junto a los vivos, sin duplicar
+  const kR = r => r.voluntario_id + '|' + r.fecha + '|' + (r.rango || '') + '|' + (r.es_dia_completo ? 1 : 0), kB = b => b.voluntario_id + '|' + b.fecha + '|' + (b.rango || '');
+  const vivosR = new Set(refs.map(kR)), vivasB = new Set(bajas.map(kB));
+  const refsTodos = [...refs, ...(apArch || []).filter(a => !vivosR.has(kR(a)))], bajasTodas = [...bajas, ...(baArch || []).filter(b => !vivasB.has(kB(b)))];
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas: bajasTodas, refs: refsTodos, vols, act, noReal, ajustes, disp, apArch, baArch };
   ST.ts = Date.now();
   return ST.raw;
 }
@@ -7323,6 +7335,7 @@ function renderEstadisticas() {
         <span id="st-etq" style="font-size:.78rem;color:var(--label3)"></span>
         <span style="margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap">
           <button class="btn btn-ghost btn-sm" onclick="abrirImportar()" title="Recupera turnos de meses gestionados fuera de la app">📥 Importar turnos anteriores</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirImportarTelegram()" title="Recupera apuntes y bajas de meses anteriores desde el chat de Telegram">💬 Desde Telegram</button>
           <button class="btn btn-ghost btn-sm" onclick="stCopiarResumen()">📋 Copiar resumen</button>
           <button class="btn btn-ghost btn-sm" onclick="stDescargarCSV()">⬇️ CSV voluntarios</button>
         </span>
@@ -7356,6 +7369,7 @@ function renderEstadisticas() {
       ${cv.length ? ` Sin ningún turno en la app: <b>${cv.map(fmes).join(', ')}</b>.` : ''}${cm.length ? ` Con turnos pero sin bajas ni apuntes (¿gestión manual?): <b>${cm.map(fmes).join(', ')}</b>, que no cuentan en las tasas de baja.` : ''}
       Las cifras reflejan solo lo registrado en la app.${sinTablaNR ? ' <br><b>Nota:</b> para registrar los turnos que no salieron adelante, ejecuta <b>supabase/03_turnos_no_realizados.sql</b> (ver NOTIFICACIONES.md).' : ''}</div>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.5rem"><button class="btn btn-navy btn-sm" onclick="abrirImportar()">📥 Importar turnos anteriores</button>
+      <button class="btn btn-navy btn-sm" onclick="abrirImportarTelegram()">💬 Desde Telegram</button>
       <button class="btn btn-ghost btn-sm" onclick="const d=document.getElementById('st-calidad');d.open=true;d.scrollIntoView({behavior:'smooth'})">🩺 Calidad de los datos · ✎ indicar bajas de un mes</button></div></div>` : '';
   const NIV = { rojo: ['🚨', 'var(--red-soft)', 'var(--red)'], ambar: ['⚠️', 'var(--amber-soft)', 'var(--amber)'], info: ['💡', 'var(--blue-soft)', 'var(--blue)'], verde: ['✅', 'var(--green-soft)', '#146c34'] };
   const ins = ST.insights.length ? ST.insights.map(i => `<div class="st-ins" style="background:${NIV[i.nivel][1]};border-left-color:${NIV[i.nivel][2]}">
@@ -7767,6 +7781,7 @@ function abrirImportar() {
   Object.assign(IMP, { textos: [], parsed: null, ov: {}, marcados: {}, omitirVacios: {}, plan: null, ultimos: null });
   document.getElementById('mvol-titulo').textContent = '📥 Importar turnos anteriores';
   document.getElementById('mvol-body').innerHTML = `
+    <div style="background:var(--blue-soft);border-radius:var(--r-sm);padding:.55rem .8rem;font-size:.76rem;margin-bottom:.7rem">💬 ¿Esos meses se hicieron con <b>apuntes</b> (sin cuadrante)? Recupéralos desde los avisos de Telegram: <button class="btn btn-navy btn-sm" style="margin-left:.3rem" onclick="abrirImportarTelegram()">Importar desde Telegram</button></div>
     <p style="font-size:.8rem;line-height:1.55;margin-bottom:.6rem">Recupera meses gestionados <b>fuera de la app</b>. Sube el <b>PDF del "Programa de Predicación"</b> de cada mes (uno o varios a la vez) o pega el registro. Se guardan los turnos que se hicieron <b>y</b> los que <b>no salieron adelante</b> (franjas en blanco o canceladas), que son los que dan la foto real.</p>
     <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap;margin-bottom:.5rem">
       <label class="btn btn-navy btn-sm" style="cursor:pointer">📄 Elegir PDF / texto…<input type="file" id="imp-files" accept=".pdf,.txt,.csv,.tsv,application/pdf,text/*" multiple style="display:none" onchange="impCargarArchivos(this)"></label>
@@ -8003,6 +8018,247 @@ async function stGuardarAjuste(k, quitar) {
     await loadEstadisticas(true);
     const d = document.getElementById('st-calidad'); if (d) d.open = true;
   } catch(e) { if (btn) { btn.disabled = false; btn.textContent = 'Guardar'; } toast('No se pudo guardar: ' + e.message, 'err'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  IMPORTAR DESDE TELEGRAM — recupera apuntes y bajas de meses anteriores
+//  El bot avisaba de cada apunte y cada baja con mensajes como
+//     ✋ Nuevo apunte
+//     ANA GARCIA se ha apuntado — turno 10:00 a 12:00 del 12/07/2026
+//     📤 Baja comunicada
+//     LUIS PEREZ no puede asistir — 10:00 a 12:00 del 15/07/2026
+//  Con el chat exportado (Telegram Desktop → ⋮ → Exportar historial → JSON) se
+//  reconstruye esa historia. Se guarda en apuntes_archivo / bajas_archivo
+//  (05_archivo_apuntes_bajas.sql), sin tocar refuerzos ni bajas (que avisan a Telegram).
+// ══════════════════════════════════════════════════════════════
+const _tgVerbos = { 'no puede asistir': 'baja', 'se ha apuntado': 'apunte', 'ya no cubre': 'apunte_cancelado', 'vuelve a asistir': 'baja_anulada' };
+const _tgTitulo = /(baja comunicada|nuevo apunte|apunte nuevo|apunte cancelado|baja anulada)/i;
+
+// El texto de un mensaje exportado es un string o una lista de trozos (con formato)
+function _tgTexto(m) {
+  const t = m && m.text;
+  if (typeof t === 'string') return t;
+  if (Array.isArray(t)) return t.map(x => typeof x === 'string' ? x : (x && x.text) || '').join('');
+  return '';
+}
+
+// Un mensaje del bot → {tipo, nombre, fecha (iso), rango|null, dc} | {sinFranja:true} | null
+function _tgParsearTexto(txt) {
+  const t = String(txt || '').replace(/\r/g, '');
+  if (!_tgTitulo.test(t)) return null;
+  const m = /^\s*(.+?)\s+(no puede asistir|se ha apuntado|ya no cubre|vuelve a asistir)\s+[—–-]\s+(.+?)\s+del\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/im.exec(t);
+  if (!m) return null;
+  const nombre = m[1].replace(/^[^\wÁÉÍÓÚÜÑáéíóúüñ(]+/, '').trim();       // quita emojis o restos delante del nombre
+  const f = /(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/.exec(m[3]);
+  const dc = /todo el d[ií]a/i.test(m[3]);
+  if (!f && !dc) return { sinFranja: true };
+  const p = n => String(n).padStart(2, '0');
+  const fecha = m[6] + '-' + p(m[5]) + '-' + p(m[4]);
+  const d = new Date(Date.UTC(+m[6], +m[5] - 1, +m[4]));
+  if (d.getUTCMonth() !== +m[5] - 1) return null;
+  return { tipo: _tgVerbos[m[2].toLowerCase()], nombre, fecha, rango: dc ? null : `${p(f[1])}:${f[2]} a ${p(f[3])}:${f[4]}`, dc };
+}
+
+function _tgMensajes(data) {
+  if (data && Array.isArray(data.messages)) return data.messages;
+  if (data && data.chats && Array.isArray(data.chats.list)) return data.chats.list.flatMap(c => c.messages || []);
+  return [];
+}
+
+// Todo el chat → eventos en orden cronológico
+function _tgParsear(data) {
+  const msgs = _tgMensajes(data), eventos = [];
+  let sinFranja = 0;
+  msgs.forEach(m => {
+    if (m.type && m.type !== 'message') return;
+    const r = _tgParsearTexto(_tgTexto(m));
+    if (!r) return;
+    if (r.sinFranja) { sinFranja++; return; }
+    const ts = m.date_unixtime ? new Date(+m.date_unixtime * 1000) : new Date(m.date);
+    if (isNaN(ts)) return;
+    eventos.push({ ...r, ts: ts.toISOString() });
+  });
+  eventos.sort((a, b) => a.ts < b.ts ? -1 : a.ts > b.ts ? 1 : 0);
+  return { mensajes: msgs.length, sinFranja, eventos, desde: eventos.length ? eventos[0].ts.slice(0, 10) : null, hasta: eventos.length ? eventos[eventos.length - 1].ts.slice(0, 10) : null };
+}
+
+// Eventos → estado final: un apunte cancelado se quita, una baja anulada queda como no activa, y los avisos repetidos
+// (p. ej. con la app abierta en dos sitios) se unen conservando el primero.
+function _tgConsolidar(eventos) {
+  const ap = new Map(), ba = new Map(), cont = { apuntes: 0, bajas: 0, cancelados: 0, anuladas: 0, repetidos: 0 };
+  eventos.forEach(e => {
+    const k = _impNorm(e.nombre) + '|' + e.fecha + '|' + (e.rango || '') + '|' + (e.dc ? 1 : 0), kb = _impNorm(e.nombre) + '|' + e.fecha + '|' + (e.rango || '');
+    if (e.tipo === 'apunte') { if (ap.has(k)) cont.repetidos++; else ap.set(k, { nombre: e.nombre, fecha: e.fecha, rango: e.rango, dc: e.dc, ts: e.ts }); }
+    else if (e.tipo === 'apunte_cancelado') { if (ap.delete(k)) cont.cancelados++; }
+    else if (e.tipo === 'baja') { if (ba.has(kb)) cont.repetidos++; else ba.set(kb, { nombre: e.nombre, fecha: e.fecha, rango: e.rango, ts: e.ts, activa: true }); }
+    else if (e.tipo === 'baja_anulada') { const b = ba.get(kb); if (b && b.activa) { b.activa = false; cont.anuladas++; } }
+  });
+  cont.apuntes = ap.size; cont.bajas = ba.size;
+  return { apuntes: [...ap.values()], bajas: [...ba.values()], cont };
+}
+
+// Plan de importación. existentes = {ap:Set, ba:Set} con lo que ya hay (refuerzos/bajas/archivos).
+// ov = elecciones del usuario para nombres dudosos: idVoluntario | '' (omitir) | '__nuevo__'.
+function _tgPlan(cons, vols, existentes, hoy, ov) {
+  const ini = hoy.slice(0, 7) + '-01';
+  const apuntes = [], bajas = [], sinResolver = new Map(), nuevos = new Map();
+  let duplicados = 0, fuera = 0;
+  const resolver = nom => {
+    const key = _impNorm(nom);
+    if (ov && Object.prototype.hasOwnProperty.call(ov, key)) {
+      if (ov[key] === '__nuevo__') { const v = { id: 'nuevo:' + key, nombre: String(nom).toUpperCase().replace(/\s+/g, ' ').trim(), nuevo: true }; nuevos.set(key, v); return v; }
+      return ov[key] ? vols.find(x => x.id === ov[key]) : null;
+    }
+    const e = _impEmparejar(nom, vols);
+    if (e.tipo === 'exacto' || e.tipo === 'aprox') return e.v;
+    sinResolver.set(key, { txt: nom, tipo: e.tipo, cands: e.cands || [], sug: _impSugerir(nom, vols) });
+    return null;
+  };
+  cons.apuntes.forEach(a => {
+    if (a.fecha >= ini) { fuera++; return; }
+    const v = resolver(a.nombre); if (!v) return;
+    const k = v.id + '|' + a.fecha + '|' + (a.rango || '') + '|' + (a.dc ? 1 : 0);
+    if (existentes.ap.has(k)) { duplicados++; return; }
+    existentes.ap.add(k);
+    apuntes.push({ voluntario_id: v.id, fecha: a.fecha, rango: a.rango, es_dia_completo: !!a.dc, registrado_en: a.ts, origen: 'telegram' });
+  });
+  cons.bajas.forEach(b => {
+    if (b.fecha >= ini) { fuera++; return; }
+    const v = resolver(b.nombre); if (!v) return;
+    const k = v.id + '|' + b.fecha + '|' + (b.rango || '');
+    if (existentes.ba.has(k)) { duplicados++; return; }
+    existentes.ba.add(k);
+    bajas.push({ voluntario_id: v.id, fecha: b.fecha, rango: b.rango, registrado_en: b.ts, activa: b.activa, origen: 'telegram' });
+  });
+  // Cómo quedarían los turnos: apuntados menos los que se dieron de baja después
+  const turnos = new Map();
+  apuntes.filter(a => !a.es_dia_completo).forEach(a => {
+    const k = a.fecha + '|' + a.rango; if (!turnos.has(k)) turnos.set(k, new Set());
+    const baja = bajas.find(b => b.activa && b.voluntario_id === a.voluntario_id && b.fecha === a.fecha && b.rango === a.rango && b.registrado_en > a.registrado_en);
+    if (!baja) turnos.get(k).add(a.voluntario_id);
+  });
+  const porMes = {};
+  const mes = (f, campo) => { const m = f.slice(0, 7); (porMes[m] = porMes[m] || { apuntes: 0, bajas: 0, turnos: 0, hechos: 0 })[campo]++; };
+  apuntes.forEach(a => mes(a.fecha, 'apuntes')); bajas.forEach(b => mes(b.fecha, 'bajas'));
+  turnos.forEach((set, k) => { mes(k.split('|')[0], 'turnos'); if (set.size >= (cargarReglas().MIN_EQ || 3)) mes(k.split('|')[0], 'hechos'); });
+  return { apuntes, bajas, nuevos: [...nuevos.values()], duplicados, fuera, porMes, turnosN: turnos.size,
+    turnosHechos: [...turnos.values()].filter(s => s.size >= (cargarReglas().MIN_EQ || 3)).length,
+    sinResolver: [...sinResolver.entries()].map(([key, x]) => ({ key, ...x })) };
+}
+
+// ── Interfaz
+const TG = { parsed: null, cons: null, plan: null, ov: {}, ultimos: null, vols: [], exist: { ap: new Set(), ba: new Set() }, tablasOk: true };
+
+function abrirImportarTelegram() {
+  Object.assign(TG, { parsed: null, cons: null, plan: null, ov: {}, ultimos: null });
+  document.getElementById('mvol-titulo').textContent = '💬 Recuperar apuntes y bajas desde Telegram';
+  document.getElementById('mvol-body').innerHTML = `
+    <p style="font-size:.8rem;line-height:1.55;margin-bottom:.6rem">El bot te avisaba de cada <b>apunte</b> y cada <b>baja</b>. Con ese chat se reconstruye lo que pasó en los meses que ya no están en la base de datos (p. ej. julio y agosto). Cada aviso trae quién, qué turno y la hora exacta.</p>
+    <div style="background:var(--surface2);border-radius:var(--r-sm);padding:.6rem .8rem;font-size:.76rem;line-height:1.7;margin-bottom:.7rem"><b>Cómo exportar el chat</b> (Telegram <u>de escritorio</u>, en el PC):<br>1. Abre el chat con tu bot. 2. Menú <b>⋮</b> (arriba a la derecha) → <b>Exportar historial del chat</b>.<br>3. Desmarca fotos, vídeos y archivos (solo hace falta el texto) y elige el formato <b>JSON</b>. 4. Pulsa Exportar y elige aquí el archivo <b>result.json</b>.</div>
+    <label class="btn btn-navy btn-sm" style="cursor:pointer">📄 Elegir result.json…<input type="file" id="tg-file" accept=".json,application/json" style="display:none" onchange="tgCargarArchivo(this)"></label>
+    <div style="font-size:.68rem;color:var(--label3);margin:.5rem 0">El archivo se lee en tu navegador (no se sube a ningún sitio). Solo se importan turnos de meses <b>anteriores al actual</b>, y lo que ya existe no se duplica. No se escribe nada hasta que confirmes.</div>
+    <div id="tg-prev"></div>`;
+  openModal('mvol');
+}
+
+async function tgCargarArchivo(input) {
+  const f = input.files[0]; if (!f) return;
+  const prev = document.getElementById('tg-prev'); prev.innerHTML = `<div class="loading" style="padding:1rem 0"><div class="spinner"></div><p>Leyendo el chat…</p></div>`;
+  try {
+    const data = JSON.parse(await f.text());
+    TG.parsed = _tgParsear(data);
+    if (!TG.parsed.eventos.length) { prev.innerHTML = `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.7rem .9rem;font-size:.78rem">No he encontrado avisos de apuntes ni de bajas en ese archivo (${TG.parsed.mensajes} mensajes leídos). Comprueba que es el chat del <b>bot</b> y que lo exportaste en formato <b>JSON</b>.</div>`; return; }
+    const raw = await _stCargar(true);
+    TG.vols = raw.vols; TG.tablasOk = raw.apArch !== null && raw.baArch !== null;
+    // Lo que ya existe (tablas vivas y archivos), para no duplicar
+    TG.exist = { ap: new Set(raw.refs.map(r => r.voluntario_id + '|' + r.fecha + '|' + (r.rango || '') + '|' + (r.es_dia_completo ? 1 : 0))), ba: new Set(raw.bajas.map(b => b.voluntario_id + '|' + b.fecha + '|' + (b.rango || ''))) };
+    TG.cons = _tgConsolidar(TG.parsed.eventos); TG.ov = {};
+    tgPintar();
+  } catch(e) { prev.innerHTML = `<p style="color:var(--red);font-size:.8rem">No se pudo leer el archivo: ${escH(e.message)}</p>`; }
+}
+
+function tgElegir(key, id) { TG.ov[key] = id; tgPintar(); }
+function tgAceptarSugerencias() {
+  TG.plan.sinResolver.forEach(x => { const s = x.sug || []; if (s.length && x.txt.trim().split(/\s+/).length >= 2 && s[0].score >= 0.7 && (s.length === 1 || s[0].score - s[1].score >= 0.15)) TG.ov[x.key] = s[0].v.id; });
+  tgPintar();
+}
+
+function tgPintar() {
+  const prev = document.getElementById('tg-prev'); if (!prev) return;
+  const exist = { ap: new Set(TG.exist.ap), ba: new Set(TG.exist.ba) };
+  const P = _tgPlan(TG.cons, TG.vols, exist, _evHoy(), TG.ov); TG.plan = P;
+  const c = TG.cons.cont, pend = P.sinResolver.length, MIN = cargarReglas().MIN_EQ || 3;
+  const MESN = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const meses = Object.keys(P.porMes).sort();
+  const opts = x => {
+    const sug = (x.sug || []).map(s => s.v), otros = (x.cands.length ? x.cands : TG.vols).filter(v => !sug.some(s => s.id === v.id));
+    const o = v => `<option value="${v.id}">${escH(v.nombre)}${v.activo === false ? ' (fuera del grupo)' : ''}</option>`;
+    return `<option value="__" disabled selected>— elegir —</option>${sug.length ? `<optgroup label="¿Quizá es…?">${sug.map(o).join('')}</optgroup>` : ''}<optgroup label="Todos">${otros.map(o).join('')}</optgroup><option value="__nuevo__">➕ Añadir como voluntario fuera del grupo (ya no colabora)</option><option value="">Omitir a esta persona</option>`;
+  };
+  const sugeribles = P.sinResolver.filter(x => (x.sug || []).length && x.txt.trim().split(/\s+/).length >= 2).length;
+  const total = P.apuntes.length + P.bajas.length;
+  prev.innerHTML = `
+    <div style="border-top:1px solid var(--sep);margin-top:1rem;padding-top:.8rem">
+      <div style="font-size:.78rem;line-height:1.6;margin-bottom:.7rem">He leído <b>${TG.parsed.mensajes}</b> mensajes y reconocido <b>${TG.parsed.eventos.length}</b> avisos del bot (del <b>${isoADMY(TG.parsed.desde)}</b> al <b>${isoADMY(TG.parsed.hasta)}</b>): <b>${c.apuntes}</b> apuntes${c.cancelados ? ` (más ${c.cancelados} cancelados, ya descontados)` : ''} y <b>${c.bajas}</b> bajas${c.anuladas ? ` (${c.anuladas} anuladas)` : ''}${c.repetidos ? `; ${c.repetidos} avisos repetidos se han unido` : ''}${TG.parsed.sinFranja ? `; ${TG.parsed.sinFranja} sin franja horaria (no se pueden usar)` : ''}.</div>
+      <div class="stats-row" style="margin-bottom:.7rem">
+        <div class="sbox" style="border-left:3px solid var(--green)"><div class="sv" style="color:var(--green)">${P.apuntes.length}</div><div class="sl">Apuntes nuevos</div></div>
+        <div class="sbox" style="border-left:3px solid var(--red)"><div class="sv" style="color:var(--red)">${P.bajas.length}</div><div class="sl">Bajas nuevas</div></div>
+        <div class="sbox"><div class="sv">${P.duplicados}</div><div class="sl">Ya existían</div></div>
+        <div class="sbox" style="border-left:3px solid ${pend ? 'var(--amber)' : 'var(--sep)'}"><div class="sv">${pend}</div><div class="sl">Nombres sin resolver</div></div>
+      </div>
+      ${meses.length ? `<table class="st-tabla" style="margin-bottom:.7rem"><thead><tr><th>Mes</th><th>Apuntes</th><th>Bajas</th><th>Turnos con apuntes</th><th title="Turnos con ${MIN} o más apuntados que siguen: se contarán como hechos">Llegan a ${MIN}</th></tr></thead><tbody>${meses.map(m => { const x = P.porMes[m]; return `<tr><td>${MESN[+m.slice(5)]} ${m.slice(0, 4)}</td><td>${x.apuntes}</td><td>${x.bajas}</td><td>${x.turnos}</td><td><b>${x.hechos}</b></td></tr>`; }).join('')}</tbody></table>
+      <div style="font-size:.74rem;color:var(--label2);margin-bottom:.7rem;line-height:1.55">Con esto, <b>${P.turnosHechos} de ${P.turnosN}</b> turnos con apuntes llegarían a ${MIN} o más (se contarán como <b>turnos que salieron adelante gracias a los apuntes</b>) y el resto como no realizados. ℹ️ Los apuntes que alguien canceló <u>antes de septiembre</u> no dejaron aviso: si los hubo, aparecerán como apuntados. La hora de cada apunte es la del aviso (puede retrasarse si la app estaba cerrada).</div>` : ''}
+      ${P.fuera ? `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.5rem .7rem;font-size:.74rem;margin-bottom:.6rem">${P.fuera} aviso${P.fuera === 1 ? '' : 's'} de turnos del mes actual o posterior no se importan (ya están en la app).</div>` : ''}
+      ${!TG.tablasOk ? `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.6rem .8rem;font-size:.76rem;margin-bottom:.6rem">⚠️ Antes de importar hay que crear las tablas de archivo: ejecuta <b>supabase/05_archivo_apuntes_bajas.sql</b> en el SQL Editor de Supabase (ver NOTIFICACIONES.md) y vuelve a abrir esta ventana.</div>` : ''}
+      ${pend ? `<div style="background:var(--amber-soft);border-radius:var(--r-sm);padding:.6rem .7rem;font-size:.76rem;margin-bottom:.7rem"><div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap"><b style="color:var(--amber)">Elige a quién corresponde cada nombre dudoso</b>${sugeribles ? `<button class="btn btn-ghost btn-sm" onclick="tgAceptarSugerencias()">✨ Aceptar sugerencias claras</button>` : ''}</div>
+        ${P.sinResolver.map(x => `<div style="display:flex;gap:.5rem;align-items:center;margin-top:.4rem;flex-wrap:wrap"><span style="flex:1;min-width:130px;font-weight:600">${escH(x.txt)} <i style="font-weight:400;color:var(--label3)">${x.sug && x.sug.length ? 'parecido a ' + escH(x.sug[0].v.nombre) : x.tipo === 'ambiguo' ? 'varias coincidencias' : 'no está en la lista'}</i></span><select class="fc" style="max-width:250px" onchange="tgElegir('${escH(x.key)}',this.value)">${opts(x)}</select></div>`).join('')}</div>` : ''}
+      ${P.nuevos.length ? `<div style="font-size:.72rem;color:var(--label2);margin-bottom:.5rem">➕ Se añadirán como <b>voluntarios fuera del grupo</b> (ya no colaboran, pero su historia cuenta): ${P.nuevos.map(n => escH(n.nombre)).join(', ')}</div>` : ''}
+      <div style="display:flex;gap:.5rem;justify-content:flex-end;align-items:center;flex-wrap:wrap"><span style="font-size:.72rem;color:var(--label3);flex:1;min-width:160px">${total ? `Se guardarán ${P.apuntes.length} apuntes y ${P.bajas.length} ${P.bajas.length === 1 ? 'baja' : 'bajas'}${pend ? ' (los nombres sin resolver quedan fuera)' : ''}.` : 'Nada que importar todavía.'}</span>
+        <button class="btn btn-green" id="tg-btn" ${total && TG.tablasOk ? '' : 'disabled'} onclick="tgEjecutar()">📥 Importar</button></div>
+    </div>`;
+}
+
+async function tgEjecutar() {
+  const P = TG.plan; if (!P || !(P.apuntes.length + P.bajas.length)) return;
+  if (!confirm(`¿Guardar ${P.apuntes.length} apuntes y ${P.bajas.length} bajas de meses anteriores${P.nuevos.length ? `, añadiendo ${P.nuevos.length} voluntarios fuera del grupo` : ''}?\n\nDespués podrás deshacerlo desde esta misma ventana.`)) return;
+  const btn = document.getElementById('tg-btn'); btn.disabled = true; btn.textContent = '⏳ Guardando…';
+  const hecho = { vols: [], ap: [], ba: [] };
+  try {
+    const idNuevo = new Map();
+    if (P.nuevos.length) {
+      const cre = await sbPost('voluntarios', P.nuevos.map(n => ({ nombre: n.nombre, tiene_llave: false, activo: false })), 'return=representation');
+      cre.forEach(v => { hecho.vols.push(v.id); idNuevo.set(_impNorm(v.nombre), v.id); });
+    }
+    const fix = r => r.voluntario_id.startsWith('nuevo:') ? { ...r, voluntario_id: idNuevo.get(r.voluntario_id.slice(6)) } : r;
+    const ap = P.apuntes.map(fix), ba = P.bajas.map(fix);
+    for (let i = 0; i < ap.length; i += 200) (await sbPost('apuntes_archivo', ap.slice(i, i + 200), 'return=representation')).forEach(r => hecho.ap.push(r.id));
+    for (let i = 0; i < ba.length; i += 200) (await sbPost('bajas_archivo', ba.slice(i, i + 200), 'return=representation')).forEach(r => hecho.ba.push(r.id));
+    TG.ultimos = hecho;
+    ['_vOk', '_hOk'].forEach(k => { window[k] = false; }); invalidar('activos'); S.volsAll = null; ST.raw = null; ST.S = null; EV.data = null;
+    document.getElementById('mvol-body').innerHTML = `
+      <div style="text-align:center;padding:1rem .5rem"><div style="font-size:2rem">✅</div><h4 style="margin:.4rem 0">Importación completada</h4>
+        <p style="font-size:.82rem;color:var(--label2);line-height:1.6">${hecho.ap.length} apuntes · ${hecho.ba.length} bajas${hecho.vols.length ? ` · ${hecho.vols.length} voluntarios fuera del grupo añadidos` : ''}</p>
+        <div style="display:flex;gap:.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap"><button class="btn btn-ghost" onclick="tgDeshacer()">↩︎ Deshacer esta importación</button><button class="btn btn-navy" onclick="closeModal('mvol');loadEstadisticas(true)">Ver estadísticas</button></div></div>`;
+    loadEstadisticas(true);
+  } catch(e) {
+    TG.ultimos = hecho; btn.disabled = false; btn.textContent = '📥 Importar';
+    const parcial = hecho.ap.length + hecho.ba.length + hecho.vols.length;
+    toast('Error al importar: ' + e.message + (parcial ? ' — se guardó una parte; usa "Deshacer" o repite' : ''), 'err');
+    if (parcial) document.getElementById('tg-prev').insertAdjacentHTML('beforeend', `<div style="margin-top:.6rem;text-align:right"><button class="btn btn-ghost btn-sm" onclick="tgDeshacer()">↩︎ Deshacer lo que se llegó a guardar</button></div>`);
+  }
+}
+
+async function tgDeshacer() {
+  const h = TG.ultimos; if (!h) return;
+  if (!confirm('¿Deshacer la importación? Se borrarán los apuntes, las bajas y los voluntarios añadidos en ella.')) return;
+  try {
+    const lote = async (tabla, ids) => { for (let i = 0; i < ids.length; i += 40) await sbDelete(tabla, 'id=in.(' + ids.slice(i, i + 40).join(',') + ')'); };
+    if (h.ap.length) await lote('apuntes_archivo', h.ap);
+    if (h.ba.length) await lote('bajas_archivo', h.ba);
+    if (h.vols.length) await lote('voluntarios', h.vols);
+    TG.ultimos = null; ['_vOk', '_hOk'].forEach(k => { window[k] = false; }); invalidar('activos'); S.volsAll = null; ST.raw = null; ST.S = null; EV.data = null;
+    closeModal('mvol'); toast('Importación deshecha', 'ok'); loadEstadisticas(true);
+  } catch(e) { toast('No se pudo deshacer del todo: ' + e.message, 'err'); }
 }
 
 // ── Confirmar turnos desde Apuntes: el apunte pasa a ser un turno confirmado real

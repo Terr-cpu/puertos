@@ -230,6 +230,8 @@ Si de un mes gestionado a mano no se conservan las bajas una a una, pero se sabe
 hubo **al menos** un número (p. ej. "en abril hubo al menos 2"), se indica en
 *🩺 Calidad de los datos → ✎ Indicar bajas*. Se guarda en la tabla
 `ajustes_estadisticas` ([`supabase/04_ajustes_estadisticas.sql`](supabase/04_ajustes_estadisticas.sql)).
+
+Los meses hechos solo con apuntes (sin cuadrante) se pueden reconstruir desde el chat de Telegram con **💬 Desde Telegram**: guarda los apuntes y bajas en `apuntes_archivo` / `bajas_archivo` ([`supabase/05_archivo_apuntes_bajas.sql`](supabase/05_archivo_apuntes_bajas.sql), pasos en `NOTIFICACIONES.md`, Ampliación E). En esos turnos asisten los apuntados si se llega a 3 voluntarios, y quien se apuntó y se dio de baja después no cuenta.
 Las estadísticas lo tratan como **dato aproximado**: solo suma lo que falte hasta ese
 mínimo (si el mes ya tiene más bajas registradas, no cambia nada), el mes pasa a contar
 para la tasa de baja y las cifras salen como **"≥"** (bajas, tasa, y el aviso de tasa

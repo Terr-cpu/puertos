@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -486,14 +486,14 @@ function check(nombre, cond, detalle) {
   check('cómo acaban: 2 completos, 2 justos, 1 débil, 1 sin nadie', T.completos === 2 && T.justos === 2 && T.debiles === 1 && T.caidos === 1);
   check('personas por turno: 16/6 = 2,67; 67 % llega al mínimo', Math.abs(T.nMedia - 16 / 6) < 1e-9 && T.pctMin === 67 && T.pctBajoMin === 33);
   check('turnos sin portador de llave: 3 (T3, T5, T6)', T.sinLlave === 3, T.sinLlave + '');
-  check('participación: 7 de 11 activos = 64 % (el inactivo no cuenta)', V.participantes === 7 && V.activos === 11 && V.inactivos === 1 && V.participacion === 64, `${V.participantes}/${V.activos}/${V.participacion}`);
-  check('concentración: 3 primeros = 62 %, 20 % más activo = 46 %', V.top3Share === 62 && V.top20Share === 46, `${V.top3Share}/${V.top20Share}`);
+  check('participación: 9 de 11 activos = 82 % (cuentan también los que acudieron apuntándose: E, H, I, J; el inactivo no)', V.participantes === 9 && V.activos === 11 && V.inactivos === 1 && V.participacion === 82, `${V.participantes}/${V.activos}/${V.participacion}`);
+  check('concentración (turnos por voluntario 3,3,3,3,2,2,1,1,1 = 19): 3 primeros = 47 %, 20 % más activo = 32 %', V.top3Share === 47 && V.top20Share === 32, `${V.top3Share}/${V.top20Share}`);
   check('dejaron de participar (más de 6 meses sin turnos): solo L (último turno en marzo)', V.sugeridos.map(r => r.id).join() === 'l', V.sugeridos.map(r => r.id).join());
-  check('sin estrenar: F y J (nunca un turno hecho); K inactivo no cuenta', V.sinEstrenar.map(r => r.id).sort().join() === 'f,j', V.sinEstrenar.map(r => r.id).join());
+  check('sin estrenar: solo F (J ya acudió al turno formado por apuntes); K inactivo no cuenta', V.sinEstrenar.map(r => r.id).sort().join() === 'f', V.sinEstrenar.map(r => r.id).join());
   check('turnos confirmados desglosados: 4 ya hechos y 1 próximo', T.confPasados === 4 && T.confProg === 1, T.confPasados + '/' + T.confProg);
   const fila = id => S.tabla.find(r => r.id === id);
   check('tabla: A hizo 3 turnos y tiene llave; B 2 turnos, 1 baja sobre 3 plazas (33 %)', fila('a').turnos === 3 && fila('a').llave && fila('b').turnos === 2 && fila('b').bajas === 1 && fila('b').tasa === 33, JSON.stringify({ b: fila('b') }).slice(0, 120));
-  check('último turno de E = 10/09 (el de octubre acabó en baja, el otro es el apuntado)', fila('e').ultimo === '2026-09-10');
+  check('último turno de E = 06/10 (se apuntó a ese turno, que se hizo con 4; el del 9/10 acabó en baja)', fila('e').ultimo === '2026-10-06', fila('e').ultimo);
   check('serie mensual: 1 mes con 7 turnos, 6 bajas, 7 apuntes', S.meses.length === 1 && S.meses[0].turnos === 7 && S.meses[0].bajas === 6 && S.meses[0].apuntes === 7);
   const dia = d => S.porDia.find(x => x.dow === d);
   check('por día: el lunes 12/10 fue 1 turno con 2 bajas', dia(1).turnos === 1 && dia(1).bajas === 2, JSON.stringify(dia(1)));
@@ -512,7 +512,7 @@ function check(nombre, cond, detalle) {
   check('insight: turnos sin portador de llave', ins.some(i => /sin portador/.test(i.titulo)));
   check('insight: voluntarios que dejaron de participar', ins.some(i => /dejó de participar|dejaron de participar/.test(i.titulo)));
   check('no salta "sin estrenar" con solo 2 casos (mínimo 3)', !ins.some(i => /nunca han tenido/.test(i.titulo)));
-  check('no salta "3 más activos" con menos de 8 participantes', !ins.some(i => /3 más activos/.test(i.titulo)));
+  check('con 9 participantes y el 47 % en los 3 primeros sí salta "Los 3 más activos hacen el 47 %"', ins.some(i => /Los 3 más activos hacen el 47 %/.test(i.titulo)), ins.map(i => i.titulo).join(' | '));
   check('los insights salen ordenados: rojos primero, verdes al final', ['rojo', 'ambar', 'info', 'verde'].indexOf(ins[0].nivel) === 0 && ins[ins.length - 1].nivel === 'verde');
 
   // Datos vacíos: no debe romper
@@ -968,6 +968,111 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   // Solo una semana al mes
   const De = E._dispoModelo([{ voluntario_id: 'a', semana: 3, dia: 'Martes', horario: '16:00 a 20:00' }, ...'bcd'.split('').map(id => ({ voluntario_id: id, semana: 3, dia: 'Martes', horario: '16:00 a 20:00' }))], vols.slice(0, 4), { DUR: 2, MIN: 3 });
   check('libre solo la 3.ª semana (aunque los demás coincidan ese día): causa "Libre solo unas pocas semanas al mes"', De.lista[0].diag.tipo === 'esporadico' && /una sola semana/.test(De.lista[0].diag.detalle) && /solo la 3\.ª sem\./.test(De.lista[0].diag.detalle), De.lista[0].diag.detalle);
+})();
+
+// ── E23: recuperar apuntes y bajas desde el chat exportado de Telegram ──
+(function E23() {
+  console.log('\n═══ E23 · Importar desde Telegram ═══');
+  const T = (t) => E._tgParsearTexto(t);
+  check('apunte a turno: "✋ Nuevo apunte / NOMBRE se ha apuntado — turno 10:00 a 12:00 del 12/07/2026"', JSON.stringify(T('✋ Nuevo apunte\nANA PEREZ se ha apuntado — turno 10:00 a 12:00 del 12/07/2026\n10/07 09:15')) === JSON.stringify({ tipo: 'apunte', nombre: 'ANA PEREZ', fecha: '2026-07-12', rango: '10:00 a 12:00', dc: false }), JSON.stringify(T('✋ Nuevo apunte\nANA PEREZ se ha apuntado — turno 10:00 a 12:00 del 12/07/2026')));
+  const dc = T('📅 Apunte nuevo día\nLUIS MARTIN se ha apuntado — disponible todo el día del 13/07/2026');
+  check('apunte de día completo ("Apunte nuevo día" / "disponible todo el día")', dc.tipo === 'apunte' && dc.dc === true && dc.rango === null && dc.fecha === '2026-07-13');
+  check('baja: "📤 Baja comunicada / NOMBRE no puede asistir — 10:00 a 12:00 del 15/07/2026"', T('📤 Baja comunicada\nLUIS MARTIN no puede asistir — 10:00 a 12:00 del 15/07/2026').tipo === 'baja');
+  check('avisos nuevos del servidor: apunte cancelado y baja anulada', T('❌ Apunte cancelado\nANA PEREZ ya no cubre — 10:00 a 12:00 del 12/07/2026').tipo === 'apunte_cancelado' && T('↩️ Baja anulada\nANA PEREZ vuelve a asistir — 10:00 a 12:00 del 12/07/2026').tipo === 'baja_anulada');
+  check('un aviso de baja sin franja ("turno del …") se detecta pero no se puede usar', T('📤 Baja comunicada\nX no puede asistir — turno del 14/07/2026').sinFranja === true);
+  check('mensajes que no son del bot no se confunden', T('hola, ¿qué tal?') === null && T('ANA se ha apuntado — turno 10:00 a 12:00 del 12/07/2026') === null && T('') === null);
+  check('los nombres con emoji o tildes delante/detrás se limpian: "🙂 MARÍA DÍAZ"', T('✋ Nuevo apunte\n🙂 MARÍA DÍAZ se ha apuntado — turno 09:00 a 11:00 del 05/09/2026').nombre === 'MARÍA DÍAZ');
+  check('fecha imposible (31/02) se ignora', T('✋ Nuevo apunte\nANA se ha apuntado — turno 10:00 a 12:00 del 31/02/2026') === null);
+  check('texto exportado como lista de trozos con formato (negrita/cursiva)', E._tgTexto({ text: ['✋ ', { type: 'bold', text: 'Nuevo apunte' }, '\nANA PEREZ se ha apuntado — turno 10:00 a 12:00 del 12/07/2026\n', { type: 'italic', text: '10/07 09:15' }] }).includes('Nuevo apunte\nANA PEREZ se ha apuntado'));
+
+  // Chat de prueba
+  const u = iso => String(Date.parse(iso) / 1000);
+  const msg = (iso, id, texto) => ({ id, type: 'message', date: iso.slice(0, 19), date_unixtime: u(iso), from: 'Bot', text: texto });
+  const ap = (n, tramo, f) => `✋ Nuevo apunte\n${n} se ha apuntado — turno ${tramo} del ${f}\n10/07 09:15`;
+  const chat = { name: 'Mi bot', type: 'personal_chat', messages: [
+    msg('2026-07-10T07:15:00Z', 1, ap('ANA PEREZ', '10:00 a 12:00', '12/07/2026')),
+    msg('2026-07-10T07:20:00Z', 2, [{ type: 'plain', text: '✋ ' }, { type: 'bold', text: 'Nuevo apunte' }, { type: 'plain', text: '\nMARIA DIAZ se ha apuntado — turno 10:00 a 12:00 del 12/07/2026' }]),   // con formato
+    msg('2026-07-10T08:00:00Z', 3, ap('LUIS MARTIN', '10:00 a 12:00', '12/07/2026')),
+    msg('2026-07-10T08:05:00Z', 4, ap('LUIS MARTIN', '10:00 a 12:00', '12/07/2026')),          // aviso repetido (app abierta en dos sitios)
+    msg('2026-07-11T09:00:00Z', 5, ap('PEDRO RUIZ', '10:00 a 12:00', '12/07/2026')),
+    msg('2026-07-11T10:00:00Z', 6, '📤 Baja comunicada\nLUIS MARTIN no puede asistir — 10:00 a 12:00 del 12/07/2026'),   // LUIS se da de baja después de apuntarse
+    msg('2026-07-11T11:00:00Z', 7, '❌ Apunte cancelado\nPEDRO RUIZ ya no cubre — 10:00 a 12:00 del 12/07/2026'),          // PEDRO cancela
+    msg('2026-07-12T07:00:00Z', 8, ap('ANA PEREZ', '19:00 a 21:00', '13/07/2026')),
+    msg('2026-07-12T07:01:00Z', 9, ap('MARIA DIAZ', '19:00 a 21:00', '13/07/2026')),
+    msg('2026-07-12T07:02:00Z', 10, ap('LUIS MARTIN', '19:00 a 21:00', '13/07/2026')),
+    msg('2026-07-12T07:03:00Z', 11, ap('CARLOS INVENTADO', '19:00 a 21:00', '13/07/2026')),   // nombre que no está en la lista
+    msg('2026-07-12T08:00:00Z', 12, '📅 Apunte nuevo día\nLUIS MARTIN se ha apuntado — disponible todo el día del 14/07/2026'),
+    msg('2026-07-13T08:00:00Z', 13, '📤 Baja comunicada\nX no puede asistir — turno del 14/07/2026'),   // sin franja
+    { id: 14, type: 'service', date: '2026-07-13T09:00:00', text: '' },
+    msg('2026-07-13T09:30:00Z', 15, 'buenos días'),
+    msg('2026-09-20T09:00:00Z', 16, ap('ANA PEREZ', '10:00 a 12:00', '26/09/2026')),                // turno del mes actual: se ignora
+  ] };
+  const P = E._tgParsear(chat);
+  check('lee el chat: 16 mensajes, 13 avisos utilizables + 1 sin franja, del 10/07 al 20/09', P.mensajes === 16 && P.eventos.length === 13 && P.sinFranja === 1 && P.desde === '2026-07-10' && P.hasta === '2026-09-20', `${P.mensajes}/${P.eventos.length}/${P.sinFranja}/${P.desde}/${P.hasta}`);
+  const C = E._tgConsolidar(P.eventos);
+  check('consolida: el aviso repetido se une, el apunte cancelado se quita → 9 apuntes, 1 baja', C.cont.apuntes === 9 && C.cont.bajas === 1 && C.cont.repetidos === 1 && C.cont.cancelados === 1, JSON.stringify(C.cont));
+  check('se conserva la hora del PRIMER aviso del apunte repetido', C.apuntes.find(a => a.nombre === 'LUIS MARTIN' && a.rango === '10:00 a 12:00').ts === '2026-07-10T08:00:00.000Z');
+  check('una baja anulada después deja la baja como no activa', E._tgConsolidar([...P.eventos, { tipo: 'baja_anulada', nombre: 'LUIS MARTIN', fecha: '2026-07-12', rango: '10:00 a 12:00', dc: false, ts: '2026-07-11T12:00:00.000Z' }]).bajas[0].activa === false);
+  // Apuntarse otra vez después de cancelar vuelve a contar
+  const reap = E._tgConsolidar([{ tipo: 'apunte', nombre: 'A B', fecha: '2026-07-12', rango: '10:00 a 12:00', dc: false, ts: '2026-07-01T00:00:00Z' }, { tipo: 'apunte_cancelado', nombre: 'A B', fecha: '2026-07-12', rango: '10:00 a 12:00', dc: false, ts: '2026-07-02T00:00:00Z' }, { tipo: 'apunte', nombre: 'A B', fecha: '2026-07-12', rango: '10:00 a 12:00', dc: false, ts: '2026-07-03T00:00:00Z' }]);
+  check('apuntarse, cancelar y volver a apuntarse deja 1 apunte', reap.apuntes.length === 1 && reap.apuntes[0].ts === '2026-07-03T00:00:00Z');
+
+  const vols = [{ id: '1', nombre: 'ANA PEREZ' }, { id: '2', nombre: 'LUIS MARTIN' }, { id: '3', nombre: 'MARIA DIAZ' }, { id: '4', nombre: 'PEDRO RUIZ' }];
+  const hoy = '2026-09-21';
+  const yaMaria = new Set(['3|2026-07-13|19:00 a 21:00|0']);
+  let plan = E._tgPlan(C, vols, { ap: new Set(yaMaria), ba: new Set() }, hoy, {});
+  check('plan: el aviso del mes actual queda fuera y lo que ya existe no se duplica (María el 13/07)', plan.fuera === 1 && plan.duplicados === 1, `${plan.fuera}/${plan.duplicados}`);
+  check('plan: 7 apuntes nuevos (ANA×2, MARIA×1, LUIS×3 incl. día completo) sin CARLOS (dudoso) y 1 baja', plan.apuntes.length === 6 && plan.bajas.length === 1, `${plan.apuntes.length}/${plan.bajas.length}`);
+  check('el nombre que no está en la lista queda por resolver, sin inventar', plan.sinResolver.length === 1 && plan.sinResolver[0].txt === 'CARLOS INVENTADO');
+  check('registro de apunte con el formato de la tabla: voluntario, fecha, franja, día completo, hora del aviso, origen', JSON.stringify(plan.apuntes.find(a => a.es_dia_completo)) === JSON.stringify({ voluntario_id: '2', fecha: '2026-07-14', rango: null, es_dia_completo: true, registrado_en: '2026-07-12T08:00:00.000Z', origen: 'telegram' }), JSON.stringify(plan.apuntes.find(a => a.es_dia_completo)));
+  check('vista previa por mes: julio con 6 apuntes, 1 baja y turnos que llegan a 3', plan.porMes['2026-07'] && plan.porMes['2026-07'].apuntes === 6 && plan.porMes['2026-07'].bajas === 1, JSON.stringify(plan.porMes));
+  check('turno 12/07: ANA y MARIA (LUIS se dio de baja después y PEDRO canceló) = 2 → no llega a 3; turno 13/07 con ANA y LUIS (María ya existía) = 2', plan.turnosN === 2 && plan.turnosHechos === 0, `${plan.turnosN}/${plan.turnosHechos}`);
+  plan = E._tgPlan(C, vols, { ap: new Set(), ba: new Set() }, hoy, { 'CARLOS INVENTADO': '__nuevo__' });
+  check('sin duplicados previos y con CARLOS añadido como voluntario fuera del grupo: el turno del 13/07 llega a 4 y se cuenta como hecho', plan.nuevos.length === 1 && plan.nuevos[0].nombre === 'CARLOS INVENTADO' && plan.turnosN === 2 && plan.turnosHechos === 1 && plan.apuntes.some(a => a.voluntario_id === 'nuevo:CARLOS INVENTADO'), `${plan.nuevos.length}/${plan.turnosN}/${plan.turnosHechos}`);
+  plan = E._tgPlan(C, vols, { ap: new Set(), ba: new Set() }, hoy, { 'CARLOS INVENTADO': '' });
+  check('omitir a una persona la deja fuera sin error', plan.sinResolver.length === 0 && !plan.apuntes.some(a => String(a.voluntario_id).startsWith('nuevo')));
+  check('un JSON de exportación completa (varios chats) también se lee', E._tgParsear({ chats: { list: [{ messages: chat.messages.slice(0, 3) }, { messages: chat.messages.slice(3, 6) }] } }).eventos.length === 6, E._tgParsear({ chats: { list: [{ messages: chat.messages.slice(0, 3) }, { messages: chat.messages.slice(3, 6) }] } }).eventos.length + '');
+  check('un archivo que no es un chat no rompe: 0 avisos', E._tgParsear({}).eventos.length === 0 && E._tgParsear({ messages: [] }).mensajes === 0);
+})();
+
+// ── E24: un mes hecho solo con apuntes (como julio y agosto): asistencia, bajas posteriores y estado del mes ──
+(function E24() {
+  console.log('\n═══ E24 · Meses hechos solo con apuntes ═══');
+  const hoy = '2026-09-21', R1 = '10:00 a 12:00';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const AP = (id, fecha, ts) => ({ voluntario_id: id, fecha, rango: R1, es_dia_completo: false, registrado_en: ts });
+  const raw = {
+    vols: 'abcdef'.split('').map(V), hist: [], arch: [], noReal: [], act: null,
+    refs: [
+      AP('a', '2026-07-12', '2026-07-10T08:00:00Z'), AP('b', '2026-07-12', '2026-07-10T08:00:00Z'), AP('c', '2026-07-12', '2026-07-10T08:00:00Z'),
+      AP('d', '2026-07-12', '2026-07-10T08:00:00Z'),        // D se apunta y DESPUÉS se da de baja → no está
+      AP('e', '2026-07-12', '2026-07-11T08:00:00Z'),        // E se dio de baja y DESPUÉS se vuelve a apuntar → está
+      AP('f', '2026-07-19', '2026-07-15T08:00:00Z'),        // turno de 19/07: solo F → no llega a 3
+    ],
+    bajas: [{ voluntario_id: 'd', fecha: '2026-07-12', rango: R1, registrado_en: '2026-07-11T08:00:00Z', activa: true }, { voluntario_id: 'e', fecha: '2026-07-12', rango: R1, registrado_en: '2026-07-10T08:00:00Z', activa: true }],
+  };
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const S = E._statsAgregar(base, raw, '2026-07-01', '2026-07-31', hoy);
+  const T = S.turnos, V_ = S.voluntarios;
+  const t12 = base.turnos.find(t => t.k === '2026-07-12|' + R1);
+  check('turno formado solo por apuntes: A, B, C y E están; D (baja posterior) no → 4 presentes', t12.n === 4 && t12.presentes.sort().join() === 'a,b,c,e', t12.presentes.join());
+  check('se hizo (4 ≥ 3): turno confirmado y "recuperado por apuntes" (tras la baja de D llega a 3 gracias a los apuntes)', T.confirmados === 1 && T.salieron === 1 && T.salvados === 1 && T.salenPorApuntes === 1, JSON.stringify({ c: T.confirmados, s: T.salieron, sal: T.salvados }));
+  check('el turno del 19/07 con un solo apuntado no se hizo: 1 de 2 salen adelante (50 %)', T.noSalieron === 1 && T.programados === 2 && T.pctSalen === 50 && T.debiles === 1, JSON.stringify({ n: T.noSalieron, p: T.programados, pct: T.pctSalen }));
+  check('asisten los apuntados de turnos que se hicieron (A, B, C, E) y no D ni F', V_.participantes === 4 && ['a', 'b', 'c', 'e'].every(i => S.tabla.find(r => r.id === i).turnos === 1) && S.tabla.find(r => r.id === 'f').turnos === 0 && S.tabla.find(r => r.id === 'd').turnos === 0);
+  check('su último turno es el 12/07 y los que no asistieron no tienen ninguno', S.tabla.find(r => r.id === 'a').ultimo === '2026-07-12' && S.tabla.find(r => r.id === 'f').ultimo === null);
+  check('julio sin cuadrante pero con apuntes es un mes "con registro", no un hueco', S.cobertura.meses[0].estado === 'app' && S.cobertura.vacios.length === 0 && base.datosMeses.includes('2026-07'), JSON.stringify(S.cobertura.meses[0]));
+  check('la baja de D cuenta (1 baja real) y el apunte de E que vuelve tras su baja no', t12.bajaReal === 1 && S.bajas.total === 2 && S.bajas.efectivas === 2);
+  // Sin marcas de tiempo (datos antiguos): se entiende que quien tiene baja y apunte vuelve, como antes
+  const sinTs = { ...raw, refs: raw.refs.map(r => ({ ...r, registrado_en: undefined })), bajas: raw.bajas.map(b => ({ ...b, registrado_en: undefined })) };
+  const t12b = E._statsBase(sinTs, { MIN_EQ: 3 }).turnos.find(t => t.k === '2026-07-12|' + R1);
+  check('sin fechas de aviso, baja + apunte = vuelve (compatibilidad): D y E están → 5', t12b.n === 5);
+  // Un equipo confirmado + apuntados que se dan de baja después
+  const raw2 = { vols: 'abcde'.split('').map(V), arch: [], noReal: [], act: null,
+    hist: 'abc'.split('').map(id => ({ fecha: '2026-07-12', rango: R1, voluntario_id: id, nombre: id })),
+    refs: [AP('d', '2026-07-12', '2026-07-01T00:00:00Z'), AP('e', '2026-07-12', '2026-07-01T00:00:00Z')],
+    bajas: [{ voluntario_id: 'e', fecha: '2026-07-12', rango: R1, registrado_en: '2026-07-05T00:00:00Z', activa: true }] };
+  const b2 = E._statsBase(raw2, { MIN_EQ: 3 }); const x = b2.turnos[0];
+  check('con equipo confirmado (A, B, C) y dos apuntados (D y E, que se da de baja después): asisten A, B, C, D', x.n === 4 && x.asisten.sort().join() === 'a,b,c,d', x.asisten.join());
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
