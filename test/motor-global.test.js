@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -499,7 +499,7 @@ function check(nombre, cond, detalle) {
   check('por día: el lunes 12/10 fue 1 turno con 2 bajas', dia(1).turnos === 1 && dia(1).bajas === 2, JSON.stringify(dia(1)));
 
   // Periodo anterior
-  check('septiembre: 1 turno archivado, 5 plazas, sin bajas → tasa 0', P.turnos.total === 1 && P.asignaciones === 5 && P.bajas.total === 0 && P.bajas.tasa === 0);
+  check('septiembre: 1 turno archivado, 5 plazas, sin rastro de bajas → mes "manual": no entra en la tasa (sin base)', P.turnos.total === 1 && P.asignaciones === 5 && P.bajas.total === 0 && P.bajas.tasa === null && P.bajas.base === 0 && P.cobertura.manuales.length === 1);
 
   // Insights
   const ins = E._statsInsights(S, P), tit = ins.map(i => i.titulo).join(' | ');
@@ -519,6 +519,92 @@ function check(nombre, cond, detalle) {
   const vacio = { vols: [], hist: [], arch: [], bajas: [], refs: [], act: null };
   const Sv = E._statsAgregar(E._statsBase(vacio, {}), vacio, '2026-10-01', '2026-10-31', hoy);
   check('sin datos: ceros y tasa nula, sin excepciones', Sv.asignaciones === 0 && Sv.bajas.tasa === null && Sv.turnos.pctMin === null && Sv.apuntes.cancelados === null && E._statsInsights(Sv, null).length >= 1);
+})();
+
+// ── E13: calidad de los datos, evidencia y "confirmado desde apunte" ──
+(function E13() {
+  console.log('\n═══ E13 · Datos incompletos: meses sin registro y evidencia ═══');
+  const hoy = '2026-09-21';
+  const R1 = '10:00 a 12:00';
+  const V = id => ({ id, nombre: id.toUpperCase() + ' NOMBRE', tiene_llave: false, activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const H = (fecha, id) => ({ fecha, rango: R1, voluntario_id: id, nombre: id.toUpperCase() + ' NOMBRE' });
+  // Como los datos reales: mayo en la app (con bajas), jun-ago sin nada, septiembre en la app
+  const raw = {
+    vols: 'abcdefgh'.split('').map(V),
+    hist: [H('2026-09-08', 'a'), H('2026-09-08', 'b'), H('2026-09-08', 'c'), H('2026-09-15', 'a'), H('2026-09-15', 'b'), H('2026-09-15', 'c')],
+    arch: [H('2026-05-09', 'd'), H('2026-05-09', 'e'), H('2026-05-09', 'f'), H('2026-05-16', 'd'), H('2026-05-16', 'g')],
+    bajas: [{ voluntario_id: 'e', fecha: '2026-05-09', rango: R1, registrado_en: '2026-05-08T10:00:00Z', activa: true }, { voluntario_id: 'b', fecha: '2026-09-15', rango: R1, registrado_en: '2026-09-10T10:00:00Z', activa: true }],
+    refs: [], act: null,
+  };
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const S = E._statsAgregar(base, raw, '2026-05-01', '2026-09-30', hoy);
+  const est = Object.fromEntries(S.cobertura.meses.map(m => [m.k, m.estado]));
+  check('estados por mes: mayo y septiembre con registro; jun, jul, ago sin datos', est['2026-05'] === 'app' && est['2026-09'] === 'app' && est['2026-06'] === 'vacio' && est['2026-07'] === 'vacio' && est['2026-08'] === 'vacio', JSON.stringify(est));
+  check('la serie mensual marca los meses vacíos', S.meses.filter(m => m.estado === 'vacio').length === 3);
+  check('mes en curso o futuro sin turnos NO se marca como hueco', E._stEstadoMes(null, '2026-09', hoy, false) === 'futuro' && E._stEstadoMes(null, '2026-11', hoy, false) === 'futuro' && E._stEstadoMes(null, '2026-06', hoy, false) === 'vacio');
+  check('mes con turnos y sin ningún rastro de bajas/apuntes = "manual"; con marca del usuario = "app"', E._stEstadoMes({ asig: 4, bajas: 0, apuntes: 0 }, '2026-06', hoy, false) === 'manual' && E._stEstadoMes({ asig: 4, bajas: 0, apuntes: 0 }, '2026-06', hoy, true) === 'app');
+  check('la tasa de baja usa solo meses con registro (2 bajas / 11 plazas = 18,2 %)', S.bajas.base === 11 && S.bajas.tasa === 18.2, `${S.bajas.base}/${S.bajas.tasa}`);
+  const ins = E._statsInsights(S, null);
+  check('insight ámbar: faltan datos de 3 meses', ins.some(i => i.nivel === 'ambar' && /Sin datos en 3 meses/.test(i.titulo)));
+  check('D, F, G (último turno en mayo) NO se dan por "dejaron de participar": solo hay un mes con datos posterior', S.voluntarios.sugeridos.length === 0 && S.voluntarios.sinEvidencia.map(r => r.id).sort().join() === 'd,f,g', S.voluntarios.sinEvidencia.map(r => r.id).join());
+  check('"sin estrenar": H (nunca asignado) y E (su único turno acabó en baja); hay 2 meses con datos', S.voluntarios.sinEstrenar.map(r => r.id).sort().join() === 'e,h', S.voluntarios.sinEstrenar.map(r => r.id).join());
+  check('con solo 11 plazas con registro (<15) no salta el insight de tasa alta', S.bajas.tasa === 18.2 && !ins.some(i => /Tasa de baja/.test(i.titulo)));
+
+  // Si se importan los meses que faltan (jun-ago), la conclusión cambia: D ya llevaba 4 meses sin participar
+  raw.arch.push(H('2026-06-06', 'a'), H('2026-06-06', 'b'), H('2026-06-06', 'c'), H('2026-07-04', 'a'), H('2026-07-04', 'b'), H('2026-07-04', 'c'), H('2026-08-01', 'a'), H('2026-08-01', 'b'), H('2026-08-01', 'c'));
+  const base2 = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const S2 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy);
+  const est2 = Object.fromEntries(S2.cobertura.meses.map(m => [m.k, m.estado]));
+  check('tras importar, jun-ago pasan a "manual" (turnos sin rastro de bajas)', est2['2026-06'] === 'manual' && est2['2026-07'] === 'manual' && est2['2026-08'] === 'manual');
+  check('y ahora sí se puede afirmar que D, F y G dejaron de participar (4 meses con datos después)', S2.voluntarios.sugeridos.map(r => r.id).sort().join() === 'd,f,g' && S2.voluntarios.sinEvidencia.length === 0, S2.voluntarios.sugeridos.map(r => r.id).join());
+  check('los meses manuales no diluyen la tasa: sigue sobre las 11 plazas con registro', S2.bajas.base === 11 && S2.bajas.tasa === 18.2, `${S2.bajas.base}/${S2.bajas.tasa}`);
+  const S3 = E._statsAgregar(base2, raw, '2026-05-01', '2026-09-30', hoy, { mesesOk: new Set(['2026-06', '2026-07', '2026-08']) });
+  check('si el usuario marca esos meses como "registro completo", pasan a contar en la tasa (20 plazas, 2 bajas = 10 %)', S3.bajas.base === 20 && S3.bajas.tasa === 10, `${S3.bajas.base}/${S3.bajas.tasa}`);
+
+  // Apunte ya confirmado en el equipo: cuenta como "salido por apuntes", no como equipo propio
+  const R = { vols: 'abcd'.split('').map(V), hist: ['a', 'b', 'c'].map(id => H('2026-09-10', id)), arch: [], bajas: [],
+    refs: ['a', 'b', 'c'].map(id => ({ voluntario_id: id, fecha: '2026-09-10', rango: R1, es_dia_completo: false, registrado_en: '2026-09-05T10:00:00Z' })), act: null };
+  const Sa = E._statsAgregar(E._statsBase(R, { MIN_EQ: 3, IDEAL: 4 }), R, '2026-09-01', '2026-09-30', hoy);
+  check('turno formado solo por apuntes y luego CONFIRMADO: cuenta como turno confirmado y como "salido por apuntes"', Sa.turnos.confirmados === 1 && Sa.turnos.creadosOk === 1 && Sa.turnos.salenPorApuntes === 1, JSON.stringify({ c: Sa.turnos.confirmados, ok: Sa.turnos.creadosOk }));
+})();
+
+// ── E14: importador de turnos anteriores ──
+(function E14() {
+  console.log('\n═══ E14 · Importador de turnos anteriores ═══');
+  const l = (t) => E._impParsearLinea(t, 2026);
+  let r = l('12/06/2026   10:00 a 12:00   ANA GARCIA, LUIS PEREZ, MARIA SOTO');
+  check('línea con tabuladores/espacios y comas', r.fecha === '2026-06-12' && r.rango === '10:00 a 12:00' && r.nombres.join('|') === 'ANA GARCIA|LUIS PEREZ|MARIA SOTO', JSON.stringify(r));
+  r = l('13/06/2026;19-21;PILAR RUIZ; JOSE MARTIN; ROSA LOPEZ');
+  check('separadores ; y franja "19-21"', r.fecha === '2026-06-13' && r.rango === '19:00 a 21:00' && r.nombres.length === 3, JSON.stringify(r));
+  r = l('2026-07-04 | 10h - 12h | Ana Garcia + Luis Perez');
+  check('fecha ISO, franja "10h - 12h" y separador +', r.fecha === '2026-07-04' && r.rango === '10:00 a 12:00' && r.nombres.length === 2, JSON.stringify(r));
+  r = l('5/7/26 9:30 a 11:30 ANA GARCIA');
+  check('fecha corta d/m/aa y franja con minutos', r.fecha === '2026-07-05' && r.rango === '09:30 a 11:30', JSON.stringify(r));
+  r = l('20/06 10 a 12 ANA GARCIA, LUIS PEREZ');
+  check('sin año → usa el año actual', r.fecha === '2026-06-20' && r.rango === '10:00 a 12:00');
+  check('línea vacía y comentario se ignoran', l('') === null && l('# comentario') === null);
+  check('errores claros: sin fecha, sin franja, sin nombres, fecha imposible', /fecha/.test(l('ANA GARCIA 10-12').error) && /franja/.test(l('12/06/2026 ANA GARCIA').error) && /nombres/.test(l('12/06/2026 10-12').error) && /no válida/.test(l('31/02/2026 10-12 ANA').error), [l('ANA GARCIA 10-12').error, l('12/06/2026 ANA GARCIA').error, l('12/06/2026 10-12').error, l('31/02/2026 10-12 ANA').error].join(' / '));
+  const P = E._impParsear('12/06/2026 10-12 ANA GARCIA, LUIS PEREZ\n12/06/2026 10-12 luis perez, ROSA LOPEZ\nfoo\n13/06/2026 19-21 PILAR RUIZ', 2026);
+  check('líneas del mismo turno se unen y sin repetir a nadie; la línea "foo" es un error', P.turnos.length === 2 && P.turnos[0].nombres.length === 3 && P.errores.length === 1, JSON.stringify(P.turnos[0].nombres));
+
+  const vols = [{ id: '1', nombre: 'ANA GARCIA LOPEZ' }, { id: '2', nombre: 'LUIS PEREZ' }, { id: '3', nombre: 'MARIA SOTO' }, { id: '4', nombre: 'MARIA GARCIA' }, { id: '5', nombre: 'JOSÉ ÁNGEL RUIZ' }];
+  check('emparejado exacto ignorando mayúsculas y tildes', E._impEmparejar('luis  pérez', vols).tipo === 'exacto' && E._impEmparejar('jose angel ruiz', vols).v.id === '5');
+  check('emparejado aproximado: nombre incompleto que solo cuadra con uno', E._impEmparejar('ANA GARCIA', vols).tipo === 'aprox' && E._impEmparejar('ANA GARCIA', vols).v.id === '1');
+  check('ambiguo: un apellido que cuadra con dos → no adivina', E._impEmparejar('GARCIA', vols).tipo === 'ambiguo' && E._impEmparejar('GARCIA', vols).cands.length === 2);
+  check('desconocido → ninguno', E._impEmparejar('PEDRO INEXISTENTE', vols).tipo === 'ninguno');
+
+  const hoy = '2026-09-21', exist = new Set(['2|2026-06-12|10:00 a 12:00']);
+  const parsed = E._impParsear('12/06/2026 10-12 ANA GARCIA, LUIS PEREZ, GARCIA, PEDRO X\n05/09/2026 10-12 MARIA SOTO\n03/10/2026 10-12 MARIA SOTO', 2026);
+  let plan = E._impPlan(parsed, vols, exist, hoy, {});
+  check('plan: ANA es nueva y LUIS ya existía (duplicado, no se repite)', plan.registros.map(r => r.voluntario_id + '@' + r.fecha).join() === '1@2026-06-12' && plan.duplicados === 1, JSON.stringify(plan.registros.map(r => r.voluntario_id + '@' + r.fecha)));
+  check('los nombres dudosos quedan sin resolver (GARCIA, PEDRO X), no se inventa nada', plan.sinResolver.map(x => x.txt).sort().join() === 'GARCIA,PEDRO X', plan.sinResolver.map(x => x.txt).join());
+  check('solo se importan meses anteriores al actual (el 05/09 y el 03/10 quedan fuera)', plan.fueraRango.length === 2 && !plan.registros.some(r => r.fecha >= '2026-09-01'), plan.fueraRango.length + '');
+  plan = E._impPlan(parsed, vols, exist, hoy, { GARCIA: '4', 'PEDRO X': '' });
+  check('el usuario resuelve GARCIA→MARIA GARCIA y omite a PEDRO X', plan.registros.some(r => r.voluntario_id === '4') && plan.sinResolver.length === 0);
+  const reg = plan.registros[0];
+  check('registro con el formato de historial_archivo: semana, día sin tilde, mes_archivo', reg.fecha === '2026-06-12' && reg.dia === 'Viernes' && reg.semana === 2 && reg.mes_archivo === '2026-06' && reg.nombre_snap && reg.rango === '10:00 a 12:00', JSON.stringify(reg));
+  const dia = E._impPlan(E._impParsear('11/06/2026 19-21 MARIA SOTO', 2026), vols, new Set(), hoy, {}).registros[0];
+  check('día sin tilde: jueves y miércoles/sábado como en la base de datos', dia.dia === 'Jueves' && E._impPlan(E._impParsear('10/06/2026 19-21 MARIA SOTO', 2026), vols, new Set(), hoy, {}).registros[0].dia === 'Miercoles');
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

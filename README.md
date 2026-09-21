@@ -167,8 +167,37 @@ cifra se compara con el **periodo anterior** de la misma duración (▲▼).
   estrenar** (nunca han tenido turno). Exporta a **CSV** y copia un **resumen**
   listo para pegar.
 - Las cancelaciones de apuntes solo cuentan desde que se ejecutó
-  `supabase/01_actividad.sql` (la vista lo indica). Los meses en los que no se
-  usó la app no dejan datos, así que no se pueden distinguir de "nadie participó".
+  `supabase/01_actividad.sql` (la vista lo indica).
+
+### Meses gestionados fuera de la app
+
+Las estadísticas solo conocen lo que se registró en la app. Para no dar
+conclusiones falsas, cada mes se clasifica solo:
+
+- **Con registro**: tiene turnos y algún rastro de bajas o apuntes.
+- **Sin bajas ni apuntes** (¿gestión manual?): cuenta para turnos y participación,
+  pero **no para las tasas de baja** (no diluyen el porcentaje). Si de verdad fue un
+  mes tranquilo registrado en la app, se marca en *🩺 Calidad de los datos*.
+- **Sin datos**: ningún turno; se muestra como hueco en el gráfico y se avisa.
+
+Además, **nadie se da por "dejó de participar"** salvo que haya al menos 2 meses
+con datos posteriores a su último turno (si hay un hueco de meses sin registrar de
+por medio, se muestra aparte como "sin datos suficientes"). Y las tasas solo se
+comentan a partir de 15 plazas con registro.
+
+**📥 Importar turnos anteriores** recupera esos meses: pegas una línea por turno
+(`12/06/2026  10:00 a 12:00  ANA GARCIA, LUIS PEREZ, …`; acepta tabuladores, `;`,
+franjas `19-21`, fechas `d/m/aa`, etc.), ves una **previsualización** (líneas que no
+se entienden, nombres dudosos que eliges tú, duplicados) y solo entonces se guarda,
+como turnos realizados en el archivo del mes. Solo admite meses anteriores al actual.
+
+### Confirmar turnos desde Apuntes
+
+Cada turno de *Apuntes* tiene **✓ Confirmar turno con estos apuntes**: añade a los
+apuntados al equipo (historial), de modo que un turno formado solo por apuntes pasa
+a ser un turno confirmado real (cuadrante, PDF, descansos y estadísticas). Quienes
+ya están en el equipo se marcan como *✓ EN EL EQUIPO*. En las estadísticas ese
+turno sigue contando como "salido adelante por apuntes".
 
 ### Dar de baja del grupo (Voluntarios)
 
