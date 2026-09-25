@@ -5429,11 +5429,18 @@ async function loadApuntes(force) {
     // Cargamos bajas activas=false (neutralizadas) para cruzar
     const bajasNeutr = await sbGet('bajas', 'activa=eq.false&select=voluntario_id,fecha,rango').catch(()=>[]);
     const bajasSet = new Set(bajasNeutr.map(b => b.voluntario_id+'|'+b.fecha+'|'+(b.rango||'')));
+    // Bajas activas: si alguien del equipo ya confirmado tiene una de estas, el turno tiene
+    // menos gente de la que parece — justo la situación en la que un apunte hace falta de verdad
+    const bajasActivas = await sbGet('bajas', 'activa=eq.true&select=voluntario_id,fecha,rango').catch(()=>[]);
+    const bajasActivasSet = new Set(bajasActivas.map(b => b.voluntario_id+'|'+b.fecha+'|'+(b.rango||'')));
     // Quién de los apuntados ya está confirmado en el equipo (historial)
     const histEq = await sbGet('v_historial', 'select=voluntario_id,fecha,rango,nombre').catch(() => []);
     window._apEquipo = new Set(histEq.map(h => h.voluntario_id+'|'+h.fecha+'|'+h.rango));
     window._apEquipoPorTurno = {};
-    histEq.forEach(h => { const k = h.fecha+'|'+h.rango; (window._apEquipoPorTurno[k] || (window._apEquipoPorTurno[k] = [])).push(h.nombre); });
+    histEq.forEach(h => {
+      const k = h.fecha+'|'+h.rango;
+      (window._apEquipoPorTurno[k] || (window._apEquipoPorTurno[k] = [])).push({ nombre: h.nombre, baja: bajasActivasSet.has(h.voluntario_id+'|'+h.fecha+'|'+h.rango) });
+    });
     refs.forEach(r => {
       r.es_sustituto = bajasSet.has(r.voluntario_id+'|'+r.fecha+'|'+(r.rango||''));
     });
@@ -5601,12 +5608,14 @@ function renderApuntes(c, refs) {
       ${t.esNuevo ? '' : (() => {
         const MIN = (cargarReglas().MIN_EQ) || 3;
         const eq = (window._apEquipoPorTurno || {})[t.fecha + '|' + t.rango] || [];
-        const cubierto = eq.length >= MIN;
+        const bajas = eq.filter(e => e.baja).length, activos = eq.length - bajas;
+        const cubierto = activos >= MIN;
+        const nombres = eq.map(e => e.baja ? `<span style="text-decoration:line-through;opacity:.7">${escH(e.nombre)}</span> 🏥` : escH(e.nombre)).join(', ');
         return `<div style="margin:0 1rem .6rem;padding:.5rem .7rem;border-radius:var(--r-sm);font-size:.74rem;
           background:${eq.length ? (cubierto ? 'var(--green-soft)' : 'var(--amber-soft)') : 'var(--surface2)'};
           color:${eq.length ? (cubierto ? 'var(--green-dark)' : 'var(--amber)') : 'var(--label3)'}">
           ${eq.length
-            ? `${cubierto ? '✅' : '🕓'} Equipo ya confirmado (${eq.length}${cubierto ? '' : '/' + MIN}): ${eq.map(escH).join(', ')}`
+            ? `${cubierto ? '✅' : '🕓'} Equipo confirmado (${eq.length}${bajas ? `, ${bajas} de baja → quedan ${activos}` : ''}${cubierto ? '' : '/' + MIN}): ${nombres}`
             : '⚪ Aún sin nadie confirmado en este turno'}
         </div>`;
       })()}
