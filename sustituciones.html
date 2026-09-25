@@ -404,11 +404,13 @@ async function buscarTurnos(){
     const vs=await sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id');
     if(!vs.length){toast('No encontrado','err');return;}
     const vid=vs[0].id;
+    const hoyBaja=new Date().toISOString().split('T')[0];
 
-    // Cargar historial (cuadrante confirmado) + refuerzos (apuntes voluntarios) + bajas activas
+    // Cargar historial (cuadrante confirmado) + refuerzos (apuntes voluntarios) + bajas activas —
+    // solo de hoy en adelante: no tiene sentido comunicar baja de un turno que ya pasó
     const [histRows, refRows, bajas]=await Promise.all([
-      sbGet('historial','voluntario_id=eq.'+vid+'&select=fecha,semana,dia,rango&order=fecha,rango'),
-      sbGet('refuerzos','voluntario_id=eq.'+vid+'&select=fecha,semana,dia,rango,es_dia_completo&order=fecha,rango'),
+      sbGet('historial','voluntario_id=eq.'+vid+'&fecha=gte.'+hoyBaja+'&select=fecha,semana,dia,rango&order=fecha,rango'),
+      sbGet('refuerzos','voluntario_id=eq.'+vid+'&fecha=gte.'+hoyBaja+'&select=fecha,semana,dia,rango,es_dia_completo&order=fecha,rango'),
       sbGet('bajas','voluntario_id=eq.'+vid+'&activa=eq.true&select=fecha,rango')
     ]);
 
@@ -533,7 +535,10 @@ async function cargarOferta(){
     }).catch(()=>{});
 
     const [oRaw,calRaw,vs]=await Promise.all([rpc('get_oferta_simple'),sbGet('v_calendario','order=fecha&activo=eq.true'),sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id')]);
-    const oArr=Array.isArray(oRaw)?oRaw:(oRaw||[]);
+    const hoyOf=new Date().toISOString().split('T')[0];
+    // get_oferta_simple no filtra por fecha — sin esto, un turno de un día ya pasado (que ya no
+    // hay nada que hacer con él) seguía apareciendo en "Confirmados" como si necesitara gente
+    const oArr=(Array.isArray(oRaw)?oRaw:(oRaw||[])).filter(t=>dmyAIso(t.fecha)>=hoyOf);
     let refSet=new Set(),hFechas=new Set(),hRangos=new Set();const volId=vs.length?vs[0].id:null;volIdOferta=volId;
     const fps=[sbGet('historial','select=fecha,rango').then(r=>r.forEach(x=>{hFechas.add(x.fecha);hRangos.add(x.fecha+'|'+x.rango);}))];
     if(volId) fps.push(sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango').then(r=>r.forEach(x=>refSet.add(x.fecha+'|'+x.rango))));
