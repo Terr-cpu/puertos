@@ -586,9 +586,12 @@ async function cargarOferta(){
         }, {})
       };
     }).filter(Boolean);
-    // Mis apuntes: todos los refuerzos del voluntario (con datos completos)
+    // Mis apuntes: refuerzos del voluntario que aún tienen sentido mostrar — el día de hoy en
+    // adelante. Un apunte de un día que ya pasó no aporta nada aquí (si se confirmó, ya está en
+    // el cuadrante; si no, ya no hay nada que hacer con él), así que no se muestra más, aunque
+    // el dato se conserva en la base de datos para las estadísticas.
     if(volId){
-      const misRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango,dia,semana,es_dia_completo&order=fecha,rango');
+      const misRows=await sbGet('refuerzos','voluntario_id=eq.'+volId+'&fecha=gte.'+hoy+'&select=fecha,rango,dia,semana,es_dia_completo&order=fecha,rango');
       window._misApuntes=misRows;
     } else { window._misApuntes=[]; }
     renderOferta();

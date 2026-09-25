@@ -1159,5 +1159,33 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('«solo en apuntes» con menos de 3 asistentes no cuenta como realizado', E._stApuntesGlobal(E._statsBase(raw2, { MIN_EQ: 3 }), hoy).soloApuntes === 0);
 })();
 
+// ── E28: franjas alternativas (🔀) que nadie cubrió no cuentan como turno perdido ──
+(function E28() {
+  console.log('\n═══ E28 · Turnos alternativos ═══');
+  const hoy = '2026-09-21', R1 = '10:00 a 12:00', R2 = '19:00 a 21:00';
+  const V = id => ({ id, nombre: id.toUpperCase(), activo: true, creado_en: '2026-05-01T10:00:00Z' });
+  const raw = { vols: 'abcd'.split('').map(V), arch: [], noReal: [], act: null,
+    hist: [{ fecha: '2026-06-09', rango: R2, voluntario_id: 'a', nombre: 'a' }, { fecha: '2026-06-09', rango: R2, voluntario_id: 'b', nombre: 'b' }, { fecha: '2026-06-09', rango: R2, voluntario_id: 'c', nombre: 'c' }],
+    // 02/06 alternativa sin nadie; 16/06 alternativa con 1 apuntado (no llega a 3); 23/06 alternativa que SÍ se cubre; 09/06 normal, no alternativa
+    refs: [{ voluntario_id: 'd', fecha: '2026-06-16', rango: R1, es_dia_completo: false, registrado_en: '2026-06-01T00:00:00Z' }],
+    bajas: [{ voluntario_id: 'a', fecha: '2026-06-02', rango: R1, registrado_en: '2026-06-01T00:00:00Z', activa: true }],
+    alternativos: ['2026-06-02|' + R1, '2026-06-16|' + R1, '2026-06-23|' + R1] };
+  raw.hist.push({ fecha: '2026-06-23', rango: R1, voluntario_id: 'a', nombre: 'a' }, { fecha: '2026-06-23', rango: R1, voluntario_id: 'b', nombre: 'b' }, { fecha: '2026-06-23', rango: R1, voluntario_id: 'c', nombre: 'c' });
+  const base = E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4 });
+  const t = k => base.turnos.find(x => x.k === k);
+  check('una alternativa que nadie cubrió se marca como tal pero sigue existiendo en la base', t('2026-06-02|' + R1).alternativo === true && t('2026-06-02|' + R1).n === 0);
+  check('una alternativa con 1 apuntado (no llega al mínimo) también queda marcada', t('2026-06-16|' + R1).alternativo === true && t('2026-06-16|' + R1).n === 1);
+  check('una alternativa que sí se cubre queda marcada igual (no se excluye si sale adelante)', t('2026-06-23|' + R1).alternativo === true && t('2026-06-23|' + R1).n === 3);
+  check('un turno normal (no marcado en el calendario) no es alternativo', t('2026-06-09|' + R2).alternativo === false);
+  const S = E._statsAgregar(base, raw, '2026-06-01', '2026-06-30', hoy);
+  check('las dos alternativas que no llegaron al mínimo no cuentan ni como programadas ni como perdidas: solo quedan el turno normal y la alternativa que sí se cubrió', S.turnos.programados === 2 && S.turnos.confirmados === 2 && S.turnos.noSalieron === 0, JSON.stringify({ p: S.turnos.programados, c: S.turnos.confirmados, ns: S.turnos.noSalieron }));
+  check('se avisa de cuántas alternativas quedaron fuera por transparencia (2)', S.turnos.alternativosOmitidos === 2);
+  check('las dos franjas contables quedan como turno normal (justos, 3 de 4)', S.turnos.justos === 2);
+  // Sin ninguna marcada como alternativa (raw.alternativos vacío o ausente), nada cambia
+  const raw2 = { ...raw, alternativos: [] };
+  const S2 = E._statsAgregar(E._statsBase(raw2, { MIN_EQ: 3, IDEAL: 4 }), raw2, '2026-06-01', '2026-06-30', hoy);
+  check('sin marcar nada como alternativo, las franjas vacías sí cuentan como no realizadas (comportamiento de siempre)', S2.turnos.programados === 4 && S2.turnos.alternativosOmitidos === 0, JSON.stringify(S2.turnos.programados));
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);

@@ -236,6 +236,27 @@ La sección **🙋 Turnos que salieron gracias a los apuntes** da la cifra de to
 (sin depender del periodo) con el desglose por mes, separando 🛟 salvados tras una baja y 🆕 solo en
 apuntes; junta lo que el registro muestra y lo indicado a mano (✍).
 
+## Ampliación H — Apuntes visibles en el cuadrante y franjas alternativas
+
+**El cuadrante ahora avisa de los apuntes.** Antes, un voluntario apuntado en Sustituciones para
+un turno que ya tenía equipo (o que resolvía el motor) no aparecía por ningún sitio del
+cuadrante — solo "disponibles adicionales" calculado por disponibilidad general, no por
+apuntes reales. Ahora, si alguien está apuntado a un turno concreto, sale ahí con ✋, aunque el
+turno ya esté confirmado. Y en **Apuntes**, cada tarjeta muestra si ese turno ya tiene equipo
+confirmado (y cuántos) antes de la lista de apuntados, para no confundir "hay un apunte" con
+"el turno está sin cubrir".
+
+**Franjas alternativas.** En **Calendario**, cada franja habilitada se puede marcar como
+🔀 alternativa (clic otra vez sobre el botón ya habilitado). Se sigue ofreciendo igual en
+Sustituciones, pero si al final nadie la cubre **no cuenta como turno perdido** en las
+estadísticas — se ofrecía por si acaso, no era un hueco que hubiera que cubrir sí o sí. Si sí
+se cubre, cuenta como cualquier otro turno.
+
+**Los apuntes de días ya pasados dejan de mostrarse.** En Sustituciones → Mis apuntes, un
+apunte de un día que ya pasó no aparece más (si se confirmó, ya está en el cuadrante; si no,
+no hay nada que hacer con él). El dato se conserva en la base de datos para las estadísticas,
+solo deja de listarse.
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro

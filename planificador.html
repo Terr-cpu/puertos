@@ -214,6 +214,7 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .dc-red{background:var(--amber-soft);color:#7a4500;border-color:#ffc87a}
 .dc-res{background:var(--blue-soft);color:#0050a0;border-color:#90c4f0}
 .dc-blq{background:var(--surface2);color:var(--label4);border-color:var(--sep);cursor:default}
+.dchip.dc-apunte{box-shadow:0 0 0 1.5px var(--teal) inset}
 .dchip .dh{font-size:.56rem;opacity:.7;margin-left:.12rem}
 .dchip-wrap{display:flex;flex-wrap:wrap;gap:.28rem}
 
@@ -447,6 +448,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 .cal-franja-btn{background:var(--surface2);border:1.5px solid var(--sep);border-radius:7px;padding:.18rem .42rem;font-size:.63rem;font-weight:600;cursor:pointer;font-family:inherit;color:var(--label3);transition:all .14s;white-space:nowrap}
 .cal-franja-btn:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-soft)}
 .cal-franja-btn.hab{background:var(--navy);border-color:var(--navy);color:#fff}
+.cal-franja-btn.alt{background:var(--purple,#7c3aed);border-color:var(--purple,#7c3aed);border-style:dashed}
 
 /* ══════════════════════════════════════
    HISTORIAL TABLE
@@ -1189,6 +1191,7 @@ async function getCalendarioConfig() {
         activo:   r.activo,
         navieras,
         turnos:   pref('turno:'),
+        opcionales: pref('opt:'),   // subconjunto de "turnos": franjas alternativas — si no salen adelante, no cuentan en las estadísticas
         detalle:  pref('info:')[0]   || '',
         muelle:   pref('muelle:')[0] || '',
         estancia: r.estancia || ''
@@ -1243,6 +1246,7 @@ async function guardarCalendarioConfig(dias) {
       .forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
     // Turnos habilitados / detalle horario / muelle — con prefijo en la misma tabla
     (p.turnos||[]).forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'turno:' + t }));
+    (p.opcionales||[]).forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'opt:' + t }));
     if (p.detalle && p.detalle.trim()) navRows.push({ calendario_id: cal.id, nombre: 'info:' + p.detalle.trim() });
     if (p.muelle  && p.muelle.trim())  navRows.push({ calendario_id: cal.id, nombre: 'muelle:' + p.muelle.trim() });
   });
@@ -1899,16 +1903,27 @@ function _huecosVacios(dia, turnosExistentes, poolDia, llaves, histFlat, dur) {
 }
 
 async function getCuadranteMensual() {
-  const [calData, hist, vDisp, vols] = await Promise.all([
+  const [calData, hist, vDisp, vols, refs] = await Promise.all([
     getCalendarioConfig(),
     sbGet('v_historial', 'order=fecha,rango'),
     sbGet('v_disponibilidad', 'horario=not.is.null&order=nombre,semana,dia'),
-    sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true')
+    sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true'),
+    sbGet('v_refuerzos', 'select=fecha,rango,nombre&order=fecha,rango').catch(() => [])
   ]);
 
   const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase().trim()));
   // v_disponibilidad no distingue activos: quien se dio de baja del grupo no se planifica
   const volsAct = new Set(vols.map(v=>v.nombre.toUpperCase().trim()));
+  // Apuntes (refuerzos) por fecha|rango — un voluntario apuntado a un turno concreto es una
+  // señal mucho más fuerte que la disponibilidad general, y hay que verla aunque el turno ya
+  // esté confirmado (el motor no calcula "disponibles adicionales" para esos) o lo resuelva el
+  // motor global (que solo mira disponibilidad, no apuntes).
+  const refIdx = {};
+  refs.forEach(r => {
+    if (!r.rango || !volsAct.has(r.nombre.toUpperCase().trim())) return;
+    if (!refIdx[r.fecha]) refIdx[r.fecha] = {};
+    (refIdx[r.fecha][r.rango] || (refIdx[r.fecha][r.rango] = [])).push({ nombre: r.nombre, llave: llaves.has(r.nombre.toUpperCase().trim()) });
+  });
 
   // Historial plano para calcular días de descanso
   const histFlat = hist.map(h => ({
@@ -2014,6 +2029,16 @@ async function getCuadranteMensual() {
       (t.equipo||[]).forEach(v => histFlatSim.push({ key: v.nombre.toUpperCase().trim(), ts: tsHoy }));
     });
   }
+  // Apuntados de Sustituciones que aún no están en el equipo de ese turno — se muestran
+  // aparte de "disponibles adicionales" (que solo mira disponibilidad general)
+  plan.forEach(d => {
+    const fiso = dmyAIso(d.fechaStr);
+    (d.turnos || []).forEach(t => {
+      const ap = (refIdx[fiso] || {})[t.rango] || [];
+      const enEquipo = new Set((t.equipo || []).map(v => (v.nombre || '').toUpperCase().trim()));
+      t.apuntados = ap.filter(a => !enEquipo.has(a.nombre.toUpperCase().trim()));
+    });
+  });
   return plan;
 }
 function pad(n) { return String(n).padStart(2,'0'); }
@@ -2514,6 +2539,14 @@ function buildTurno(t, d) {
   const pTurno = PH(t.rango);
   const vistos = new Set(equipo.map(v => (v.nombre||'').toUpperCase()));
   const sust = [];
+  // Apuntados en Sustituciones para este turno exacto: van primero, son una señal más
+  // fuerte que la disponibilidad general y hay que verlos aunque el turno ya esté
+  // confirmado o el motor no calcule sustitutos (p. ej. un día ya resuelto).
+  (t.apuntados||[]).forEach(a => {
+    const k = (a.nombre||'').toUpperCase(); if (!k || vistos.has(k)) return; vistos.add(k);
+    const dias = _descansoVivo(ocup, k, d.fechaRaw);
+    sust.push({ nombre:a.nombre, llave:a.llave, dias, dispo:0, horario:'', estado:_estadoVivo(dias), apunte:true });
+  });
   (t.sustitutos||[]).forEach(s => {
     const k = (s.nombre||'').toUpperCase(); if (!k || vistos.has(k)) return; vistos.add(k);
     const dias = _descansoVivo(ocup, k, d.fechaRaw);
@@ -2555,7 +2588,7 @@ function buildTurno(t, d) {
         <div id="eq-${_slug(key)}">${slotsHTML}</div>
       </div>
       <div class="tc-right">
-        <div class="tc-col-lbl">Disponibles adicionales (${sust.length})</div>
+        <div class="tc-col-lbl">Disponibles adicionales (${sust.length})${sust.some(s=>s.apunte)?` <span style="font-weight:700;color:var(--teal)">· ✋ ${sust.filter(s=>s.apunte).length} apuntado${sust.filter(s=>s.apunte).length===1?"":"s"} en Sustituciones</span>`:""}</div>
         <div class="dchip-wrap" id="sust-${_slug(key)}">
           ${sust.map(s => buildDChip(s,key,'turno')).join('')}
         </div>
@@ -2702,7 +2735,8 @@ function buildDChip(s, turnoKey, source) {
   const blq = s.dias < 2;
   const cls = blq?'dc-blq':s.dias<5?'dc-red':s.estado==='reservado'?'dc-res':'dc-ok';
   const drag = !blq ? `draggable="true" data-nombre="${s.nombre}" data-llave="${s.llave||false}" data-dias="${s.dias}" data-dispo="${s.dispo||0}" data-horario="${s.horario||''}" data-key="${turnoKey}" data-source="${source}"` : '';
-  return `<span class="dchip ${cls}" ${drag} title="${s.horario?'🕐 '+s.horario:''}" ${!blq?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${s.llave?'🔑 ':''}${s.nombre}${s.horario?`<span class="dh">🕐${s.horario}</span>`:''}</span>`;
+  const tit = s.apunte ? '✋ Ya apuntado en Sustituciones para este turno' + (s.horario?' · 🕐 '+s.horario:'') : (s.horario?'🕐 '+s.horario:'');
+  return `<span class="dchip ${cls}${s.apunte?' dc-apunte':''}" ${drag} title="${tit}" ${!blq?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${s.apunte?'✋ ':''}${s.llave?'🔑 ':''}${s.nombre}${s.horario?`<span class="dh">🕐${s.horario}</span>`:''}</span>`;
 }
 
 
@@ -4983,9 +5017,12 @@ function renderCalendario(c, dias) {
         <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.3rem">🕒 Turnos habilitados</div>
         <div style="display:flex;flex-wrap:wrap;gap:.22rem" id="cal-turnos-${i}">
           ${FRANJAS_DISPONIBLES.map(f => {
-            const hab = turnosHab.includes(f);
-            return `<button class="cal-franja-btn${hab?' hab':''}" onclick="toggleCalTurno(${i},'${f}',this)">${f.replace(' a ','-').replace(':00','h').replace(':00','h')}</button>`;
+            const hab = turnosHab.includes(f), alt = (d.opcionales||[]).includes(f);
+            const cls = hab ? (alt ? ' hab alt' : ' hab') : '';
+            const tit = hab ? (alt ? 'Alternativa: si no sale adelante, no cuenta en las estadísticas (clic para quitarla)' : 'Habilitada (clic para marcarla como alternativa)') : 'Clic para habilitarla';
+            return `<button class="cal-franja-btn${cls}" title="${tit}" onclick="toggleCalTurno(${i},'${f}',this)">${alt?'🔀 ':''}${f.replace(' a ','-').replace(':00','h').replace(':00','h')}</button>`;
           }).join('')}
+          <div style="font-size:.62rem;color:var(--label3);flex-basis:100%;margin-top:.15rem">🔀 = alternativa: si nadie la cubre, no cuenta como turno perdido en las estadísticas</div>
         </div>
       </div>
       <div class="cal-estancia" style="min-width:150px;display:flex;flex-direction:column;gap:.25rem">
@@ -5005,14 +5042,22 @@ function renderCalendario(c, dias) {
 }
 
 function toggleCalTurno(i, rango, btn) {
-  if (!S.calConfig[i].turnos) S.calConfig[i].turnos = [];
-  const idx = S.calConfig[i].turnos.indexOf(rango);
-  if (idx === -1) {
-    S.calConfig[i].turnos.push(rango);
+  const c = S.calConfig[i];
+  if (!c.turnos) c.turnos = [];
+  if (!c.opcionales) c.opcionales = [];
+  const hab = c.turnos.includes(rango), alt = c.opcionales.includes(rango);
+  if (!hab) {
+    c.turnos.push(rango);
     btn.classList.add('hab');
+  } else if (hab && !alt) {
+    c.opcionales.push(rango);
+    btn.classList.add('alt');
+    btn.textContent = '🔀 ' + btn.textContent;
   } else {
-    S.calConfig[i].turnos.splice(idx, 1);
-    btn.classList.remove('hab');
+    c.turnos = c.turnos.filter(r => r !== rango);
+    c.opcionales = c.opcionales.filter(r => r !== rango);
+    btn.classList.remove('hab', 'alt');
+    btn.textContent = btn.textContent.replace('🔀 ', '');
   }
 }
 
@@ -5385,7 +5430,10 @@ async function loadApuntes(force) {
     const bajasNeutr = await sbGet('bajas', 'activa=eq.false&select=voluntario_id,fecha,rango').catch(()=>[]);
     const bajasSet = new Set(bajasNeutr.map(b => b.voluntario_id+'|'+b.fecha+'|'+(b.rango||'')));
     // Quién de los apuntados ya está confirmado en el equipo (historial)
-    window._apEquipo = new Set((await sbGet('v_historial', 'select=voluntario_id,fecha,rango').catch(() => [])).map(h => h.voluntario_id+'|'+h.fecha+'|'+h.rango));
+    const histEq = await sbGet('v_historial', 'select=voluntario_id,fecha,rango,nombre').catch(() => []);
+    window._apEquipo = new Set(histEq.map(h => h.voluntario_id+'|'+h.fecha+'|'+h.rango));
+    window._apEquipoPorTurno = {};
+    histEq.forEach(h => { const k = h.fecha+'|'+h.rango; (window._apEquipoPorTurno[k] || (window._apEquipoPorTurno[k] = [])).push(h.nombre); });
     refs.forEach(r => {
       r.es_sustituto = bajasSet.has(r.voluntario_id+'|'+r.fecha+'|'+(r.rango||''));
     });
@@ -5550,6 +5598,18 @@ function renderApuntes(c, refs) {
           ✋ ${t.voluntarios.length} apuntado${t.voluntarios.length!==1?'s':''}
         </span>
       </div>
+      ${t.esNuevo ? '' : (() => {
+        const MIN = (cargarReglas().MIN_EQ) || 3;
+        const eq = (window._apEquipoPorTurno || {})[t.fecha + '|' + t.rango] || [];
+        const cubierto = eq.length >= MIN;
+        return `<div style="margin:0 1rem .6rem;padding:.5rem .7rem;border-radius:var(--r-sm);font-size:.74rem;
+          background:${eq.length ? (cubierto ? 'var(--green-soft)' : 'var(--amber-soft)') : 'var(--surface2)'};
+          color:${eq.length ? (cubierto ? 'var(--green-dark)' : 'var(--amber)') : 'var(--label3)'}">
+          ${eq.length
+            ? `${cubierto ? '✅' : '🕓'} Equipo ya confirmado (${eq.length}${cubierto ? '' : '/' + MIN}): ${eq.map(escH).join(', ')}`
+            : '⚪ Aún sin nadie confirmado en este turno'}
+        </div>`;
+      })()}
       <div style="padding:0 1rem .5rem">
         <div style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.45rem">
           Voluntarios apuntados
@@ -6853,6 +6913,7 @@ function _statsBase(raw, reglas) {
   (raw.refs || []).forEach(r => { if (r.es_dia_completo || !r.rango) return; const t = get(r.fecha, r.rango); if (!t.apuntes.includes(r.voluntario_id)) t.apuntes.push(r.voluntario_id); ts(t.apTs || (t.apTs = {}), r.voluntario_id, r.registrado_en); });
   (raw.noReal || []).forEach(r => { get(r.fecha, r.rango).noReal = r; });
   (raw.resultados || []).forEach(r => { const t = turnos.get(r.fecha + '|' + r.rango); if (t) t.res = r; });   // cómo salió, indicado a mano
+  const altSet = new Set(raw.alternativos || []);
 
   turnos.forEach(t => {
     const bajaEf = new Set(t.bajasEf), ap = new Set(t.apuntes), eq = new Set(t.equipo);
@@ -6892,6 +6953,7 @@ function _statsBase(raw, reglas) {
     t.dow = new Date(y, m - 1, d).getDay();
     const h = /^(\d{1,2})/.exec(t.rango || '');
     t.franja = h && +h[1] >= 14 ? 't' : 'm';
+    t.alternativo = altSet.has(t.k);   // franja "alternativa" (🔀): si nadie la cubre, no es un turno perdido
   });
   // Calidad de los datos por mes: la app solo sabe lo que se registró en ella
   const mesInfo = new Map();
@@ -6980,7 +7042,10 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
   const mesesOk = (opts && opts.mesesOk) || new Set();
   const ajMap = new Map((raw.ajustes || []).map(a => [a.mes, a]));   // mínimo de bajas indicado a mano por mes
   const en = f => f >= desde && f <= hasta;
-  const T = base.turnos.filter(t => en(t.fecha));
+  // Una franja "alternativa" (🔀 en el calendario) que nadie cubrió no es un turno perdido: se ofreció
+  // por si acaso, no era el hueco que había que cubrir sí o sí. Si sí se cubrió, cuenta como cualquier otro.
+  const contable = t => !t.alternativo || t.n >= MIN;
+  const T = base.turnos.filter(t => en(t.fecha) && contable(t));
   const pasados = T.filter(t => t.fecha < hoy && !t.sinCubrir), prog = T.filter(t => t.fecha >= hoy && !t.sinCubrir);
   const nrPasados = T.filter(t => t.fecha < hoy && t.sinCubrir);      // franjas que no salieron adelante (registradas)
   // Criterio: un turno "se confirmó/se hizo" si hubo MIN o más voluntarios (equipo que sigue + apuntados);
@@ -7019,6 +7084,8 @@ function _statsAgregar(base, raw, desde, hasta, hoy, opts) {
     confPasados: pasados.filter(hecho).length, confProg: prog.filter(hecho).length,
   };
   tu.salenPorApuntes = tu.salvados + tu.creadosOk;
+  // Franjas alternativas que nadie cubrió: no entran en T, se cuentan aparte solo para que se entienda por qué
+  tu.alternativosOmitidos = base.turnos.filter(t => en(t.fecha) && t.alternativo && t.n < MIN).length;
   // ¿Salió adelante lo que se programó? (solo lo ya pasado)
   tu.sinCubrir = nrPasados.length;
   tu.anulados = nrPasados.filter(t => t.anulado).length;
@@ -7228,7 +7295,7 @@ async function sbGetAll(tabla, params) {
 
 async function _stCargar(force) {
   if (!force && ST.raw && Date.now() - ST.ts < 60000) return ST.raw;
-  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp, apArch, baArch, resultados] = await Promise.all([
+  const [hist, arch, bajas, refs, vols, act, noReal, ajustes, disp, apArch, baArch, resultados, calData] = await Promise.all([
     sbGetAll('v_historial', 'select=id,fecha,rango,nombre,voluntario_id&order=id'),
     sbGetAll('historial_archivo', 'select=id,fecha,rango,nombre_snap,voluntario_id&order=id').catch(() => []),
     sbGetAll('bajas', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id'),
@@ -7243,12 +7310,17 @@ async function _stCargar(force) {
     sbGetAll('bajas_archivo', 'select=id,voluntario_id,fecha,rango,registrado_en,activa&order=id').catch(() => null),
     sbGetAll('turnos_resultado', 'select=id,fecha,rango,por_apuntes,tipo,asistentes,nota&order=id')
       .catch(() => sbGetAll('turnos_resultado', 'select=id,fecha,rango,por_apuntes,asistentes,nota&order=id')).catch(() => null),   // null = falta 07_turnos_resultado.sql
+    getCalendarioConfig().catch(() => ({ dias: [] })),
   ]);
   // Apuntes y bajas de meses antiguos (archivo) junto a los vivos, sin duplicar
   const kR = r => r.voluntario_id + '|' + r.fecha + '|' + (r.rango || '') + '|' + (r.es_dia_completo ? 1 : 0), kB = b => b.voluntario_id + '|' + b.fecha + '|' + (b.rango || '');
   const vivosR = new Set(refs.map(kR)), vivasB = new Set(bajas.map(kB));
   const refsTodos = [...refs, ...(apArch || []).filter(a => !vivosR.has(kR(a)))], bajasTodas = [...bajas, ...(baArch || []).filter(b => !vivasB.has(kB(b)))];
-  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas: bajasTodas, refs: refsTodos, vols, act, noReal, ajustes, disp, apArch, baArch, resultados };
+  // Franjas marcadas como "alternativas" en el calendario (🔀 en el editor): si nadie las cubre,
+  // no cuentan como turno perdido — se ofrecen por si acaso, no son el hueco que hay que cubrir sí o sí.
+  const alternativos = [];
+  (calData.dias || []).forEach(d => (d.opcionales || []).forEach(r => alternativos.push(d.fechaISO + '|' + r)));
+  ST.raw = { hist, arch: arch.map(a => ({ ...a, nombre: a.nombre_snap })), bajas: bajasTodas, refs: refsTodos, vols, act, noReal, ajustes, disp, apArch, baArch, resultados, alternativos };
   ST.ts = Date.now();
   return ST.raw;
 }
@@ -7429,7 +7501,8 @@ function renderEstadisticas() {
     ${T.sinCubrir ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.4rem">Motivos de lo que no salió adelante: ${T.motivos['sin voluntarios']} sin voluntarios · ${T.motivos.bajas} por bajas · ${T.motivos.otro} otros</div>` : ''}
     <div style="font-size:.76rem;color:var(--label2);margin-top:.6rem;line-height:1.6">
       De los <b>${T.conBaja}</b> turnos con alguna baja: <b>${T.aguantaron}</b> aguantaron con su propio equipo · <b>${T.salvados}</b> se salvaron con apuntes · <b>${T.caidos}</b> quedaron a cero.
-    </div>` : `<div style="font-size:.78rem;color:var(--label3)">Aún no hay turnos realizados en este periodo.</div>`;
+    </div>
+    ${T.alternativosOmitidos ? `<div style="font-size:.72rem;color:var(--label3);margin-top:.3rem">🔀 ${T.alternativosOmitidos} franja${T.alternativosOmitidos === 1 ? ' alternativa' : 's alternativas'} que nadie cubrió no se cuenta${T.alternativosOmitidos === 1 ? '' : 'n'} aquí: se ofrecía${T.alternativosOmitidos === 1 ? '' : 'n'} por si acaso, no era${T.alternativosOmitidos === 1 ? '' : 'n'} un hueco que hubiera que cubrir sí o sí.</div>` : ''}` : `<div style="font-size:.78rem;color:var(--label3)">Aún no hay turnos realizados en este periodo.</div>`;
 
   // Antelación de las bajas
   const maxAnt = Math.max(1, ...B.antelacion.map(a => a.n));
