@@ -473,6 +473,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 .dp-heat-zoom .st-heat{font-size:.92rem}
 .dp-heat-zoom .st-heat td{padding:.85rem .5rem;min-width:48px;border-radius:8px}
 .dp-heat-zoom .st-heat th{font-size:.8rem}
+.dp-heat-zoom svg{width:100%!important;height:auto!important;max-width:760px;display:block}
 @keyframes minIn{from{opacity:0;transform:scale(.91) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
 .mhead h3{font-size:.95rem;font-weight:700}
@@ -8626,12 +8627,17 @@ function _dispoModelo(disp, vols, o) {
     const semanasConAlgo = new Set(); semDia.forEach(x => x.forEach(s => semanasConAlgo.add(s)));
     const constancia = recur === null ? null : recur >= 0.8 ? 'todas' : recur > 0.4 ? 'varias' : 'pocas';
     // Dibujo: por día y hora, cuántos OTROS coinciden de media en las semanas en que está libre (−1 = nunca) y en cuántas semanas
-    const mapa = [], sem = [];
-    for (let d = 0; d < 7; d++) { mapa.push([]); sem.push([]);
+    const mapa = [], sem = [], mapaLlave = [];
+    for (let d = 0; d < 7; d++) { mapa.push([]); sem.push([]); mapaLlave.push([]);
       for (let h = 0; h < H; h++) {
-        let n = 0, sumOtros = 0;
-        for (let s = 0; s < NS; s++) if (a[s][d][h]) { n++; sumOtros += grupoSem[s][d][h] - 1; }
+        let n = 0, sumOtros = 0, conLlave = 0;
+        for (let s = 0; s < NS; s++) if (a[s][d][h]) {
+          n++; sumOtros += grupoSem[s][d][h] - 1;
+          const llavesAqui = grupoLlaveSem[s][d][h] - (tieneLlave ? 1 : 0);
+          if (tieneLlave || llavesAqui > 0) conLlave++;
+        }
         mapa[d].push(n ? Math.round(sumOtros / n) : -1); sem[d].push(n);
+        mapaLlave[d].push(n ? conLlave / n : -1);   // fracción de esas semanas con un portador de llave presente
       } }
     // Texto del horario: "Sáb 10–13 · Mar 16–20 (solo la 3.ª sem.)"
     const resumen = _dCorto.map((nom, d) => {
@@ -8647,7 +8653,7 @@ function _dispoModelo(disp, vols, o) {
       semanas: semanasConAlgo.size, constancia, recur: recur === null ? null : Math.round(100 * recur),
       esporadico: constancia === 'pocas',
       mediaOtros: nVent ? Math.round(10 * suma / nVent) / 10 : null,
-      resumen, mapa, sem,
+      resumen, mapa, sem, mapaLlave,
       grupo: o.nunca && o.nunca.has(v.id) ? 'nunca' : o.dejo && o.dejo.has(v.id) ? 'dejo' : 'participa',
     };
   });
@@ -8698,7 +8704,7 @@ const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '
 const _dTipoOrden = ['sinHorario', 'corto', 'lejos', 'esporadico', 'sinLlaveCerca', 'poco', 'ok'];
 const _dTipoTxt = { sinHorario: ['⚪', 'Sin horario registrado'], corto: ['🔴', 'Tramos demasiado cortos'], lejos: ['🟠', 'Horario lejos de los turnos'], esporadico: ['🟠', 'Libre pocas semanas al mes'], sinLlaveCerca: ['🔑', 'Coincide con gente, pero sin llave cerca'], poco: ['🟡', 'Coincide poco con otros'], ok: ['🟢', 'Su horario no es el problema'] };
 
-function _stDispoStrip(x, D) {
+function _stDispoStrip(x, D, llave) {
   const c = 7, W = 14 + D.H * c, Hh = 7 * c + 8;
   let s = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" style="flex-shrink:0" role="img" aria-label="Horario de ${escH(x.nombre)}">`;
   for (let d = 0; d < 7; d++) {
@@ -8706,7 +8712,10 @@ function _stDispoStrip(x, D) {
     for (let h = 0; h < D.H; h++) {
       const o = x.mapa[d][h], n = x.sem[d][h], dm = D.demanda && D.demanda[d][h] > 0;
       const op = o < 0 ? 1 : (0.3 + 0.7 * n / _dNSEM).toFixed(2);       // más pálido = libre en menos semanas del mes
-      s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${_dCol(o)}" fill-opacity="${op}"${dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${o < 0 ? 'no disponible' : 'libre ' + n + ' de ' + _dNSEM + ' semanas · ' + (o === 0 ? 'ningún otro voluntario coincide' : 'coinciden ' + o + ' voluntario' + (o === 1 ? '' : 's') + ' más de media')}${dm ? ' · aquí se hacen turnos' : ''}</title></rect>`;
+      // Con la llave activada: aunque coincida gente (o >= 2, verde), si casi nunca hay portador de
+      // llave presente ese cuadro tampoco sirve para fijar un turno — se marca con borde morado
+      const llLl = x.mapaLlave ? x.mapaLlave[d][h] : -1, sinLlave = llave && o >= 2 && llLl >= 0 && llLl < 0.5;
+      s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${_dCol(o)}" fill-opacity="${op}"${sinLlave ? ' stroke="#7c3aed" stroke-width="1.1"' : dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${o < 0 ? 'no disponible' : 'libre ' + n + ' de ' + _dNSEM + ' semanas · ' + (o === 0 ? 'ningún otro voluntario coincide' : 'coinciden ' + o + ' voluntario' + (o === 1 ? '' : 's') + ' más de media')}${dm ? ' · aquí se hacen turnos' : ''}${sinLlave ? ' · casi nunca hay portador de llave presente' : ''}</title></rect>`;
     }
   }
   for (let h = 0; h < D.H; h++) if ((D.h0 + h) % 4 === 0) s += `<text x="${12 + h * c}" y="${7 * c + 7}" font-size="5.5" fill="var(--label3)">${D.h0 + h}</text>`;
@@ -8774,13 +8783,13 @@ function _stDispoHTML() {
       <div class="dp-ayuda">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>${llavePrio ? ', y al menos uno con llave' : ''}. Cada voluntario tiene una frase con la causa principal y, debajo, su horario dibujado (ver «cómo leer el dibujo»).</div>
       <div class="ev-filtros" style="margin:.4rem 0">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Con alguna dificultad')}${pill('dejo', '💤 Dejaron de participar')}${pill('llave', '🔑 Portadores de llave')}${pill('todos', 'Todos')}</div>
       ${Object.keys(porMotivo).length > 1 ? `<div class="ev-filtros" style="margin:0 0 .5rem"><span style="font-size:.7rem;color:var(--label3)">Filtrar por causa:</span>${_dTipoOrden.filter(t => porMotivo[t]).map(pillM).join('')}</div>` : ''}
-      ${ver.length ? ver.map(x => `<div class="dp-fila" style="border-left:4px solid ${color[diagOf(x).nivel]}">
-        <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}${x.tieneLlave ? ' 🔑' : ''}</a>
+      ${ver.length ? ver.map(x => { const nomAttr = escH(x.nombre).replace(/'/g, '&#39;'), stripId = 'dp-strip-' + x.id; return `<div class="dp-fila" style="border-left:4px solid ${color[diagOf(x).nivel]}">
+        <div class="dp-nom"><a href="#" onclick="abrirFicha('${nomAttr}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}${x.tieneLlave ? ' 🔑' : ''}</a>
           <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div>
-          ${x.nivel === 'sin' ? '' : `<div class="dp-strip" style="margin-top:.35rem">${_stDispoStrip(x, D)}</div>`}</div>
+          ${x.nivel === 'sin' ? '' : `<div class="dp-strip dp-heat-click" title="Toca para ampliar" onclick="zoomHeat('${stripId}','🕐 Horario de ${nomAttr}')" style="margin-top:.35rem"><div id="${stripId}">${_stDispoStrip(x, D, llavePrio)}</div></div>`}</div>
         <div class="dp-inf"><div style="display:inline-block;font-size:.76rem;font-weight:700;color:${color[diagOf(x).nivel]};background:${fondo[diagOf(x).nivel]};border-radius:6px;padding:.15rem .5rem">${diagOf(x).icono} ${escH(diagOf(x).titulo)}</div>
           <div style="font-size:.74rem;color:var(--label2);margin-top:.3rem;line-height:1.5">${escH(diagOf(x).detalle)}</div>
-          ${x.resumen ? `<div style="font-size:.68rem;color:var(--label3);margin-top:.25rem">🕐 Libre: ${escH(x.resumen)}</div>` : ''}</div></div>`).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
+          ${x.resumen ? `<div style="font-size:.68rem;color:var(--label3);margin-top:.25rem">🕐 Libre: ${escH(x.resumen)}</div>` : ''}</div></div>`; }).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
       ${lista.length > max2 ? `<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="ST.dispMax=${max2 + 25};renderEstadisticas()">Ver ${Math.min(25, lista.length - max2)} más (${lista.length - max2} restantes)</button>` : ''}
     </div>
 

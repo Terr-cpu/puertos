@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -1228,6 +1228,30 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const sinNadieLlave = vols.map(v => ({ ...v, tiene_llave: false }));
   const D2 = E._dispoModelo(disp, sinNadieLlave, { DUR: 2, MIN: 3, demanda: dem });
   check('si nadie del grupo tiene llave, la vista normal no cambia pero la de llave marca todo como sin llave cerca', D2.lista.find(v => v.id === 'e').diag.tipo === 'ok' && D2.lista.find(v => v.id === 'e').diagLlave.tipo === 'sinLlaveCerca');
+})();
+
+// ── E30: el dibujo de cada voluntario también refleja la prioridad de la llave ──
+(function E30() {
+  console.log('\n═══ E30 · Dibujo individual con la llave ═══');
+  const vols = [
+    { id: 'a', nombre: 'A' }, { id: 'b', nombre: 'B' }, { id: 'c', nombre: 'C' },
+    { id: 'd', nombre: 'D', tiene_llave: true }, { id: 'e', nombre: 'E' }, { id: 'f', nombre: 'F' },
+  ];
+  const disp = [
+    ...'abc'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 14:00' })),      // sábado: A,B,C coinciden, nadie con llave
+    ...'def'.split('').map(id => ({ voluntario_id: id, dia: 'Domingo', horario: '10:00 a 14:00' })),     // domingo: D,E,F coinciden y D tiene llave
+  ];
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 });
+  const x = id => D.lista.find(v => v.id === id);
+  check('mapaLlave de A (sábado, sin llave cerca) es 0 esas horas: nunca hay portador de llave', x('a').mapaLlave[5][2] === 0, JSON.stringify(x('a').mapaLlave[5]));
+  check('mapaLlave de E (domingo, con D que tiene llave) es 1: siempre hay portador de llave', x('e').mapaLlave[6][2] === 1, JSON.stringify(x('e').mapaLlave[6]));
+  check('mapaLlave de D (él mismo tiene llave) también es 1 en su propio horario', x('d').mapaLlave[6][2] === 1);
+  const svgA_llave = E._stDispoStrip(x('a'), D, true), svgA_normal = E._stDispoStrip(x('a'), D, false);
+  check('con la llave activada, el cuadro de A (sábado 10h, coincide gente pero sin llave) lleva borde morado', /stroke="#7c3aed"/.test(svgA_llave), svgA_llave.slice(0, 200));
+  check('con la llave desactivada, no aparece el borde morado en el dibujo de A', !/stroke="#7c3aed"/.test(svgA_normal));
+  const svgE_llave = E._stDispoStrip(x('e'), D, true);
+  check('el dibujo de E (domingo, con D presente) no lleva borde morado: sí hay llave cerca', !/stroke="#7c3aed"/.test(svgE_llave));
+  check('el dibujo sigue siendo un <svg> válido con el nombre en el aria-label', /<svg /.test(svgA_llave) && /aria-label="Horario de A"/.test(svgA_llave));
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
