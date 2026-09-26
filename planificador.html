@@ -7294,9 +7294,10 @@ function _statsInsights(S, P) {
   if (V.sinEvidencia.length) add('info', `${V.sinEvidencia.length} voluntario${V.sinEvidencia.length === 1 ? '' : 's'} sin turnos recientes, pero no se puede afirmar que se hayan ido`, 'Su último turno es anterior a un hueco de datos: faltan meses registrados para saberlo.', 'Importa o registra esos meses; hasta entonces no los saques del grupo solo por esto.');
   if (S.dispo && S.dispo.lista.length) {
     const D = S.dispo, nun = D.lista.filter(x => x.grupo === 'nunca');
-    const dificiles = nun.filter(x => x.diag.tipo !== 'ok');
+    const dificiles = nun.filter(x => x.diagLlave.tipo !== 'ok');   // cuenta también a quien coincide con gente pero sin llave cerca
     const mD = D.medias;
-    if (nun.length >= 3 && dificiles.length / nun.length >= 0.4) add('ambar', `${dificiles.length} de los ${nun.length} voluntarios que nunca han participado tienen un horario que casi no encaja`, `Su horario apenas coincide con el de otros voluntarios (el mismo día de la misma semana) o con las franjas en las que se hacen turnos, está libre solo unas pocas semanas al mes, o no tienen horario registrado${mD.nunca && mD.nunca.dem !== null && mD.participa && mD.participa.dem !== null ? ` (solo el ${mD.nunca.dem} % de sus horas cae en franjas con turnos, frente al ${mD.participa.dem} % de quienes participan)` : ''}.`, `Pregúntales si pueden ampliar su disponibilidad${D.mejor ? ' hacia ' + D.mejor.dia + ' de ' + D.mejor.desde + ' a ' + D.mejor.hasta + 'h, donde más voluntarios coinciden' : ''}. Verás la causa de cada uno en 🧭 Horarios y disponibilidad.`);
+    const mejorReal = D.mejorLlave || D.mejor;   // de nada sirve animar a ampliar hacia una franja sin ningún portador de llave
+    if (nun.length >= 3 && dificiles.length / nun.length >= 0.4) add('ambar', `${dificiles.length} de los ${nun.length} voluntarios que nunca han participado tienen un horario que casi no encaja`, `Su horario apenas coincide con el de otros voluntarios (el mismo día de la misma semana) o con las franjas en las que se hacen turnos, está libre solo unas pocas semanas al mes, no tienen horario registrado, o coinciden con gente pero sin ningún portador de llave cerca${mD.nunca && mD.nunca.dem !== null && mD.participa && mD.participa.dem !== null ? ` (solo el ${mD.nunca.dem} % de sus horas cae en franjas con turnos, frente al ${mD.participa.dem} % de quienes participan)` : ''}.`, `Pregúntales si pueden ampliar su disponibilidad${mejorReal ? ' hacia ' + mejorReal.dia + ' de ' + mejorReal.desde + ' a ' + mejorReal.hasta + 'h, donde más voluntarios coinciden' + (mejorReal === D.mejorLlave ? ' y hay portador de llave' : '') : ''}. Verás la causa de cada uno en 🧭 Horarios y disponibilidad.`);
     if (D.sinHorario >= 2) add('info', `${D.sinHorario} voluntarios activos no tienen ningún horario registrado`, 'Sin disponibilidad, el planificador no puede contar con ellos.', 'Pídeles que rellenen su disponibilidad.');
   }
   if (V.sinEstrenar.length >= 3) add('info', `${V.sinEstrenar.length} voluntarios activos nunca han tenido un turno`, 'Siguen dados de alta pero no han sido asignados jamás.', 'Revisa su disponibilidad: si sus franjas ya están cubiertas puede que no hagan falta; si no responden, sácalos del grupo.');
@@ -8680,9 +8681,16 @@ function _dispoModelo(disp, vols, o) {
   const huecosLlave = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] > 0 && dem[d][Math.min(H - 1, t + DUR - 1)] > 0 && media(cuentaV, d, t) >= MIN && media(cuentaLlaveV, d, t) < 1, (d, t) => media(cuentaLlaveV, d, t))
     .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, llaves: Math.round(t.valor * 100) / 100 }))
     .sort((x, y) => x.llaves - y.llaves).slice(0, 4) : [];
-  // Mejor franja: la que, de media a lo largo de las semanas, más voluntarios pueden cubrir entera
-  let mejor = null;
-  for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) { const n = media(cuentaV, d, t); if (!mejor || n > mejor.n) mejor = { d, t, n }; }
+  // Mejor franja: la que, de media a lo largo de las semanas, más voluntarios pueden cubrir entera.
+  // mejorLlave hace lo mismo pero exige que ahí también haya, de media, un portador de llave: los
+  // turnos efectivos solo pueden salir donde ese portador también tenga disponibilidad — puede que
+  // 2 o 3 coincidan y aun así nunca se pueda fijar el turno si ningún portador de llave tiene ese horario.
+  let mejor = null, mejorLlave = null;
+  for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) {
+    const n = media(cuentaV, d, t), nLl = media(cuentaLlaveV, d, t);
+    if (!mejor || n > mejor.n) mejor = { d, t, n };
+    if (nLl >= 1 && (!mejorLlave || n > mejorLlave.n)) mejorLlave = { d, t, n, nLl };
+  }
   const mediaG = g => {
     const xs = lista.filter(x => x.grupo === g && x.pct !== null).map(x => x.pct), ds = lista.filter(x => x.grupo === g && x.pctDem !== null).map(x => x.pctDem), rs = lista.filter(x => x.grupo === g && x.recur !== null).map(x => x.recur);
     const avg = a => a.length ? Math.round(a.reduce((p, q) => p + q, 0) / a.length) : null;
@@ -8695,6 +8703,7 @@ function _dispoModelo(disp, vols, o) {
   return { h0, h1, H, DUR, MIN, grupo, grupoSem, grupoLlave, grupoLlaveSem, cuentaV, lista, demanda: dem, demandaTxt, huecos, huecosLlave, sobran, motivos, motivosLlave,
     sinHorario: lista.filter(x => x.nivel === 'sin').length,
     mejor: mejor && mejor.n > 0 ? { dia: _dCorto[mejor.d], desde: h0 + mejor.t, hasta: h0 + mejor.t + DUR, n: Math.round(mejor.n * 10) / 10 } : null,
+    mejorLlave: mejorLlave && mejorLlave.n > 0 ? { dia: _dCorto[mejorLlave.d], desde: h0 + mejorLlave.t, hasta: h0 + mejorLlave.t + DUR, n: Math.round(mejorLlave.n * 10) / 10, nLlave: Math.round(mejorLlave.nLl * 10) / 10 } : null,
     medias: { nunca: mediaG('nunca'), dejo: mediaG('dejo'), participa: mediaG('participa') } };
 }
 
@@ -8727,7 +8736,9 @@ function _dResumenLineas(D, llave) {
   const l = [], n = D.lista.filter(x => x.grupo === 'nunca');
   const motivos = llave ? D.motivosLlave : D.motivos;
   if (D.demandaTxt) l.push(`🗓️ <b>Cuándo se hacen turnos:</b> sobre todo ${D.demandaTxt}.`);
-  if (D.mejor) l.push(`👥 <b>Cuándo hay más voluntarios libres:</b> ${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h (de media, ${_dNum(D.mejor.n)} voluntarios pueden cubrirlo entero cada semana).`);
+  if (llave && D.mejorLlave) l.push(`👥 <b>Cuándo hay más voluntarios libres Y con llave:</b> ${D.mejorLlave.dia} de ${D.mejorLlave.desde} a ${D.mejorLlave.hasta}h (de media, ${_dNum(D.mejorLlave.n)} voluntarios pueden cubrirlo entero cada semana, con un portador de llave prácticamente siempre presente). Es donde de verdad conviene animar a la gente a ampliar su disponibilidad.`);
+  else if (llave && D.mejor) l.push(`🔑 <b>En ninguna franja coincide suficiente gente CON un portador de llave presente</b> de forma fiable: aunque en ${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h coincide más gente (de media ${_dNum(D.mejor.n)}), sin llave ahí tampoco se puede fijar el turno. Hacen falta más portadores de llave, o que amplíen su disponibilidad.`);
+  else if (D.mejor) l.push(`👥 <b>Cuándo hay más voluntarios libres:</b> ${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h (de media, ${_dNum(D.mejor.n)} voluntarios pueden cubrirlo entero cada semana).`);
   if (D.huecos.length) l.push(`⚠️ <b>Faltan voluntarios en franjas donde sí hay turnos:</b> ${D.huecos.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (de media ${_dLibres(h.libres)}, hacen falta ${D.MIN})`).join(' · ')}.`);
   if (llave && D.huecosLlave && D.huecosLlave.length) l.push(`🔑 <b>Hay gente de sobra, pero sin nadie que lleve llave:</b> ${D.huecosLlave.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h`).join(' · ')}. Sin un portador de llave esos turnos no se pueden fijar aunque sobre gente.`);
   if (D.sobran.length) l.push(`💡 <b>Sobran voluntarios libres donde nunca hay turnos:</b> ${D.sobran.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (${_dLibres(h.libres)})`).join(' · ')}. Quizá se podrían habilitar franjas ahí.`);

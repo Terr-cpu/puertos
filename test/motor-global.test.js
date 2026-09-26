@@ -1254,5 +1254,46 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('el dibujo sigue siendo un <svg> válido con el nombre en el aria-label', /<svg /.test(svgA_llave) && /aria-label="Horario de A"/.test(svgA_llave));
 })();
 
+// ── E31: "la mejor franja" también tiene que tener un portador de llave, o el turno nunca se fija ──
+(function E31() {
+  console.log('\n═══ E31 · Mejor franja, con llave de verdad ═══');
+  // Sábado: A,B,C,D coinciden (4 personas, la franja "mejor" a simple vista), pero NINGUNO tiene llave.
+  // Domingo: E,F,G coinciden (solo 3), y G sí tiene llave — ahí SÍ se puede fijar un turno.
+  const vols = [
+    { id: 'a', nombre: 'A' }, { id: 'b', nombre: 'B' }, { id: 'c', nombre: 'C' }, { id: 'd', nombre: 'D' },
+    { id: 'e', nombre: 'E' }, { id: 'f', nombre: 'F' }, { id: 'g', nombre: 'G', tiene_llave: true },
+  ];
+  const disp = [
+    ...'abcd'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 12:00' })),
+    ...'efg'.split('').map(id => ({ voluntario_id: id, dia: 'Domingo', horario: '10:00 a 12:00' })),
+  ];
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 });
+  check('sin tener en cuenta la llave: la mejor franja es el sábado (4 personas)', D.mejor.dia === 'Sáb' && D.mejor.n === 4, JSON.stringify(D.mejor));
+  check('teniendo en cuenta la llave: la mejor franja de verdad es el domingo (3, con G) aunque el sábado tenga más gente', D.mejorLlave.dia === 'Dom' && D.mejorLlave.n === 3 && D.mejorLlave.nLlave === 1, JSON.stringify(D.mejorLlave));
+
+  const conLlave = E._dResumenLineas(D, true).join(' | ');
+  check('el resumen con la llave activada recomienda el domingo (donde de verdad se puede fijar), no el sábado', /Dom de 10 a 12h/.test(conLlave) && /con llave/.test(conLlave) && !/Sáb de 10 a 12h.*cuando.*más voluntarios/.test(conLlave), conLlave);
+  const sinLlave = E._dResumenLineas(D, false).join(' | ');
+  check('el resumen con la llave desactivada sigue recomendando el sábado (comportamiento de siempre)', /Sáb de 10 a 12h/.test(sinLlave), sinLlave);
+  const porDefecto = E._dResumenLineas(D).join(' | ');
+  check('sin segundo argumento se comporta exactamente igual que con la llave desactivada (compatibilidad)', porDefecto === sinLlave);
+
+  // Si NINGÚN portador de llave coincide nunca con nadie, no hay mejorLlave: hay que decirlo, no callarlo
+  const sinNadieConLlave = vols.map(v => ({ ...v, tiene_llave: false }));
+  const D2 = E._dispoModelo(disp, sinNadieConLlave, { DUR: 2, MIN: 3 });
+  check('si nadie tiene llave en absoluto, no hay mejorLlave', D2.mejorLlave === null);
+  const aviso = E._dResumenLineas(D2, true).join(' | ');
+  check('y el resumen lo dice explícitamente en vez de callarlo: en ninguna franja coincide gente con llave', /En ninguna franja coincide suficiente gente CON un portador de llave presente/.test(aviso), aviso);
+
+  // La recomendación de _statsInsights para "nunca han participado" también apunta a la franja con llave
+  const V = id => ({ id, nombre: id.toUpperCase(), tiene_llave: id === 'g', activo: true, creado_en: '2026-04-01T10:00:00Z' });
+  const raw = { vols: 'abcdefg'.split('').map(V), hist: [], bajas: [], refs: [], act: null, noReal: [],
+    arch: ['a', 'b', 'c'].map(id => ({ fecha: '2026-06-06', rango: '10:00 a 12:00', voluntario_id: id, nombre: id })), disp };
+  const S = E._statsAgregar(E._statsBase(raw, { MIN_EQ: 3, IDEAL: 4, DUR: 2 }), raw, '2026-06-01', '2026-06-30', '2026-09-21');
+  const ins = E._statsInsights(S, null);
+  const rec = ins.find(i => /voluntarios que nunca han participado tienen un horario que casi no encaja/.test(i.titulo));
+  check('la recomendación real anima a ampliar hacia el domingo (con llave), no hacia el sábado', rec && /Dom de 10 a 12h/.test(rec.accion) && /hay portador de llave/.test(rec.accion), rec && rec.accion);
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);
