@@ -8653,17 +8653,19 @@ function _dispoModelo(disp, vols, o) {
     const semanasConAlgo = new Set(); semDia.forEach(x => x.forEach(s => semanasConAlgo.add(s)));
     const constancia = recur === null ? null : recur >= 0.8 ? 'todas' : recur > 0.4 ? 'varias' : 'pocas';
     // Dibujo: por día y hora, cuántos OTROS coinciden de media en las semanas en que está libre (−1 = nunca) y en cuántas semanas
-    const mapa = [], sem = [], mapaLlave = [];
-    for (let d = 0; d < 7; d++) { mapa.push([]); sem.push([]); mapaLlave.push([]);
+    const mapa = [], sem = [], mapaLlave = [], mapaLlaveN = [];
+    for (let d = 0; d < 7; d++) { mapa.push([]); sem.push([]); mapaLlave.push([]); mapaLlaveN.push([]);
       for (let h = 0; h < H; h++) {
-        let n = 0, sumOtros = 0, conLlave = 0;
+        let n = 0, sumOtros = 0, conLlave = 0, sumLlave = 0;
         for (let s = 0; s < NS; s++) if (a[s][d][h]) {
           n++; sumOtros += grupoSem[s][d][h] - 1;
           const llavesAqui = grupoLlaveSem[s][d][h] - (tieneLlave ? 1 : 0);
           if (tieneLlave || llavesAqui > 0) conLlave++;
+          sumLlave += grupoLlaveSem[s][d][h];
         }
         mapa[d].push(n ? Math.round(sumOtros / n) : -1); sem[d].push(n);
         mapaLlave[d].push(n ? conLlave / n : -1);   // fracción de esas semanas con un portador de llave presente
+        mapaLlaveN[d].push(n ? Math.round(sumLlave / n) : -1);   // de media, cuántos portadores de llave están libres esa hora
       } }
     // Texto del horario: "Sáb 10–13 · Mar 16–20 (solo la 3.ª sem.)"
     const resumen = _dCorto.map((nom, d) => {
@@ -8679,7 +8681,7 @@ function _dispoModelo(disp, vols, o) {
       semanas: semanasConAlgo.size, constancia, recur: recur === null ? null : Math.round(100 * recur),
       esporadico: constancia === 'pocas',
       mediaOtros: nVent ? Math.round(10 * suma / nVent) / 10 : null,
-      resumen, mapa, sem, mapaLlave,
+      resumen, mapa, sem, mapaLlave, mapaLlaveN,
       grupo: o.nunca && o.nunca.has(v.id) ? 'nunca' : o.dejo && o.dejo.has(v.id) ? 'dejo' : 'participa',
     };
   });
@@ -8734,22 +8736,48 @@ function _dispoModelo(disp, vols, o) {
 
 // ── Interfaz: se pinta dentro de Estadísticas
 // Colores del dibujo de cada voluntario: cuántos OTROS voluntarios coinciden en esa hora
-const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '#f5a623' : c === 2 ? '#8fcf5a' : '#1a9648';
+// o = cuántos OTROS voluntarios coinciden a esa hora (−1 = no disponible). Con él mismo, el
+// equipo total sería o+1: por debajo del mínimo, rojo; justo el mínimo (sin margen si alguien
+// falla), naranja; por encima, una gama de verde de más clarito a más oscuro según el margen.
+function _dCol(o, min) {
+  if (o < 0) return 'var(--surface2)';
+  const m = min || 3, total = o + 1;
+  if (total < m) return '#e5484d';
+  if (total === m) return '#f5a623';
+  const margen = total - m;
+  return margen === 1 ? '#8fcf5a' : margen === 2 ? '#5cb84f' : '#1a9648';
+}
+// Color según cuántos PORTADORES DE LLAVE están libres a esa hora (sin exigir un mínimo de
+// equipo): 0 = rojo (nadie puede fijar el turno), 1 = naranja (un único punto de fallo), 2+ = verde.
+function _dColLlave(n) {
+  if (n < 0) return 'var(--surface2)';
+  if (n === 0) return '#e5484d';
+  if (n === 1) return '#f5a623';
+  return n === 2 ? '#8fcf5a' : '#1a9648';
+}
 const _dTipoOrden = ['sinHorario', 'corto', 'lejos', 'esporadico', 'sinLlaveCerca', 'poco', 'ok'];
 const _dTipoTxt = { sinHorario: ['⚪', 'Sin horario registrado'], corto: ['🔴', 'Tramos demasiado cortos'], lejos: ['🟠', 'Horario lejos de los turnos'], esporadico: ['🟠', 'Libre pocas semanas al mes'], sinLlaveCerca: ['🔑', 'Coincide con gente, pero sin llave cerca'], poco: ['🟡', 'Coincide poco con otros'], ok: ['🟢', 'Su horario no es el problema'] };
 
-function _stDispoStrip(x, D, llave) {
+// comparar=true: en vez de "cuánta gente coincide", el color pasa a ser "cuántos portadores de
+// llave están libres" — para ver, cuadro a cuadro, si el horario de este voluntario (que a lo
+// mejor coincide poco con el resto) se cruza con el de quienes sí tienen llave.
+function _stDispoStrip(x, D, llave, comparar) {
   const c = 7, W = 14 + D.H * c, Hh = 7 * c + 8;
   let s = `<svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" style="flex-shrink:0" role="img" aria-label="Horario de ${escH(x.nombre)}">`;
   for (let d = 0; d < 7; d++) {
     s += `<text x="0" y="${d * c + c - 1}" font-size="6" fill="var(--label3)">${_dLetra[d]}</text>`;
     for (let h = 0; h < D.H; h++) {
       const o = x.mapa[d][h], n = x.sem[d][h], dm = D.demanda && D.demanda[d][h] > 0;
+      const nLl = x.mapaLlaveN ? x.mapaLlaveN[d][h] : -1;
       const op = o < 0 ? 1 : (0.3 + 0.7 * n / _dNSEM).toFixed(2);       // más pálido = libre en menos semanas del mes
-      // Con la llave activada: aunque coincida gente (o >= 2, verde), si casi nunca hay portador de
-      // llave presente ese cuadro tampoco sirve para fijar un turno — se marca con borde morado
-      const llLl = x.mapaLlave ? x.mapaLlave[d][h] : -1, sinLlave = llave && o >= 2 && llLl >= 0 && llLl < 0.5;
-      s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${_dCol(o)}" fill-opacity="${op}"${sinLlave ? ' stroke="#7c3aed" stroke-width="1.1"' : dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${o < 0 ? 'no disponible' : 'libre ' + n + ' de ' + _dNSEM + ' semanas · ' + (o === 0 ? 'ningún otro voluntario coincide' : 'coinciden ' + o + ' voluntario' + (o === 1 ? '' : 's') + ' más de media')}${dm ? ' · aquí se hacen turnos' : ''}${sinLlave ? ' · casi nunca hay portador de llave presente' : ''}</title></rect>`;
+      // Con la llave activada: aunque coincida gente suficiente (verde), si casi nunca hay portador
+      // de llave presente ese cuadro tampoco sirve para fijar un turno — se marca con borde morado
+      const llLl = x.mapaLlave ? x.mapaLlave[d][h] : -1, sinLlave = !comparar && llave && o >= D.MIN - 1 && llLl >= 0 && llLl < 0.5;
+      const col = comparar ? _dColLlave(nLl) : _dCol(o, D.MIN);
+      const tit = comparar
+        ? (o < 0 ? 'no disponible' : nLl < 0 ? 'libre, pero sin datos de portadores de llave' : nLl === 0 ? 'libre, pero ningún portador de llave lo está a la vez' : 'libre · de media hay ' + nLl + ' portador' + (nLl === 1 ? '' : 'es') + ' de llave libre' + (nLl === 1 ? '' : 's') + ' a la vez')
+        : (o < 0 ? 'no disponible' : 'libre ' + n + ' de ' + _dNSEM + ' semanas · ' + (o === 0 ? 'ningún otro voluntario coincide' : 'coinciden ' + o + ' voluntario' + (o === 1 ? '' : 's') + ' más de media'));
+      s += `<rect x="${12 + h * c}" y="${d * c}" width="${c - 1}" height="${c - 1}" rx="1" fill="${col}" fill-opacity="${op}"${sinLlave ? ' stroke="#7c3aed" stroke-width="1.1"' : dm ? ' stroke="#0a1628" stroke-width=".8"' : ''}><title>${_dCorto[d]} ${D.h0 + h}:00 · ${tit}${dm ? ' · aquí se hacen turnos' : ''}${sinLlave ? ' · casi nunca hay portador de llave presente' : ''}</title></rect>`;
     }
   }
   for (let h = 0; h < D.H; h++) if ((D.h0 + h) % 4 === 0) s += `<text x="${12 + h * c}" y="${7 * c + 7}" font-size="5.5" fill="var(--label3)">${D.h0 + h}</text>`;
@@ -8780,6 +8808,7 @@ function _stDispoHTML() {
   const S = ST.S, D = S && S.dispo;
   if (!D || !D.lista.length) return '';
   const llavePrio = ST.dispLlavePrio !== false;   // por defecto SÍ se tiene en cuenta el portador de llave
+  const comparar = !!ST.dispComparar;   // ver, en vez de la coincidencia general, la de los portadores de llave
   const diagOf = x => llavePrio ? x.diagLlave : x.diag;
   const f = ST.dispFiltro || (D.lista.some(x => x.grupo === 'nunca') ? 'nunca' : 'todos');
   const dificil = x => diagOf(x).tipo !== 'ok';
@@ -8807,7 +8836,10 @@ function _stDispoHTML() {
   const resumen = _dResumenLineas(D, llavePrio);
   const idHeatHoras = 'dp-heat-horas', idHeatDia = 'dp-heat-diafranja';
   return `<div class="st-sec"><h4>🧭 Horarios y disponibilidad <span>¿cuándo hay voluntarios libres y qué le dificulta participar a cada uno?</span></h4>
-    <div class="ev-filtros" style="margin-bottom:.6rem"><label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;color:var(--label2);cursor:pointer;background:var(--surface2);border-radius:20px;padding:.3rem .7rem"><input type="checkbox" ${llavePrio ? 'checked' : ''} onchange="ST.dispLlavePrio=this.checked;ST.dispMotivo='';ST.dispMax=25;renderEstadisticas()"> 🔑 Tener en cuenta que hace falta un portador de llave para fijar el turno</label></div>
+    <div class="ev-filtros" style="margin-bottom:.6rem">
+      <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;color:var(--label2);cursor:pointer;background:var(--surface2);border-radius:20px;padding:.3rem .7rem"><input type="checkbox" ${llavePrio ? 'checked' : ''} onchange="ST.dispLlavePrio=this.checked;ST.dispMotivo='';ST.dispMax=25;renderEstadisticas()"> 🔑 Tener en cuenta que hace falta un portador de llave para fijar el turno</label>
+      <label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;color:var(--label2);cursor:pointer;background:var(--surface2);border-radius:20px;padding:.3rem .7rem"><input type="checkbox" ${comparar ? 'checked' : ''} onchange="ST.dispComparar=this.checked;renderEstadisticas()"> 🔍 En el dibujo, comparar con la disponibilidad de los portadores de llave</label>
+    </div>
     <div class="dp-resumen"><div style="font-weight:800;font-size:.8rem;margin-bottom:.35rem">📌 En resumen</div>${resumen.map(x => `<div>${x}</div>`).join('') || '<div>Aún no hay datos suficientes de horarios.</div>'}</div>
 
     <div class="dp-bloque"><b>1 · ¿Cuántos voluntarios están libres cada hora?</b>
@@ -8822,7 +8854,7 @@ function _stDispoHTML() {
       ${ver.length ? ver.map(x => { const nomAttr = escH(x.nombre).replace(/'/g, '&#39;'), stripId = 'dp-strip-' + x.id; return `<div class="dp-fila" style="border-left:4px solid ${color[diagOf(x).nivel]}">
         <div class="dp-nom"><a href="#" onclick="abrirFicha('${nomAttr}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}${x.tieneLlave ? ' 🔑' : ''}</a>
           <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div>
-          ${x.nivel === 'sin' ? '' : `<div class="dp-strip dp-heat-click" title="Toca para ampliar" onclick="zoomHeat('${stripId}','🕐 Horario de ${nomAttr}')" style="margin-top:.35rem"><div id="${stripId}">${_stDispoStrip(x, D, llavePrio)}</div></div>`}</div>
+          ${x.nivel === 'sin' ? '' : `<div class="dp-strip dp-heat-click" title="Toca para ampliar" onclick="zoomHeat('${stripId}','🕐 Horario de ${nomAttr}')" style="margin-top:.35rem"><div id="${stripId}">${_stDispoStrip(x, D, llavePrio, comparar)}</div></div>`}</div>
         <div class="dp-inf"><div style="display:inline-block;font-size:.76rem;font-weight:700;color:${color[diagOf(x).nivel]};background:${fondo[diagOf(x).nivel]};border-radius:6px;padding:.15rem .5rem">${diagOf(x).icono} ${escH(diagOf(x).titulo)}</div>
           <div style="font-size:.74rem;color:var(--label2);margin-top:.3rem;line-height:1.5">${escH(diagOf(x).detalle)}</div>
           ${x.resumen ? `<div style="font-size:.68rem;color:var(--label3);margin-top:.25rem">🕐 Libre: ${escH(x.resumen)}</div>` : ''}</div></div>`; }).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
@@ -8830,12 +8862,15 @@ function _stDispoHTML() {
     </div>
 
     <details class="dp-leer"><summary>❓ Cómo leer el dibujo de cada voluntario</summary>
-      <div style="font-size:.74rem;color:var(--label2);line-height:1.75;margin-top:.5rem">Cada fila es un día (L M X J V S D) y cada cuadro una hora, de ${D.h0} a ${D.h1} (los números de abajo marcan las horas). El <b>color</b> dice cuántos <b>otros voluntarios</b> están libres a esa hora:<br>
-        <span><i class="st-pt" style="background:#e5484d"></i> ninguno · </span><span><i class="st-pt" style="background:#f5a623"></i> 1 · </span><span><i class="st-pt" style="background:#8fcf5a"></i> 2 (ya se llega a ${D.MIN}) · </span><span><i class="st-pt" style="background:#1a9648"></i> 3 o más · </span><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está libre</span><br>
-        Un cuadro <b>más pálido</b> = está libre en pocas de las 5 semanas del mes. Un <b>borde oscuro</b> = ahí se han hecho turnos.<br>
-        <b>Lo ideal</b> es ver cuadros verdes con borde oscuro: ese voluntario está libre cuando hay turnos y con más gente. Si sus cuadros están rojos, pálidos o sin borde, le será difícil participar.
-        La semana del mes se tiene en cuenta: dos voluntarios solo coinciden si están libres el mismo día de la misma semana.
-        Con <b>🔑 tener en cuenta la llave</b> activado, un voluntario que coincide con suficiente gente pero sin ningún portador de llave (ni él) cerca sale como <b>🔑 sin llave cerca</b> en vez de «coincide poco»: la gente no basta si nadie puede abrir.</div></details>
+      <div style="font-size:.74rem;color:var(--label2);line-height:1.75;margin-top:.5rem">Cada fila es un día (L M X J V S D) y cada cuadro una hora, de ${D.h0} a ${D.h1} (los números de abajo marcan las horas).${comparar ? `<br>
+        Con <b>🔍 comparar</b> activado, el <b>color</b> dice cuántos <b>portadores de llave</b> están libres a la vez esa hora (no cuenta la gente en general):<br>
+        <span><i class="st-pt" style="background:#e5484d"></i> ninguno: nadie podría fijar el turno · </span><span><i class="st-pt" style="background:#f5a623"></i> 1: un único punto de fallo · </span><span><i class="st-pt" style="background:#8fcf5a"></i> 2 · </span><span><i class="st-pt" style="background:#1a9648"></i> 3 o más · </span><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está libre</span><br>
+        Útil sobre todo con quien coincide poco con el grupo: aunque casi nadie más esté libre a esa hora, puede que sí lo esté un portador de llave.` : `
+        El <b>color</b> dice, contando también al propio voluntario, cuántos formarían el equipo si se juntan todos los que están libres a esa hora (para hacer un turno hacen falta ${D.MIN}):<br>
+        <span><i class="st-pt" style="background:#e5484d"></i> menos de ${D.MIN}: no llega · </span><span><i class="st-pt" style="background:#f5a623"></i> justo ${D.MIN}: sin margen, si uno falla se queda corto · </span><span><i class="st-pt" style="background:#8fcf5a"></i> ${D.MIN + 1} · </span><span><i class="st-pt" style="background:#5cb84f"></i> ${D.MIN + 2} · </span><span><i class="st-pt" style="background:#1a9648"></i> ${D.MIN + 3} o más · </span><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está libre</span><br>
+        Con <b>🔑 tener en cuenta la llave</b> activado, un voluntario que coincide con suficiente gente pero sin ningún portador de llave (ni él) cerca sale como <b>🔑 sin llave cerca</b> en vez de «coincide poco»: la gente no basta si nadie puede abrir.`}<br>
+        Un cuadro <b>más pálido</b> = está libre en pocas de las 5 semanas del mes. Un <b>borde oscuro</b> = ahí se han hecho turnos.
+        La semana del mes se tiene en cuenta: dos voluntarios solo coinciden si están libres el mismo día de la misma semana.</div></details>
   </div>`;
 }
 

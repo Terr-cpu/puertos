@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _horaTramo, _horaCanon, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _horaTramo, _horaCanon, _dCol, _dColLlave, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -1323,6 +1323,37 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('Josué ya NO sale como "sin horario registrado"', josue.nivel !== 'sin' && josue.horas > 0, JSON.stringify({ nivel: josue.nivel, horas: josue.horas }));
   check('sus horas libres son las del lunes (17-21, 4h) más las del domingo (8-21, 13h) = 17', josue.horas === 17, josue.horas);
   check('su horario se lee bien en el resumen escrito: "Lun 17–21" y "Dom 8–21"', /Lun 17–21/.test(josue.resumen) && /Dom 8–21/.test(josue.resumen), josue.resumen);
+})();
+
+// ── E33: naranja justo en el mínimo, gama de verdes por encima, y comparar con la llave ──
+(function E33() {
+  console.log('\n═══ E33 · Colores más finos y comparar con la llave ═══');
+  check('sin nadie más (0 otros, total 1) es rojo: no llega al mínimo', E._dCol(0, 3) === '#e5484d');
+  check('con 1 otro (total 2) sigue siendo rojo con mínimo 3: aún no llega', E._dCol(1, 3) === '#e5484d');
+  check('con 2 otros (total 3, justo el mínimo) es NARANJA, no verde', E._dCol(2, 3) === '#f5a623');
+  check('con 3 otros (total 4, un margen de 1) es verde clarito', E._dCol(3, 3) === '#8fcf5a');
+  check('con 4 otros (total 5, margen de 2) es un verde intermedio, más oscuro que el clarito', E._dCol(4, 3) === '#5cb84f');
+  check('con 5 o más otros (margen de 3+) es el verde más oscuro', E._dCol(5, 3) === '#1a9648' && E._dCol(8, 3) === '#1a9648');
+  check('no disponible sigue siendo gris', E._dCol(-1, 3) === 'var(--surface2)');
+  check('el mínimo importa: con MIN_EQ=4, hacen falta 3 otros (total 4) para el naranja, no 2', E._dCol(2, 4) === '#e5484d' && E._dCol(3, 4) === '#f5a623' && E._dCol(4, 4) === '#8fcf5a');
+  check('sin indicar el mínimo, se asume 3 (compatibilidad)', E._dCol(2) === '#f5a623');
+
+  check('_dColLlave: sin ningún portador de llave libre, rojo', E._dColLlave(0) === '#e5484d');
+  check('_dColLlave: con solo uno, naranja (un único punto de fallo)', E._dColLlave(1) === '#f5a623');
+  check('_dColLlave: con 2, verde clarito; con 3+, verde oscuro', E._dColLlave(2) === '#8fcf5a' && E._dColLlave(3) === '#1a9648');
+  check('_dColLlave: no disponible, gris', E._dColLlave(-1) === 'var(--surface2)');
+
+  // Comparar con la llave: A coincide poco con el grupo general, pero SIEMPRE hay un portador de
+  // llave libre a la vez (D) — el modo "comparar" tiene que sacar eso a la luz.
+  const vols = [{ id: 'a', nombre: 'A' }, { id: 'd', nombre: 'D', tiene_llave: true }];
+  const disp = [{ voluntario_id: 'a', dia: 'Lunes', horario: '10:00 a 12:00' }, { voluntario_id: 'd', dia: 'Lunes', horario: '10:00 a 12:00' }];
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 });
+  const a = D.lista.find(v => v.id === 'a');
+  check('mapaLlaveN de A a esa hora es 1 (D está libre a la vez)', a.mapaLlaveN[0][2] === 1, JSON.stringify(a.mapaLlaveN[0]));
+  const normal = E._stDispoStrip(a, D, true, false), comparado = E._stDispoStrip(a, D, true, true);
+  check('en el dibujo normal, ese cuadro es rojo (solo coincide 1 persona, A y D, no llega a 3)', /fill="#e5484d"/.test(normal));
+  check('en el dibujo "comparar", el mismo cuadro sale en naranja (1 portador de llave libre)', /fill="#f5a623"/.test(comparado), comparado.slice(0, 260));
+  check('el texto del cuadro en modo comparar habla de portadores de llave, no de voluntarios en general', /portador de llave libre/.test(comparado) && !/coinciden \d+ voluntario/.test(comparado));
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
