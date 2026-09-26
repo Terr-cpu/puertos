@@ -465,6 +465,14 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 .moverlay{position:fixed;inset:0;background:rgba(0,0,0,.42);backdrop-filter:blur(4px);z-index:500;display:none;align-items:center;justify-content:center;padding:1rem}
 .moverlay.open{display:flex}
 .mbox{background:var(--surface);border-radius:var(--r-xl);padding:1.6rem;width:100%;max-width:540px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);animation:minIn .26s cubic-bezier(.34,1.56,.64,1)}
+.mbox-wide{max-width:min(96vw,1000px)}
+.dp-heat-click{position:relative;cursor:zoom-in;border-radius:var(--r-sm);transition:background .15s}
+.dp-heat-click:hover{background:var(--surface2)}
+.dp-heat-hint{font-size:.66rem;color:var(--label3);text-align:right;margin-top:.2rem}
+.dp-heat-zoom{font-size:1.05rem}
+.dp-heat-zoom .st-heat{font-size:.92rem}
+.dp-heat-zoom .st-heat td{padding:.85rem .5rem;min-width:48px;border-radius:8px}
+.dp-heat-zoom .st-heat th{font-size:.8rem}
 @keyframes minIn{from{opacity:0;transform:scale(.91) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
 .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem}
 .mhead h3{font-size:.95rem;font-weight:700}
@@ -668,6 +676,14 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   <div class="mbox">
     <div class="mhead"><h3 id="mvol-titulo">Turnos</h3><button class="mclose" onclick="closeModal('mvol')">✕</button></div>
     <div id="mvol-body"></div>
+  </div>
+</div>
+
+<!-- MODAL MAPA AMPLIADO -->
+<div class="moverlay" id="mzoom">
+  <div class="mbox mbox-wide">
+    <div class="mhead"><h3 id="mzoom-titulo">Mapa</h3><button class="mclose" onclick="closeModal('mzoom')">✕</button></div>
+    <div id="mzoom-body"></div>
   </div>
 </div>
 
@@ -4774,6 +4790,15 @@ function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.moverlay').forEach(m => m.addEventListener('click', e => { if (e.target===e.currentTarget) m.classList.remove('open'); }));
 
+// Amplía un mapa de calor (tabla) en un modal grande — mismo contenido, más grande y legible
+function zoomHeat(srcId, titulo) {
+  const src = document.getElementById(srcId);
+  if (!src) return;
+  document.getElementById('mzoom-titulo').textContent = titulo || '🔍 Mapa ampliado';
+  document.getElementById('mzoom-body').innerHTML = `<div class="dp-heat-zoom">${src.innerHTML}</div>`;
+  openModal('mzoom');
+}
+
 function toast(msg, type='ok') {
   const el=document.createElement('div'); el.className=`toast ${type}`; el.textContent=msg;
   document.getElementById('toasts').appendChild(el);
@@ -7524,10 +7549,11 @@ function renderEstadisticas() {
 
   // Mapa día × franja
   const maxC = Math.max(1, ...['m', 't'].flatMap(f => S.porDia.map(d => S.celdas[f][d.dow].turnos)));
-  const heat = `<table class="st-heat"><thead><tr><th></th>${S.porDia.map(d => `<th>${DIAC[d.dow]}</th>`).join('')}</tr></thead><tbody>
+  const heatTabla = `<table class="st-heat"><thead><tr><th></th>${S.porDia.map(d => `<th>${DIAC[d.dow]}</th>`).join('')}</tr></thead><tbody>
     ${[['m', '☀️ Mañana'], ['t', '🌙 Tarde']].map(([f, l]) => `<tr><th>${l}</th>${S.porDia.map(d => { const x = S.celdas[f][d.dow], a = x.turnos ? .12 + .7 * x.turnos / maxC : 0;
       return `<td style="background:${x.turnos ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}" title="${x.turnos} turnos · ${x.bajas} bajas · ${x.debiles} por debajo del mínimo · ${x.sinCubrir} sin cubrir">${x.turnos || ''}${x.bajas ? `<div style="font-size:.6rem;color:${a > .5 ? '#ffd0cc' : 'var(--red)'}">🏥${x.bajas}</div>` : ''}${x.sinCubrir ? `<div style="font-size:.6rem;color:${a > .5 ? '#ffd0cc' : '#8a8fa8'}">✖${x.sinCubrir}</div>` : ''}</td>`; }).join('')}</tr>`).join('')}
     </tbody></table>`;
+  const heat = `<div class="dp-heat-click" title="Toca para ampliar" onclick="zoomHeat('st-heat-diafranja','🗺️ Mapa día × franja')"><div id="st-heat-diafranja">${heatTabla}</div><div class="dp-heat-hint">🔍 Ampliar</div></div>`;
 
   const AG = _stApuntesGlobal(ST.base, _evHoy()), MESL = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
   const apGlobal = AG.hechos ? `<div style="display:flex;gap:1.2rem;flex-wrap:wrap;align-items:baseline;margin-bottom:.6rem">
@@ -8519,6 +8545,7 @@ function _dDiag(x, c) {
   if (x.nivel === 'corto') return { tipo: 'corto', nivel: 'rojo', icono: '🔴', titulo: 'Sus tramos libres son demasiado cortos', detalle: `Solo marca tramos de menos de ${c.DUR} horas seguidas y un turno dura ${c.DUR}. Pídele que amplíe sus tramos.` };
   if (x.encaje === 'lejos') return { tipo: 'lejos', nivel: 'ambar', icono: '🟠', titulo: 'Su horario cae lejos de donde se hacen turnos', detalle: `Solo el ${x.pctDem} % de sus horas libres coincide con días y horas en los que se han hecho turnos${c.demandaTxt ? ` (los turnos se hacen sobre todo: ${c.demandaTxt})` : ''}.` };
   if (x.esporadico) return { tipo: 'esporadico', nivel: 'ambar', icono: '🟠', titulo: 'Libre solo unas pocas semanas al mes', detalle: `Está libre ${x.semanas === 1 ? 'una sola semana' : 'solo ' + x.semanas + ' semanas'} del mes: ${x.resumen}. Con tan pocas semanas le cuesta coincidir con un turno.` };
+  if (x.llaveVista && (x.nivel === 'aislado' || x.nivel === 'poco') && !x.tieneLlave && x.nSinLlave > 0 && x.pctSoloLlave !== null && x.pctSoloLlave >= 50) return { tipo: 'sinLlaveCerca', nivel: 'ambar', icono: '🔑', titulo: 'Coincide con gente, pero nadie tiene llave cerca', detalle: `Cuando está libre y hay suficiente gente (pasa el ${x.pctSoloLlave} % de esas veces), nadie —ni él— lleva llave: sin portador de llave no se puede fijar el turno. Hacen falta más portadores en su horario, o que él mismo lo sea.` };
   if (x.nivel === 'aislado' || x.nivel === 'poco') return { tipo: 'poco', nivel: 'ambar', icono: '🟡', titulo: x.nivel === 'aislado' ? 'Casi nadie coincide con él' : 'Coincide poco con otros voluntarios', detalle: `Cuando está libre, ${!x.mediaOtros ? 'no coincide con ningún otro voluntario' : x.mediaOtros === 1 ? 'solo coincide 1 voluntario más de media' : 'solo coinciden ' + _dNum(x.mediaOtros) + ' voluntarios más de media'} (hacen falta ${c.MIN - 1} para llegar a ${c.MIN}).` };
   return { tipo: 'ok', nivel: 'verde', icono: '🟢', titulo: 'Su horario no es el problema', detalle: `Coincide con otros voluntarios${x.pctDem !== null ? ` y el ${x.pctDem} % de sus horas cae donde se hacen turnos` : ''}. Si no participa, el motivo no parece ser el horario (puede que no se le haya asignado o prefiera otros días).` };
 }
@@ -8554,10 +8581,19 @@ function _dispoModelo(disp, vols, o) {
   const media = (m, d, i) => { let sum = 0; for (let s = 0; s < NS; s++) sum += m[s][d][i]; return sum / NS; };
   const grupo = Array.from({ length: 7 }, (_, d) => Array.from({ length: H }, (_, h) => Math.round(10 * media(grupoSem, d, h)) / 10));
   const dem = o.demanda || null;
+  // Portadores de llave: sin uno presente no se puede fijar un turno, por mucha gente que coincida —
+  // su disponibilidad prioriza. Mismos cubos que arriba, pero contando solo a quien tiene llave.
+  const llaveIds = new Set(vols.filter(v => v.tiene_llave).map(v => v.id));
+  const cuentaLlaveV = cubo(NV, 0);
+  ventana.forEach((w, id) => { if (!llaveIds.has(id)) return; for (let s = 0; s < NS; s++) for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) if (w[s][d][t]) cuentaLlaveV[s][d][t]++; });
+  const grupoLlaveSem = cubo(H, 0);
+  avail.forEach((a, id) => { if (!llaveIds.has(id)) return; for (let s = 0; s < NS; s++) for (let d = 0; d < 7; d++) for (let h = 0; h < H; h++) if (a[s][d][h]) grupoLlaveSem[s][d][h]++; });
+  const grupoLlave = Array.from({ length: 7 }, (_, d) => Array.from({ length: H }, (_, h) => Math.round(10 * media(grupoLlaveSem, d, h)) / 10));
 
   const lista = vols.map(v => {
     const a = avail.get(v.id), w = ventana.get(v.id);
-    let celdas = 0, celdasDem = 0, nVent = 0, nConect = 0, suma = 0;
+    const tieneLlave = llaveIds.has(v.id);
+    let celdas = 0, celdasDem = 0, nVent = 0, nConect = 0, nConectLlave = 0, suma = 0;
     const semDia = new Array(7).fill(0).map(() => new Set());          // semanas en que está libre cada día
     const horasAlgunaSemana = Array.from({ length: 7 }, () => new Array(H).fill(false));
     for (let s = 0; s < NS; s++) for (let d = 0; d < 7; d++) {
@@ -8565,11 +8601,23 @@ function _dispoModelo(disp, vols, o) {
         celdas++; horasAlgunaSemana[d][h] = true; semDia[d].add(s);
         if (dem && dem[d][h] > 0) celdasDem++;
       }
-      for (let t = 0; t < NV; t++) if (w[s][d][t]) { nVent++; const otros = cuentaV[s][d][t] - 1; suma += otros; if (otros >= MIN - 1) nConect++; }   // "otros" = de esa misma semana
+      for (let t = 0; t < NV; t++) if (w[s][d][t]) {
+        nVent++; const otros = cuentaV[s][d][t] - 1; suma += otros;   // "otros" = de esa misma semana
+        const headOk = otros >= MIN - 1; if (headOk) nConect++;
+        const llavesAqui = cuentaLlaveV[s][d][t] - (tieneLlave ? 1 : 0);
+        if (headOk && (tieneLlave || llavesAqui > 0)) nConectLlave++;
+      }
     }
     const horas = horasAlgunaSemana.flat().filter(Boolean).length;
+    const nivelDe = p => horas === 0 ? 'sin' : nVent === 0 ? 'corto' : p < 25 ? 'aislado' : p < 60 ? 'poco' : 'bien';
     const pct = nVent ? Math.round(100 * nConect / nVent) : null;
-    const nivel = horas === 0 ? 'sin' : nVent === 0 ? 'corto' : pct < 25 ? 'aislado' : pct < 60 ? 'poco' : 'bien';
+    const nivel = nivelDe(pct ?? 0);
+    // Vista consciente de la llave: de sus ventanas con gente suficiente, cuántas tienen además
+    // un portador de llave presente. nSinLlave = "tendría gente pero nadie lleva llave".
+    const pctLlave = nVent ? Math.round(100 * nConectLlave / nVent) : null;
+    const nivelLlave = nivelDe(pctLlave ?? 0);
+    const nSinLlave = nConect - nConectLlave;
+    const pctSoloLlave = nConect ? Math.round(100 * nSinLlave / nConect) : null;
     const pctDem = dem && celdas ? Math.round(100 * celdasDem / celdas) : null;
     const encaje = pctDem === null ? null : pctDem < 35 ? 'lejos' : pctDem < 60 ? 'medio' : 'bien';
     // Constancia: en cuántas de las 5 semanas está libre, de media, en los días que tiene
@@ -8595,6 +8643,7 @@ function _dispoModelo(disp, vols, o) {
     }).filter(Boolean).join(' · ');
     return {
       id: v.id, nombre: v.nombre, horas, dias: diasConHorario, nVent, pct, nivel, pctDem, encaje,
+      tieneLlave, pctLlave, nivelLlave, nSinLlave, pctSoloLlave,
       semanas: semanasConAlgo.size, constancia, recur: recur === null ? null : Math.round(100 * recur),
       esporadico: constancia === 'pocas',
       mediaOtros: nVent ? Math.round(10 * suma / nVent) / 10 : null,
@@ -8607,7 +8656,10 @@ function _dispoModelo(disp, vols, o) {
   const demandaTxt = dem ? _dTramos(H, h0, (d, i) => dem[d][i] > 0, (d, i) => dem[d][i])
     .sort((x, y) => y.suma - x.suma).slice(0, 4).map(t => _dCorto[t.d] + ' ' + t.desde + '–' + t.hasta).join(' · ') : '';
   const c = { MIN, DUR, demandaTxt };
-  lista.forEach(x => { x.diag = _dDiag(x, c); });
+  lista.forEach(x => {
+    x.diag = _dDiag(x, c);
+    x.diagLlave = _dDiag({ ...x, nivel: x.nivelLlave, pct: x.pctLlave, llaveVista: true }, c);
+  });
   // Huecos: hay turnos, pero de media hay menos de MIN voluntarios libres para cubrirlos enteros
   const huecos = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] > 0 && dem[d][Math.min(H - 1, t + DUR - 1)] > 0 && media(cuentaV, d, t) < MIN, (d, t) => media(cuentaV, d, t))
     .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, libres: Math.round(t.valor * 10) / 10, peso: (() => { let q = 0; for (let h = t.desde - h0; h <= Math.min(H - 1, t.hasta - h0 + DUR - 2); h++) q += dem[t.d][h]; return q; })() }))
@@ -8617,6 +8669,11 @@ function _dispoModelo(disp, vols, o) {
   const sobran = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] === 0 && dem[d][Math.min(H - 1, t + DUR - 1)] === 0 && media(cuentaV, d, t) >= umbralSobran, (d, t) => media(cuentaV, d, t))
     .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, libres: Math.round(t.valor * 10) / 10 }))
     .sort((x, y) => y.libres - x.libres).slice(0, 4) : [];
+  // Huecos "de llave": ahí SÍ hay turnos y SÍ hay gente de sobra (≥ MIN), pero de media casi nunca
+  // hay un portador de llave libre — sin uno, esa gente no sirve para fijar el turno.
+  const huecosLlave = dem ? _dTramos(NV, h0, (d, t) => dem[d][t] > 0 && dem[d][Math.min(H - 1, t + DUR - 1)] > 0 && media(cuentaV, d, t) >= MIN && media(cuentaLlaveV, d, t) < 1, (d, t) => media(cuentaLlaveV, d, t))
+    .map(t => ({ dia: _dCorto[t.d], d: t.d, desde: t.desde, hasta: t.hasta + DUR - 1, llaves: Math.round(t.valor * 100) / 100 }))
+    .sort((x, y) => x.llaves - y.llaves).slice(0, 4) : [];
   // Mejor franja: la que, de media a lo largo de las semanas, más voluntarios pueden cubrir entera
   let mejor = null;
   for (let d = 0; d < 7; d++) for (let t = 0; t < NV; t++) { const n = media(cuentaV, d, t); if (!mejor || n > mejor.n) mejor = { d, t, n }; }
@@ -8627,7 +8684,9 @@ function _dispoModelo(disp, vols, o) {
   };
   const motivos = { nunca: {}, dejo: {}, participa: {} };
   lista.forEach(x => { motivos[x.grupo][x.diag.tipo] = (motivos[x.grupo][x.diag.tipo] || 0) + 1; });
-  return { h0, h1, H, DUR, MIN, grupo, grupoSem, cuentaV, lista, demanda: dem, demandaTxt, huecos, sobran, motivos,
+  const motivosLlave = { nunca: {}, dejo: {}, participa: {} };
+  lista.forEach(x => { motivosLlave[x.grupo][x.diagLlave.tipo] = (motivosLlave[x.grupo][x.diagLlave.tipo] || 0) + 1; });
+  return { h0, h1, H, DUR, MIN, grupo, grupoSem, grupoLlave, grupoLlaveSem, cuentaV, lista, demanda: dem, demandaTxt, huecos, huecosLlave, sobran, motivos, motivosLlave,
     sinHorario: lista.filter(x => x.nivel === 'sin').length,
     mejor: mejor && mejor.n > 0 ? { dia: _dCorto[mejor.d], desde: h0 + mejor.t, hasta: h0 + mejor.t + DUR, n: Math.round(mejor.n * 10) / 10 } : null,
     medias: { nunca: mediaG('nunca'), dejo: mediaG('dejo'), participa: mediaG('participa') } };
@@ -8636,8 +8695,8 @@ function _dispoModelo(disp, vols, o) {
 // ── Interfaz: se pinta dentro de Estadísticas
 // Colores del dibujo de cada voluntario: cuántos OTROS voluntarios coinciden en esa hora
 const _dCol = c => c < 0 ? 'var(--surface2)' : c === 0 ? '#e5484d' : c === 1 ? '#f5a623' : c === 2 ? '#8fcf5a' : '#1a9648';
-const _dTipoOrden = ['sinHorario', 'corto', 'lejos', 'esporadico', 'poco', 'ok'];
-const _dTipoTxt = { sinHorario: ['⚪', 'Sin horario registrado'], corto: ['🔴', 'Tramos demasiado cortos'], lejos: ['🟠', 'Horario lejos de los turnos'], esporadico: ['🟠', 'Libre pocas semanas al mes'], poco: ['🟡', 'Coincide poco con otros'], ok: ['🟢', 'Su horario no es el problema'] };
+const _dTipoOrden = ['sinHorario', 'corto', 'lejos', 'esporadico', 'sinLlaveCerca', 'poco', 'ok'];
+const _dTipoTxt = { sinHorario: ['⚪', 'Sin horario registrado'], corto: ['🔴', 'Tramos demasiado cortos'], lejos: ['🟠', 'Horario lejos de los turnos'], esporadico: ['🟠', 'Libre pocas semanas al mes'], sinLlaveCerca: ['🔑', 'Coincide con gente, pero sin llave cerca'], poco: ['🟡', 'Coincide poco con otros'], ok: ['🟢', 'Su horario no es el problema'] };
 
 function _stDispoStrip(x, D) {
   const c = 7, W = 14 + D.H * c, Hh = 7 * c + 8;
@@ -8655,16 +8714,18 @@ function _stDispoStrip(x, D) {
 }
 
 // "En resumen": frases en lenguaje llano a partir de los datos
-function _dResumenLineas(D) {
+function _dResumenLineas(D, llave) {
   const l = [], n = D.lista.filter(x => x.grupo === 'nunca');
+  const motivos = llave ? D.motivosLlave : D.motivos;
   if (D.demandaTxt) l.push(`🗓️ <b>Cuándo se hacen turnos:</b> sobre todo ${D.demandaTxt}.`);
   if (D.mejor) l.push(`👥 <b>Cuándo hay más voluntarios libres:</b> ${D.mejor.dia} de ${D.mejor.desde} a ${D.mejor.hasta}h (de media, ${_dNum(D.mejor.n)} voluntarios pueden cubrirlo entero cada semana).`);
   if (D.huecos.length) l.push(`⚠️ <b>Faltan voluntarios en franjas donde sí hay turnos:</b> ${D.huecos.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (de media ${_dLibres(h.libres)}, hacen falta ${D.MIN})`).join(' · ')}.`);
+  if (llave && D.huecosLlave && D.huecosLlave.length) l.push(`🔑 <b>Hay gente de sobra, pero sin nadie que lleve llave:</b> ${D.huecosLlave.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h`).join(' · ')}. Sin un portador de llave esos turnos no se pueden fijar aunque sobre gente.`);
   if (D.sobran.length) l.push(`💡 <b>Sobran voluntarios libres donde nunca hay turnos:</b> ${D.sobran.slice(0, 3).map(h => `${h.dia} ${h.desde}–${h.hasta}h (${_dLibres(h.libres)})`).join(' · ')}. Quizá se podrían habilitar franjas ahí.`);
   if (D.sinHorario) l.push(`⚪ <b>${D.sinHorario} voluntario${D.sinHorario === 1 ? '' : 's'} del grupo no ${D.sinHorario === 1 ? 'tiene' : 'tienen'} horario registrado</b>, así que el planificador no puede contar con ${D.sinHorario === 1 ? 'él' : 'ellos'}.`);
   if (n.length) {
-    const m = D.motivos.nunca, t = k => m[k] || 0;
-    const partes = [t('sinHorario') && `${t('sinHorario')} sin horario registrado`, (t('lejos')) && `${t('lejos')} con horario lejos de los turnos`, t('esporadico') && `${t('esporadico')} libre${t('esporadico') === 1 ? '' : 's'} solo unas pocas semanas`, t('corto') && `${t('corto')} con tramos demasiado cortos`, t('poco') && `${t('poco')} que ${t('poco') === 1 ? 'coincide' : 'coinciden'} poco con otros`].filter(Boolean);
+    const m = motivos.nunca, t = k => m[k] || 0;
+    const partes = [t('sinHorario') && `${t('sinHorario')} sin horario registrado`, (t('lejos')) && `${t('lejos')} con horario lejos de los turnos`, t('esporadico') && `${t('esporadico')} libre${t('esporadico') === 1 ? '' : 's'} solo unas pocas semanas`, t('corto') && `${t('corto')} con tramos demasiado cortos`, llave && t('sinLlaveCerca') && `${t('sinLlaveCerca')} que coincide${t('sinLlaveCerca') === 1 ? '' : 'n'} con gente pero sin llave cerca`, t('poco') && `${t('poco')} que ${t('poco') === 1 ? 'coincide' : 'coinciden'} poco con otros`].filter(Boolean);
     l.push(`🆕 <b>De los ${n.length} que nunca han participado:</b> ${partes.length ? partes.join(', ') : 'ninguno tiene un problema de horario'}${t('ok') ? `; ${t('ok')} ${t('ok') === 1 ? 'tiene' : 'tienen'} un horario que sí encaja (el motivo no parece ser el horario)` : ''}.`);
   }
   return l;
@@ -8673,45 +8734,52 @@ function _dResumenLineas(D) {
 function _stDispoHTML() {
   const S = ST.S, D = S && S.dispo;
   if (!D || !D.lista.length) return '';
+  const llavePrio = ST.dispLlavePrio !== false;   // por defecto SÍ se tiene en cuenta el portador de llave
+  const diagOf = x => llavePrio ? x.diagLlave : x.diag;
   const f = ST.dispFiltro || (D.lista.some(x => x.grupo === 'nunca') ? 'nunca' : 'todos');
-  const dificil = x => x.diag.tipo !== 'ok';
-  const cont = { nunca: D.lista.filter(x => x.grupo === 'nunca').length, dejo: D.lista.filter(x => x.grupo === 'dejo').length, todos: D.lista.length, menos: D.lista.filter(dificil).length };
-  let base = D.lista.filter(x => f === 'todos' || (f === 'menos' ? dificil(x) : x.grupo === f));
+  const dificil = x => diagOf(x).tipo !== 'ok';
+  const cont = { nunca: D.lista.filter(x => x.grupo === 'nunca').length, dejo: D.lista.filter(x => x.grupo === 'dejo').length, todos: D.lista.length, menos: D.lista.filter(dificil).length, llave: D.lista.filter(x => x.tieneLlave).length };
+  let base = D.lista.filter(x => f === 'todos' || (f === 'menos' ? dificil(x) : f === 'llave' ? x.tieneLlave : x.grupo === f));
   const motivo = ST.dispMotivo || '';
-  const porMotivo = {}; base.forEach(x => { porMotivo[x.diag.tipo] = (porMotivo[x.diag.tipo] || 0) + 1; });
-  let lista = motivo ? base.filter(x => x.diag.tipo === motivo) : base;
-  const orden = x => _dTipoOrden.indexOf(x.diag.tipo);
+  const porMotivo = {}; base.forEach(x => { porMotivo[diagOf(x).tipo] = (porMotivo[diagOf(x).tipo] || 0) + 1; });
+  let lista = motivo ? base.filter(x => diagOf(x).tipo === motivo) : base;
+  const orden = x => _dTipoOrden.indexOf(diagOf(x).tipo);
   lista = [...lista].sort((a, b) => orden(a) - orden(b) || (a.pctDem ?? 100) - (b.pctDem ?? 100) || a.nombre.localeCompare(b.nombre));
-  const sm = ST.dispSemana || 0, fuente = sm ? D.grupoSem[sm - 1] : D.grupo;   // 0 = media de las 5 semanas
+  const sm = ST.dispSemana || 0, fuente = sm ? D.grupoSem[sm - 1] : D.grupo, fuenteLlave = sm ? D.grupoLlaveSem[sm - 1] : D.grupoLlave;   // 0 = media de las 5 semanas
   const max = Math.max(1, ...fuente.flat());
   const cabeceras = _dCorto.map(d => `<th>${d}</th>`).join('');
   const fmt = n => n ? (Number.isInteger(n) ? n : String(n).replace('.', ',')) : '';
-  const filasHora = Array.from({ length: D.H }, (_, h) => `<tr><th>${D.h0 + h}h</th>${_dCorto.map((_, d) => { const n = fuente[d][h], a = n ? 0.12 + 0.8 * n / max : 0, dm = D.demanda && D.demanda[d][h] > 0, falta = dm && n < D.MIN;
-    return `<td style="background:${n ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}${falta ? ';box-shadow:inset 0 0 0 2px #e5484d;font-weight:800' : dm ? ';box-shadow:inset 0 0 0 1.5px #0a1628' : ''}" title="${_dCorto[d]} ${D.h0 + h}:00 · ${sm ? '' : 'de media '}${n} voluntario${n === 1 ? '' : 's'} libre${n === 1 ? '' : 's'}${sm ? ' en la semana ' + sm : ''}${falta ? ' · AQUÍ HAY TURNOS PERO FALTAN VOLUNTARIOS' : dm ? ' · aquí se han hecho turnos' : ''}">${fmt(n)}</td>`; }).join('')}</tr>`).join('');
+  const filasHora = Array.from({ length: D.H }, (_, h) => `<tr><th>${D.h0 + h}h</th>${_dCorto.map((_, d) => {
+    const n = fuente[d][h], nLl = fuenteLlave[d][h], a = n ? 0.12 + 0.8 * n / max : 0, dm = D.demanda && D.demanda[d][h] > 0, falta = dm && n < D.MIN, faltaLlave = llavePrio && dm && !falta && nLl < 1;
+    const borde = falta ? ';box-shadow:inset 0 0 0 2px #e5484d;font-weight:800' : faltaLlave ? ';box-shadow:inset 0 0 0 2px #7c3aed;font-weight:800' : dm ? ';box-shadow:inset 0 0 0 1.5px #0a1628' : '';
+    return `<td style="background:${n ? `rgba(0,113,227,${a.toFixed(2)})` : 'var(--surface2)'};color:${a > .5 ? '#fff' : 'var(--label1)'}${borde}" title="${_dCorto[d]} ${D.h0 + h}:00 · ${sm ? '' : 'de media '}${n} voluntario${n === 1 ? '' : 's'} libre${n === 1 ? '' : 's'}${sm ? ' en la semana ' + sm : ''} · ${nLl.toFixed ? (Number.isInteger(nLl) ? nLl : nLl.toFixed(1)) : nLl} con llave${falta ? ' · AQUÍ HAY TURNOS PERO FALTAN VOLUNTARIOS' : faltaLlave ? ' · AQUÍ HAY GENTE PERO CASI NUNCA HAY PORTADOR DE LLAVE' : dm ? ' · aquí se han hecho turnos' : ''}">${fmt(n)}${faltaLlave ? '<div style="font-size:.52rem;line-height:1">🔑</div>' : ''}</td>`;
+  }).join('')}</tr>`).join('');
   const pill = (id, lbl) => `<button class="ev-pill ${f === id ? 'on' : ''}" onclick="ST.dispFiltro='${id}';ST.dispMotivo='';ST.dispMax=25;renderEstadisticas()">${lbl} ${cont[id]}</button>`;
   const pillS = (n, lbl) => `<button class="ev-pill ${sm === n ? 'on' : ''}" onclick="ST.dispSemana=${n};renderEstadisticas()">${lbl}</button>`;
   const pillM = t => `<button class="ev-pill ${motivo === t ? 'on' : ''}" onclick="ST.dispMotivo='${motivo === t ? '' : t}';ST.dispMax=25;renderEstadisticas()">${_dTipoTxt[t][0]} ${_dTipoTxt[t][1]} ${porMotivo[t]}</button>`;
   const max2 = ST.dispMax || 25, ver = lista.slice(0, max2);
   const color = { rojo: 'var(--red)', ambar: 'var(--amber)', verde: '#146c34' }, fondo = { rojo: 'var(--red-soft)', ambar: 'var(--amber-soft)', verde: 'var(--green-soft)' };
-  const resumen = _dResumenLineas(D);
+  const resumen = _dResumenLineas(D, llavePrio);
+  const idHeatHoras = 'dp-heat-horas', idHeatDia = 'dp-heat-diafranja';
   return `<div class="st-sec"><h4>🧭 Horarios y disponibilidad <span>¿cuándo hay voluntarios libres y qué le dificulta participar a cada uno?</span></h4>
+    <div class="ev-filtros" style="margin-bottom:.6rem"><label style="display:inline-flex;align-items:center;gap:.4rem;font-size:.74rem;color:var(--label2);cursor:pointer;background:var(--surface2);border-radius:20px;padding:.3rem .7rem"><input type="checkbox" ${llavePrio ? 'checked' : ''} onchange="ST.dispLlavePrio=this.checked;ST.dispMotivo='';ST.dispMax=25;renderEstadisticas()"> 🔑 Tener en cuenta que hace falta un portador de llave para fijar el turno</label></div>
     <div class="dp-resumen"><div style="font-weight:800;font-size:.8rem;margin-bottom:.35rem">📌 En resumen</div>${resumen.map(x => `<div>${x}</div>`).join('') || '<div>Aún no hay datos suficientes de horarios.</div>'}</div>
 
     <div class="dp-bloque"><b>1 · ¿Cuántos voluntarios están libres cada hora?</b>
-      <div class="dp-ayuda">Cada número es la cantidad de voluntarios libres a esa hora (cuanto más azul, más). <b style="border:1.5px solid #0a1628;padding:0 .3rem;border-radius:3px">Borde oscuro</b> = ahí se han hecho turnos. <b style="border:2px solid #e5484d;padding:0 .3rem;border-radius:3px;color:#e5484d">Borde rojo</b> = se han hecho turnos <u>pero hay menos de ${D.MIN} voluntarios libres</u>: ahí faltan voluntarios.</div>
+      <div class="dp-ayuda">Cada número es la cantidad de voluntarios libres a esa hora (cuanto más azul, más). <b style="border:1.5px solid #0a1628;padding:0 .3rem;border-radius:3px">Borde oscuro</b> = ahí se han hecho turnos. <b style="border:2px solid #e5484d;padding:0 .3rem;border-radius:3px;color:#e5484d">Borde rojo</b> = se han hecho turnos <u>pero hay menos de ${D.MIN} voluntarios libres</u>.${llavePrio ? ` <b style="border:2px solid #7c3aed;padding:0 .3rem;border-radius:3px;color:#7c3aed">🔑 Borde morado</b> = hay gente de sobra, pero casi nunca hay portador de llave.` : ''} Toca el mapa para verlo más grande.</div>
       <div class="ev-filtros" style="margin:.3rem 0 .4rem"><span style="font-size:.7rem;color:var(--label3)">Ver:</span>${pillS(0, 'Media del mes')}${[1, 2, 3, 4, 5].map(n => pillS(n, n + '.ª semana')).join('')}</div>
-      <div style="max-height:340px;overflow:auto"><table class="st-heat"><thead><tr><th></th>${cabeceras}</tr></thead><tbody>${filasHora}</tbody></table></div></div>
+      <div class="dp-heat-click" title="Toca para ampliar" onclick="zoomHeat('${idHeatHoras}','🕐 Voluntarios libres cada hora')"><div id="${idHeatHoras}" style="max-height:340px;overflow:auto"><table class="st-heat"><thead><tr><th></th>${cabeceras}</tr></thead><tbody>${filasHora}</tbody></table></div><div class="dp-heat-hint">🔍 Ampliar</div></div></div>
 
     <div class="dp-bloque"><b>2 · ¿Qué le dificulta participar a cada voluntario?</b>
-      <div class="dp-ayuda">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>. Cada voluntario tiene una frase con la causa principal y, debajo, su horario dibujado (ver «cómo leer el dibujo»).</div>
-      <div class="ev-filtros" style="margin:.4rem 0">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Con alguna dificultad')}${pill('dejo', '💤 Dejaron de participar')}${pill('todos', 'Todos')}</div>
+      <div class="dp-ayuda">Para hacer un turno hacen falta <b>${D.MIN} voluntarios a la vez durante ${D.DUR} horas</b>${llavePrio ? ', y al menos uno con llave' : ''}. Cada voluntario tiene una frase con la causa principal y, debajo, su horario dibujado (ver «cómo leer el dibujo»).</div>
+      <div class="ev-filtros" style="margin:.4rem 0">${pill('nunca', '🆕 Nunca han participado')}${pill('menos', '⚠️ Con alguna dificultad')}${pill('dejo', '💤 Dejaron de participar')}${pill('llave', '🔑 Portadores de llave')}${pill('todos', 'Todos')}</div>
       ${Object.keys(porMotivo).length > 1 ? `<div class="ev-filtros" style="margin:0 0 .5rem"><span style="font-size:.7rem;color:var(--label3)">Filtrar por causa:</span>${_dTipoOrden.filter(t => porMotivo[t]).map(pillM).join('')}</div>` : ''}
-      ${ver.length ? ver.map(x => `<div class="dp-fila" style="border-left:4px solid ${color[x.diag.nivel]}">
-        <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}</a>
+      ${ver.length ? ver.map(x => `<div class="dp-fila" style="border-left:4px solid ${color[diagOf(x).nivel]}">
+        <div class="dp-nom"><a href="#" onclick="abrirFicha('${escH(x.nombre).replace(/'/g, '&#39;')}','${x.id}');return false" style="color:var(--label1);font-weight:700;text-decoration:none">${escH(x.nombre)}${x.tieneLlave ? ' 🔑' : ''}</a>
           <div style="font-size:.66rem;color:var(--label3)">${x.grupo === 'nunca' ? '🆕 nunca ha participado' : x.grupo === 'dejo' ? '💤 dejó de participar' : 'participa'}</div>
           ${x.nivel === 'sin' ? '' : `<div class="dp-strip" style="margin-top:.35rem">${_stDispoStrip(x, D)}</div>`}</div>
-        <div class="dp-inf"><div style="display:inline-block;font-size:.76rem;font-weight:700;color:${color[x.diag.nivel]};background:${fondo[x.diag.nivel]};border-radius:6px;padding:.15rem .5rem">${x.diag.icono} ${escH(x.diag.titulo)}</div>
-          <div style="font-size:.74rem;color:var(--label2);margin-top:.3rem;line-height:1.5">${escH(x.diag.detalle)}</div>
+        <div class="dp-inf"><div style="display:inline-block;font-size:.76rem;font-weight:700;color:${color[diagOf(x).nivel]};background:${fondo[diagOf(x).nivel]};border-radius:6px;padding:.15rem .5rem">${diagOf(x).icono} ${escH(diagOf(x).titulo)}</div>
+          <div style="font-size:.74rem;color:var(--label2);margin-top:.3rem;line-height:1.5">${escH(diagOf(x).detalle)}</div>
           ${x.resumen ? `<div style="font-size:.68rem;color:var(--label3);margin-top:.25rem">🕐 Libre: ${escH(x.resumen)}</div>` : ''}</div></div>`).join('') : `<div style="font-size:.8rem;color:var(--label3);padding:.6rem 0">Nadie en este grupo.</div>`}
       ${lista.length > max2 ? `<button class="btn btn-ghost btn-sm" style="margin-top:.6rem" onclick="ST.dispMax=${max2 + 25};renderEstadisticas()">Ver ${Math.min(25, lista.length - max2)} más (${lista.length - max2} restantes)</button>` : ''}
     </div>
@@ -8721,7 +8789,8 @@ function _stDispoHTML() {
         <span><i class="st-pt" style="background:#e5484d"></i> ninguno · </span><span><i class="st-pt" style="background:#f5a623"></i> 1 · </span><span><i class="st-pt" style="background:#8fcf5a"></i> 2 (ya se llega a ${D.MIN}) · </span><span><i class="st-pt" style="background:#1a9648"></i> 3 o más · </span><span><i class="st-pt" style="background:var(--surface2);border:1px solid var(--sep)"></i> no está libre</span><br>
         Un cuadro <b>más pálido</b> = está libre en pocas de las 5 semanas del mes. Un <b>borde oscuro</b> = ahí se han hecho turnos.<br>
         <b>Lo ideal</b> es ver cuadros verdes con borde oscuro: ese voluntario está libre cuando hay turnos y con más gente. Si sus cuadros están rojos, pálidos o sin borde, le será difícil participar.
-        La semana del mes se tiene en cuenta: dos voluntarios solo coinciden si están libres el mismo día de la misma semana.</div></details>
+        La semana del mes se tiene en cuenta: dos voluntarios solo coinciden si están libres el mismo día de la misma semana.
+        Con <b>🔑 tener en cuenta la llave</b> activado, un voluntario que coincide con suficiente gente pero sin ningún portador de llave (ni él) cerca sale como <b>🔑 sin llave cerca</b> en vez de «coincide poco»: la gente no basta si nadie puede abrir.</div></details>
   </div>`;
 }
 

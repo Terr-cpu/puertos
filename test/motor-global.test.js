@@ -1187,5 +1187,48 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('sin marcar nada como alternativo, las franjas vacías sí cuentan como no realizadas (comportamiento de siempre)', S2.turnos.programados === 4 && S2.turnos.alternativosOmitidos === 0, JSON.stringify(S2.turnos.programados));
 })();
 
+// ── E29: la disponibilidad de los portadores de llave prioriza para fijar un turno ──
+(function E29() {
+  console.log('\n═══ E29 · Huérfanos de horario y prioridad de la llave ═══');
+  // A, B, C coinciden todo el sábado (10-14, ninguno con llave) → sin llave nadie puede fijar el turno.
+  // D, E, F coinciden todo el domingo (10-14) y D tiene llave → ahí sí se puede fijar.
+  // G está solo el lunes, sin nadie más (huérfano de verdad, la llave no cambia nada).
+  const vols = [
+    { id: 'a', nombre: 'A' }, { id: 'b', nombre: 'B' }, { id: 'c', nombre: 'C' },
+    { id: 'd', nombre: 'D', tiene_llave: true }, { id: 'e', nombre: 'E' }, { id: 'f', nombre: 'F' },
+    { id: 'g', nombre: 'G' },
+  ];
+  const disp = [
+    ...'abc'.split('').map(id => ({ voluntario_id: id, dia: 'Sabado', horario: '10:00 a 14:00' })),
+    ...'def'.split('').map(id => ({ voluntario_id: id, dia: 'Domingo', horario: '10:00 a 14:00' })),
+    { voluntario_id: 'g', dia: 'Lunes', horario: '10:00 a 12:00' },
+  ];
+  const dem = Array.from({ length: 7 }, () => new Array(14).fill(0));
+  [2, 3, 4, 5].forEach(i => { dem[5][i] = 1; dem[6][i] = 1; });   // sábado y domingo con turnos
+  [2, 3].forEach(i => { dem[0][i] = 1; });                          // lunes también, para que G no salga "lejos" por no coincidir con la demanda
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3, demanda: dem });
+  const x = id => D.lista.find(v => v.id === id);
+
+  check('sin tener en cuenta la llave (comportamiento de siempre): A coincide bien, "su horario no es el problema"', x('a').diag.tipo === 'ok' && x('a').pct === 100, JSON.stringify({ t: x('a').diag.tipo, p: x('a').pct }));
+  check('teniendo en cuenta la llave: A, B y C coinciden pero NADIE lleva llave → "sin llave cerca", no "ok"', x('a').diagLlave.tipo === 'sinLlaveCerca' && x('a').pctLlave === 0 && x('a').nivelLlave !== 'bien', JSON.stringify({ t: x('a').diagLlave.tipo, p: x('a').pctLlave }));
+  check('D, E y F coinciden Y hay llave (la tiene D) → con o sin priorizar la llave, "su horario no es el problema"', x('e').diag.tipo === 'ok' && x('e').diagLlave.tipo === 'ok' && x('e').pctLlave === 100, JSON.stringify({ t: x('e').diagLlave.tipo, p: x('e').pctLlave }));
+  check('D es portador de llave: su propia llave ya cuenta, no hace falta que sea "otro"', x('d').tieneLlave === true && x('d').diagLlave.tipo === 'ok');
+  check('G, huérfano de verdad (nadie coincide con él): la llave no cambia el diagnóstico, sigue "poco"/"aislado" en ambas vistas', ['poco', 'aislado'].includes(x('g').diag.tipo) && ['poco', 'aislado'].includes(x('g').diagLlave.tipo), JSON.stringify({ p: x('g').diag.tipo, l: x('g').diagLlave.tipo }));
+  check('huecosLlave: el sábado (gente de sobra, cero llaves) sale como hueco de llave; el domingo (con D) no', D.huecosLlave.length === 1 && D.huecosLlave[0].dia === 'Sáb', JSON.stringify(D.huecosLlave));
+  check('D.motivosLlave cuenta a A, B y C como sinLlaveCerca (participan, no "nunca")', D.motivosLlave.participa.sinLlaveCerca === 3, JSON.stringify(D.motivosLlave));
+
+  const sinLlave = E._dResumenLineas(D, true).join(' | ');
+  check('con la llave activada, el resumen avisa de la franja sin portador de llave', /Hay gente de sobra, pero sin nadie que lleve llave/.test(sinLlave) && /Sáb/.test(sinLlave), sinLlave);
+  const conLlaveApagada = E._dResumenLineas(D, false).join(' | ');
+  check('con la llave desactivada (comportamiento de siempre), no aparece ese aviso', !/sin nadie que lleve llave/.test(conLlaveApagada));
+  const porDefecto = E._dResumenLineas(D).join(' | ');
+  check('llamar a _dResumenLineas sin el segundo argumento se comporta exactamente igual que antes (compatibilidad)', porDefecto === conLlaveApagada);
+
+  // Sin ningún portador de llave en todo el grupo, la vista con llave no rompe nada, solo lo marca todo
+  const sinNadieLlave = vols.map(v => ({ ...v, tiene_llave: false }));
+  const D2 = E._dispoModelo(disp, sinNadieLlave, { DUR: 2, MIN: 3, demanda: dem });
+  check('si nadie del grupo tiene llave, la vista normal no cambia pero la de llave marca todo como sin llave cerca', D2.lista.find(v => v.id === 'e').diag.tipo === 'ok' && D2.lista.find(v => v.id === 'e').diagLlave.tipo === 'sinLlaveCerca');
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);

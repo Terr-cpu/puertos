@@ -289,11 +289,22 @@ leyendo, no interpretando gráficos. A partir del horario que cada voluntario re
 3. **¿Qué le dificulta participar a cada voluntario?**: una tarjeta por voluntario con
    **la causa principal en una frase** y su explicación —🔴/⚪ *sin horario registrado* o
    *tramos demasiado cortos*, 🟠 *su horario cae lejos de donde se hacen turnos* o
-   *libre solo unas pocas semanas al mes*, 🟡 *coincide poco con otros voluntarios*,
-   🟢 *su horario no es el problema*—, su horario escrito con sus semanas
-   (`Mar 16–20 (solo la 3.ª sem.)`) y dibujado hora a hora. Se filtra por grupo
-   (🆕 nunca han participado, ⚠️ con alguna dificultad, 💤 dejaron de participar) y por
-   causa. Un desplegable **❓ Cómo leer el dibujo** explica los colores.
+   *libre solo unas pocas semanas al mes*, 🔑 *coincide con gente pero nadie tiene llave
+   cerca*, 🟡 *coincide poco con otros voluntarios*, 🟢 *su horario no es el problema*—,
+   su horario escrito con sus semanas (`Mar 16–20 (solo la 3.ª sem.)`) y dibujado hora a
+   hora. Se filtra por grupo (🆕 nunca han participado, ⚠️ con alguna dificultad,
+   💤 dejaron de participar, 🔑 portadores de llave) y por causa. Un desplegable
+   **❓ Cómo leer el dibujo** explica los colores.
+
+**🔑 La disponibilidad de los portadores de llave prioriza.** Sin uno presente no se
+puede fijar un turno, por mucha gente que coincida. Un interruptor («Tener en cuenta que
+hace falta un portador de llave») activado por defecto reclasifica a quien solo coincide
+con gente *sin* llave como 🔑 en vez de 🟢/🟡 «coincide poco», marca en el mapa (borde
+morado) las franjas con gente de sobra pero casi sin llave, y lo dice en «En resumen». Se
+puede apagar para volver a ver solo el número de gente, sin la llave.
+
+**🔍 Los dos mapas de calor (este y el de «🗺️ Mapa día × franja» más abajo) se amplían al
+tocarlos**, en una ventana más grande y legible.
 
 Se trabaja **semana a semana** (las 5 semanas del formulario: días 1-7, 8-14, 15-21,
 22-28 y 29 en adelante): dos voluntarios solo coinciden si están libres el mismo día de
