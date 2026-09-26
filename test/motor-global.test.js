@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _horaTramo, _horaCanon, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -1293,6 +1293,36 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const ins = E._statsInsights(S, null);
   const rec = ins.find(i => /voluntarios que nunca han participado tienen un horario que casi no encaja/.test(i.titulo));
   check('la recomendación real anima a ampliar hacia el domingo (con llave), no hacia el sábado', rec && /Dom de 10 a 12h/.test(rec.accion) && /hay portador de llave/.test(rec.accion), rec && rec.accion);
+})();
+
+// ── E32: un horario escrito a mano ("9 a 14", "17-21"…) no debe desaparecer de las estadísticas ──
+(function E32() {
+  console.log('\n═══ E32 · Horarios escritos a mano ═══');
+  // Caso real: a Josué y Raquel se les guardó "17-21" y "8 a 21" (sin ":00") y las estadísticas
+  // decían que no tenían horario registrado, aunque sí estaba guardado.
+  check('"9 a 14" (sin minutos) se entiende', JSON.stringify(E._horaTramo('9 a 14')) === JSON.stringify({ a: 9, aMin: 0, b: 14, bMin: 0 }));
+  check('"17-21" (con guion, sin espacios) se entiende', JSON.stringify(E._horaTramo('17-21')) === JSON.stringify({ a: 17, aMin: 0, b: 21, bMin: 0 }));
+  check('"8 a 21" se entiende', JSON.stringify(E._horaTramo('8 a 21')) === JSON.stringify({ a: 8, aMin: 0, b: 21, bMin: 0 }));
+  check('el formato de siempre "10:00 a 12:00" se sigue entendiendo igual', JSON.stringify(E._horaTramo('10:00 a 12:00')) === JSON.stringify({ a: 10, aMin: 0, b: 12, bMin: 0 }));
+  check('"10h-12h", "10 - 12" y "10 hasta 12" también', E._horaTramo('10h-12h') && E._horaTramo('10 - 12') && E._horaTramo('10 hasta 12'));
+  check('un texto que no es una franja no se inventa nada', E._horaTramo('todo el día') === null && E._horaTramo('') === null && E._horaTramo('25-30') === null);
+  check('_dispoHoras ahora lee "9 a 14" y "17-21" igual que el formato con minutos', JSON.stringify(E._dispoHoras('9 a 14', 8, 22)) === JSON.stringify([9, 10, 11, 12, 13]) && JSON.stringify(E._dispoHoras('17-21', 8, 22)) === JSON.stringify([17, 18, 19, 20]));
+  check('_horaCanon guarda siempre en forma "HH:MM a HH:MM", escriba lo que escriba el coordinador', E._horaCanon('9 a 14') === '09:00 a 14:00' && E._horaCanon('17-21') === '17:00 a 21:00' && E._horaCanon('10:00 a 12:00') === '10:00 a 12:00');
+  check('_horaCanon devuelve null si no se entiende, para poder avisar en vez de guardar basura', E._horaCanon('todo el día') === null && E._horaCanon('12 a 10') === null);
+  check('PH() (el motor de planificación) también entiende ahora "17-21", no solo "17 a 21"', JSON.stringify(E.PH('17-21')) === JSON.stringify({ a: 17, b: 21 }));
+
+  // Reproduce el caso real: JOSUE con "17-21" el lunes y "8 a 21" el domingo — antes salía como
+  // "sin horario registrado" en Estadísticas; ahora tiene que contar sus 4 + 13 horas libres.
+  const vols = [{ id: 'j', nombre: 'JOSUE VERGARA' }];
+  const disp = [
+    { voluntario_id: 'j', dia: 'Lunes', horario: '17-21' },
+    { voluntario_id: 'j', dia: 'Domingo', horario: '8 a 21' },
+  ];
+  const D = E._dispoModelo(disp, vols, { DUR: 2, MIN: 3 });
+  const josue = D.lista[0];
+  check('Josué ya NO sale como "sin horario registrado"', josue.nivel !== 'sin' && josue.horas > 0, JSON.stringify({ nivel: josue.nivel, horas: josue.horas }));
+  check('sus horas libres son las del lunes (17-21, 4h) más las del domingo (8-21, 13h) = 17', josue.horas === 17, josue.horas);
+  check('su horario se lee bien en el resumen escrito: "Lun 17–21" y "Dom 8–21"', /Lun 17–21/.test(josue.resumen) && /Dom 8–21/.test(josue.resumen), josue.resumen);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

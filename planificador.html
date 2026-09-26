@@ -104,6 +104,7 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .fg{display:flex;flex-direction:column;gap:.3rem}
 .fg label{font-size:.67rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.06em}
 .fc{border:1.5px solid var(--sep);border-radius:var(--r-sm);padding:.5rem .75rem;font-family:inherit;font-size:.83rem;color:var(--label1);background:var(--surface);outline:none;transition:border-color .15s;width:100%}
+.fc.error{border-color:var(--red);background:var(--red-soft)}
 .fc:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.1)}
 
 /* ── LOADING / EMPTY ──────────────────────────────────────── */
@@ -1361,15 +1362,32 @@ let VENTANA_CARGA  = R.VENTANA_CARGA;
 let MAX_TURNOS_DIA = R.MAX_TURNOS_DIA;
 let MOTOR_GLOBAL   = R.motorGlobal;
 
-function PH(s) {
-  // Parsea "10:00 a 12:00" o "10 a 12" → {a:10, b:12}
-  if (!s) return null;
-  const clean = s.replace(/:\d\d/g,'').trim();
-  const m = clean.match(/(\d+)\s+a\s+(\d+)/i);
+// Lee un tramo horario escrito a mano de cualquier forma habitual: "10:00 a 12:00", "10 a 12",
+// "10-12", "10h-12h", "10:00-12:00"… Devuelve {a, aMin, b, bMin} en horas+minutos, o null si no
+// se entiende. Único sitio donde se interpreta el texto — así PH() y _dispoHoras() leen siempre
+// igual, sea cual sea el formato exacto que alguien haya escrito.
+function _horaTramo(s) {
+  const m = /^\s*(\d{1,2})(?::(\d{2}))?\s*h?\s*(?:a|-|–|—|hasta)\s*(\d{1,2})(?::(\d{2}))?\s*h?\.?\s*$/i.exec(String(s || '').trim());
   if (!m) return null;
-  const a = parseInt(m[1]), b = parseInt(m[2]);
-  if (isNaN(a) || isNaN(b) || b <= a || b - a < DUR) return null;
+  const a = +m[1], aMin = m[2] ? +m[2] : 0, b = +m[3], bMin = m[4] ? +m[4] : 0;
+  if (a > 24 || b > 24 || aMin > 59 || bMin > 59) return null;
+  return { a, aMin, b, bMin };
+}
+function PH(s) {
+  // Parsea "10:00 a 12:00", "10 a 12", "10-12"… → {a:10, b:12} (horas enteras; ver _horaTramo)
+  const t = _horaTramo(s);
+  if (!t) return null;
+  const a = t.a, b = t.b;
+  if (b <= a || b - a < DUR) return null;
   return { a, b };
+}
+// Forma canónica "HH:MM a HH:MM" de un tramo escrito a mano, para guardarlo siempre igual — o
+// null si el texto no se entiende (para avisar en vez de guardar algo que luego nadie puede leer).
+function _horaCanon(s) {
+  const t = _horaTramo(s);
+  if (!t || t.b <= t.a) return null;
+  const p2 = n => String(n).padStart(2, '0');
+  return `${p2(t.a)}:${p2(t.aMin)} a ${p2(t.b)}:${p2(t.bMin)}`;
 }
 
 function HP(h) { return String(h).padStart(2,'0'); }
@@ -3451,7 +3469,7 @@ async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
   }
 
   html += `</tbody></table></div>
-    <p style="font-size:.68rem;color:var(--label3);margin-top:.5rem">Formato: "9 a 14" o "10 a 18". Deja vacío si no está disponible ese día.</p>
+    <p style="font-size:.68rem;color:var(--label3);margin-top:.5rem">Formato: "9 a 14", "10-18" o "09:00 a 18:00" — se guarda ya corregido. Deja vacío si no está disponible ese día.</p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.1rem">
       <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
       <button class="btn btn-green" onclick="guardarVolDisponibilidad()">💾 Guardar</button>
@@ -3464,11 +3482,18 @@ async function guardarVolDisponibilidad() {
   const nombre = document.getElementById('ev-nombre')?.value.trim();
   if (!nombre) { toast('Introduce un nombre','err'); return; }
   const llave = document.getElementById('ev-llave')?.checked || false;
-  const disponibilidad = [];
+  const disponibilidad = [], sinEntender = [];
   document.querySelectorAll('.ev-cell').forEach(inp => {
+    inp.classList.remove('error');
     const val = inp.value.trim();
-    if (val) disponibilidad.push({ semana: +inp.dataset.sem, dia: inp.dataset.dia, horario: val });
+    if (!val) return;
+    const canon = _horaCanon(val);
+    if (!canon) { sinEntender.push(`${inp.dataset.dia} S${inp.dataset.sem} ("${val}")`); inp.classList.add('error'); return; }
+    disponibilidad.push({ semana: +inp.dataset.sem, dia: inp.dataset.dia, horario: canon });
   });
+  // No guardar nada a medias: si algún cuadro no se entiende, mejor avisar y que se corrija —
+  // guardarlo tal cual dejaba a ese voluntario invisible para las estadísticas sin que se notara.
+  if (sinEntender.length) { toast('No entiendo el horario de: ' + sinEntender.join(', ') + '. Usa algo como "9 a 14".', 'err'); return; }
   try {
     await apiPost({accion:'guardarDisponibilidadVoluntario', nombre, llave, disponibilidad});
     closeModal('mvol');
@@ -8513,9 +8538,9 @@ const _dNSEM = 5;   // el formulario de disponibilidad tiene 5 semanas por mes (
 
 // "10:00 a 13:00" → horas enteras cubiertas por completo (10, 11, 12)
 function _dispoHoras(horario, h0, h1) {
-  const m = /(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/.exec(horario || '');
-  if (!m) return [];
-  const ini = Math.ceil(+m[1] + +m[2] / 60), fin = Math.floor(+m[3] + +m[4] / 60), out = [];
+  const t = _horaTramo(horario);   // acepta "10:00 a 12:00", "10 a 12", "10-12"… (ver _horaTramo)
+  if (!t) return [];
+  const ini = Math.ceil(t.a + t.aMin / 60), fin = Math.floor(t.b + t.bMin / 60), out = [];
   for (let h = Math.max(ini, h0); h < Math.min(fin, h1); h++) out.push(h);
   return out;
 }
