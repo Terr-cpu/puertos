@@ -593,6 +593,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div class="nav-lbl">Gestión</div>
     <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios"><span class="ni">👥</span> Voluntarios</button>
     <button class="nav-item" onclick="setTab('disponibilidad')" id="nav-disponibilidad"><span class="ni">🗓️</span> Disponibilidad</button>
+    <button class="nav-item" onclick="setTab('dispobloques')" id="nav-dispobloques"><span class="ni">🧱</span> Nueva disponibilidad</button>
     <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
     <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Turnos confirmados</button>
     <button class="nav-item" onclick="setTab('apuntes')" id="nav-apuntes"><span class="ni">✋</span> Apuntes</button>
@@ -651,6 +652,7 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <div id="tab-carga" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Calculando balance…</p></div></div>
     <div id="tab-voluntarios" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div></div>
     <div id="tab-disponibilidad" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando disponibilidad…</p></div></div>
+    <div id="tab-dispobloques" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando…</p></div></div>
     <div id="tab-bajas" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando bajas…</p></div></div>
     <div id="tab-historial" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando turnos confirmados…</p></div></div>
     <div id="tab-apuntes" class="tab-pane"><div class="loading"><div class="spinner"></div><p>Cargando apuntes…</p></div></div>
@@ -720,13 +722,14 @@ function closeSidebar() {
 // ══════════════════════════════════════
 //  TABS
 // ══════════════════════════════════════
-const TABS = ['envivo','estadisticas','cuadrante','alertas','carga','voluntarios','disponibilidad','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
+const TABS = ['envivo','estadisticas','cuadrante','alertas','carga','voluntarios','disponibilidad','dispobloques','bajas','historial','apuntes','archivo','busqueda','calendario','reglas'];
 const TAB_TITLES = {
   envivo:'🛰️ En vivo · turnos, bajas y apuntes',
   estadisticas:'📈 Estadísticas de actividad',
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
-  disponibilidad:'🗓️ Disponibilidad total', bajas:'🏥 Bajas y sustituciones',
+  disponibilidad:'🗓️ Disponibilidad total', dispobloques:'🧱 Nueva disponibilidad · migración por bloques',
+  bajas:'🏥 Bajas y sustituciones',
   historial:'📋 Turnos confirmados', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
   calendario:'⚙️ Configurar calendario', reglas:'🎛️ Reglas del motor de planificación',
 };
@@ -741,6 +744,7 @@ const TAB_ACTS = {
   carga:`<button class="btn btn-ghost btn-sm" onclick="loadCarga(true)">↻ Actualizar</button>`,
   voluntarios:``,
   disponibilidad:``,
+  dispobloques:`<button class="btn btn-ghost btn-sm" onclick="loadDispoBloques(true)">↻ Actualizar</button>`,
   bajas:`<button class="btn btn-ghost btn-sm" onclick="loadBajas(true)">↻ Actualizar</button>`,
   historial:`<button class="btn btn-ghost btn-sm" onclick="loadHistorial(true)">↻ Actualizar</button>`,
   apuntes:`<button class="btn btn-ghost btn-sm" onclick="loadApuntes(true)">↻ Actualizar</button>`,
@@ -767,6 +771,7 @@ function setTab(id) {
   if (id==='carga'          && !window._cOk)    loadCarga();
   if (id==='voluntarios'    && !window._vOk)    loadVoluntarios();
   if (id==='disponibilidad' && !window._dOk)    loadDisponibilidad();
+  if (id==='dispobloques'   && !window._dbOk)   loadDispoBloques();
   if (id==='bajas'          && !window._bOk)    loadBajas();
   if (id==='historial'      && !window._hOk)    loadHistorial();
   if (id==='apuntes'        && !window._apOk)   loadApuntes();
@@ -3564,13 +3569,96 @@ function renderDispoGrid(sem) {
   vols.forEach(v => {
     html+=`<tr><td class="td-name">${v.nombre}${v.llave?' 🔑':''}</td>`;
     dias.forEach(dia => {
-      const d=v.disponibilidad.find(x=>x.semana===sem&&x.dia===dia);
-      html+=d?.horario ? `<td><span class="d-ok">${d.horario}</span></td>` : `<td><span class="d-no">—</span></td>`;
+      // Puede haber más de una fila el mismo día (bloques no contiguos): se muestran todas
+      const ds=v.disponibilidad.filter(x=>x.semana===sem&&x.dia===dia&&x.horario);
+      html+=ds.length ? `<td><span class="d-ok">${ds.map(x=>x.horario).join(', ')}</span></td>` : `<td><span class="d-no">—</span></td>`;
     });
     html+='</tr>';
   });
   html+='</tbody></table></div>';
   wrap.innerHTML=html;
+}
+
+// ══════════════════════════════════════
+//  🧱 NUEVA DISPONIBILIDAD — panel de migración
+//  Muestra la MISMA tabla `disponibilidad` de siempre, pero leída con la lógica de bloques
+//  (disponibilidad-bloques.html): para cada voluntario y día, qué bloques (Mañana/Mediodía/
+//  Tarde/Noche) quedan cubiertos, y si sus filas ya son bloques exactos ("sistema nuevo") o
+//  siguen siendo el rango de horas de siempre ("sistema antiguo"). Sirve para ver, de un
+//  vistazo, quién falta por pasarse al formulario nuevo antes de retirar el antiguo.
+// ══════════════════════════════════════
+const BLOQUES_DEF = [
+  { id:'manana',   label:'Mañana',   letra:'M', rango:'08:00 a 12:00', h0:8,  h1:12 },
+  { id:'mediodia', label:'Mediodía', letra:'D', rango:'12:00 a 15:00', h0:12, h1:15 },
+  { id:'tarde',    label:'Tarde',    letra:'T', rango:'15:00 a 19:00', h0:15, h1:19 },
+  { id:'noche',    label:'Noche',    letra:'N', rango:'19:00 a 22:00', h0:19, h1:22 },
+];
+const DISPOB_DIAS = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
+
+// A partir de las filas de disponibilidad de un voluntario (todas sus semanas), calcula por
+// día qué bloques cubre (≥50% de las horas del bloque, sumando todas las semanas que tenga
+// ese día) y si su disponibilidad ya está escrita como bloques exactos o es el formato libre
+// de siempre.
+function _dispoBloquesEstado(disp) {
+  const porDia = {}; DISPOB_DIAS.forEach(d => porDia[d] = []);
+  (disp || []).forEach(x => { if (x.horario && porDia[x.dia]) porDia[x.dia].push(x.horario); });
+  let algunaFila = false, todoBloque = true;
+  const dias = DISPOB_DIAS.map(dia => {
+    const filas = porDia[dia];
+    if (filas.length) algunaFila = true;
+    const horas = new Set();
+    filas.forEach(h => {
+      if (!BLOQUES_DEF.some(b => b.rango === h)) todoBloque = false;
+      const t = _horaTramo(h); if (!t) return;
+      const ini = Math.ceil(t.a + t.aMin / 60), fin = Math.floor(t.b + t.bMin / 60);
+      for (let x = ini; x < fin; x++) horas.add(x);
+    });
+    const bloques = BLOQUES_DEF.map(b => {
+      let c = 0; for (let x = b.h0; x < b.h1; x++) if (horas.has(x)) c++;
+      return { id: b.id, letra: b.letra, label: b.label, on: c / (b.h1 - b.h0) >= 0.5 };
+    });
+    return { dia, bloques, sinNada: !filas.length };
+  });
+  return { dias, estado: !algunaFila ? 'sin' : todoBloque ? 'nuevo' : 'antiguo' };
+}
+
+async function loadDispoBloques(force) {
+  if (window._dbOk && !force) return;
+  const c = document.getElementById('tab-dispobloques');
+  c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando…</p></div>`;
+  try {
+    window._dispoBData = await apiGet({ action: 'getDisponibilidadCompleta' });
+    window._dbFiltro = window._dbFiltro || '';
+    renderDispoBloques();
+    window._dbOk = true;
+  } catch (e) { c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>Error</h4><p>${e.message}</p></div>`; }
+}
+
+function dbFiltrar(f) { window._dbFiltro = window._dbFiltro === f ? '' : f; renderDispoBloques(); }
+
+function renderDispoBloques() {
+  const data = window._dispoBData; if (!data) return;
+  const c = document.getElementById('tab-dispobloques');
+  const vols = (data.voluntarios || []).map(v => ({ ...v, ..._dispoBloquesEstado(v.disponibilidad) })).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const cont = { nuevo: vols.filter(v => v.estado === 'nuevo').length, antiguo: vols.filter(v => v.estado === 'antiguo').length, sin: vols.filter(v => v.estado === 'sin').length, todos: vols.length };
+  const f = window._dbFiltro || '';
+  const lista = f ? vols.filter(v => v.estado === f) : vols;
+  const ETQ = { nuevo: ['🧱', 'Sistema nuevo', 'var(--green)'], antiguo: ['🕰️', 'Sistema antiguo', 'var(--amber)'], sin: ['⚪', 'Sin datos', 'var(--label3)'] };
+  const pill = (id, lbl) => `<button class="btn btn-sm ${f === id ? 'btn-navy' : 'btn-ghost'}" onclick="dbFiltrar('${id}')">${lbl} ${cont[id]}</button>`;
+  const diaCelda = d => `<div style="display:inline-grid;grid-template-columns:repeat(2,1fr);gap:1.5px" title="${d.dia}: ${d.bloques.map(b => b.label + (b.on ? ' ✓' : ' —')).join(' · ')}">${d.bloques.map(b => `<span style="display:block;width:7px;height:7px;border-radius:2px;background:${b.on ? '#1e7d5a' : '#dfe3ea'}"></span>`).join('')}</div>`;
+  c.innerHTML = `
+    <div class="card" style="margin-bottom:1rem">
+      <p style="font-size:.8rem;line-height:1.6;color:var(--label2);margin-bottom:.7rem">
+        Misma tabla de disponibilidad de siempre, vista en bloques (🌅 Mañana · 🌤️ Mediodía · 🌇 Tarde · 🌙 Noche). Cada punto es un bloque cubierto ese día (≥ la mitad de sus horas, sumando todas las semanas registradas). <b>🧱 Sistema nuevo</b> = todas sus filas son ya bloques exactos, guardados con <code>disponibilidad-bloques.html</code>. <b>🕰️ Sistema antiguo</b> = todavía tiene algún horario libre de siempre. Cuando todo el mundo esté en 🧱, se puede retirar el formulario antiguo.
+      </p>
+      <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+        ${pill('todos', 'Todos')}${pill('nuevo', '🧱 Sistema nuevo')}${pill('antiguo', '🕰️ Sistema antiguo')}${pill('sin', '⚪ Sin datos')}
+      </div>
+    </div>
+    <div class="card"><div style="overflow-x:auto"><table class="dispo-grid">
+      <thead><tr><th class="th-name">Voluntario</th>${DISPOB_DIAS.map(d => `<th>${d.substring(0, 3)}</th>`).join('')}<th>Estado</th></tr></thead>
+      <tbody>${lista.map(v => `<tr><td class="td-name">${escH(v.nombre)}${v.llave ? ' 🔑' : ''}</td>${v.dias.map(diaCelda).map(h => `<td>${h}</td>`).join('')}<td><span style="font-size:.68rem;font-weight:700;color:${ETQ[v.estado][2]}">${ETQ[v.estado][0]} ${ETQ[v.estado][1]}</span></td></tr>`).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--label3);padding:1rem">Nadie en este grupo.</td></tr>`}</tbody>
+    </table></div></div>`;
 }
 
 // ══════════════════════════════════════

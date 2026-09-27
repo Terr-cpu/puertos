@@ -19,7 +19,7 @@ const html = findHtml();
 let body = html.match(/<script>([\s\S]*)<\/script>\s*<\/body>/)[1];
 // Quitar el bloque INIT final (efectos de arranque)
 body = body.replace(/\/\/ ── INIT[\s\S]*$/, '');
-body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _horaTramo, _horaCanon, _dCol, _dColLlave, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
+body += '\n;globalThis.__engine = { planificarMesGlobal, calcularDiaJS, _evModelo, _fichaModelo, _stPeriodo, _stEstadoMes, _impParsearLinea, _impParsear, _impEmparejar, _impPlan, _tgTexto, _tgParsearTexto, _tgParsear, _tgConsolidar, _tgPlan, _dispoModelo, _dispoHoras, _dSemTxt, _dResumenLineas, _stDispoStrip, _horaTramo, _horaCanon, _dCol, _dColLlave, _dispoBloquesEstado, _impSegmentar, _impSugerir, _impEsPrograma, _impParsearPrograma, _impFusionar, _stApuntesGlobal, _statsBase, _statsAgregar, _statsInsights, PH, HP, franjas2h, normDia, cargarReglas, reglasLlaveConf };\n';
 
 // ── Stubs de entorno ──
 const store = {};
@@ -1354,6 +1354,39 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('en el dibujo normal, ese cuadro es rojo (solo coincide 1 persona, A y D, no llega a 3)', /fill="#e5484d"/.test(normal));
   check('en el dibujo "comparar", el mismo cuadro sale en naranja (1 portador de llave libre)', /fill="#f5a623"/.test(comparado), comparado.slice(0, 260));
   check('el texto del cuadro en modo comparar habla de portadores de llave, no de voluntarios en general', /portador de llave libre/.test(comparado) && !/coinciden \d+ voluntario/.test(comparado));
+})();
+
+// ── E34: panel de migración "Nueva disponibilidad" — bloques a partir de la tabla de siempre ──
+(function E34() {
+  console.log('\n═══ E34 · Nueva disponibilidad (migración por bloques) ═══');
+  check('sin ninguna fila: estado "sin"', E._dispoBloquesEstado([]).estado === 'sin');
+  const sinNadaLunes = E._dispoBloquesEstado([]).dias.find(d => d.dia === 'Lunes');
+  check('un día sin filas no marca ningún bloque', sinNadaLunes.bloques.every(b => !b.on) && sinNadaLunes.sinNada === true);
+
+  // Sistema nuevo: filas que son exactamente los 4 bloques (aunque solo dos días)
+  const nuevo = E._dispoBloquesEstado([
+    { semana: 1, dia: 'Viernes', horario: '19:00 a 22:00' }, { semana: 2, dia: 'Viernes', horario: '19:00 a 22:00' },
+    { semana: 1, dia: 'Sabado', horario: '08:00 a 12:00' }, { semana: 1, dia: 'Sabado', horario: '12:00 a 15:00' },
+  ]);
+  check('todas las filas son bloques exactos → "nuevo"', nuevo.estado === 'nuevo');
+  const sabado = nuevo.dias.find(d => d.dia === 'Sabado');
+  check('el sábado cubre Mañana y Mediodía, no Tarde ni Noche', sabado.bloques.find(b => b.id === 'manana').on && sabado.bloques.find(b => b.id === 'mediodia').on && !sabado.bloques.find(b => b.id === 'tarde').on && !sabado.bloques.find(b => b.id === 'noche').on);
+
+  // Sistema antiguo: un horario libre que no coincide con ningún bloque exacto
+  const antiguo = E._dispoBloquesEstado([{ semana: 1, dia: 'Lunes', horario: '17-21' }, { semana: 1, dia: 'Domingo', horario: '8 a 21' }]);
+  check('un horario "17-21" (no es ninguno de los 4 rangos exactos) → "antiguo"', antiguo.estado === 'antiguo');
+  const lunes = antiguo.dias.find(d => d.dia === 'Lunes');
+  check('aun así, se ve qué bloques cubre de verdad (17-21 cubre Tarde y Noche): Josué real', lunes.bloques.find(b => b.id === 'tarde').on && lunes.bloques.find(b => b.id === 'noche').on && !lunes.bloques.find(b => b.id === 'manana').on, JSON.stringify(lunes.bloques));
+  const domingo = antiguo.dias.find(d => d.dia === 'Domingo');
+  check('"8 a 21" cubre los 4 bloques del domingo', domingo.bloques.every(b => b.on));
+
+  // Varias semanas con distinta cobertura: se suman todas para decidir si el bloque cuenta
+  const variasSemanas = E._dispoBloquesEstado([{ semana: 1, dia: 'Martes', horario: '08:00 a 12:00' }, { semana: 3, dia: 'Martes', horario: '08:00 a 12:00' }]);
+  check('un bloque presente en alguna semana ya cuenta como cubierto ese día', variasSemanas.dias.find(d => d.dia === 'Martes').bloques.find(b => b.id === 'manana').on);
+
+  // Mezcla: un bloque exacto y un horario libre en días distintos → "antiguo" (no todo es bloque)
+  const mixto = E._dispoBloquesEstado([{ semana: 1, dia: 'Lunes', horario: '08:00 a 12:00' }, { semana: 1, dia: 'Martes', horario: '9 a 13' }]);
+  check('si aunque sea una fila no es un bloque exacto, el conjunto sigue siendo "antiguo"', mixto.estado === 'antiguo');
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

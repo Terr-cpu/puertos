@@ -54,6 +54,17 @@ Antes de empezar a probarlo, conviene tener además
 instrucciones de cómo restaurar desde ella dentro del propio archivo). Se puede volver a
 ejecutar para renovar la copia; cada ejecución sustituye la anterior, no las acumula.
 
+**Panel de migración**: `planificador.html` → **🧱 Nueva disponibilidad**, junto a la
+pestaña de Disponibilidad de siempre. Lee la misma tabla `disponibilidad`, pero con la
+lógica de bloques: por cada voluntario y día, qué bloques quedan cubiertos (un punto verde
+por bloque, ≥ la mitad de sus horas), y si sus filas ya son bloques exactos
+(**🧱 Sistema nuevo**) o siguen siendo el horario libre de siempre
+(**🕰️ Sistema antiguo**) — con filtros para ver solo unos u otros. Es la forma de comprobar,
+según se va pidiendo a cada voluntario que rellene el formulario nuevo, quién falta, sin
+tener que abrir la ficha de cada uno. Cuando todo el mundo esté en 🧱, se puede retirar
+`disponibilidad.html` (el formulario antiguo, que además escribe en Google Sheets en vez de
+Supabase — ver más abajo) y esta misma pestaña.
+
 ## Motor de planificación (`planificador.html`)
 
 Genera el cuadrante a partir de la disponibilidad, el historial de turnos y el
