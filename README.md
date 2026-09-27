@@ -9,12 +9,35 @@ abre directamente en el navegador o se publica como página estática.
 | Archivo | Uso | Público | Backend |
 |---|---|---|---|
 | [`disponibilidad.html`](disponibilidad.html) | Formulario para que cada voluntario registre su disponibilidad semanal (5 semanas × 7 días, hora de entrada/salida). | Voluntarios | Google Apps Script (`APP_URL`) que escribe en una hoja de cálculo. |
+| [`disponibilidad-bloques.html`](disponibilidad-bloques.html) | Formulario de disponibilidad por bloques (Mañana/Mediodía/Tarde/Noche × L-D), fija hasta que se actualice, con migración automática desde la disponibilidad ya registrada. | Voluntarios | Supabase REST (`SU` / `SK`). |
 | [`planificador.html`](planificador.html) | Panel de administración: cuadrante mensual con motor de planificación automática, balance de carga, alertas de portador de llave, gestión de voluntarios, bajas y sustituciones, archivo de meses, reglas del motor y notificaciones (navegador + Telegram opcional). | Coordinación | Supabase REST (`SUPA_URL` / `SUPA_KEY`). |
 | [`sustituciones.html`](sustituciones.html) | Portal para que un voluntario de baja libere sus turnos y otro se apunte a cubrirlos. | Voluntarios | Supabase REST (`SU` / `SK`). |
 
-`planificador.html` y `sustituciones.html` comparten la misma base de datos Supabase.
+`planificador.html`, `sustituciones.html` y `disponibilidad-bloques.html` comparten la misma
+base de datos Supabase (escriben en la misma tabla `disponibilidad` que ya usan las
+estadísticas y el motor de planificación — nada más que actualizar para que la lean).
 La configuración del portal de sustituciones se sincroniza vía la tabla `config_portal`
 y se cachea en `localStorage`.
+
+### Disponibilidad por bloques (`disponibilidad-bloques.html`)
+
+Pensado para reducir la dispersión de horarios: en vez de que cada uno escriba su propio rango
+de horas (que casi nunca coincide exactamente con el de otro), todos eligen entre los mismos
+4 bloques fijos — **Mañana** (8–12), **Mediodía** (12–15), **Tarde** (15–19) y **Noche**
+(19–22) — para cada día de la semana. Marcar un bloque entero no cambia la duración de los
+turnos (siguen siendo de 2 horas): significa "puedo cubrir cualquier turno de 2h dentro de
+este bloque", lo que hace mucho más fácil que varios voluntarios coincidan a la misma hora.
+
+- Es **fija**: no depende de la semana del mes (se guarda igual en las 5 semanas), así que
+  solo hay que volver a rellenarla si cambia el horario habitual, no cada mes.
+- Al elegir tu nombre, si ya tenías disponibilidad registrada (con el formulario anterior o
+  desde el panel), **se marcan automáticamente** los bloques que mejor encajan con ella (al
+  menos la mitad de las horas del bloque cubiertas) — solo hay que revisar y confirmar.
+- Al guardar, sustituye toda la disponibilidad anterior de ese voluntario (mismo criterio que
+  el editor del panel: se borra y se vuelve a escribir).
+- Como cada bloque se guarda como un horario normal (p. ej. `08:00 a 12:00`, en las 5
+  semanas), el motor de planificación y toda la sección **🧭 Horarios y disponibilidad** de
+  Estadísticas lo leen sin ningún cambio.
 
 ## Motor de planificación (`planificador.html`)
 

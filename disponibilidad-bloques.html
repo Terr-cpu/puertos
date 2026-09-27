@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Disponibilidad · Puerto de Sevilla</title>
+<meta name="description" content="Formulario de disponibilidad por turnos (mañana, mediodía, tarde, noche) para voluntarios del Puerto de Sevilla">
+<meta name="theme-color" content="#0f1f38">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0f1f38; --ocean:#1a3a5c; --gold:#c9a84c;
+  --dawn:#f5f0e8; --mist:#eef2f7; --ink:#1c2b3a; --slate:#5c7a96;
+  --green:#1e7d5a; --green-soft:#e7f3ee; --red:#c0392b; --red-soft:#fbeceb;
+  --white:#fff; --line:#e4eaf3;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);min-height:100vh;padding-bottom:3rem}
+
+.site-header{background:linear-gradient(135deg,var(--navy) 0%,var(--ocean) 100%);padding:2.4rem 1.5rem 1.9rem;text-align:center}
+.site-header h1{font-family:'DM Serif Display',serif;font-size:clamp(1.5rem,4vw,2.1rem);color:#fff;font-weight:400}
+.site-header p{color:rgba(255,255,255,.6);font-size:.78rem;margin-top:.35rem;letter-spacing:.08em;text-transform:uppercase}
+.gold-line{width:46px;height:3px;background:var(--gold);margin:1rem auto 0;border-radius:2px}
+
+.wrap{max-width:760px;margin:0 auto;padding:0 1rem}
+.intro{font-size:.9rem;line-height:1.6;color:var(--slate);margin:1.6rem 0 .4rem}
+.intro.small{font-size:.84rem;margin-top:0;margin-bottom:1.4rem}
+
+.card{background:var(--white);border-radius:14px;padding:1.4rem;box-shadow:0 2px 14px rgba(15,31,56,.07);border:1px solid var(--line);margin-bottom:1.3rem;position:relative}
+.card label{display:block;font-weight:700;font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;color:var(--slate);margin-bottom:.6rem}
+.ac-wrap{position:relative}
+.ac-input{width:100%;border:2px solid var(--line);border-radius:9px;padding:.72rem .95rem;font-family:inherit;font-size:.95rem;color:var(--ink);outline:none;background:var(--mist)}
+.ac-input:focus{border-color:var(--gold)}
+.ac-sugs{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;max-height:220px;overflow-y:auto;z-index:50;box-shadow:0 8px 28px rgba(15,31,56,.14);display:none}
+.ac-sugs.open{display:block}
+.ac-sug{padding:.6rem .9rem;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:.5rem}
+.ac-sug:hover,.ac-sug.hi{background:var(--mist)}
+.ac-sug mark{background:transparent;color:var(--ocean);font-weight:700}
+.name-msg{font-size:.78rem;margin-top:.6rem}
+.name-msg.err{color:var(--red)}
+.name-msg.ok{color:var(--green)}
+
+.migra{display:none;align-items:flex-start;gap:.6rem;background:#eef4fb;border:1px solid #cfe0f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:1.1rem;font-size:.8rem;color:var(--ink);line-height:1.5}
+.migra b{color:var(--ocean)}
+
+.sec-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.85rem}
+.sec-title span:first-child{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--ink)}
+.sec-title span:last-child{font-size:.72rem;color:var(--slate)}
+
+.dias-cont{display:flex;flex-direction:column;gap:1rem}
+.day-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 3px 16px rgba(15,31,56,.08);border:1px solid var(--line)}
+.day-bar{height:5px;background:linear-gradient(90deg,var(--navy),var(--ocean))}
+.day-body{padding:1rem 1.1rem 1.1rem}
+.day-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.9rem}
+.day-title{display:flex;align-items:center;gap:.65rem}
+.day-letra{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--navy);color:var(--gold);font-size:.92rem;font-weight:700;flex-shrink:0}
+.day-nombre{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.25rem;color:var(--ink)}
+.todo-dia{border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:20px;padding:.32rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.todo-dia.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.chips-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:10px;cursor:pointer;background:#fff;border:1.5px solid var(--line);color:var(--slate);font-family:inherit}
+.chip.on{background:var(--green);border-color:var(--green);color:#fff}
+.chip .t-label{font-size:.68rem;font-weight:700}
+.chip .t-range{font-size:.6rem;opacity:.75}
+.chip svg{pointer-events:none}
+
+.confirm{display:none;margin-top:1.2rem;background:var(--green-soft);border:1px solid var(--green);border-radius:12px;padding:1rem 1.1rem;color:#155a41;font-size:.88rem;font-weight:600}
+
+.submit-bar{position:sticky;bottom:0;margin-top:1.4rem;background:rgba(245,240,232,.94);backdrop-filter:blur(6px);padding:.9rem 0 .2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line)}
+.submit-bar span{font-size:.8rem;color:var(--slate)}
+.btn-enviar{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:.75rem 1.6rem;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit}
+.btn-enviar:disabled{opacity:.45;cursor:not-allowed}
+
+#form-dias{display:none}
+#cargando-dias{display:none;text-align:center;padding:2rem 0;color:var(--slate);font-size:.85rem}
+</style>
+</head>
+<body>
+
+<div class="site-header">
+  <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto .6rem;display:block">
+    <circle cx="12" cy="5" r="2"></circle>
+    <line x1="12" y1="7" x2="12" y2="21"></line>
+    <path d="M5 12h14"></path>
+    <path d="M5 12c0 4 3 7 7 9c4-2 7-5 7-9"></path>
+  </svg>
+  <h1>Disponibilidad</h1>
+  <p>Puerto de Sevilla</p>
+  <div class="gold-line"></div>
+</div>
+
+<div class="wrap">
+  <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
+  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana, Mediodía, Tarde o Noche) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora.</p>
+
+  <div class="card">
+    <label for="inp-nombre">Nombre completo</label>
+    <div class="ac-wrap">
+      <input type="text" class="ac-input" id="inp-nombre" placeholder="Escribe tu nombre…" autocomplete="off" oninput="sugerir(this)" onkeydown="navSug(event)">
+      <div class="ac-sugs" id="sg-nombre"></div>
+    </div>
+    <div class="name-msg err" id="name-err" style="display:none">No te encuentro en la lista de voluntarios activos. Pide al hermano que lleva los turnos que te dé de alta.</div>
+  </div>
+
+  <div id="cargando-dias">Cargando tu disponibilidad…</div>
+
+  <div id="form-dias">
+    <div class="migra" id="aviso-migracion">
+      <span>💡</span>
+      <span><b>Ya tenías disponibilidad registrada</b> — hemos marcado los turnos que más se le parecen. Revísalos y ajusta lo que haga falta antes de enviar.</span>
+    </div>
+
+    <div class="sec-title"><span>Tu semana</span><span>Toca los turnos en los que puedes estar</span></div>
+
+    <div class="dias-cont" id="dias-cont"></div>
+
+    <div class="confirm" id="confirmacion">Disponibilidad guardada. Gracias — puedes volver y actualizarla cuando cambie tu horario.</div>
+
+    <div class="submit-bar">
+      <span id="resumen-total">0 turnos marcados</span>
+      <button type="button" class="btn-enviar" id="btn-enviar" onclick="enviarDisponibilidad()" disabled>Enviar disponibilidad</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SU="https://inifdflvblnonzowbxie.supabase.co",SK="sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
+const SBH={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Accept':'application/json'};
+async function sbGet(t,p=''){const r=await fetch(SU+'/rest/v1/'+t+(p?'?'+p:''),{headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return r.json();}
+async function sbPost(t,b,p='return=minimal'){const r=await fetch(SU+'/rest/v1/'+t,{method:'POST',headers:{...SBH,'Prefer':p},body:JSON.stringify(b)});if(!r.ok){const tx=await r.text();throw new Error('Error '+r.status+': '+tx.substring(0,120));}return p.includes('representation')?r.json():{ok:true};}
+async function sbDelete(t,p){const r=await fetch(SU+'/rest/v1/'+t+'?'+p,{method:'DELETE',headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return{ok:true};}
+const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+
+// Lee "10:00 a 12:00", "10 a 12", "10-12"… (mismo criterio que planificador.html/_horaTramo)
+function horaTramo(s){
+  const m=/^\s*(\d{1,2})(?::(\d{2}))?\s*h?\s*(?:a|-|–|—|hasta)\s*(\d{1,2})(?::(\d{2}))?\s*h?\.?\s*$/i.exec(String(s||'').trim());
+  if(!m) return null;
+  const a=+m[1],aMin=m[2]?+m[2]:0,b=+m[3],bMin=m[4]?+m[4]:0;
+  if(a>24||b>24||aMin>59||bMin>59) return null;
+  return {a,aMin,b,bMin};
+}
+
+const ICONS = {
+  manana:'<path d="M12 3v3"></path><path d="M5.5 8.5l1.8 1.8"></path><path d="M18.5 8.5l-1.8 1.8"></path><path d="M3 15h18"></path><path d="M6 15a6 6 0 0 1 12 0"></path><path d="M9 19h6"></path>',
+  mediodia:'<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"></path>',
+  tarde:'<path d="M12 9V6"></path><path d="M5.5 12.5l1.8-1.8"></path><path d="M18.5 12.5l-1.8-1.8"></path><path d="M3 18h18"></path><path d="M6 18a6 6 0 0 1 12 0"></path><path d="M9 21h6"></path>',
+  noche:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path>'
+};
+const BLOQUES = [
+  {id:'manana',   label:'Mañana',   corta:'8–12',  rango:'08:00 a 12:00', h0:8,  h1:12},
+  {id:'mediodia', label:'Mediodía', corta:'12–15', rango:'12:00 a 15:00', h0:12, h1:15},
+  {id:'tarde',    label:'Tarde',    corta:'15–19', rango:'15:00 a 19:00', h0:15, h1:19},
+  {id:'noche',    label:'Noche',    corta:'19–22', rango:'19:00 a 22:00', h0:19, h1:22}
+];
+const DIAS = [
+  {id:'Lunes',    letra:'L', nombre:'Lunes'},
+  {id:'Martes',   letra:'M', nombre:'Martes'},
+  {id:'Miercoles',letra:'X', nombre:'Miércoles'},
+  {id:'Jueves',   letra:'J', nombre:'Jueves'},
+  {id:'Viernes',  letra:'V', nombre:'Viernes'},
+  {id:'Sabado',   letra:'S', nombre:'Sábado'},
+  {id:'Domingo',  letra:'D', nombre:'Domingo'}
+];
+
+let vols = [];
+let volIdActual = null;
+let SEL = {};
+const keyOf = (dia,bloque) => dia+'_'+bloque;
+
+// ── Autocompletar nombre (mismo patrón que sustituciones.html) ──
+function sugerir(inp){
+  const q=inp.value.trim().toLowerCase(), sg=document.getElementById('sg-nombre');
+  volIdActual=null;
+  document.getElementById('form-dias').style.display='none';
+  document.getElementById('name-err').style.display='none';
+  if(q.length<2){sg.classList.remove('open');sg.innerHTML='';return;}
+  const m=vols.filter(v=>v.toLowerCase().includes(q)).slice(0,8);
+  if(!m.length){sg.classList.remove('open');return;}
+  const re=new RegExp('('+q.replace(/[-[\]{}()*+?.,\\^$|#]/g,'\\$&')+')','gi');
+  sg.innerHTML=m.map(v=>{const ini=v.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase();
+    return `<div class="ac-sug" onclick="elegir('${esc(v)}')"><span>${v.replace(re,'<mark>$1</mark>')}</span></div>`;}).join('');
+  sg.classList.add('open');
+}
+function navSug(e){
+  const sg=document.getElementById('sg-nombre'),items=sg.querySelectorAll('.ac-sug'),cur=sg.querySelector('.hi');
+  if(e.key==='Escape'){sg.classList.remove('open');return;}
+  if(e.key==='ArrowDown'){e.preventDefault();const nx=cur?cur.nextElementSibling:items[0];cur?.classList.remove('hi');nx?.classList.add('hi');nx?.scrollIntoView({block:'nearest'});}
+  else if(e.key==='ArrowUp'){e.preventDefault();const pv=cur?cur.previousElementSibling:items[items.length-1];cur?.classList.remove('hi');pv?.classList.add('hi');pv?.scrollIntoView({block:'nearest'});}
+  else if(e.key==='Enter'){e.preventDefault();cur?.click();}
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.ac-wrap')) document.getElementById('sg-nombre').classList.remove('open');});
+
+async function elegir(nombre){
+  document.getElementById('inp-nombre').value=nombre;
+  document.getElementById('sg-nombre').classList.remove('open');
+  document.getElementById('name-err').style.display='none';
+  document.getElementById('form-dias').style.display='none';
+  document.getElementById('cargando-dias').style.display='block';
+  document.getElementById('confirmacion').style.display='none';
+  try{
+    const vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id');
+    if(!vs.length){ document.getElementById('name-err').style.display='block'; return; }
+    volIdActual=vs[0].id;
+    const filas=await sbGet('disponibilidad','voluntario_id=eq.'+volIdActual+'&select=dia,horario');
+    SEL={};
+    let huboMigracion=false;
+    DIAS.forEach(d=>{
+      const filasDia=filas.filter(f=>f.dia===d.id);
+      if(!filasDia.length) return;
+      const horas=new Set();
+      filasDia.forEach(f=>{ const t=horaTramo(f.horario); if(!t) return; const ini=Math.ceil(t.a+t.aMin/60), fin=Math.floor(t.b+t.bMin/60); for(let h=ini;h<fin;h++) horas.add(h); });
+      BLOQUES.forEach(b=>{
+        let cubiertas=0; for(let h=b.h0;h<b.h1;h++) if(horas.has(h)) cubiertas++;
+        if(cubiertas/(b.h1-b.h0) >= 0.5){ SEL[keyOf(d.id,b.id)]=true; huboMigracion=true; }
+      });
+    });
+    document.getElementById('aviso-migracion').style.display=huboMigracion?'flex':'none';
+    renderDias();
+  }catch(e){ alert('Error: '+e.message); }
+  finally{ document.getElementById('cargando-dias').style.display='none'; if(volIdActual) document.getElementById('form-dias').style.display='block'; }
+}
+
+function renderDias(){
+  const cont=document.getElementById('dias-cont');
+  cont.innerHTML=DIAS.map(d=>{
+    const todos=BLOQUES.every(b=>SEL[keyOf(d.id,b.id)]);
+    const chips=BLOQUES.map(b=>{
+      const on=!!SEL[keyOf(d.id,b.id)];
+      return `<button type="button" class="chip${on?' on':''}" onclick="toggleBloque('${d.id}','${b.id}')">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONS[b.id]}</svg>
+        <span class="t-label">${b.label}</span><span class="t-range">${b.corta}</span>
+      </button>`;
+    }).join('');
+    return `<div class="day-card">
+      <div class="day-bar"></div>
+      <div class="day-body">
+        <div class="day-head">
+          <div class="day-title"><span class="day-letra">${d.letra}</span><span class="day-nombre">${d.nombre}</span></div>
+          <button type="button" class="todo-dia${todos?' on':''}" onclick="toggleTodoDia('${d.id}')">Todo el día</button>
+        </div>
+        <div class="chips-grid">${chips}</div>
+      </div>
+    </div>`;
+  }).join('');
+  actualizarResumen();
+}
+function toggleBloque(dia,bloque){ const k=keyOf(dia,bloque); SEL[k]=!SEL[k]; renderDias(); }
+function toggleTodoDia(dia){ const todos=BLOQUES.every(b=>SEL[keyOf(dia,b.id)]); BLOQUES.forEach(b=>{SEL[keyOf(dia,b.id)]=!todos;}); renderDias(); }
+function actualizarResumen(){
+  const n=Object.values(SEL).filter(Boolean).length;
+  document.getElementById('resumen-total').textContent=n+' turno'+(n===1?'':'s')+' marcado'+(n===1?'':'s');
+  document.getElementById('btn-enviar').disabled=!volIdActual;
+}
+
+async function enviarDisponibilidad(){
+  if(!volIdActual) return;
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true; const txtPrev=btn.textContent; btn.textContent='Guardando…';
+  try{
+    await sbDelete('disponibilidad','voluntario_id=eq.'+volIdActual);
+    const rows=[];
+    DIAS.forEach(d=>BLOQUES.forEach(b=>{
+      if(SEL[keyOf(d.id,b.id)]) for(let s=1;s<=5;s++) rows.push({voluntario_id:volIdActual, semana:s, dia:d.id, horario:b.rango});
+    }));
+    if(rows.length) await sbPost('disponibilidad', rows);
+    document.getElementById('confirmacion').style.display='block';
+    document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }catch(e){ alert('No se pudo guardar: '+e.message); }
+  finally{ btn.disabled=false; btn.textContent=txtPrev; actualizarResumen(); }
+}
+
+(async function init(){
+  try{ vols=(await sbGet('voluntarios','activo=eq.true&select=nombre&order=nombre')).map(v=>v.nombre); }
+  catch(e){ /* la búsqueda de nombres seguirá vacía hasta recargar */ }
+})();
+</script>
+</body>
+</html>
