@@ -3418,8 +3418,13 @@ async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
       const d = await apiGet({action:'getDisponibilidadCompleta'});
       const vol = d.voluntarios?.find(v=>v.nombre===nombre);
       if (vol) {
+        // Puede haber más de una fila por día (bloques no contiguos, p. ej. Mañana + Noche,
+        // guardados por disponibilidad-bloques.html): se juntan en el mismo cuadro separadas
+        // por coma, para no perder ninguna al mostrarlas ni, sobre todo, al volver a guardar.
         vol.disponibilidad.forEach(x => {
-          if (x.horario) dispActual[`${x.semana}|${x.dia}`] = x.horario;
+          if (!x.horario) return;
+          const key = `${x.semana}|${x.dia}`;
+          dispActual[key] = dispActual[key] ? dispActual[key] + ', ' + x.horario : x.horario;
         });
         tieneLlave = vol.llave;
       }
@@ -3469,7 +3474,7 @@ async function editarDisponibilidad(nombre, tieneLlave, esNuevo=false) {
   }
 
   html += `</tbody></table></div>
-    <p style="font-size:.68rem;color:var(--label3);margin-top:.5rem">Formato: "9 a 14", "10-18" o "09:00 a 18:00" — se guarda ya corregido. Deja vacío si no está disponible ese día.</p>
+    <p style="font-size:.68rem;color:var(--label3);margin-top:.5rem">Formato: "9 a 14", "10-18" o "09:00 a 18:00" — se guarda ya corregido. Para varios tramos el mismo día (p. ej. mañana y noche, sin mediodía ni tarde), sepáralos con una coma: "9 a 12, 19 a 22". Deja vacío si no está disponible ese día.</p>
     <div style="display:flex;gap:.5rem;justify-content:flex-end;margin-top:1.1rem">
       <button class="btn btn-ghost" onclick="closeModal('mvol')">Cancelar</button>
       <button class="btn btn-green" onclick="guardarVolDisponibilidad()">💾 Guardar</button>
@@ -3487,9 +3492,11 @@ async function guardarVolDisponibilidad() {
     inp.classList.remove('error');
     const val = inp.value.trim();
     if (!val) return;
-    const canon = _horaCanon(val);
-    if (!canon) { sinEntender.push(`${inp.dataset.dia} S${inp.dataset.sem} ("${val}")`); inp.classList.add('error'); return; }
-    disponibilidad.push({ semana: +inp.dataset.sem, dia: inp.dataset.dia, horario: canon });
+    // Varios tramos el mismo día (p. ej. "9 a 12, 19 a 22") separados por coma: una fila por tramo
+    const trozos = val.split(',').map(t => t.trim()).filter(Boolean);
+    const canons = trozos.map(_horaCanon);
+    if (!trozos.length || canons.some(c => !c)) { sinEntender.push(`${inp.dataset.dia} S${inp.dataset.sem} ("${val}")`); inp.classList.add('error'); return; }
+    canons.forEach(canon => disponibilidad.push({ semana: +inp.dataset.sem, dia: inp.dataset.dia, horario: canon }));
   });
   // No guardar nada a medias: si algún cuadro no se entiende, mejor avisar y que se corrija —
   // guardarlo tal cual dejaba a ese voluntario invisible para las estadísticas sin que se notara.
