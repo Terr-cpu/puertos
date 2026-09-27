@@ -258,7 +258,11 @@ async function enviarDisponibilidad(){
   if(!volIdActual) return;
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true; const txtPrev=btn.textContent; btn.textContent='Guardando…';
+  // Copia de seguridad de lo que ya había, por si el guardado falla a mitad — nunca se borra
+  // la disponibilidad anterior sin haber guardado ya la nueva.
+  let copia=[];
   try{
+    copia=(await sbGet('disponibilidad','voluntario_id=eq.'+volIdActual+'&select=semana,dia,horario')).map(r=>({voluntario_id:volIdActual,semana:r.semana,dia:r.dia,horario:r.horario}));
     await sbDelete('disponibilidad','voluntario_id=eq.'+volIdActual);
     const rows=[];
     DIAS.forEach(d=>BLOQUES.forEach(b=>{
@@ -267,7 +271,15 @@ async function enviarDisponibilidad(){
     if(rows.length) await sbPost('disponibilidad', rows);
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
-  }catch(e){ alert('No se pudo guardar: '+e.message); }
+  }catch(e){
+    const falta23505=/23505/.test(e.message);
+    let restaurado=true;
+    if(copia.length){ try{ await sbPost('disponibilidad', copia); }catch(e2){ restaurado=false; } }
+    alert((falta23505
+      ? 'No se pudo guardar: falta ejecutar supabase/08_disponibilidad_bloques.sql en Supabase (permite varios bloques el mismo día). Pide que lo ejecuten y vuelve a intentarlo.'
+      : 'No se pudo guardar: '+e.message)
+      + (restaurado ? ' Tu disponibilidad anterior sigue como estaba.' : ' Ojo: no he podido restaurar tu disponibilidad anterior — avisa para revisarlo.'));
+  }
   finally{ btn.disabled=false; btn.textContent=txtPrev; actualizarResumen(); }
 }
 

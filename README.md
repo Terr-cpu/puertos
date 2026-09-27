@@ -39,6 +39,21 @@ este bloque", lo que hace mucho más fácil que varios voluntarios coincidan a l
   semanas), el motor de planificación y toda la sección **🧭 Horarios y disponibilidad** de
   Estadísticas lo leen sin ningún cambio.
 
+**Requiere ejecutar antes** [`supabase/08_disponibilidad_bloques.sql`](supabase/08_disponibilidad_bloques.sql)
+en el SQL Editor de Supabase: la tabla `disponibilidad` solo permitía una fila por voluntario,
+semana y día (venía del formulario antiguo, con un único rango por día), y en cuanto alguien
+marca dos bloques no contiguos el mismo día (p. ej. Mañana y Noche) hace falta poder guardar
+más de una fila. Sin ese SQL, al guardar sale un error `23505` que el propio formulario
+reconoce y explica. El guardado hace primero una copia de la disponibilidad anterior del
+voluntario y la restaura automáticamente si el guardado falla a mitad, así que no se pierde
+nada aunque falte ejecutar el SQL — pero conviene ejecutarlo cuanto antes.
+
+Antes de empezar a probarlo, conviene tener además
+[`supabase/09_backup_disponibilidad.sql`](supabase/09_backup_disponibilidad.sql): crea
+`disponibilidad_respaldo`, una copia de solo lectura de toda la tabla en ese momento (con
+instrucciones de cómo restaurar desde ella dentro del propio archivo). Se puede volver a
+ejecutar para renovar la copia; cada ejecución sustituye la anterior, no las acumula.
+
 ## Motor de planificación (`planificador.html`)
 
 Genera el cuadrante a partir de la disponibilidad, el historial de turnos y el
