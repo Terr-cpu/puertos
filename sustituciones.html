@@ -9,9 +9,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sustituciones">
-<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%230a1628'/><text y='.9em' font-size='72' x='14'>⚓</text></svg>">
-<link rel="manifest" id="pwa-manifest">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest-sustituciones.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -362,12 +363,12 @@ window.addEventListener('DOMContentLoaded',()=>{
 });
 
 function initPWA(){
-  const m={name:'Sustituciones Puerto de Sevilla',short_name:'Sustituciones',start_url:'./',display:'standalone',background_color:'#0a1628',theme_color:'#0a1628',icons:[{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%230a1628'/><text y='.85em' font-size='140' x='22'>⚓</text></svg>",sizes:'192x192',type:'image/svg+xml'},{src:"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%230a1628'/><text y='.85em' font-size='380' x='56'>⚓</text></svg>",sizes:'512x512',type:'image/svg+xml'}]};
-  const bl=new Blob([JSON.stringify(m)],{type:'application/json'});
-  document.getElementById('pwa-manifest').href=URL.createObjectURL(bl);
+  // El manifest (manifest-sustituciones.webmanifest) y el service worker
+  // (sw-sustituciones.js) son ahora archivos estáticos reales referenciados
+  // desde el <head>, en vez de generarse como blob URL efímera en cada carga
+  // (eso impedía que la app se instalara de forma fiable como PWA nativa).
   if('serviceWorker' in navigator){
-    const sw=`const C='sust-v1';self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.href])).catch(()=>{})));self.addEventListener('fetch',e=>e.respondWith(fetch(e.request).catch(()=>caches.match(e.request))));`;
-    navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:'application/javascript'})),{scope:'./'}).catch(()=>{});
+    navigator.serviceWorker.register('sw-sustituciones.js',{scope:'./'}).catch(()=>{});
   }
   let dp=null;
   window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();dp=e;document.getElementById('pwa-banner').classList.add('vis');});
