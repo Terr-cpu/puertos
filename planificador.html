@@ -427,6 +427,11 @@ details.st-sec summary{list-style:none}
 /* ══════════════════════════════════════
    CALENDARIO CONFIG
 ══════════════════════════════════════ */
+.cal-mes-grupo{background:var(--surface2);border-radius:var(--r-md);padding:.2rem .7rem .5rem;margin-bottom:.7rem;border:1px solid var(--sep)}
+.cal-mes-grupo summary{list-style:none}
+.cal-mes-grupo summary::-webkit-details-marker{display:none}
+.cal-mes-grupo summary::before{content:'▸';margin-right:.4rem;color:var(--label3);display:inline-block;transition:transform .15s}
+.cal-mes-grupo[open] summary::before{transform:rotate(90deg)}
 .cal-row{display:flex;align-items:flex-start;gap:.65rem;background:var(--surface);border-radius:var(--r-md);padding:.65rem .9rem;margin-bottom:.3rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
 .cal-fecha{font-size:.83rem;font-weight:700;color:var(--label1);min-width:90px}
 .cal-dia{font-size:.72rem;color:var(--label3);min-width:80px}
@@ -1201,17 +1206,21 @@ async function getCalendarioConfig() {
       const allNavs = Array.isArray(r.navieras) ? r.navieras : [];
       // La tabla "navieras" guarda varias cosas con prefijo:
       //   "turno:HH..."  → franja horaria habilitada
+      //   "opt:HH..."    → subconjunto de "turno:": franja alternativa
       //   "info:..."     → detalle horario del barco (llegada/salida prevista)
       //   "muelle:..."   → muelle / ubicación
+      //   "ocultoVol"    → el día está activo (se planifica) pero oculto para los voluntarios
+      //                    en Sustituciones — para preparar un mes con calma antes de lanzarlo
       //   (sin prefijo)  → nombre de naviera / barco
       const pref = p => allNavs.filter(n => String(n).startsWith(p)).map(n => String(n).slice(p.length));
-      const navieras = allNavs.filter(n => !/^(turno:|info:|muelle:)/.test(String(n)));
+      const navieras = allNavs.filter(n => !/^(turno:|opt:|info:|muelle:)/.test(String(n)) && n !== 'ocultoVol');
       return {
         fecha:    isoADMY(r.fecha),
         fechaISO: r.fecha,
         semana,
         dia:      normDia(r.dia),
         activo:   r.activo,
+        ocultoVol: allNavs.includes('ocultoVol'),
         navieras,
         turnos:   pref('turno:'),
         opcionales: pref('opt:'),   // subconjunto de "turnos": franjas alternativas — si no salen adelante, no cuentan en las estadísticas
@@ -1265,11 +1274,12 @@ async function guardarCalendarioConfig(dias) {
     const p = procesados[i];
     // Navieras reales (sin ningún prefijo especial)
     (p.navieras||[])
-      .filter(n => !/^(turno:|info:|muelle:)/.test(String(n)))
+      .filter(n => !/^(turno:|opt:|info:|muelle:)/.test(String(n)) && n !== 'ocultoVol')
       .forEach(n => navRows.push({ calendario_id: cal.id, nombre: n }));
     // Turnos habilitados / detalle horario / muelle — con prefijo en la misma tabla
     (p.turnos||[]).forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'turno:' + t }));
     (p.opcionales||[]).forEach(t => navRows.push({ calendario_id: cal.id, nombre: 'opt:' + t }));
+    if (p.ocultoVol) navRows.push({ calendario_id: cal.id, nombre: 'ocultoVol' });
     if (p.detalle && p.detalle.trim()) navRows.push({ calendario_id: cal.id, nombre: 'info:' + p.detalle.trim() });
     if (p.muelle  && p.muelle.trim())  navRows.push({ calendario_id: cal.id, nombre: 'muelle:' + p.muelle.trim() });
   });
@@ -5083,6 +5093,13 @@ function diaRealDesdeFecha(fechaStr) {
   return fechaStr;
 }
 
+const CAL_FRANJAS = [
+  '08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00',
+  '12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00',
+  '16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00','20:00 a 22:00'
+];
+const CAL_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
 function renderCalendario(c, dias) {
   c.innerHTML = '';
 
@@ -5098,14 +5115,8 @@ function renderCalendario(c, dias) {
       </div>
       <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
     </div>
-    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-top:.65rem">
-      <div class="fg" style="margin:0">
-        <label>Activar/desactivar un mes entero</label>
-        <input type="month" class="fc" id="cal-bulk-mes" style="width:auto">
-      </div>
-      <button class="btn btn-green btn-sm" onclick="bulkActivarMes(true)">✓ Activar todos</button>
-      <button class="btn btn-ghost btn-sm" onclick="bulkActivarMes(false)">Desactivar todos</button>
-      <span style="font-size:.68rem;color:var(--label3);flex-basis:100%">Prepara el mes en "Inactivo" con tranquilidad — no aparecerá en el Cuadrante ni en Sustituciones hasta que lo actives. No olvides "Guardar cambios" después.</span>
+    <div style="background:var(--gold-soft);padding:.7rem .9rem;border-radius:var(--r-md);margin-top:.65rem;font-size:.74rem;line-height:1.55">
+      💡 <b>Para preparar un mes con calma, sin que los voluntarios lo vean todavía:</b> déjalo <b>Activo</b> (así lo tienes en el Cuadrante y puedes ir asignando equipos) pero márcalo <b>🙈 oculto</b> — no aparecerá en Sustituciones hasta que lo muestres. Cada mes tiene sus propios botones para hacerlo de golpe, y los meses se agrupan por separado para no mezclarlos visualmente.
     </div>
     <div style="background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-top:.65rem">
       <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.55rem">📄 Ajustes del PDF del cuadrante</div>
@@ -5128,72 +5139,107 @@ function renderCalendario(c, dias) {
     return;
   }
 
-  const activos = dias.filter(d=>d.activo).length;
-  c.insertAdjacentHTML('beforeend', `<p style="font-size:.78rem;color:var(--label3);margin-bottom:.65rem">${dias.length} días · <strong>${activos} activos</strong></p>`);
-
+  // Agrupados por mes, para no ver de golpe los días de meses distintos — cada mes en su
+  // propio bloque plegable, con sus propios botones de activar/ocultar todos.
+  const grupos = new Map();
   dias.forEach((d, i) => {
-    const diaReal = diaRealDesdeFecha(d.fecha);
-    const naviTagsHTML = (d.navieras||[]).map((n,ni) =>
-      `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`
-    ).join('');
+    const k = d.fechaISO ? d.fechaISO.slice(0, 7) : '?';
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(i);
+  });
+  const hoyKey = _evHoy().slice(0, 7);
+  [...grupos.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1).forEach(([mesKey, idxs]) => {
+    const [anio, numMes] = mesKey.split('-');
+    const activosN = idxs.filter(i => dias[i].activo).length;
+    const ocultosN = idxs.filter(i => dias[i].ocultoVol).length;
+    const det = document.createElement('details');
+    det.className = 'cal-mes-grupo';
+    det.open = mesKey >= hoyKey;   // el mes actual y los futuros abiertos; los pasados, plegados
+    const sum = document.createElement('summary');
+    sum.style = 'cursor:pointer;font-weight:700;font-size:.85rem;padding:.6rem .2rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap';
+    sum.innerHTML = `<span style="font-family:inherit">${mesKey === '?' ? 'Sin fecha' : CAL_MESES[+numMes - 1] + ' ' + anio}</span>
+      <span style="font-weight:400;font-size:.7rem;color:var(--label3)">${idxs.length} día${idxs.length === 1 ? '' : 's'} · ${activosN} activo${activosN === 1 ? '' : 's'}${ocultosN ? ` · 🙈 ${ocultosN} oculto${ocultosN === 1 ? '' : 's'} a voluntarios` : ''}</span>
+      <span style="margin-left:auto;display:flex;gap:.3rem;flex-wrap:wrap" onclick="event.stopPropagation()">
+        <button class="btn btn-ghost btn-sm" style="font-size:.64rem;padding:.14rem .5rem" onclick="bulkCalendario('${mesKey}','ocultoVol',true)">🙈 Ocultar todos</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:.64rem;padding:.14rem .5rem" onclick="bulkCalendario('${mesKey}','ocultoVol',false)">👁️ Mostrar todos</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:.64rem;padding:.14rem .5rem" onclick="bulkCalendario('${mesKey}','activo',true)">✓ Activar todos</button>
+        <button class="btn btn-ghost btn-sm" style="font-size:.64rem;padding:.14rem .5rem" onclick="bulkCalendario('${mesKey}','activo',false)">Desactivar todos</button>
+      </span>`;
+    det.appendChild(sum);
+    const body = document.createElement('div');
+    body.style = 'display:flex;flex-direction:column;gap:.5rem;padding:.3rem 0 .6rem';
+    idxs.forEach(i => body.appendChild(buildCalRow(dias[i], i)));
+    det.appendChild(body);
+    c.appendChild(det);
+  });
+}
 
-    const row = document.createElement('div');
-    row.className = 'cal-row';
-    row.style.opacity = d.activo ? '1' : '0.5';
+function buildCalRow(d, i) {
+  const diaReal = diaRealDesdeFecha(d.fecha);
+  const naviTagsHTML = (d.navieras||[]).map((n,ni) =>
+    `<span class="navi-tag">${n}<button onclick="quitarNaviera(${i},${ni})">×</button></span>`
+  ).join('');
 
-    // Turnos habilitados del día (guardados en d.turnos como array de rangos)
-    const turnosHab = d.turnos || [];
-    const FRANJAS_DISPONIBLES = [
-      '08:00 a 10:00','09:00 a 11:00','10:00 a 12:00','11:00 a 13:00',
-      '12:00 a 14:00','13:00 a 15:00','14:00 a 16:00','15:00 a 17:00',
-      '16:00 a 18:00','17:00 a 19:00','18:00 a 20:00','19:00 a 21:00','20:00 a 22:00'
-    ];
+  const row = document.createElement('div');
+  row.className = 'cal-row';
+  row.style.opacity = d.activo ? '1' : '0.5';
 
-    row.innerHTML = `
-      <div style="min-width:105px;flex-shrink:0">
-        <div class="cal-fecha">${d.fecha}</div>
-        <div class="cal-dia" style="color:var(--blue);font-weight:600;font-size:.75rem">${diaReal}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:.4rem;flex-shrink:0">
+  const turnosHab = d.turnos || [];
+
+  row.innerHTML = `
+    <div style="min-width:105px;flex-shrink:0">
+      <div class="cal-fecha">${d.fecha}</div>
+      <div class="cal-dia" style="color:var(--blue);font-weight:600;font-size:.75rem">${diaReal}</div>
+      ${d.ocultoVol ? '<div style="font-size:.62rem;color:var(--amber);font-weight:700;margin-top:.15rem">🙈 Oculto</div>' : ''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:.35rem;flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:.4rem">
         <label class="toggle-sw">
           <input type="checkbox" id="cal-act-${i}" ${d.activo?'checked':''} onchange="toggleCalDia(${i})">
           <span class="toggle-sl"></span>
         </label>
         <span style="font-size:.72rem;color:var(--label3);min-width:48px" id="cal-act-lbl-${i}">${d.activo?'Activo':'Inactivo'}</span>
       </div>
-      <div class="cal-navieras" id="cal-nv-${i}">
-        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.28rem" id="cal-tags-${i}">${naviTagsHTML}</div>
-        <div style="display:flex;gap:.3rem">
-          <input class="fc" id="cal-ninput-${i}" placeholder="🚢 Naviera…" style="font-size:.72rem;padding:.28rem .5rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
-          <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
-        </div>
+      <div style="display:flex;align-items:center;gap:.4rem" title="Oculto: se planifica igual (sale en el Cuadrante) pero no aparece en Sustituciones para los voluntarios">
+        <label class="toggle-sw">
+          <input type="checkbox" id="cal-oc-${i}" ${d.ocultoVol?'checked':''} onchange="toggleCalOculto(${i})">
+          <span class="toggle-sl"></span>
+        </label>
+        <span style="font-size:.72rem;color:var(--label3);min-width:48px" id="cal-oc-lbl-${i}">${d.ocultoVol?'🙈 Oculto':'👁️ Visible'}</span>
       </div>
-      <div style="min-width:180px">
-        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.3rem">🕒 Turnos habilitados</div>
-        <div style="display:flex;flex-wrap:wrap;gap:.22rem" id="cal-turnos-${i}">
-          ${FRANJAS_DISPONIBLES.map(f => {
-            const hab = turnosHab.includes(f), alt = (d.opcionales||[]).includes(f);
-            const cls = hab ? (alt ? ' hab alt' : ' hab') : '';
-            const tit = hab ? (alt ? 'Alternativa: si no sale adelante, no cuenta en las estadísticas (clic para quitarla)' : 'Habilitada (clic para marcarla como alternativa)') : 'Clic para habilitarla';
-            return `<button class="cal-franja-btn${cls}" title="${tit}" onclick="toggleCalTurno(${i},'${f}',this)">${alt?'🔀 ':''}${f.replace(' a ','-').replace(':00','h').replace(':00','h')}</button>`;
-          }).join('')}
-          <div style="font-size:.62rem;color:var(--label3);flex-basis:100%;margin-top:.15rem">🔀 = alternativa: si nadie la cubre, no cuenta como turno perdido en las estadísticas</div>
-        </div>
+    </div>
+    <div class="cal-navieras" id="cal-nv-${i}">
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:.2rem;margin-bottom:.28rem" id="cal-tags-${i}">${naviTagsHTML}</div>
+      <div style="display:flex;gap:.3rem">
+        <input class="fc" id="cal-ninput-${i}" placeholder="🚢 Naviera…" style="font-size:.72rem;padding:.28rem .5rem" onkeydown="if(event.key==='Enter')añadirNaviera(${i})">
+        <button class="btn btn-ghost btn-sm" onclick="añadirNaviera(${i})">+</button>
       </div>
-      <div class="cal-estancia" style="min-width:150px;display:flex;flex-direction:column;gap:.25rem">
-        <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
-          <option value="">Sin estancia</option>
-          <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
-          <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
-          <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
-          <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
-        </select>
-        <input class="fc" id="cal-info-${i}" value="${escH(d.detalle||'')}" placeholder="🕓 Llegada prevista 13:00–15:00…" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].detalle=this.value">
-        <input class="fc" id="cal-muelle-${i}" value="${escH(d.muelle||'')}" placeholder="📍 Muelle (Delicias, Tablada…)" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].muelle=this.value">
+    </div>
+    <div style="min-width:180px">
+      <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.3rem">🕒 Turnos habilitados</div>
+      <div style="display:flex;flex-wrap:wrap;gap:.22rem" id="cal-turnos-${i}">
+        ${CAL_FRANJAS.map(f => {
+          const hab = turnosHab.includes(f), alt = (d.opcionales||[]).includes(f);
+          const cls = hab ? (alt ? ' hab alt' : ' hab') : '';
+          const tit = hab ? (alt ? 'Alternativa: si no sale adelante, no cuenta en las estadísticas (clic para quitarla)' : 'Habilitada (clic para marcarla como alternativa)') : 'Clic para habilitarla';
+          return `<button class="cal-franja-btn${cls}" title="${tit}" onclick="toggleCalTurno(${i},'${f}',this)">${alt?'🔀 ':''}${f.replace(' a ','-').replace(':00','h').replace(':00','h')}</button>`;
+        }).join('')}
+        <div style="font-size:.62rem;color:var(--label3);flex-basis:100%;margin-top:.15rem">🔀 = alternativa: si nadie la cubre, no cuenta como turno perdido en las estadísticas</div>
       </div>
-      <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
-    c.appendChild(row);
-  });
+    </div>
+    <div class="cal-estancia" style="min-width:150px;display:flex;flex-direction:column;gap:.25rem">
+      <select class="fc" id="cal-est-${i}" style="font-size:.72rem;padding:.28rem .5rem" onchange="S.calConfig[${i}].estancia=this.value">
+        <option value="">Sin estancia</option>
+        <option value="Estancia todo el dia" ${d.estancia==='Estancia todo el dia'?'selected':''}>Todo el día</option>
+        <option value="Salida" ${d.estancia==='Salida'?'selected':''}>Salida</option>
+        <option value="Llegada" ${d.estancia==='Llegada'?'selected':''}>Llegada</option>
+        <option value="Escala" ${d.estancia==='Escala'?'selected':''}>Escala</option>
+      </select>
+      <input class="fc" id="cal-info-${i}" value="${escH(d.detalle||'')}" placeholder="🕓 Llegada prevista 13:00–15:00…" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].detalle=this.value">
+      <input class="fc" id="cal-muelle-${i}" value="${escH(d.muelle||'')}" placeholder="📍 Muelle (Delicias, Tablada…)" style="font-size:.7rem;padding:.26rem .5rem" oninput="S.calConfig[${i}].muelle=this.value">
+    </div>
+    <button class="btn btn-red btn-sm" onclick="removeDiaCalendario(${i})" style="flex-shrink:0" title="Eliminar día">🗑️</button>`;
+  return row;
 }
 
 function toggleCalTurno(i, rango, btn) {
@@ -5224,6 +5270,14 @@ function toggleCalDia(i) {
   if (row) row.style.opacity = S.calConfig[i].activo ? '1' : '0.5';
 }
 
+// Oculto: el día se sigue planificando (sale en el Cuadrante), pero no aparece en Sustituciones
+// para los voluntarios — sirve para preparar un mes con calma antes de "lanzarlo".
+function toggleCalOculto(i) {
+  S.calConfig[i].ocultoVol = document.getElementById('cal-oc-'+i).checked;
+  const lbl = document.getElementById('cal-oc-lbl-'+i);
+  if (lbl) lbl.textContent = S.calConfig[i].ocultoVol ? '🙈 Oculto' : '👁️ Visible';
+}
+
 function addDiaCalendario() {
   const fechaVal = document.getElementById('cal-new-fecha')?.value;
   if (!fechaVal) { toast('Selecciona una fecha', 'err'); return; }
@@ -5237,7 +5291,7 @@ function addDiaCalendario() {
   const yyyy = f.getUTCFullYear();
   const fechaFmt = `${dd}/${mm}/${yyyy}`;
   if (S.calConfig.some(d => d.fecha === fechaFmt)) { toast('Esta fecha ya existe','err'); return; }
-  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, semana, dia:diaReal, activo:true, navieras:[], turnos:[], detalle:'', muelle:'', estancia:'' });
+  S.calConfig.push({ fecha:fechaFmt, fechaISO:fechaVal, semana, dia:diaReal, activo:true, ocultoVol:false, navieras:[], turnos:[], opcionales:[], detalle:'', muelle:'', estancia:'' });
   S.calConfig.sort((a,b) => a.fechaISO < b.fechaISO ? -1 : 1);
   const c = document.getElementById('tab-calendario');
   renderCalendario(c, S.calConfig);
@@ -5247,18 +5301,21 @@ function addDiaCalendario() {
 // Activa o desactiva de golpe todos los días de un mes (p. ej. para preparar el mes que viene
 // en "Inactivo" con calma, y lanzarlo el día 1 activándolos todos a la vez). Solo cambia el
 // estado en memoria — sigue haciendo falta pulsar "Guardar cambios" para que se note fuera.
-function bulkActivarMes(activo) {
-  const mes = document.getElementById('cal-bulk-mes')?.value;   // "2026-10"
-  if (!mes) { toast('Elige primero el mes', 'err'); return; }
-  const afectados = S.calConfig.filter(d => d.fechaISO && d.fechaISO.startsWith(mes));
-  if (!afectados.length) { toast('No hay ningún día configurado en ese mes todavía', 'err'); return; }
-  const [anio, numMes] = mes.split('-');
-  const MESES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  if (!confirm(`¿${activo ? 'Activar' : 'Desactivar'} los ${afectados.length} días de ${MESES[+numMes]} de ${anio}?\n\nRecuerda pulsar "Guardar cambios" después para que se aplique de verdad.`)) return;
-  afectados.forEach(d => { d.activo = activo; });
+// Cambia de golpe un campo (activo / ocultoVol) para todos los días de un mes — p. ej. para
+// preparar el mes que viene en calma y "lanzarlo" activando u ocultando todo a la vez. Solo
+// en memoria — sigue haciendo falta pulsar "Guardar cambios" para que se note fuera.
+function bulkCalendario(mesKey, campo, valor) {
+  const afectados = S.calConfig.filter(d => d.fechaISO && d.fechaISO.startsWith(mesKey));
+  if (!afectados.length) return;
+  const [anio, numMes] = mesKey.split('-');
+  const ETQ = {
+    activo:    valor ? 'activar' : 'desactivar',
+    ocultoVol: valor ? 'ocultar a los voluntarios (Sustituciones)' : 'volver a mostrar a los voluntarios (Sustituciones)',
+  };
+  if (!confirm(`¿${ETQ[campo].charAt(0).toUpperCase()}${ETQ[campo].slice(1)} los ${afectados.length} días de ${CAL_MESES[+numMes - 1]} de ${anio}?\n\nRecuerda pulsar "Guardar cambios" después para que se aplique de verdad.`)) return;
+  afectados.forEach(d => { d[campo] = valor; });
   renderCalendario(document.getElementById('tab-calendario'), S.calConfig);
-  const mesInp = document.getElementById('cal-bulk-mes'); if (mesInp) mesInp.value = mes;   // renderCalendario recrea el campo; se restaura para poder repetir la acción sin volver a elegir el mes
-  toast(`${afectados.length} días ${activo ? 'activados' : 'desactivados'} — pulsa "Guardar cambios" para confirmarlo`, 'ok');
+  toast(`${afectados.length} días actualizados — pulsa "Guardar cambios" para confirmarlo`, 'ok');
 }
 
 function removeDiaCalendario(i) {
@@ -6540,7 +6597,7 @@ function _evModelo(raw, hoy, reglas) {
   });
   (raw.cal || []).forEach(c => {
     const navs = Array.isArray(c.navieras) ? c.navieras.map(String) : [];
-    diaInfo(c.fecha).navieras = navs.filter(n => !/^(turno:|info:|muelle:)/.test(n));
+    diaInfo(c.fecha).navieras = navs.filter(n => !/^(turno:|opt:|info:|muelle:)/.test(n) && n !== 'ocultoVol');
     if (!c.activo) return;
     navs.filter(n => n.startsWith('turno:')).forEach(n => { turno(c.fecha, n.slice(6), c.dia).abierto = true; });
   });

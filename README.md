@@ -65,6 +65,23 @@ tener que abrir la ficha de cada uno. Cuando todo el mundo esté en 🧱, se pue
 `disponibilidad.html` (el formulario antiguo, que además escribe en Google Sheets en vez de
 Supabase — ver más abajo) y esta misma pestaña.
 
+### Preparar el mes siguiente sin que se vea todavía
+
+En `⚙️ Calendario` cada día tiene **dos** interruptores independientes:
+
+- **Activo/Inactivo** — si sale o no en el Cuadrante (la planificación). Inactivo = no existe
+  para el motor ni para nadie.
+- **👁️ Visible / 🙈 Oculto** — si se ofrece o no a los voluntarios en Sustituciones
+  (Confirmados y Nuevos días). No afecta al Cuadrante ni a las estadísticas.
+
+Para preparar un mes con calma sin que los voluntarios lo vean todavía: añade los días
+**Activos** (así puedes trabajar en el Cuadrante, asignar equipos, etc.) pero **Ocultos**.
+El día que quieras lanzarlo, los pasas a Visibles y a partir de ese momento aparecen en
+Sustituciones. Cada bloque de mes (se agrupan por separado, para no ver de golpe septiembre y
+octubre mezclados) tiene sus propios botones **Activar/Desactivar todos** y
+**Ocultar/Mostrar todos** para hacerlo de una vez en vez de día a día — recuerda pulsar
+"Guardar cambios" después.
+
 ## Motor de planificación (`planificador.html`)
 
 Genera el cuadrante a partir de la disponibilidad, el historial de turnos y el

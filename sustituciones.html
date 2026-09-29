@@ -536,9 +536,12 @@ async function cargarOferta(){
 
     const [oRaw,calRaw,vs]=await Promise.all([rpc('get_oferta_simple'),sbGet('v_calendario','order=fecha&activo=eq.true'),sbGet('voluntarios','nombre=ilike.'+encodeURIComponent(nombre)+'&select=id')]);
     const hoyOf=new Date().toISOString().split('T')[0];
+    // Fechas que el coordinador ha marcado como "oculto a voluntarios" (preparando el mes con
+    // calma, antes de lanzarlo) — no se ofrecen en ningún apartado hasta que las muestre.
+    const fechasOcultas=new Set(calRaw.filter(r=>(Array.isArray(r.navieras)?r.navieras:[]).includes('ocultoVol')).map(r=>r.fecha));
     // get_oferta_simple no filtra por fecha — sin esto, un turno de un día ya pasado (que ya no
     // hay nada que hacer con él) seguía apareciendo en "Confirmados" como si necesitara gente
-    const oArr=(Array.isArray(oRaw)?oRaw:(oRaw||[])).filter(t=>dmyAIso(t.fecha)>=hoyOf);
+    const oArr=(Array.isArray(oRaw)?oRaw:(oRaw||[])).filter(t=>dmyAIso(t.fecha)>=hoyOf&&!fechasOcultas.has(dmyAIso(t.fecha)));
     let refSet=new Set(),hFechas=new Set(),hRangos=new Set();const volId=vs.length?vs[0].id:null;volIdOferta=volId;
     const fps=[sbGet('historial','select=fecha,rango').then(r=>r.forEach(x=>{hFechas.add(x.fecha);hRangos.add(x.fecha+'|'+x.rango);}))];
     if(volId) fps.push(sbGet('refuerzos','voluntario_id=eq.'+volId+'&select=fecha,rango').then(r=>r.forEach(x=>refSet.add(x.fecha+'|'+x.rango))));
@@ -565,7 +568,7 @@ async function cargarOferta(){
       const allNavs=Array.isArray(r.navieras)?r.navieras:(r.navieras?[r.navieras]:[]);
       // Separar navieras reales de turnos habilitados / detalle horario / muelle
       // (mismos prefijos que usa planificador.html en la tabla "navieras")
-      const navieras=allNavs.filter(n=>!/^(turno:|info:|muelle:)/.test(String(n)));
+      const navieras=allNavs.filter(n=>!/^(turno:|opt:|info:|muelle:)/.test(String(n))&&n!=='ocultoVol');
       const todasHab=allNavs
         .filter(n=>String(n).startsWith('turno:'))
         .map(n=>String(n).slice(6));
@@ -574,6 +577,8 @@ async function cargarOferta(){
         : [];
       const incluir=todasHab.length ? turnosHabilitados.length>0 : !hFechas.has(r.fecha);
       if(!incluir) return null;
+      // Oculto: el coordinador está preparando el mes con calma — no ofrecerlo todavía
+      if(allNavs.includes('ocultoVol')) return null;
       const yaApuntado=volId?[...refSet].some(k=>k.startsWith(r.fecha+'|')):false;
       return {
         fechaISO:r.fecha,
