@@ -5098,6 +5098,15 @@ function renderCalendario(c, dias) {
       </div>
       <button class="btn btn-green" onclick="addDiaCalendario()">+ Añadir día</button>
     </div>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-top:.65rem">
+      <div class="fg" style="margin:0">
+        <label>Activar/desactivar un mes entero</label>
+        <input type="month" class="fc" id="cal-bulk-mes" style="width:auto">
+      </div>
+      <button class="btn btn-green btn-sm" onclick="bulkActivarMes(true)">✓ Activar todos</button>
+      <button class="btn btn-ghost btn-sm" onclick="bulkActivarMes(false)">Desactivar todos</button>
+      <span style="font-size:.68rem;color:var(--label3);flex-basis:100%">Prepara el mes en "Inactivo" con tranquilidad — no aparecerá en el Cuadrante ni en Sustituciones hasta que lo actives. No olvides "Guardar cambios" después.</span>
+    </div>
     <div style="background:var(--surface);padding:.85rem;border-radius:var(--r-md);box-shadow:var(--shadow-sm);border:1px solid var(--sep);margin-top:.65rem">
       <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.55rem">📄 Ajustes del PDF del cuadrante</div>
       <div class="form-row" style="margin-bottom:.5rem">
@@ -5233,6 +5242,23 @@ function addDiaCalendario() {
   const c = document.getElementById('tab-calendario');
   renderCalendario(c, S.calConfig);
   toast(`${fechaFmt} (${diaReal}) añadido`, 'ok');
+}
+
+// Activa o desactiva de golpe todos los días de un mes (p. ej. para preparar el mes que viene
+// en "Inactivo" con calma, y lanzarlo el día 1 activándolos todos a la vez). Solo cambia el
+// estado en memoria — sigue haciendo falta pulsar "Guardar cambios" para que se note fuera.
+function bulkActivarMes(activo) {
+  const mes = document.getElementById('cal-bulk-mes')?.value;   // "2026-10"
+  if (!mes) { toast('Elige primero el mes', 'err'); return; }
+  const afectados = S.calConfig.filter(d => d.fechaISO && d.fechaISO.startsWith(mes));
+  if (!afectados.length) { toast('No hay ningún día configurado en ese mes todavía', 'err'); return; }
+  const [anio, numMes] = mes.split('-');
+  const MESES = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  if (!confirm(`¿${activo ? 'Activar' : 'Desactivar'} los ${afectados.length} días de ${MESES[+numMes]} de ${anio}?\n\nRecuerda pulsar "Guardar cambios" después para que se aplique de verdad.`)) return;
+  afectados.forEach(d => { d.activo = activo; });
+  renderCalendario(document.getElementById('tab-calendario'), S.calConfig);
+  const mesInp = document.getElementById('cal-bulk-mes'); if (mesInp) mesInp.value = mes;   // renderCalendario recrea el campo; se restaura para poder repetir la acción sin volver a elegir el mes
+  toast(`${afectados.length} días ${activo ? 'activados' : 'desactivados'} — pulsa "Guardar cambios" para confirmarlo`, 'ok');
 }
 
 function removeDiaCalendario(i) {
