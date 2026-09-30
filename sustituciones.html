@@ -497,7 +497,7 @@ async function registrarBaja(){
 
     // Para turnos del cuadrante: registrar baja
     if(turnosCuadrante.length){
-      await sbPost('bajas',
+      await sbPost('bajas?on_conflict=voluntario_id,fecha,rango',
         turnosCuadrante.map(t=>({
           voluntario_id:vid,
           fecha:dmyAIso(t.fecha),

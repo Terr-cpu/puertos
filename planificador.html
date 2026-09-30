@@ -879,7 +879,7 @@ async function apiPost(body) {
         voluntario_id: volId,
         fecha: dmyAIso(t.fecha), semana: parseInt(t.semana), dia: t.dia, rango: t.rango, activa: true
       }));
-      if (rows.length) await sbPost('bajas', rows, 'resolution=merge-duplicates,return=minimal');
+      if (rows.length) await sbPost('bajas?on_conflict=voluntario_id,fecha,rango', rows, 'resolution=merge-duplicates,return=minimal');
       invalidar('bajas','oferta');
       return { status:'success' };
     }
