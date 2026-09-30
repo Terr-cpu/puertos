@@ -866,7 +866,7 @@ async function apiPost(body) {
         voluntario_id: idMap[n.toUpperCase()],
         fecha: fechaISO, semana: parseInt(d.semana), dia: d.dia, rango: d.rango
       })).filter(r => r.voluntario_id && r.fecha);
-      if (rows.length) await sbPost('historial', rows, 'resolution=merge-duplicates,return=minimal');
+      if (rows.length) await sbPost('historial?on_conflict=voluntario_id,fecha,rango', rows, 'resolution=merge-duplicates,return=minimal');
       invalidar('historial','oferta','carga');
       return { status:'success' };
     }
@@ -955,7 +955,7 @@ async function apiPost(body) {
       if (d.nuevoNombre) {
         const vNew = await sbGet('voluntarios', 'nombre=ilike.'+encodeURIComponent(d.nuevoNombre)+'&select=id');
         if (vNew.length) {
-          await sbPost('historial', [{
+          await sbPost('historial?on_conflict=voluntario_id,fecha,rango', [{
             voluntario_id:vNew[0].id, fecha:dmyAIso(d.fecha),
             semana:parseInt(d.semana), dia:d.dia, rango:d.nuevoRango||d.rangoOriginal
           }], 'resolution=merge-duplicates,return=minimal');
