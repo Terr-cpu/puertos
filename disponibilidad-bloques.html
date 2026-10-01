@@ -59,12 +59,21 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 .day-nombre{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.25rem;color:var(--ink)}
 .todo-dia{border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:20px;padding:.32rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .todo-dia.on{border-color:var(--navy);background:var(--navy);color:#fff}
+.todo-dia:disabled{opacity:.35;cursor:not-allowed}
 .chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
 .chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:10px;cursor:pointer;background:#fff;border:1.5px solid var(--line);color:var(--slate);font-family:inherit}
 .chip.on{background:var(--green);border-color:var(--green);color:#fff}
 .chip .t-label{font-size:.68rem;font-weight:700}
 .chip .t-range{font-size:.6rem;opacity:.75}
 .chip svg{pointer-events:none}
+
+.cap-ask{background:var(--mist);border:1.5px dashed var(--line);border-radius:10px;padding:.7rem .8rem;margin-bottom:.7rem}
+.cap-ask p{font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.55rem}
+.cap-opts{display:flex;gap:.4rem}
+.cap-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:#fff;color:var(--slate);font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer}
+.cap-btn.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.day-blocked{opacity:.4;pointer-events:none}
+.cap-ok{font-size:.74rem;color:var(--green);font-weight:600;margin-bottom:.7rem}
 
 .confirm{display:none;margin-top:1.2rem;background:var(--green-soft);border:1px solid var(--green);border-radius:12px;padding:1rem 1.1rem;color:#155a41;font-size:.88rem;font-weight:600}
 
@@ -93,7 +102,7 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 
 <div class="wrap">
   <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
-  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora.</p>
+  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
 
   <div class="card">
     <label for="inp-nombre">Nombre completo</label>
@@ -167,7 +176,9 @@ const DIAS = [
 let vols = [];
 let volIdActual = null;
 let SEL = {};
+let CAPS = {}; // {Sabado: 1..5, Domingo: 1..5} — cuántos puede al mes, aparte de qué horas
 const keyOf = (dia,bloque) => dia+'_'+bloque;
+const DIAS_CAP = ['Sabado','Domingo']; // únicos días que preguntan el tope antes de los bloques
 
 // ── Autocompletar nombre (mismo patrón que sustituciones.html) ──
 function sugerir(inp){
@@ -200,9 +211,15 @@ async function elegir(nombre){
   document.getElementById('cargando-dias').style.display='block';
   document.getElementById('confirmacion').style.display='none';
   try{
-    const vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id');
+    // select con max_sabados/max_domingos; si todavía no se ha ejecutado 11_max_findes.sql en
+    // Supabase esas columnas no existen y el filtro falla — probamos sin ellas para no dejar
+    // la búsqueda de nombre rota para todo el mundo mientras tanto.
+    let vs;
+    try{ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id,max_sabados,max_domingos'); }
+    catch(e){ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id'); }
     if(!vs.length){ document.getElementById('name-err').style.display='block'; return; }
     volIdActual=vs[0].id;
+    CAPS={ Sabado: vs[0].max_sabados||null, Domingo: vs[0].max_domingos||null };
     const filas=await sbGet('disponibilidad','voluntario_id=eq.'+volIdActual+'&select=dia,horario');
     SEL={};
     let huboMigracion=false;
@@ -233,14 +250,24 @@ function renderDias(){
         <span class="t-label">${b.label}</span><span class="t-range">${b.corta}</span>
       </button>`;
     }).join('');
+    const esCap = DIAS_CAP.includes(d.id);
+    const cap = CAPS[d.id] || null;
+    const bloqueado = esCap && !cap;
+    const capHTML = !esCap ? '' : cap
+      ? `<div class="cap-ok">✓ Puede ${cap} ${d.nombre.toLowerCase()}${cap===1?'':'s'} al mes — <a href="#" onclick="elegirCap('${d.id}',null);return false" style="color:inherit">cambiar</a></div>`
+      : `<div class="cap-ask">
+          <p>¿Cuántos ${d.nombre.toLowerCase()}s puedes participar al mes?</p>
+          <div class="cap-opts">${[1,2,3,4,5].map(n=>`<button type="button" class="cap-btn" onclick="elegirCap('${d.id}',${n})">${n}</button>`).join('')}</div>
+        </div>`;
     return `<div class="day-card">
       <div class="day-bar"></div>
       <div class="day-body">
         <div class="day-head">
           <div class="day-title"><span class="day-letra">${d.letra}</span><span class="day-nombre">${d.nombre}</span></div>
-          <button type="button" class="todo-dia${todos?' on':''}" onclick="toggleTodoDia('${d.id}')">Todo el día</button>
+          <button type="button" class="todo-dia${todos?' on':''}" onclick="toggleTodoDia('${d.id}')" ${bloqueado?'disabled':''}>Todo el día</button>
         </div>
-        <div class="chips-grid">${chips}</div>
+        ${capHTML}
+        <div class="chips-grid${bloqueado?' day-blocked':''}">${chips}</div>
       </div>
     </div>`;
   }).join('');
@@ -248,6 +275,7 @@ function renderDias(){
 }
 function toggleBloque(dia,bloque){ const k=keyOf(dia,bloque); SEL[k]=!SEL[k]; renderDias(); }
 function toggleTodoDia(dia){ const todos=BLOQUES.every(b=>SEL[keyOf(dia,b.id)]); BLOQUES.forEach(b=>{SEL[keyOf(dia,b.id)]=!todos;}); renderDias(); }
+function elegirCap(dia,n){ CAPS[dia]=n; renderDias(); }
 function actualizarResumen(){
   const n=Object.values(SEL).filter(Boolean).length;
   document.getElementById('resumen-total').textContent=n+' turno'+(n===1?'':'s')+' marcado'+(n===1?'':'s');
@@ -269,6 +297,10 @@ async function enviarDisponibilidad(){
       if(SEL[keyOf(d.id,b.id)]) for(let s=1;s<=5;s++) rows.push({voluntario_id:volIdActual, semana:s, dia:d.id, horario:b.rango});
     }));
     if(rows.length) await sbPost('disponibilidad', rows);
+    // Tope de fines de semana — aparte de la disponibilidad en sí, así que si falla (p. ej.
+    // porque todavía no se ha ejecutado 11_max_findes.sql en Supabase) no se trata como un
+    // fallo del guardado principal, que ya ha ido bien.
+    try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { max_sabados: CAPS.Sabado||null, max_domingos: CAPS.Domingo||null }); }catch(e){}
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){

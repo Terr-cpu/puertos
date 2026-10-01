@@ -82,9 +82,12 @@ function semanaDe(fiso) { const d = +fiso.split('-')[2]; return d<=7?1:d<=14?2:d
 // vols: [{nombre, llave}]  disp: { 'YYYY-MM-DD': ['NOMBRE 10 a 20', ...] } o func
 function construir({ dias, vols, dispPorDia, histReal = [], turnosHab = {}, reglas = {} }) {
   const llaves = new Set(vols.filter(v => v.llave).map(v => v.nombre.toUpperCase()));
+  // Tope de fines de semana por voluntario (maxSabados/maxDomingos), igual que llave — por
+  // nombre, para adjuntarlo a cada entrada de dispoIdx.
+  const capesPorNombre = new Map(vols.map(v => [v.nombre.toUpperCase(), { maxSabados: v.maxSabados ?? null, maxDomingos: v.maxDomingos ?? null }]));
   const R = { ...E.cargarReglas(), ...reglas };
   const histFlat = histReal.map(h => ({ key: h.nombre.toUpperCase(), ts: tsDe(h.fecha) }));
-  // dispoIdx: 'semana|Dia' -> [{nombre, llave, horario}]
+  // dispoIdx: 'semana|Dia' -> [{nombre, llave, horario, maxSabados, maxDomingos}]
   const dispoIdx = {};
   const diasPendientes = dias.map(fiso => {
     const dnorm = diaSemanaNombre(fiso);
@@ -93,7 +96,8 @@ function construir({ dias, vols, dispPorDia, histReal = [], turnosHab = {}, regl
     const lista = (dispPorDia[fiso] || []).map(s => {
       const m = s.match(/^(.+?)\s+(\d+)\s+a\s+(\d+)$/);
       const nombre = m[1].trim();
-      return { nombre, llave: llaves.has(nombre.toUpperCase()), horario: `${m[2]}:00 a ${m[3]}:00` };
+      const cap = capesPorNombre.get(nombre.toUpperCase());
+      return { nombre, llave: llaves.has(nombre.toUpperCase()), horario: `${m[2]}:00 a ${m[3]}:00`, maxSabados: cap ? cap.maxSabados : null, maxDomingos: cap ? cap.maxDomingos : null };
     });
     dispoIdx[k] = (dispoIdx[k] || []).concat(lista);
     return {
@@ -1392,6 +1396,25 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const borde = E._dispoBloquesEstado([{ semana: 1, dia: 'Miercoles', horario: '16:00 a 22:00' }]);
   const miercoles = borde.dias.find(d => d.dia === 'Miercoles');
   check('marcando solo el bloque Tarde (16-22) ya cubre un turno de 18 a 20', miercoles.bloques.find(b => b.id === 'tarde').on);
+})();
+
+// ── E35: tope de fines de semana — el motor no coloca a nadie en más sábados/domingos de los
+// que dijo poder, aunque esté disponible y haya hueco en el equipo ──
+(function E35() {
+  console.log('\n═══ E35 · Tope de fines de semana (sábados/domingos) ═══');
+  const V = [
+    { nombre: 'CAPADO', llave: false, maxSabados: 1 },
+    { nombre: 'F1', llave: false }, { nombre: 'F2', llave: false }, { nombre: 'F3', llave: false },
+  ];
+  const sabados = ['2026-10-03', '2026-10-10', '2026-10-17']; // 3 sábados consecutivos
+  const disp = {};
+  sabados.forEach(f => { disp[f] = ['CAPADO 8 a 14', 'F1 8 a 14', 'F2 8 a 14', 'F3 8 a 14']; });
+  const cfg = construir({ dias: sabados, vols: V, dispPorDia: disp });
+  const res = E.planificarMesGlobal({ diasPendientes: cfg.diasPendientes, histFlat: cfg.histFlat, dispoIdx: cfg.dispoIdx, llaves: cfg.llaves, R: cfg.R });
+  console.log(resumen(res, cfg.diasPendientes));
+  const vecesColocado = sabados.filter(f => res.get(f).turnos.some(t => t.equipo.some(e => e.nombre === 'CAPADO'))).length;
+  check('CAPADO (tope 1 sábado) no sale en más de 1 de los 3 sábados', vecesColocado <= 1, vecesColocado + ' veces colocado');
+  check('aun así, cada sábado queda cubierto con los demás voluntarios', sabados.every(f => res.get(f).turnos.length >= 1 && res.get(f).turnos[0].equipo.length >= 3));
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));

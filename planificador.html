@@ -1670,7 +1670,22 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
   // ── Historial simulado: real + lo que asignemos en esta pasada ──
   const simIdx = {}; // key -> [ts,...]
   histFlat.forEach(h => (simIdx[h.key] = simIdx[h.key] || []).push(h.ts));
-  const addSim = (key, ts) => (simIdx[key] = simIdx[key] || []).push(ts);
+  // Tope de fines de semana: cuántos sábados/domingos lleva ya colocados esta persona en este
+  // pase. addSim es el único sitio donde se registra una asignación (lo usan Fase 1 y Fase 2),
+  // así que basta con contar aquí — getUTCDay() porque d.ts siempre se construye a mediodía UTC.
+  const satCount = {}, domCount = {};
+  const addSim = (key, ts) => {
+    (simIdx[key] = simIdx[key] || []).push(ts);
+    const dow = new Date(ts).getUTCDay();
+    if (dow === 6) satCount[key] = (satCount[key] || 0) + 1;
+    else if (dow === 0) domCount[key] = (domCount[key] || 0) + 1;
+  };
+  function capLlegado(c, d) {
+    const dow = new Date(d.ts).getUTCDay();
+    if (dow === 6) return c.maxSabados != null && (satCount[c.key] || 0) >= c.maxSabados;
+    if (dow === 0) return c.maxDomingos != null && (domCount[c.key] || 0) >= c.maxDomingos;
+    return false;
+  }
   function descanso(key, ts, ignorar) {
     if (ignorar) return 99;
     const arr = simIdx[key]; if (!arr || !arr.length) return 99;
@@ -1696,7 +1711,7 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
       const p = PH(v.horario); if (!p) return null;
       const key = v.nombre.toUpperCase().trim();
       if (seen.has(key)) return null; seen.add(key);
-      return { nombre: v.nombre, key, hIn: p.a, hOut: p.b, llave: llaves.has(key) };
+      return { nombre: v.nombre, key, hIn: p.a, hOut: p.b, llave: llaves.has(key), maxSabados: v.maxSabados ?? null, maxDomingos: v.maxDomingos ?? null };
     }).filter(Boolean);
     const horasHab = new Set();
     (di.turnosHabilitados || []).forEach(rg => {
@@ -1709,7 +1724,7 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
   const ign = d => !!(d.exc && d.exc.ignorarDescanso);
 
   function poolDia(d, umbral) {
-    return d.raw.filter(c => !d.usados.has(c.key) && descanso(c.key, d.ts, ign(d)) >= umbral);
+    return d.raw.filter(c => !d.usados.has(c.key) && descanso(c.key, d.ts, ign(d)) >= umbral && !capLlegado(c, d));
   }
   function franjasDia(d, pool) {
     let fr = franjas2h(pool, DUR_, MINEQ_);
@@ -1954,15 +1969,23 @@ function _huecosVacios(dia, turnosExistentes, poolDia, llaves, histFlat, dur) {
 }
 
 async function getCuadranteMensual() {
+  // select con max_sabados/max_domingos (tope de fines de semana); si todavía no se ha
+  // ejecutado 11_max_findes.sql en Supabase esas columnas no existen y el select falla entero
+  // — se reintenta sin ellas para no dejar caído el Cuadrante mientras tanto.
+  const volsQuery = sbGet('voluntarios', 'select=nombre,tiene_llave,max_sabados,max_domingos&activo=eq.true')
+    .catch(() => sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true'));
   const [calData, hist, vDisp, vols, refs] = await Promise.all([
     getCalendarioConfig(),
     sbGet('v_historial', 'order=fecha,rango'),
     sbGet('v_disponibilidad', 'horario=not.is.null&order=nombre,semana,dia'),
-    sbGet('voluntarios', 'select=nombre,tiene_llave&activo=eq.true'),
+    volsQuery,
     sbGet('v_refuerzos', 'select=fecha,rango,nombre&order=fecha,rango').catch(() => [])
   ]);
 
   const llaves = new Set(vols.filter(v=>v.tiene_llave).map(v=>v.nombre.toUpperCase().trim()));
+  // Tope de fines de semana (null = sin tope): por nombre, para adjuntarlo a cada candidato
+  // de dispoIdx igual que ya se hace con "llave".
+  const capesFinde = new Map(vols.map(v => [v.nombre.toUpperCase().trim(), { maxSabados: v.max_sabados ?? null, maxDomingos: v.max_domingos ?? null }]));
   // v_disponibilidad no distingue activos: quien se dio de baja del grupo no se planifica
   const volsAct = new Set(vols.map(v=>v.nombre.toUpperCase().trim()));
   // Apuntes (refuerzos) por fecha|rango — un voluntario apuntado a un turno concreto es una
@@ -2001,11 +2024,14 @@ async function getCuadranteMensual() {
   vDisp.filter(d => volsAct.has(d.nombre.toUpperCase().trim())).forEach(d => {
     const k = d.semana + '|' + normDia(d.dia);
     if (!dispoIdx[k]) dispoIdx[k] = [];
+    const cap = capesFinde.get(d.nombre.toUpperCase().trim());
     dispoIdx[k].push({
       nombre: d.nombre, llave: d.tiene_llave,
       horario: d.horario,
       // dispo = turnos ya asignados en el historial real (menos turnos → más prioritario)
-      dispo: dispoCount[d.nombre.toUpperCase().trim()] || 0
+      dispo: dispoCount[d.nombre.toUpperCase().trim()] || 0,
+      maxSabados: cap ? cap.maxSabados : null,
+      maxDomingos: cap ? cap.maxDomingos : null
     });
   });
 
