@@ -1,4 +1,4 @@
--- ══════════════════════════════════════════════════════════════
+
 --  10 · Restricción de unicidad en bajas (voluntario + fecha + rango)
 --  ────────────────────────────────────────────────────────────
 --  La tabla historial ya tiene esta protección (historial_voluntario_id_

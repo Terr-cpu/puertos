@@ -3598,11 +3598,11 @@ function renderDispoGrid(sem) {
 //  siguen siendo el rango de horas de siempre ("sistema antiguo"). Sirve para ver, de un
 //  vistazo, quién falta por pasarse al formulario nuevo antes de retirar el antiguo.
 // ══════════════════════════════════════
+// Solo 2 bloques (ver disponibilidad-bloques.html): la franja de 14 a 16 nunca tiene turnos,
+// así que cada turno real de 2h cae limpio en uno de los dos sin tener que marcar ambos.
 const BLOQUES_DEF = [
-  { id:'manana',   label:'Mañana',   letra:'M', rango:'08:00 a 12:00', h0:8,  h1:12 },
-  { id:'mediodia', label:'Mediodía', letra:'D', rango:'12:00 a 15:00', h0:12, h1:15 },
-  { id:'tarde',    label:'Tarde',    letra:'T', rango:'15:00 a 19:00', h0:15, h1:19 },
-  { id:'noche',    label:'Noche',    letra:'N', rango:'19:00 a 22:00', h0:19, h1:22 },
+  { id:'manana', label:'Mañana', letra:'M', rango:'08:00 a 14:00', h0:8,  h1:14 },
+  { id:'tarde',  label:'Tarde',  letra:'T', rango:'16:00 a 22:00', h0:16, h1:22 },
 ];
 const DISPOB_DIAS = ['Lunes','Martes','Miercoles','Jueves','Viernes','Sabado','Domingo'];
 
@@ -3660,7 +3660,7 @@ function renderDispoBloques() {
   c.innerHTML = `
     <div class="card" style="margin-bottom:1rem">
       <p style="font-size:.8rem;line-height:1.6;color:var(--label2);margin-bottom:.7rem">
-        Misma tabla de disponibilidad de siempre, vista en bloques (🌅 Mañana · 🌤️ Mediodía · 🌇 Tarde · 🌙 Noche). Cada punto es un bloque cubierto ese día (≥ la mitad de sus horas, sumando todas las semanas registradas). <b>🧱 Sistema nuevo</b> = todas sus filas son ya bloques exactos, guardados con <code>disponibilidad-bloques.html</code>. <b>🕰️ Sistema antiguo</b> = todavía tiene algún horario libre de siempre. Cuando todo el mundo esté en 🧱, se puede retirar el formulario antiguo.
+        Misma tabla de disponibilidad de siempre, vista en bloques (🌅 Mañana hasta las 14:00 · 🌇 Tarde desde las 16:00). Cada punto es un bloque cubierto ese día (≥ la mitad de sus horas, sumando todas las semanas registradas). <b>🧱 Sistema nuevo</b> = todas sus filas son ya bloques exactos, guardados con <code>disponibilidad-bloques.html</code>. <b>🕰️ Sistema antiguo</b> = todavía tiene algún horario libre de siempre. Cuando todo el mundo esté en 🧱, se puede retirar el formulario antiguo.
       </p>
       <div style="display:flex;gap:.4rem;flex-wrap:wrap">
         ${pill('todos', 'Todos')}${pill('nuevo', '🧱 Sistema nuevo')}${pill('antiguo', '🕰️ Sistema antiguo')}${pill('sin', '⚪ Sin datos')}

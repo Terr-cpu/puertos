@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Disponibilidad · Puerto de Sevilla</title>
-<meta name="description" content="Formulario de disponibilidad por turnos (mañana, mediodía, tarde, noche) para voluntarios del Puerto de Sevilla">
+<meta name="description" content="Formulario de disponibilidad por turnos (mañana y tarde) para voluntarios del Puerto de Sevilla">
 <meta name="theme-color" content="#0f1f38">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -59,7 +59,7 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 .day-nombre{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.25rem;color:var(--ink)}
 .todo-dia{border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:20px;padding:.32rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .todo-dia.on{border-color:var(--navy);background:var(--navy);color:#fff}
-.chips-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.5rem}
+.chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
 .chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:10px;cursor:pointer;background:#fff;border:1.5px solid var(--line);color:var(--slate);font-family:inherit}
 .chip.on{background:var(--green);border-color:var(--green);color:#fff}
 .chip .t-label{font-size:.68rem;font-weight:700}
@@ -93,7 +93,7 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 
 <div class="wrap">
   <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
-  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana, Mediodía, Tarde o Noche) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora.</p>
+  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora.</p>
 
   <div class="card">
     <label for="inp-nombre">Nombre completo</label>
@@ -144,15 +144,15 @@ function horaTramo(s){
 
 const ICONS = {
   manana:'<path d="M12 3v3"></path><path d="M5.5 8.5l1.8 1.8"></path><path d="M18.5 8.5l-1.8 1.8"></path><path d="M3 15h18"></path><path d="M6 15a6 6 0 0 1 12 0"></path><path d="M9 19h6"></path>',
-  mediodia:'<circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6L19 19M19 5l-1.4 1.4M6.4 17.6L5 19"></path>',
-  tarde:'<path d="M12 9V6"></path><path d="M5.5 12.5l1.8-1.8"></path><path d="M18.5 12.5l-1.8-1.8"></path><path d="M3 18h18"></path><path d="M6 18a6 6 0 0 1 12 0"></path><path d="M9 21h6"></path>',
-  noche:'<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"></path>'
+  tarde:'<path d="M12 9V6"></path><path d="M5.5 12.5l1.8-1.8"></path><path d="M18.5 12.5l-1.8-1.8"></path><path d="M3 18h18"></path><path d="M6 18a6 6 0 0 1 12 0"></path><path d="M9 21h6"></path>'
 };
+// Solo 2 bloques: la franja de 14 a 16 (comida/descanso) nunca tiene turnos, así que cada
+// turno real de 2h cae limpio dentro de uno de los dos — nadie tiene que marcar ambos para
+// cubrir un turno en el borde. La etiqueta solo muestra el límite que importa de cada uno
+// (hasta las 14 / desde las 16), sin comprometerse a una hora de inicio/fin que no es real.
 const BLOQUES = [
-  {id:'manana',   label:'Mañana',   corta:'8–12',  rango:'08:00 a 12:00', h0:8,  h1:12},
-  {id:'mediodia', label:'Mediodía', corta:'12–15', rango:'12:00 a 15:00', h0:12, h1:15},
-  {id:'tarde',    label:'Tarde',    corta:'15–19', rango:'15:00 a 19:00', h0:15, h1:19},
-  {id:'noche',    label:'Noche',    corta:'19–22', rango:'19:00 a 22:00', h0:19, h1:22}
+  {id:'manana', label:'Mañana', corta:'hasta las 14:00', rango:'08:00 a 14:00', h0:8,  h1:14},
+  {id:'tarde',  label:'Tarde',  corta:'desde las 16:00', rango:'16:00 a 22:00', h0:16, h1:22}
 ];
 const DIAS = [
   {id:'Lunes',    letra:'L', nombre:'Lunes'},

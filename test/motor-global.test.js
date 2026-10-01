@@ -1363,30 +1363,35 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   const sinNadaLunes = E._dispoBloquesEstado([]).dias.find(d => d.dia === 'Lunes');
   check('un día sin filas no marca ningún bloque', sinNadaLunes.bloques.every(b => !b.on) && sinNadaLunes.sinNada === true);
 
-  // Sistema nuevo: filas que son exactamente los 4 bloques (aunque solo dos días)
+  // Sistema nuevo: filas que son exactamente los 2 bloques (aunque solo dos días)
   const nuevo = E._dispoBloquesEstado([
-    { semana: 1, dia: 'Viernes', horario: '19:00 a 22:00' }, { semana: 2, dia: 'Viernes', horario: '19:00 a 22:00' },
-    { semana: 1, dia: 'Sabado', horario: '08:00 a 12:00' }, { semana: 1, dia: 'Sabado', horario: '12:00 a 15:00' },
+    { semana: 1, dia: 'Viernes', horario: '16:00 a 22:00' }, { semana: 2, dia: 'Viernes', horario: '16:00 a 22:00' },
+    { semana: 1, dia: 'Sabado', horario: '08:00 a 14:00' },
   ]);
   check('todas las filas son bloques exactos → "nuevo"', nuevo.estado === 'nuevo');
   const sabado = nuevo.dias.find(d => d.dia === 'Sabado');
-  check('el sábado cubre Mañana y Mediodía, no Tarde ni Noche', sabado.bloques.find(b => b.id === 'manana').on && sabado.bloques.find(b => b.id === 'mediodia').on && !sabado.bloques.find(b => b.id === 'tarde').on && !sabado.bloques.find(b => b.id === 'noche').on);
+  check('el sábado cubre Mañana, no Tarde', sabado.bloques.find(b => b.id === 'manana').on && !sabado.bloques.find(b => b.id === 'tarde').on);
 
   // Sistema antiguo: un horario libre que no coincide con ningún bloque exacto
   const antiguo = E._dispoBloquesEstado([{ semana: 1, dia: 'Lunes', horario: '17-21' }, { semana: 1, dia: 'Domingo', horario: '8 a 21' }]);
-  check('un horario "17-21" (no es ninguno de los 4 rangos exactos) → "antiguo"', antiguo.estado === 'antiguo');
+  check('un horario "17-21" (no es ninguno de los 2 rangos exactos) → "antiguo"', antiguo.estado === 'antiguo');
   const lunes = antiguo.dias.find(d => d.dia === 'Lunes');
-  check('aun así, se ve qué bloques cubre de verdad (17-21 cubre Tarde y Noche): Josué real', lunes.bloques.find(b => b.id === 'tarde').on && lunes.bloques.find(b => b.id === 'noche').on && !lunes.bloques.find(b => b.id === 'manana').on, JSON.stringify(lunes.bloques));
+  check('aun así, se ve qué bloques cubre de verdad (17-21 cubre Tarde, no Mañana)', lunes.bloques.find(b => b.id === 'tarde').on && !lunes.bloques.find(b => b.id === 'manana').on, JSON.stringify(lunes.bloques));
   const domingo = antiguo.dias.find(d => d.dia === 'Domingo');
-  check('"8 a 21" cubre los 4 bloques del domingo', domingo.bloques.every(b => b.on));
+  check('"8 a 21" cubre los 2 bloques del domingo', domingo.bloques.every(b => b.on));
 
   // Varias semanas con distinta cobertura: se suman todas para decidir si el bloque cuenta
-  const variasSemanas = E._dispoBloquesEstado([{ semana: 1, dia: 'Martes', horario: '08:00 a 12:00' }, { semana: 3, dia: 'Martes', horario: '08:00 a 12:00' }]);
+  const variasSemanas = E._dispoBloquesEstado([{ semana: 1, dia: 'Martes', horario: '08:00 a 14:00' }, { semana: 3, dia: 'Martes', horario: '08:00 a 14:00' }]);
   check('un bloque presente en alguna semana ya cuenta como cubierto ese día', variasSemanas.dias.find(d => d.dia === 'Martes').bloques.find(b => b.id === 'manana').on);
 
   // Mezcla: un bloque exacto y un horario libre en días distintos → "antiguo" (no todo es bloque)
-  const mixto = E._dispoBloquesEstado([{ semana: 1, dia: 'Lunes', horario: '08:00 a 12:00' }, { semana: 1, dia: 'Martes', horario: '9 a 13' }]);
+  const mixto = E._dispoBloquesEstado([{ semana: 1, dia: 'Lunes', horario: '08:00 a 14:00' }, { semana: 1, dia: 'Martes', horario: '9 a 13' }]);
   check('si aunque sea una fila no es un bloque exacto, el conjunto sigue siendo "antiguo"', mixto.estado === 'antiguo');
+
+  // Un turno "en el borde" (18-20) ya no necesita marcar dos bloques: cae entero en Tarde
+  const borde = E._dispoBloquesEstado([{ semana: 1, dia: 'Miercoles', horario: '16:00 a 22:00' }]);
+  const miercoles = borde.dias.find(d => d.dia === 'Miercoles');
+  check('marcando solo el bloque Tarde (16-22) ya cubre un turno de 18 a 20', miercoles.bloques.find(b => b.id === 'tarde').on);
 })();
 
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
