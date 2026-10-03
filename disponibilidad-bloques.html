@@ -140,6 +140,7 @@ const SBH={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/
 async function sbGet(t,p=''){const r=await fetch(SU+'/rest/v1/'+t+(p?'?'+p:''),{headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return r.json();}
 async function sbPost(t,b,p='return=minimal'){const r=await fetch(SU+'/rest/v1/'+t,{method:'POST',headers:{...SBH,'Prefer':p},body:JSON.stringify(b)});if(!r.ok){const tx=await r.text();throw new Error('Error '+r.status+': '+tx.substring(0,120));}return p.includes('representation')?r.json():{ok:true};}
 async function sbDelete(t,p){const r=await fetch(SU+'/rest/v1/'+t+'?'+p,{method:'DELETE',headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return{ok:true};}
+async function sbPatch(t,p,b){const r=await fetch(SU+'/rest/v1/'+t+'?'+p,{method:'PATCH',headers:{...SBH,'Prefer':'return=minimal'},body:JSON.stringify(b)});if(!r.ok)throw new Error('Error '+r.status);return{ok:true};}
 const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 
 // Lee "10:00 a 12:00", "10 a 12", "10-12"… (mismo criterio que planificador.html/_horaTramo)
@@ -297,10 +298,10 @@ async function enviarDisponibilidad(){
       if(SEL[keyOf(d.id,b.id)]) for(let s=1;s<=5;s++) rows.push({voluntario_id:volIdActual, semana:s, dia:d.id, horario:b.rango});
     }));
     if(rows.length) await sbPost('disponibilidad', rows);
-    // Tope de fines de semana — aparte de la disponibilidad en sí, así que si falla (p. ej.
-    // porque todavía no se ha ejecutado 11_max_findes.sql en Supabase) no se trata como un
-    // fallo del guardado principal, que ya ha ido bien.
-    try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { max_sabados: CAPS.Sabado||null, max_domingos: CAPS.Domingo||null }); }catch(e){}
+    // Tope de fines de semana — aparte de la disponibilidad en sí: si falla, la disponibilidad
+    // ya está guardada, así que se avisa sin tratarlo como un fallo del guardado principal.
+    try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { max_sabados: CAPS.Sabado||null, max_domingos: CAPS.Domingo||null }); }
+    catch(e){ alert('Tu disponibilidad está guardada, pero no se pudo guardar cuántos sábados/domingos puedes hacer. Avisa para revisarlo. ('+e.message+')'); }
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){
