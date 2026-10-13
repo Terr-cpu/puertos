@@ -85,6 +85,8 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 #form-dias{display:none}
 #cargando-dias{display:none;text-align:center;padding:2rem 0;color:var(--slate);font-size:.85rem}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 
@@ -136,7 +138,8 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 
 <script>
 const SU="https://inifdflvblnonzowbxie.supabase.co",SK="sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
-const SBH={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Accept':'application/json'};
+// Authorization con el token de la sesión (auth.js): cada voluntario solo puede cambiar lo suyo.
+const SBH={'apikey':SK,get 'Authorization'(){return 'Bearer '+Auth.token();},'Content-Type':'application/json','Accept':'application/json'};
 async function sbGet(t,p=''){const r=await fetch(SU+'/rest/v1/'+t+(p?'?'+p:''),{headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return r.json();}
 async function sbPost(t,b,p='return=minimal'){const r=await fetch(SU+'/rest/v1/'+t,{method:'POST',headers:{...SBH,'Prefer':p},body:JSON.stringify(b)});if(!r.ok){const tx=await r.text();throw new Error('Error '+r.status+': '+tx.substring(0,120));}return p.includes('representation')?r.json():{ok:true};}
 async function sbDelete(t,p){const r=await fetch(SU+'/rest/v1/'+t+'?'+p,{method:'DELETE',headers:SBH});if(!r.ok)throw new Error('Error '+r.status);return{ok:true};}
@@ -329,6 +332,16 @@ async function enviarDisponibilidad(){
 }
 
 (async function init(){
+  const yo=await Auth.requerir('voluntario');
+  Auth.barra(yo);
+  if(yo.voluntario&&!yo.esAdmin){
+    // Voluntario con sesión: su nombre ya está puesto y no se puede cambiar
+    const inp=document.getElementById('inp-nombre');
+    inp.readOnly=true; inp.oninput=null; inp.style.cursor='default';
+    vols=[yo.voluntario.nombre];
+    elegir(yo.voluntario.nombre);
+    return;
+  }
   try{ vols=(await sbGet('voluntarios','activo=eq.true&select=nombre&order=nombre')).map(v=>v.nombre); }
   catch(e){ /* la búsqueda de nombres seguirá vacía hasta recargar */ }
 })();

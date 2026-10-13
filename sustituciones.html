@@ -194,7 +194,11 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .toast{background:rgba(26,26,46,.93);backdrop-filter:blur(14px);color:#fff;padding:.58rem 1rem;border-radius:40px;font-size:.76rem;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .24s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:auto}
 .toast.ok{background:rgba(26,150,72,.93)}.toast.err{background:rgba(192,57,43,.93)}.toast.inf{background:rgba(10,22,40,.93);border:1px solid rgba(201,168,76,.5)}
 @keyframes toastIn{from{opacity:0;transform:scale(.86) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.identidad-fija .ubar-change{display:none}
+.identidad-fija #card-nombre .ac-input{cursor:default}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 <div class="overlay" id="overlay">
@@ -278,7 +282,9 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 
 <script>
 const SU="https://inifdflvblnonzowbxie.supabase.co",SK="sb_publishable_2PIBcSVgX-8gtQRLPILJlQ_AyCq3cIH";
-const SBH={'apikey':SK,'Authorization':'Bearer '+SK,'Content-Type':'application/json','Accept':'application/json'};
+// Authorization con el token de la sesión (auth.js): con la base de datos cerrada cada
+// voluntario solo puede cambiar sus propias bajas y apuntes.
+const SBH={'apikey':SK,get 'Authorization'(){return 'Bearer '+Auth.token();},'Content-Type':'application/json','Accept':'application/json'};
 let vols=[],turnosU=[],ofertaActual=[],nuevosActual=[],nombreOferta='',vistaActual='confirmados',volIdOferta=null;
 
 // ── LEER CONFIGURACIÓN DESDE URL PARAMS ──────────────────────
@@ -353,14 +359,36 @@ const calcSem=iso=>{const d=parseInt(iso.split('-')[2]);return d<=7?1:d<=14?2:d<
 const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
 const sp=()=>`<div style="width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle;margin-right:.3rem"></div>`;
 
-window.addEventListener('DOMContentLoaded',()=>{
-  sbGet('voluntarios','select=nombre&activo=eq.true&order=nombre').then(d=>{vols=d.map(r=>r.nombre);}).catch(()=>{});
+window.addEventListener('DOMContentLoaded',async()=>{
+  const yo=await Auth.requerir('voluntario');
+  Auth.barra(yo);
   document.getElementById('inp-baja').addEventListener('input',function(){document.getElementById('btn-buscar').disabled=!document.getElementById('hid-baja').value;});
   document.getElementById('inp-ref').addEventListener('input',function(){document.getElementById('btn-cargar').disabled=!document.getElementById('hid-ref').value;});
   aplicarConfigSust();
   cargarCfgDesdeDB();
   initPWA();
+  if(yo.voluntario&&!yo.esAdmin){
+    // Voluntario con sesión: ya sabemos quién es — sin escribir el nombre ni poder cambiarlo
+    fijarIdentidad(yo.voluntario.nombre);
+  }else{
+    // Admin: puede actuar en nombre de cualquiera, como antes
+    sbGet('voluntarios','select=nombre&activo=eq.true&order=nombre').then(d=>{vols=d.map(r=>r.nombre);}).catch(()=>{});
+  }
+  if(location.hash==='#oferta') cambiarTab('oferta');
 });
+
+/** Pone el nombre del voluntario que ha entrado en las dos pestañas y lo deja fijo. */
+function fijarIdentidad(nombre){
+  vols=[nombre];
+  document.body.classList.add('identidad-fija');
+  [['inp-baja','hid-baja','btn-buscar'],['inp-ref','hid-ref','btn-cargar']].forEach(([inp,hid,btn])=>{
+    const i=document.getElementById(inp);
+    i.value=nombre;i.readOnly=true;i.classList.add('sel');
+    document.getElementById(hid).value=nombre;
+    document.getElementById(btn).disabled=false;
+  });
+  if(SUST_CFG.mostrarBajas) buscarTurnos();
+}
 
 function initPWA(){
   // El manifest (manifest-sustituciones.webmanifest) y el service worker

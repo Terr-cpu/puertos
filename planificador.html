@@ -571,6 +571,8 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   .topbar-actions .btn span:not(:first-child){display:none}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 
@@ -608,7 +610,11 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
     <button class="nav-item" onclick="setTab('reglas')" id="nav-reglas"><span class="ni">🎛️</span> Reglas del motor</button>
   </div>
-  <div class="sidebar-footer"><p>v5.0 · Puerto de Sevilla</p></div>
+  <div class="sidebar-footer">
+    <button class="nav-item" onclick="Auth.salir()" style="margin-bottom:.4rem"><span class="ni">🚪</span> Cerrar sesión</button>
+    <p id="sidebar-usuario" style="margin-bottom:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></p>
+    <p>v5.0 · Puerto de Sevilla</p>
+  </div>
 </aside>
 <div class="sidebar-overlay" id="soverlay" onclick="closeSidebar()"></div>
 
@@ -790,9 +796,11 @@ function setTab(id) {
 // ══════════════════════════════════════
 //  API — Supabase
 // ══════════════════════════════════════
+// Authorization lleva el token de la sesión (auth.js), no la clave pública: con la base de
+// datos cerrada (supabase/14_cerrar_bd.sql) solo el admin puede leer y escribir todo.
 const SB_H = {
   'apikey': SUPA_KEY,
-  'Authorization': 'Bearer ' + SUPA_KEY,
+  get 'Authorization'() { return 'Bearer ' + Auth.token(); },
   'Content-Type': 'application/json',
   'Accept': 'application/json'
 };
@@ -9154,15 +9162,18 @@ function _stDispoHTML() {
   </div>`;
 }
 
-// ── INIT
-loadCuadrante();
-// Cargar config calendario en background para tenerlo disponible en el cuadrante
-apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
-// Iniciar sistema de notificaciones
-actualizarBadge();
-iniciarPolling();
-// Pedir permiso de notificaciones al arrancar (no bloqueante)
-pedirPermisoNotif();
+// ── INIT — solo el admin (auth.js lleva al login si no hay sesión, y al menú si es voluntario)
+Auth.requerir('admin').then(yo => {
+  document.getElementById('sidebar-usuario').textContent = yo.email;
+  loadCuadrante();
+  // Cargar config calendario en background para tenerlo disponible en el cuadrante
+  apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
+  // Iniciar sistema de notificaciones
+  actualizarBadge();
+  iniciarPolling();
+  // Pedir permiso de notificaciones al arrancar (no bloqueante)
+  pedirPermisoNotif();
+});
 </script>
 </body>
 </html>

@@ -54,6 +54,17 @@ function isoADMY(iso: string | null | undefined): string {
   return `${d}/${m}/${y}`;
 }
 
+/** ¿Quien llama (token de su sesión) es el dueño de ese correo, o el admin? */
+async function puedePedirRecibo(req: Request, emailVoluntario: string): Promise<boolean> {
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return false;
+  const { data, error } = await sb.auth.getUser(token);
+  const u = data?.user;
+  if (error || !u) return false;
+  if (u.app_metadata?.rol === 'admin') return true;
+  return !!u.email && u.email.toLowerCase() === emailVoluntario.trim().toLowerCase();
+}
+
 async function voluntario(id: string | number | null): Promise<{ email: string | null; tieneLlave: boolean } | null> {
   if (!id) return null;
   const { data, error } = await sb.from('voluntarios').select('email,tiene_llave').eq('id', id).limit(1);
@@ -159,6 +170,9 @@ Deno.serve(async (req) => {
       const { voluntario_id, nombre, resumenTexto } = payload;
       const v = await voluntario(voluntario_id);
       if (!v?.email) return resp('sin email');
+      // Solo el propio voluntario (con su sesión) o el admin: si no, cualquiera con la clave
+      // pública podría mandar recibos a cualquier voluntario.
+      if (!(await puedePedirRecibo(req, v.email))) return resp('no autorizado', { status: 403 });
       const html = envoltorio('📅', 'Disponibilidad guardada', `
         <p style="margin:0">Hola <b>${nombre || ''}</b>, hemos guardado tu disponibilidad:</p>
         <pre style="margin:14px 0;background:#f5f7fa;border:1px solid #e5e5ea;padding:12px 16px;border-radius:14px;white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.6;color:#1c1c1e">${resumenTexto || ''}</pre>

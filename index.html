@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Entrar · Puerto de Sevilla</title>
+<meta name="description" content="Turnos de voluntarios del Puerto de Sevilla">
+<meta name="theme-color" content="#0a1628">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+:root{
+  --bg:#f2f2f7;--surface:#fff;--surface2:#f5f7fa;
+  --navy:#0a1628;--blue:#0071e3;--blue-soft:#ddeeff;
+  --gold:#c9a84c;--green-dark:#1a9648;--green-soft:#e6f7ed;
+  --red:#ff3b30;--red-dark:#c0392b;--red-soft:#fff0ef;
+  --label1:#1c1c1e;--label2:#48484a;--label3:#8e8e93;--label4:#c7c7cc;
+  --sep:rgba(60,60,67,.12);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--label1);min-height:100vh}
+.hero{background:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);padding:2.4rem 1.5rem 5rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 100%,rgba(0,113,227,.18) 0%,transparent 70%)}
+.hero-inner{position:relative}
+.hero-icon{width:52px;height:52px;margin:0 auto .75rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:15px;display:flex;align-items:center;justify-content:center;font-size:1.45rem}
+.hero h1{font-size:clamp(1.2rem,4vw,1.6rem);font-weight:700;color:#fff;letter-spacing:-.02em}
+.hero p{color:rgba(255,255,255,.4);font-size:.67rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:.3rem}
+.hero-line{width:22px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:.7rem auto 0;border-radius:2px}
+.wrap{max-width:420px;margin:-3.4rem auto 2rem;padding:0 16px;position:relative}
+.card{background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:1.5rem 1.35rem}
+.card h2{font-size:1.05rem;font-weight:700;letter-spacing:-.01em;margin-bottom:.3rem}
+.card .sub{font-size:.78rem;color:var(--label3);line-height:1.5;margin-bottom:1.1rem}
+label{display:block;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label3);margin:.85rem 0 .35rem}
+input{width:100%;font:500 .95rem 'Sora',system-ui,sans-serif;padding:.78rem .9rem;border:1.5px solid var(--sep);border-radius:var(--r-sm);background:var(--surface2);color:var(--label1);outline:none;transition:border-color .15s,background .15s}
+input:focus{border-color:var(--blue);background:#fff}
+.pw{position:relative}.pw input{padding-right:3rem}
+.pw button{position:absolute;right:.4rem;top:50%;transform:translateY(-50%);background:none;border:none;font-size:1rem;cursor:pointer;padding:.35rem;color:var(--label3)}
+.btn{display:block;width:100%;margin-top:1.2rem;font:700 .92rem 'Sora',system-ui,sans-serif;padding:.85rem;border:none;border-radius:var(--r-md);background:var(--navy);color:#fff;cursor:pointer;transition:opacity .15s}
+.btn:disabled{opacity:.55;cursor:default}
+.links{display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap;margin-top:1rem;font-size:.78rem}
+.links a{color:var(--blue);text-decoration:none;font-weight:600}
+.msg{display:none;margin-top:1rem;padding:.75rem .9rem;border-radius:var(--r-sm);font-size:.8rem;line-height:1.5}
+.msg.err{display:block;background:var(--red-soft);color:var(--red-dark)}
+.msg.ok{display:block;background:var(--green-soft);color:var(--green-dark)}
+.msg.inf{display:block;background:var(--blue-soft);color:#0a4fa0}
+.vista{display:none}.vista.on{display:block}
+.pie{text-align:center;font-size:.7rem;color:var(--label3);margin-top:1.2rem;line-height:1.6}
+.cargando{text-align:center;padding:1.5rem 0;color:var(--label3);font-size:.85rem}
+.spinner{width:28px;height:28px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .7rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-icon">⚓</div>
+    <h1>Turnos del Puerto</h1>
+    <p>Puerto de Sevilla · Voluntarios</p>
+    <div class="hero-line"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="card">
+
+    <div class="vista on" id="v-cargando"><div class="cargando"><div class="spinner"></div>Un momento…</div></div>
+
+    <!-- ENTRAR -->
+    <form class="vista" id="v-entrar" onsubmit="entrar(event)">
+      <h2>Entrar</h2>
+      <p class="sub">Con el correo que tienes guardado en tu ficha de voluntario.</p>
+      <label for="e-email">Correo</label>
+      <input type="email" id="e-email" autocomplete="email" required>
+      <label for="e-clave">Contraseña</label>
+      <div class="pw"><input type="password" id="e-clave" autocomplete="current-password" required><button type="button" onclick="verClave('e-clave',this)" aria-label="Mostrar contraseña">👁️</button></div>
+      <button class="btn" id="e-btn">Entrar</button>
+      <div class="links"><a href="#" onclick="vista('crear');return false">Crear mi cuenta</a><a href="#" onclick="vista('olvido');return false">¿Olvidaste tu contraseña?</a></div>
+      <div class="msg" id="e-msg"></div>
+    </form>
+
+    <!-- CREAR CUENTA -->
+    <form class="vista" id="v-crear" onsubmit="crear(event)">
+      <h2>Crear mi cuenta</h2>
+      <p class="sub">Usa <b>el mismo correo que tienes en tu ficha</b> de voluntario. Si no sabes cuál es, o no tienes ninguno guardado, pregunta al hermano Manuel Fernández.</p>
+      <label for="c-email">Correo</label>
+      <input type="email" id="c-email" autocomplete="email" required>
+      <label for="c-clave">Elige una contraseña</label>
+      <div class="pw"><input type="password" id="c-clave" autocomplete="new-password" minlength="8" required><button type="button" onclick="verClave('c-clave',this)" aria-label="Mostrar contraseña">👁️</button></div>
+      <label for="c-clave2">Repite la contraseña</label>
+      <input type="password" id="c-clave2" autocomplete="new-password" minlength="8" required>
+      <button class="btn" id="c-btn">Crear cuenta</button>
+      <div class="links"><a href="#" onclick="vista('entrar');return false">← Ya tengo cuenta</a></div>
+      <div class="msg" id="c-msg"></div>
+    </form>
+
+    <!-- OLVIDÉ LA CONTRASEÑA -->
+    <form class="vista" id="v-olvido" onsubmit="olvido(event)">
+      <h2>Recuperar contraseña</h2>
+      <p class="sub">Te enviaremos un correo con un enlace para elegir una contraseña nueva.</p>
+      <label for="o-email">Correo</label>
+      <input type="email" id="o-email" autocomplete="email" required>
+      <button class="btn" id="o-btn">Enviar enlace</button>
+      <div class="links"><a href="#" onclick="vista('entrar');return false">← Volver</a></div>
+      <div class="msg" id="o-msg"></div>
+    </form>
+
+    <!-- CONTRASEÑA NUEVA (desde el enlace del correo) -->
+    <form class="vista" id="v-nueva" onsubmit="nuevaClave(event)">
+      <h2>Contraseña nueva</h2>
+      <p class="sub">Elige la contraseña con la que entrarás a partir de ahora.</p>
+      <label for="n-clave">Contraseña nueva</label>
+      <div class="pw"><input type="password" id="n-clave" autocomplete="new-password" minlength="8" required><button type="button" onclick="verClave('n-clave',this)" aria-label="Mostrar contraseña">👁️</button></div>
+      <label for="n-clave2">Repítela</label>
+      <input type="password" id="n-clave2" autocomplete="new-password" minlength="8" required>
+      <button class="btn" id="n-btn">Guardar y entrar</button>
+      <div class="msg" id="n-msg"></div>
+    </form>
+
+  </div>
+  <p class="pie">Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.</p>
+</main>
+
+<script src="auth.js"></script>
+<script>
+// La página de login se ve siempre (auth.js oculta las demás hasta saber quién es)
+document.documentElement.classList.remove('auth-pendiente');
+const sb = Auth.sb;
+const PARAMS = new URLSearchParams(location.search);
+// supabase-js limpia el #… del enlace del correo al leerlo: se guarda antes
+const HASH_INICIAL = location.hash;
+// Solo se vuelve a páginas de esta web (nada de URLs externas en ?volver=)
+const PAGINAS = ['planificador.html', 'inicio.html', 'sustituciones.html', 'disponibilidad-bloques.html', 'disponibilidad.html'];
+let recuperando = false;
+
+function vista(v) {
+  document.querySelectorAll('.vista').forEach(el => el.classList.toggle('on', el.id === 'v-' + v));
+  document.querySelectorAll('.msg').forEach(m => { m.className = 'msg'; m.textContent = ''; });
+  const primero = document.querySelector('#v-' + v + ' input');
+  if (primero) setTimeout(() => primero.focus(), 50);
+  // Copiar el correo escrito de una vista a otra
+  const email = ['e-email', 'c-email', 'o-email'].map(id => document.getElementById(id).value).find(Boolean) || '';
+  ['e-email', 'c-email', 'o-email'].forEach(id => { if (!document.getElementById(id).value) document.getElementById(id).value = email; });
+}
+function msg(id, tipo, html) { const m = document.getElementById(id); m.className = 'msg ' + tipo; m.innerHTML = html; }
+function ocupado(id, si, txt) { const b = document.getElementById(id); b.disabled = si; if (txt) b.textContent = txt; }
+function verClave(id, btn) { const i = document.getElementById(id); i.type = i.type === 'password' ? 'text' : 'password'; btn.textContent = i.type === 'password' ? '👁️' : '🙈'; }
+
+/** A dónde va cada uno al entrar. */
+async function irADentro() {
+  const yo = await Auth.actual();
+  if (!yo) { vista('entrar'); return; }
+  if (!yo.esAdmin && !yo.voluntario) {
+    await sb.auth.signOut();
+    vista('entrar');
+    msg('e-msg', 'err', 'Tu correo no está en ninguna ficha de voluntario activa. Pregunta al hermano Manuel Fernández.');
+    return;
+  }
+  const volver = PARAMS.get('volver') || '';
+  const pagina = volver.split(/[?#]/)[0];
+  if (PAGINAS.includes(pagina) && (yo.esAdmin || pagina !== 'planificador.html')) { location.replace(volver); return; }
+  location.replace(yo.esAdmin ? 'planificador.html' : 'inicio.html');
+}
+
+function traducirError(e) {
+  const t = (e && (e.message || e.error_description || String(e))) || '';
+  if (/invalid login credentials/i.test(t)) return 'Correo o contraseña incorrectos.';
+  if (/email not confirmed/i.test(t)) return 'Todavía no has confirmado tu correo. Busca el mensaje que te enviamos al crear la cuenta (mira también en <b>spam</b>).';
+  if (/database error saving new user|CORREO_NO_REGISTRADO/i.test(t)) return 'Este correo no está en ninguna ficha de voluntario. Usa el correo que tienes en tu ficha o pregunta al hermano Manuel Fernández.';
+  if (/already registered|already been registered/i.test(t)) return 'Ya hay una cuenta con este correo. Entra con tu contraseña o usa “¿Olvidaste tu contraseña?”.';
+  if (/password.*(at least|characters|short)/i.test(t)) return 'La contraseña debe tener al menos 8 caracteres.';
+  if (/rate limit|too many/i.test(t)) return 'Demasiados intentos seguidos. Espera unos minutos y vuelve a probar.';
+  if (/failed to fetch|network/i.test(t)) return 'Sin conexión. Comprueba internet y vuelve a probar.';
+  return 'No se ha podido completar: ' + t.replace(/[<>&]/g, '');
+}
+
+async function entrar(ev) {
+  ev.preventDefault();
+  ocupado('e-btn', true, 'Entrando…');
+  const { error } = await sb.auth.signInWithPassword({
+    email: document.getElementById('e-email').value.trim(),
+    password: document.getElementById('e-clave').value,
+  });
+  if (error) { msg('e-msg', 'err', traducirError(error)); ocupado('e-btn', false, 'Entrar'); return; }
+  await irADentro();
+}
+
+async function crear(ev) {
+  ev.preventDefault();
+  const c1 = document.getElementById('c-clave').value, c2 = document.getElementById('c-clave2').value;
+  if (c1 !== c2) { msg('c-msg', 'err', 'Las dos contraseñas no coinciden.'); return; }
+  ocupado('c-btn', true, 'Creando…');
+  const email = document.getElementById('c-email').value.trim();
+  const { data, error } = await sb.auth.signUp({
+    email, password: c1,
+    options: { emailRedirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'index.html' },
+  });
+  ocupado('c-btn', false, 'Crear cuenta');
+  if (error) { msg('c-msg', 'err', traducirError(error)); return; }
+  if (data.session) { await irADentro(); return; }   // si la confirmación por correo está desactivada
+  msg('c-msg', 'ok', `✉️ Te hemos enviado un correo a <b>${email.replace(/[<>&]/g, '')}</b>. Pulsa el enlace que contiene para activar tu cuenta y después entra aquí.<br><small>Si no lo ves en unos minutos, mira en <b>spam</b>.</small>`);
+}
+
+async function olvido(ev) {
+  ev.preventDefault();
+  ocupado('o-btn', true, 'Enviando…');
+  const email = document.getElementById('o-email').value.trim();
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: location.origin + location.pathname.replace(/[^/]*$/, '') + 'index.html',
+  });
+  ocupado('o-btn', false, 'Enviar enlace');
+  if (error) { msg('o-msg', 'err', traducirError(error)); return; }
+  msg('o-msg', 'ok', `✉️ Si <b>${email.replace(/[<>&]/g, '')}</b> tiene cuenta, te llegará un correo con un enlace para elegir una contraseña nueva. Mira también en <b>spam</b>.`);
+}
+
+async function nuevaClave(ev) {
+  ev.preventDefault();
+  const c1 = document.getElementById('n-clave').value, c2 = document.getElementById('n-clave2').value;
+  if (c1 !== c2) { msg('n-msg', 'err', 'Las dos contraseñas no coinciden.'); return; }
+  ocupado('n-btn', true, 'Guardando…');
+  const { error } = await sb.auth.updateUser({ password: c1 });
+  if (error) { msg('n-msg', 'err', traducirError(error)); ocupado('n-btn', false, 'Guardar y entrar'); return; }
+  recuperando = false;
+  await irADentro();
+}
+
+// Enlace de "recuperar contraseña": Supabase abre esta página con una sesión temporal
+sb.auth.onAuthStateChange((evento) => {
+  if (evento === 'PASSWORD_RECOVERY') { recuperando = true; vista('nueva'); }
+});
+
+(async function inicio() {
+  // Errores que vienen en el enlace del correo (enlace caducado o ya usado)
+  const hash = new URLSearchParams(HASH_INICIAL.slice(1));
+  const errEnlace = hash.get('error_description') || PARAMS.get('error_description');
+  await new Promise(r => setTimeout(r, 300)); // deja a supabase-js leer la sesión del enlace
+  if (recuperando || /type=recovery/.test(HASH_INICIAL)) { vista('nueva'); return; }
+  if (errEnlace) {
+    vista('entrar');
+    msg('e-msg', 'err', /expired|invalid/i.test(errEnlace)
+      ? 'El enlace ha caducado o ya se usó. Si era para recuperar la contraseña, pide otro con “¿Olvidaste tu contraseña?”.'
+      : traducirError({ message: errEnlace }));
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+  const { data } = await sb.auth.getSession();
+  if (data.session) { await irADentro(); return; }
+  vista('entrar');
+  if (PARAMS.get('msg') === 'sin-ficha') msg('e-msg', 'err', 'Tu correo no está en ninguna ficha de voluntario activa. Pregunta al hermano Manuel Fernández.');
+  else if (PARAMS.get('volver')) msg('e-msg', 'inf', 'Entra con tu cuenta para continuar.');
+})();
+</script>
+</body>
+</html>

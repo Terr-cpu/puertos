@@ -13,7 +13,7 @@ function check(nombre, cond, detalle) {
   if (!cond) fallos++;
 }
 
-function cargar({ email = null, tieneLlave = false } = {}) {
+function cargar({ email = null, tieneLlave = false, usuario = { email: 'g@x.com', app_metadata: {} } } = {}) {
   const codigo = stripTypeScriptTypes(fs.readFileSync(FUENTE, 'utf8').replace(/^import .*$/m, ''));
   const correos = [];
   const sb = { from(t) {
@@ -24,7 +24,9 @@ function cargar({ email = null, tieneLlave = false } = {}) {
         return Promise.resolve({ data, error: null }).then(ok, ko);
       } };
     return b;
-  } };
+  },
+  auth: { getUser: async (tk) => (tk === 'tok' && usuario ? { data: { user: usuario }, error: null } : { data: { user: null }, error: { message: 'jwt' } }) },
+  };
   let handler = null;
   const env = { RESEND_API_KEY: 'k', RESEND_FROM: 'Turnos <a@x.com>', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k' };
   const ctx = {
@@ -37,7 +39,7 @@ function cargar({ email = null, tieneLlave = false } = {}) {
   new vm.Script(codigo).runInContext(ctx);
   return { handler, correos };
 }
-const post = (h, body) => h(new Request('http://x/', { method: 'POST', body: JSON.stringify(body) }));
+const post = (h, body, token = 'tok') => h(new Request('http://x/', { method: 'POST', headers: token ? { Authorization: 'Bearer ' + token } : {}, body: JSON.stringify(body) }));
 const F = '2026-09-26', R = '10:00 a 12:00';
 
 (async () => {
@@ -78,6 +80,20 @@ const F = '2026-09-26', R = '10:00 a 12:00';
   r = cargar({ email: null });
   await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'H', resumenTexto: 'x' });
   check('disponibilidad_guardada sin email → no se manda nada', r.correos.length === 0);
+
+  // El recibo solo lo puede pedir el propio voluntario (o el admin)
+  r = cargar({ email: 'g@x.com', usuario: { email: 'otro@x.com', app_metadata: {} } });
+  let rr = await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'G', resumenTexto: 'x' });
+  check('recibo pedido por otro usuario → 403 y no se manda', rr.status === 403 && r.correos.length === 0);
+  r = cargar({ email: 'g@x.com' });
+  rr = await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'G', resumenTexto: 'x' }, null);
+  check('recibo sin sesión → 403', rr.status === 403 && r.correos.length === 0);
+  r = cargar({ email: 'g@x.com', usuario: { email: 'admin@x.com', app_metadata: { rol: 'admin' } } });
+  await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'G', resumenTexto: 'x' });
+  check('recibo pedido por el admin → se manda', r.correos.length === 1);
+  r = cargar({ email: 'G@X.com ' });
+  await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'G', resumenTexto: 'x' });
+  check('el correo de la ficha se compara sin mayúsculas ni espacios', r.correos.length === 1);
 
   console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
   process.exit(fallos ? 1 : 0);
