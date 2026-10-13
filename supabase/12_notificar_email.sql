@@ -7,7 +7,9 @@
 --  ANTES de ejecutar esto:
 --   1. Desplegar las funciones `notificar-email` y `recordatorios-turnos`
 --      (ver NOTIFICACIONES.md, Ampliación I).
---   2. En `recordatorios-turnos` → Secrets → CRON_SECRET = un texto largo.
+--   2. En `recordatorios-turnos` → Secrets → CRON_SECRET_RECORDATORIOS = un texto largo.
+--      (nombre propio, no "CRON_SECRET" — ese ya lo usa avisos-turnos y los secrets
+--      son por proyecto, no por función; reutilizarlo rompería ese aviso)
 --   3. Cambiar abajo CAMBIA_ESTE_SECRETO por ese mismo texto.
 --
 --  Cómo ejecutarlo: Supabase → SQL Editor → New query → pegar → Run.

@@ -10,7 +10,9 @@
 //
 //  Secrets (Edge Functions → Secrets):
 //   - RESEND_API_KEY, RESEND_FROM   (los mismos que notificar-email)
-//   - CRON_SECRET     texto cualquiera; el mismo que se pone en 12_notificar_email.sql
+//   - CRON_SECRET_RECORDATORIOS     texto cualquiera; el mismo que se pone en 12_notificar_email.sql
+//     (nombre propio, distinto de CRON_SECRET, porque los secrets son por proyecto, no por
+//     función — CRON_SECRET ya lo usa avisos-turnos y no hay que tocarlo)
 //  Esta función se despliega con "Verify JWT" DESACTIVADO (la protege CRON_SECRET).
 //  Un solo archivo a propósito: se pega tal cual en el editor del panel de Supabase.
 // ══════════════════════════════════════════════════════════════
@@ -20,7 +22,7 @@ const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_ROLE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_KEY    = Deno.env.get('RESEND_API_KEY');
 const RESEND_FROM   = Deno.env.get('RESEND_FROM');
-const CRON_SECRET   = Deno.env.get('CRON_SECRET');
+const CRON_SECRET   = Deno.env.get('CRON_SECRET_RECORDATORIOS');
 
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 

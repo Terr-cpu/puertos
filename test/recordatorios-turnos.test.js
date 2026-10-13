@@ -46,7 +46,7 @@ function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
     },
   };
   let handler = null;
-  const entorno = { RESEND_API_KEY: 'k', RESEND_FROM: 'a@x.com', CRON_SECRET: 'sec', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k', ...env };
+  const entorno = { RESEND_API_KEY: 'k', RESEND_FROM: 'a@x.com', CRON_SECRET_RECORDATORIOS: 'sec', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k', ...env };
   const ctx = {
     console, Math, JSON, Promise, Error, Intl, Response, String, Date: FakeDate,
     createClient: () => sb,

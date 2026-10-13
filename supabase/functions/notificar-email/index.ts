@@ -36,6 +36,18 @@ const RESEND_FROM   = Deno.env.get('RESEND_FROM');
 
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
+// CORS: esta función la llama tanto un webhook de Supabase (servidor, sin CORS) como
+// disponibilidad-bloques.html directamente desde el navegador del voluntario (modo
+// "disponibilidad_guardada") — sin estas cabeceras, el navegador bloquea la llamada
+// en silencio (el fetch va en un catch vacío) y el recibo nunca llega.
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+function resp(body: string, init: ResponseInit = {}): Response {
+  return new Response(body, { ...init, headers: { ...CORS_HEADERS, ...(init.headers || {}) } });
+}
+
 function isoADMY(iso: string | null | undefined): string {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
@@ -71,11 +83,13 @@ function envoltorio(titulo: string, cuerpoHTML: string): string {
 }
 
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS_HEADERS });
+
   let payload: any;
   try {
     payload = await req.json();
   } catch {
-    return new Response('sin body', { status: 400 });
+    return resp('sin body', { status: 400 });
   }
 
   try {
@@ -83,25 +97,25 @@ Deno.serve(async (req) => {
     if (payload?.accion === 'disponibilidad_guardada') {
       const { voluntario_id, nombre, resumenTexto } = payload;
       const v = await voluntario(voluntario_id);
-      if (!v?.email) return new Response('sin email');
+      if (!v?.email) return resp('sin email');
       const html = envoltorio('Disponibilidad guardada', `
         <p>Hola ${nombre || ''}, hemos guardado tu disponibilidad:</p>
         <pre style="background:#f5f0e8;padding:.8rem 1rem;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:.9rem">${resumenTexto || ''}</pre>
         <p>Si cambia tu horario habitual, puedes volver a enviarlo cuando quieras.</p>`);
       await enviarCorreo(v.email, 'Disponibilidad guardada — Turnos Puerto', html);
-      return new Response('ok');
+      return resp('ok');
     }
 
     // ── Modo webhook: tabla "actividad" ──
     const { type, table, record } = payload || {};
-    if (table !== 'actividad' || type !== 'INSERT' || !record) return new Response('ignorado');
+    if (table !== 'actividad' || type !== 'INSERT' || !record) return resp('ignorado');
 
     const tipo = record.tipo;
     if (tipo !== 'baja' && tipo !== 'equipo_anadido' && tipo !== 'equipo_quitado') {
-      return new Response('ignorado (tipo sin correo)');
+      return resp('ignorado (tipo sin correo)');
     }
     const v = await voluntario(record.voluntario_id);
-    if (!v?.email) return new Response('sin email');
+    if (!v?.email) return resp('sin email');
 
     const nombre = record.nombre || '(voluntario)';
     const fecha = isoADMY(record.fecha);
@@ -125,9 +139,9 @@ Deno.serve(async (req) => {
         <p>Si tienes dudas, contacta con el coordinador.</p>`);
       await enviarCorreo(v.email, `Cambios en tu turno — ${rango} del ${fecha}`, html);
     }
-    return new Response('ok');
+    return resp('ok');
   } catch (e) {
     console.error(e);
-    return new Response('error: ' + (e as Error).message, { status: 500 });
+    return resp('error: ' + (e as Error).message, { status: 500 });
   }
 });
