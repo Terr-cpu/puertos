@@ -13,6 +13,12 @@
 //  no generan recordatorio. Así, quien ha dado de baja no recibe recordatorio
 //  ni sale como compañero, y quien se ha apuntado sí.
 //
+//  Envío manual desde el planificador (En vivo → 📧 Enviar recordatorio), mismo
+//  x-cron-secret (el coordinador lo guarda en 🔔 → Correo): body
+//  { "turno": { "fecha": "2026-10-23", "rango": "16:00 a 18:00" } } → manda el
+//  recordatorio a todos los que van a ese turno. Si el turno es mañana, lo anota
+//  en recordatorios_enviados para que el automático de la noche no lo repita.
+//
 //  Modo prueba (mismo x-cron-secret): body { "prueba_voluntario_id": "<id>" }
 //  → manda a ese voluntario el recordatorio de su PRÓXIMO turno (desde mañana),
 //  con "[PRUEBA]" en el asunto, sin anotarlo en recordatorios_enviados.
@@ -189,10 +195,10 @@ function bloqueCuestionario(): string {
 </td></tr></table>`;
 }
 
-async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<void> {
+async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<boolean> {
   if (!RESEND_KEY || !RESEND_FROM) {
     console.warn('Faltan RESEND_API_KEY / RESEND_FROM — no se envía nada');
-    return;
+    return false;
   }
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -200,10 +206,22 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
     body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html, text: htmlATexto(html) }),
   });
   if (!r.ok) console.error('Error Resend:', r.status, await r.text());
+  return r.ok;
 }
 
+// CORS: el envío manual llega desde el navegador del coordinador (planificador.html).
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret',
+};
+function resp(body: string, init: ResponseInit = {}): Response {
+  return new Response(body, { ...init, headers: { ...CORS_HEADERS, ...(init.headers || {}) } });
+}
+const json = (o: unknown, status = 200) => resp(JSON.stringify(o), { status, headers: { 'Content-Type': 'application/json' } });
+
 Deno.serve(async (req) => {
-  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) return new Response('no autorizado', { status: 401 });
+  if (req.method === 'OPTIONS') return resp('ok');
+  if (!CRON_SECRET || req.headers.get('x-cron-secret') !== CRON_SECRET) return resp('no autorizado', { status: 401 });
 
   const ahoraMs = paredMadrid();
   const manana = isoDeMs(ahoraMs + 24 * 60 * 60 * 1000);
@@ -224,20 +242,41 @@ Deno.serve(async (req) => {
     };
     const volPorId = new Map<string, Vol>((vols || []).map((v: any) => [v.id, v]));
 
+    // ── Envío manual de un turno concreto (botón del planificador) ──
+    if (payload?.turno?.fecha && payload?.turno?.rango) {
+      const { fecha, rango } = payload.turno;
+      const hoy = isoDeMs(ahoraMs);
+      const cuandoCorto = fecha === hoy ? 'hoy' : fecha === manana ? 'mañana' : 'el';
+      const cuando = cuandoCorto === 'el' ? `el ${isoADMY(fecha)}` : `${cuandoCorto} (${isoADMY(fecha)})`;
+      const pres = await presentesDe(fecha);
+      const enviados: string[] = [], sinEmail: string[] = [], fallidos: string[] = [];
+      for (const f of pres.filter((x) => x.rango === rango)) {
+        const v = volPorId.get(f.voluntario_id);
+        if (!v) continue;
+        if (!v.email) { sinEmail.push(v.nombre); continue; }
+        const html = construirRecordatorio(v, cuando, fecha, [rango], pres, volPorId);
+        if (await enviarCorreo(v.email, `Recordatorio: turno ${cuandoCorto} ${isoADMY(fecha)} · ${rango}`, html)) {
+          enviados.push(v.nombre);
+          if (fecha === manana) await sb.from('recordatorios_enviados').insert({ clave: `${v.id}|${manana}` });
+        } else fallidos.push(v.nombre);
+      }
+      return json({ ok: true, fecha, rango, enviados, sinEmail, fallidos });
+    }
+
     // ── Modo prueba: próximo turno de un voluntario concreto ──
     if (payload?.prueba_voluntario_id) {
       const v = volPorId.get(payload.prueba_voluntario_id);
-      if (!v?.email) return new Response('prueba: voluntario sin email', { status: 400 });
+      if (!v?.email) return resp('prueba: voluntario sin email', { status: 400 });
       const { data: prox } = await sb.from('historial').select('fecha').eq('voluntario_id', v.id)
         .gte('fecha', manana).order('fecha').limit(1);
       const fecha = prox?.[0]?.fecha;
-      if (!fecha) return new Response('prueba: no tiene turnos próximos', { status: 404 });
+      if (!fecha) return resp('prueba: no tiene turnos próximos', { status: 404 });
       const presDia = await presentesDe(fecha);
       const rangos = agruparPorVoluntario(presDia).get(v.id) || [];
-      if (!rangos.length) return new Response('prueba: en su próximo turno tiene baja o está anulado', { status: 404 });
+      if (!rangos.length) return resp('prueba: en su próximo turno tiene baja o está anulado', { status: 404 });
       const html = construirRecordatorio(v, `el ${isoADMY(fecha)}`, fecha, rangos, presDia, volPorId);
       await enviarCorreo(v.email, `[PRUEBA] Recordatorio: turno el ${isoADMY(fecha)}`, html);
-      return new Response(JSON.stringify({ ok: true, prueba: true, fecha, rangos }), { headers: { 'Content-Type': 'application/json' } });
+      return json({ ok: true, prueba: true, fecha, rangos });
     }
 
     const pres = await presentesDe(manana);
@@ -256,9 +295,9 @@ Deno.serve(async (req) => {
       await sb.from('recordatorios_enviados').insert({ clave });
       enviados++;
     }
-    return new Response(JSON.stringify({ ok: true, manana, enviados }), { headers: { 'Content-Type': 'application/json' } });
+    return json({ ok: true, manana, enviados });
   } catch (e) {
     console.error(e);
-    return new Response('error: ' + (e as Error).message, { status: 500 });
+    return resp('error: ' + (e as Error).message, { status: 500 });
   }
 });

@@ -185,6 +185,38 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   await llamar(r.handler, 'sec');
   check('turno anulado a mano → sin recordatorio', r.correos.length === 0);
 
+  // Envío manual de un turno concreto desde el planificador
+  r = cargar({
+    ...equipo,
+    vols: [
+      { id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false },
+      { id: 'b', nombre: 'BEA', email: 'bea@x.com', tiene_llave: true },
+      { id: 'c', nombre: 'CARLOS', email: null, tiene_llave: false },
+      { id: 'd', nombre: 'DANI', email: 'dani@x.com', tiene_llave: false },
+    ],
+  });
+  let man = await llamar(r.handler, 'sec', { turno: { fecha: '2026-09-26', rango: '10:00 a 12:00' } });
+  let cuerpo = JSON.parse(await man.text());
+  check('manual: manda a todos los del turno con email (y no a otras franjas)',
+    r.correos.length === 2 && r.correos.every(c => ['ana@x.com', 'bea@x.com'].includes(c.to[0])) && cuerpo.enviados.length === 2);
+  check('manual: devuelve quién no tiene email', cuerpo.sinEmail.length === 1 && cuerpo.sinEmail[0] === 'CARLOS');
+  check('manual: si el turno es mañana, lo anota para que el de la noche no lo repita',
+    r.insertados.filter(i => i.t === 'recordatorios_enviados').length === 2);
+  check('manual: lleva CORS para poder llamarse desde el navegador', man.headers.get('Access-Control-Allow-Origin') === '*');
+
+  r = cargar({ ...equipo, vols: equipo.vols.map(v => ({ ...v, email: v.id + '@x.com' })) });
+  man = await llamar(r.handler, 'sec', { turno: { fecha: '2026-10-23', rango: '16:00 a 18:00' } });
+  check('manual: turno de otro día → "el 23/10/2026" y no se anota como enviado',
+    r.correos.length === 2 && /turno el 23\/10\/2026/.test(r.correos[0].subject) && r.insertados.length === 0);
+
+  r = cargar(equipo);
+  man = await llamar(r.handler, null, { turno: { fecha: '2026-09-26', rango: '10:00 a 12:00' } });
+  check('manual sin secreto → 401 (con CORS para que el navegador lea el error)', man.status === 401 && r.correos.length === 0 && man.headers.get('Access-Control-Allow-Origin') === '*');
+
+  r = cargar(equipo);
+  const pre = await r.handler(new Request('http://x/', { method: 'OPTIONS' }));
+  check('OPTIONS (preflight del navegador) → 200 y permite x-cron-secret', pre.status === 200 && /x-cron-secret/.test(pre.headers.get('Access-Control-Allow-Headers')));
+
   console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
   process.exit(fallos ? 1 : 0);
 })();

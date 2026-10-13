@@ -6522,10 +6522,35 @@ function abrirCfgNotif() {
       ${cfg.telegramToken?`<div style="font-size:.7rem;color:var(--green-dark);margin-top:.5rem;font-weight:600">✓ Telegram configurado</div>`:''}
     </div>
 
+    <!-- Correo a voluntarios -->
+    <div style="background:var(--surface2);border-radius:var(--r-md);padding:.85rem 1rem;margin-bottom:1.1rem">
+      <div style="font-size:.85rem;font-weight:700;color:var(--label1);margin-bottom:.65rem">📧 Correo a voluntarios (envío manual)</div>
+      <div style="font-size:.75rem;color:var(--label3);margin-bottom:.75rem;line-height:1.5">
+        Para el botón <b>📧 Enviar recordatorio</b> de En vivo. Pega el mismo texto que el secret <code>CRON_SECRET_RECORDATORIOS</code> de Supabase.
+        Si no lo recuerdas, en Supabase → SQL Editor:<br>
+        <code style="font-size:.68rem;word-break:break-all">select substring(command from '''x-cron-secret'', ''([^'']+)''') from cron.job where jobname = 'recordatorios-turnos';</code>
+      </div>
+      <div class="fg" style="margin-bottom:.65rem">
+        <label style="font-size:.75rem;font-weight:600">Secreto de recordatorios</label>
+        <input class="fc" id="rec-secreto" type="password" value="${escH(cfg.recordatoriosSecreto||'')}" style="font-size:.8rem">
+      </div>
+      <button class="btn btn-navy btn-sm" onclick="guardarCfgRecordatorios()">💾 Guardar</button>
+      ${cfg.recordatoriosSecreto?`<div style="font-size:.7rem;color:var(--green-dark);margin-top:.5rem;font-weight:600">✓ Envío manual configurado</div>`:''}
+    </div>
+
     <div style="display:flex;justify-content:flex-end">
       <button class="btn btn-ghost" onclick="closeModal('mvol')">Cerrar</button>
     </div>`;
   openModal('mvol');
+}
+
+function guardarCfgRecordatorios() {
+  const sec = document.getElementById('rec-secreto')?.value.trim();
+  const cfg = cargarNotifCfg();
+  if (sec) cfg.recordatoriosSecreto = sec; else delete cfg.recordatoriosSecreto;
+  guardarNotifCfg(cfg);
+  toast(sec ? '✓ Secreto de recordatorios guardado' : 'Secreto de recordatorios borrado', 'ok');
+  abrirCfgNotif();
 }
 
 async function activarNotifNavegador() {
@@ -6903,6 +6928,7 @@ function _evCard(t) {
   if (t.atencion && !t.anulado) pie.push(`<button class="btn btn-navy btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evSugerir(this.dataset.k)">👥 Sugerir sustitutos</button>`);
   if (t.atencion && !t.anulado) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evCopiarAviso(this.dataset.k)">📋 Copiar aviso</button>`);
   if (t.bajas.length) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" onclick="setTab('bajas')">🏥 Ver bajas</button>`);
+  if (!t.pasado && !t.anulado && t.n > 0) pie.push(`<button class="btn btn-ghost btn-sm" style="font-size:.68rem;padding:.2rem .55rem" data-k="${escH(t.k)}" onclick="evEnviarRecordatorio(this.dataset.k, this)" title="Manda ahora el correo de recordatorio a todos los que van a este turno">📧 Enviar recordatorio</button>`);
   if (t.novedad) pie.push(`<span>Última novedad ${_evRel(t.novedad)}</span>`);
   return `<div class="ev-card ${t.nivel} ${t.pasado ? 'pasado' : ''}" id="${_evId(t.k)}">
     <div class="ev-card-h">
@@ -6930,6 +6956,35 @@ function evCopiarAviso(k) {
   const ok = () => toast('Aviso copiado — pégalo en el grupo', 'ok');
   if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el aviso:', txt));
   else window.prompt('Copia el aviso:', txt);
+}
+
+// ── Recordatorio por correo de un turno, a mano (Edge Function recordatorios-turnos) ──
+async function evEnviarRecordatorio(k, btn) {
+  const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
+  const sec = cargarNotifCfg().recordatoriosSecreto;
+  if (!sec) { toast('Primero guarda el secreto de recordatorios en 🔔 → Correo a voluntarios', 'err'); abrirCfgNotif(); return; }
+  const van = t.chips.filter(c => c.tipo !== 'baja').map(c => c.nombre);
+  if (!confirm(`¿Enviar el recordatorio del turno ${t.rango} del ${t.fecha.split('-').reverse().join('/')}?\n\n${van.join(', ')}\n\n(Solo les llega a quienes tengan correo guardado en su ficha.)`)) return;
+  if (btn) { btn.disabled = true; btn.textContent = '📧 Enviando…'; }
+  try {
+    const r = await fetch(SUPA_URL + '/functions/v1/recordatorios-turnos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-cron-secret': sec },
+      body: JSON.stringify({ turno: { fecha: t.fecha, rango: t.rango } }),
+    });
+    if (r.status === 401) throw new Error('el secreto no coincide — revísalo en 🔔 → Correo a voluntarios');
+    if (!r.ok) throw new Error(await r.text());
+    const res = await r.json();
+    const partes = [];
+    partes.push(res.enviados.length ? `📧 Enviado a ${res.enviados.join(', ')}` : '📧 No se ha enviado a nadie');
+    if (res.sinEmail.length) partes.push(`sin correo: ${res.sinEmail.join(', ')}`);
+    if (res.fallidos.length) partes.push(`falló: ${res.fallidos.join(', ')}`);
+    toast(partes.join(' · '), res.enviados.length && !res.fallidos.length ? 'ok' : 'err');
+  } catch (e) {
+    toast('No se pudo enviar el recordatorio: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📧 Enviar recordatorio'; }
+  }
 }
 
 // ── Sugerir sustitutos desde En vivo ─────────────────────────
