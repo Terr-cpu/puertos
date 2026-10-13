@@ -8,6 +8,10 @@
 //  No duplica: usa "recordatorios_enviados" para no volver a mandar el mismo
 //  día si la tarea se reintenta.
 //  Cada franja lleva la lista de compañeros del turno (🔑 = tiene llave).
+//  Quién va de verdad se cuenta igual que en la app y en avisos-turnos:
+//  equipo confirmado − bajas activas + apuntados; los turnos anulados a mano
+//  no generan recordatorio. Así, quien ha dado de baja no recibe recordatorio
+//  ni sale como compañero, y quien se ha apuntado sí.
 //
 //  Modo prueba (mismo x-cron-secret): body { "prueba_voluntario_id": "<id>" }
 //  → manda a ese voluntario el recordatorio de su PRÓXIMO turno (desde mañana),
@@ -48,6 +52,34 @@ function isoDeMs(ms: number): string {
 function isoADMY(iso: string): string {
   const [y, m, d] = iso.split('-');
   return `${d}/${m}/${y}`;
+}
+
+type Fila = { voluntario_id: string; rango: string };
+
+/**
+ * Quién va a cada franja de un día: equipo − bajas activas + apuntados (baja + apunte
+ * de la misma persona = se reincorpora), sin los turnos anulados. Mismo criterio que
+ * la pestaña "En vivo" del planificador y que avisos-turnos. Lógica pura.
+ */
+function presentesDelDia(
+  hist: Fila[], bajas: (Fila & { activa?: boolean })[],
+  refs: (Fila & { es_dia_completo?: boolean })[], anulados: { rango: string }[],
+): Fila[] {
+  const fuera = new Set((anulados || []).map((a) => a.rango));
+  const clave = (f: Fila) => f.voluntario_id + '|' + f.rango;
+  const conBaja = new Set((bajas || []).filter((b) => b.activa && b.rango).map(clave));
+  const apuntes = (refs || []).filter((r) => r.rango && !r.es_dia_completo && r.voluntario_id);
+  const apuntado = new Set(apuntes.map(clave));
+  const res: Fila[] = [];
+  const ya = new Set<string>();
+  const meter = (f: Fila) => {
+    if (fuera.has(f.rango) || ya.has(clave(f))) return;
+    ya.add(clave(f));
+    res.push({ voluntario_id: f.voluntario_id, rango: f.rango });
+  };
+  for (const h of hist || []) if (h.voluntario_id && (!conBaja.has(clave(h)) || apuntado.has(clave(h)))) meter(h);
+  for (const a of apuntes) meter(a);
+  return res;
 }
 
 /** Agrupa turnos de "mañana" por voluntario. Lógica pura, sin red — se prueba en test/. */
@@ -181,6 +213,15 @@ Deno.serve(async (req) => {
 
   try {
     const { data: vols } = await sb.from('voluntarios').select('id,nombre,email,tiene_llave');
+    const presentesDe = async (fecha: string): Promise<Fila[]> => {
+      const [{ data: h }, { data: b }, { data: r }, { data: nr }] = await Promise.all([
+        sb.from('historial').select('voluntario_id,rango').eq('fecha', fecha),
+        sb.from('bajas').select('voluntario_id,rango,activa').eq('fecha', fecha),
+        sb.from('refuerzos').select('voluntario_id,rango,es_dia_completo').eq('fecha', fecha),
+        sb.from('turnos_no_realizados').select('rango').eq('fecha', fecha),
+      ]);
+      return presentesDelDia(h || [], b || [], r || [], nr || []);
+    };
     const volPorId = new Map<string, Vol>((vols || []).map((v: any) => [v.id, v]));
 
     // ── Modo prueba: próximo turno de un voluntario concreto ──
@@ -191,15 +232,16 @@ Deno.serve(async (req) => {
         .gte('fecha', manana).order('fecha').limit(1);
       const fecha = prox?.[0]?.fecha;
       if (!fecha) return new Response('prueba: no tiene turnos próximos', { status: 404 });
-      const { data: histDia } = await sb.from('historial').select('voluntario_id,rango').eq('fecha', fecha);
-      const rangos = agruparPorVoluntario(histDia || []).get(v.id) || [];
-      const html = construirRecordatorio(v, `el ${isoADMY(fecha)}`, fecha, rangos, histDia || [], volPorId);
+      const presDia = await presentesDe(fecha);
+      const rangos = agruparPorVoluntario(presDia).get(v.id) || [];
+      if (!rangos.length) return new Response('prueba: en su próximo turno tiene baja o está anulado', { status: 404 });
+      const html = construirRecordatorio(v, `el ${isoADMY(fecha)}`, fecha, rangos, presDia, volPorId);
       await enviarCorreo(v.email, `[PRUEBA] Recordatorio: turno el ${isoADMY(fecha)}`, html);
       return new Response(JSON.stringify({ ok: true, prueba: true, fecha, rangos }), { headers: { 'Content-Type': 'application/json' } });
     }
 
-    const { data: hist } = await sb.from('historial').select('voluntario_id,rango').eq('fecha', manana);
-    const porVol = agruparPorVoluntario(hist || []);
+    const pres = await presentesDe(manana);
+    const porVol = agruparPorVoluntario(pres);
 
     let enviados = 0;
     for (const [volId, rangos] of porVol) {
@@ -209,7 +251,7 @@ Deno.serve(async (req) => {
       const { data: ya } = await sb.from('recordatorios_enviados').select('clave').eq('clave', clave).limit(1);
       if (ya?.length) continue;
 
-      const html = construirRecordatorio(v, `mañana (${isoADMY(manana)})`, manana, rangos, hist || [], volPorId);
+      const html = construirRecordatorio(v, `mañana (${isoADMY(manana)})`, manana, rangos, pres, volPorId);
       await enviarCorreo(v.email, `Recordatorio: turno mañana ${isoADMY(manana)}`, html);
       await sb.from('recordatorios_enviados').insert({ clave });
       enviados++;

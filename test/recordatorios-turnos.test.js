@@ -12,7 +12,7 @@ function check(nombre, cond, detalle) {
   if (!cond) fallos++;
 }
 
-function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
+function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], bajas = [], refs = [], anulados = [], env = {} }) {
   let codigo = fs.readFileSync(FUENTE, 'utf8').replace(/^import .*$/m, '');
   codigo = stripTypeScriptTypes(codigo) + '\n;globalThis.__f = { agruparPorVoluntario };';
 
@@ -38,6 +38,10 @@ function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
               .sort((x, y) => x.fecha.localeCompare(y.fecha));
           }
           else if (t === 'voluntarios') data = vols;
+          else if (t === 'bajas' || t === 'refuerzos' || t === 'turnos_no_realizados') {
+            const fechaF = (q.filtros.find(f => f[0] === 'fecha') || [])[1];
+            data = ({ bajas, refuerzos: refs, turnos_no_realizados: anulados })[t].filter(x => !fechaF || x.fecha === fechaF);
+          }
           else if (t === 'recordatorios_enviados') {
             const clave = (q.filtros.find(f => f[0] === 'clave') || [])[1];
             data = yaEnviados.includes(clave) ? [{ clave }] : [];
@@ -151,6 +155,35 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   r = cargar(equipo);
   const pr3 = await llamar(r.handler, 'sec', { prueba_voluntario_id: 'b' });
   check('modo prueba con voluntario sin email → 400', pr3.status === 400 && r.correos.length === 0);
+
+  // Bajas, apuntes y turnos anulados: mismo criterio que la app (equipo − bajas + apuntados)
+  r = cargar({
+    ...equipo,
+    vols: equipo.vols.map(v => ({ ...v, email: v.id + '@x.com' })),
+    bajas: [{ voluntario_id: 'c', fecha: '2026-09-26', rango: '10:00 a 12:00', activa: true }],
+    refs: [{ voluntario_id: 'd', fecha: '2026-09-26', rango: '10:00 a 12:00', es_dia_completo: false }],
+  });
+  await llamar(r.handler, 'sec');
+  const para = (id) => r.correos.find(c => c.to[0] === id + '@x.com');
+  check('quien tiene baja no recibe recordatorio', !para('c'));
+  check('quien tiene baja no sale como compañero', !/CARLOS/.test(para('a').html));
+  check('quien se ha apuntado recibe recordatorio y sale como compañero', !!para('d') && /10:00 a 12:00/.test(para('d').html) && /DANI/.test(para('a').html));
+
+  r = cargar({
+    ...equipo,
+    bajas: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00', activa: true }],
+    refs: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00', es_dia_completo: false }],
+  });
+  await llamar(r.handler, 'sec');
+  check('baja + apunte de la misma persona → se reincorpora (recibe recordatorio)', r.correos.length === 1);
+
+  r = cargar({ ...equipo, bajas: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00', activa: false }] });
+  await llamar(r.handler, 'sec');
+  check('baja anulada no cuenta (recibe recordatorio)', r.correos.length === 1);
+
+  r = cargar({ ...equipo, anulados: [{ fecha: '2026-09-26', rango: '10:00 a 12:00' }] });
+  await llamar(r.handler, 'sec');
+  check('turno anulado a mano → sin recordatorio', r.correos.length === 0);
 
   console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
   process.exit(fallos ? 1 : 0);
