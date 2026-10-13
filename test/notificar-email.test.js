@@ -61,7 +61,7 @@ const F = '2026-09-26', R = '10:00 a 12:00';
 
   r = cargar({ email: 'e@x.com' });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_quitado', voluntario_id: 'a', nombre: 'ELENA', fecha: F, rango: R } });
-  check('equipo_quitado → correo "Cambios en tu turno"', r.correos.length === 1 && /Cambios en tu turno/.test(r.correos[0].subject));
+  check('equipo_quitado → correo "Cambios en tu turno" con el contacto de Manuel Fernández', /hermano <b[^>]*>Manuel Fernández<\/b>/.test(r.correos[0].html) && !/coordinador/.test(r.correos[0].html) && r.correos.length === 1 && /Cambios en tu turno/.test(r.correos[0].subject));
 
   r = cargar({ email: 'f@x.com' });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'apunte', voluntario_id: 'a', nombre: 'F', fecha: F, rango: R } });

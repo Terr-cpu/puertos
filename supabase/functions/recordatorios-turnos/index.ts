@@ -163,6 +163,9 @@ function envoltorio(icono: string, titulo: string, cuerpoHTML: string): string {
 <div style="width:22px;height:2px;margin:11px auto 0;background:#c9a84c;border-radius:2px"></div>
 </td></tr>
 <tr><td style="padding:24px 24px 8px;font-size:15px;line-height:1.55;color:#1c1c1e">${cuerpoHTML}</td></tr>
+<tr><td style="padding:0 24px 18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:separate"><tr>
+<td style="background:#f5f7fa;border:1px solid #e5e5ea;border-radius:14px;padding:12px 16px;font-size:14px;line-height:1.5;color:#48484a">💬 Para cualquier duda o consulta, puedes ponerte en contacto con el hermano <b style="color:#0a1628">Manuel Fernández</b>.</td>
+</tr></table></td></tr>
 <tr><td style="padding:16px 24px 22px;border-top:1px solid #e5e5ea;font-size:12px;line-height:1.5;color:#8e8e93;text-align:center">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</td></tr>
 </table></div>`;
 }

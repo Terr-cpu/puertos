@@ -92,6 +92,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   check('solo entra el turno de mañana (26/09), no el de pasado mañana (27/09)',
     r.correos.length === 1 && /10:00 a 12:00/.test(r.correos[0].html) && !/08:00 a 10:00/.test(r.correos[0].html));
   check('portador de llave → el correo lo recuerda', /Eres portador de llave/.test(r.correos[0].html));
+  check('lleva el contacto de Manuel Fernández (sin teléfono)', /ponerte en contacto con el hermano Manuel Fernández\./.test(r.correos[0].text) && !/622|wa\.me/.test(r.correos[0].html));
   check('lleva el enlace al cuestionario de fin de turno', /href="https:\/\/forms\.gle\/CGyhjDJheehep5rNA"/.test(r.correos[0].html) && /forms\.gle/.test(r.correos[0].text));
   check('versión en texto plano con el turno en lista y la nota de no responder',
     !/<[a-z/]/i.test(r.correos[0].text) && /10:00 a 12:00/.test(r.correos[0].text) && /Sábado 26\/09\/2026/.test(r.correos[0].text) && /no es necesario responder/.test(r.correos[0].text));
