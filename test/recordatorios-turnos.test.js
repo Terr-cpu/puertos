@@ -27,12 +27,15 @@ function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
       const q = { t, filtros: [] };
       const b = {
         select() { return b; }, eq(c, v) { q.filtros.push([c, v]); return b; }, limit() { return b; },
+        gte(c, v) { q.desde = v; return b; }, order() { return b; },
         insert(fila) { insertados.push({ t, fila }); return Promise.resolve({ data: null, error: null }); },
         then(ok, ko) {
           let data;
           if (t === 'historial') {
             const fechaF = (q.filtros.find(f => f[0] === 'fecha') || [])[1];
-            data = fechaF ? hist.filter(h => h.fecha === fechaF) : hist;
+            const volF = (q.filtros.find(f => f[0] === 'voluntario_id') || [])[1];
+            data = hist.filter(h => (!fechaF || h.fecha === fechaF) && (!volF || h.voluntario_id === volF) && (!q.desde || h.fecha >= q.desde))
+              .sort((x, y) => x.fecha.localeCompare(y.fecha));
           }
           else if (t === 'voluntarios') data = vols;
           else if (t === 'recordatorios_enviados') {
@@ -58,7 +61,7 @@ function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
   return { handler, correos, insertados, f: ctx.__f };
 }
 
-const llamar = (h, secret) => h(new Request('http://x/', { method: 'POST', headers: secret ? { 'x-cron-secret': secret } : {}, body: '{}' }));
+const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'POST', headers: secret ? { 'x-cron-secret': secret } : {}, body: JSON.stringify(body) }));
 
 (async () => {
   console.log('\n═══ recordatorios-turnos — recordatorio diario por correo ═══');
@@ -84,9 +87,10 @@ const llamar = (h, secret) => h(new Request('http://x/', { method: 'POST', heade
   await llamar(r.handler, 'sec');
   check('solo entra el turno de mañana (26/09), no el de pasado mañana (27/09)',
     r.correos.length === 1 && /10:00 a 12:00/.test(r.correos[0].html) && !/08:00 a 10:00/.test(r.correos[0].html));
-  check('portador de llave → el correo lo recuerda', /llave/i.test(r.correos[0].html));
+  check('portador de llave → el correo lo recuerda', /Eres portador de llave/.test(r.correos[0].html));
+  check('lleva el enlace al cuestionario de fin de turno', /href="https:\/\/forms\.gle\/CGyhjDJheehep5rNA"/.test(r.correos[0].html) && /forms\.gle/.test(r.correos[0].text));
   check('versión en texto plano con el turno en lista y la nota de no responder',
-    !/<[a-z/]/i.test(r.correos[0].text) && /- 10:00 a 12:00/.test(r.correos[0].text) && /no es necesario responder/.test(r.correos[0].text));
+    !/<[a-z/]/i.test(r.correos[0].text) && /10:00 a 12:00/.test(r.correos[0].text) && /Sábado 26\/09\/2026/.test(r.correos[0].text) && /no es necesario responder/.test(r.correos[0].text));
   check('se anota en recordatorios_enviados para no duplicar', r.insertados.some(i => i.t === 'recordatorios_enviados' && i.fila.clave === 'a|2026-09-26'));
 
   r = cargar({
@@ -105,6 +109,48 @@ const llamar = (h, secret) => h(new Request('http://x/', { method: 'POST', heade
   });
   await llamar(r.handler, 'sec');
   check('sin email guardado → no se manda nada', r.correos.length === 0);
+
+  // Compañeros del turno: misma franja, sin uno mismo, 🔑 a quien tiene llave; otra franja no cuenta
+  const equipo = {
+    ahoraUTC: '2026-09-25T12:00:00Z',
+    hist: [
+      { voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' },
+      { voluntario_id: 'b', fecha: '2026-09-26', rango: '10:00 a 12:00' },
+      { voluntario_id: 'c', fecha: '2026-09-26', rango: '10:00 a 12:00' },
+      { voluntario_id: 'd', fecha: '2026-09-26', rango: '16:00 a 18:00' },
+      { voluntario_id: 'a', fecha: '2026-10-23', rango: '16:00 a 18:00' },
+      { voluntario_id: 'b', fecha: '2026-10-23', rango: '16:00 a 18:00' },
+    ],
+    vols: [
+      { id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false },
+      { id: 'b', nombre: 'BEA', email: null, tiene_llave: true },
+      { id: 'c', nombre: 'CARLOS', email: null, tiene_llave: false },
+      { id: 'd', nombre: 'DANI', email: null, tiene_llave: false },
+    ],
+  };
+  r = cargar(equipo);
+  await llamar(r.handler, 'sec');
+  check('lista los compañeros de la franja con 🔑 al que tiene llave (sin uno mismo ni otras franjas)',
+    r.correos.length === 1 && /BEA 🔑/.test(r.correos[0].html) && /CARLOS/.test(r.correos[0].html)
+    && !/DANI/.test(r.correos[0].html) && (r.correos[0].html.match(/ANA/g) || []).length === 1 && !/Eres portador/.test(r.correos[0].html));
+
+  r = cargar(equipo);
+  const pr = await llamar(r.handler, 'sec', { prueba_voluntario_id: 'a' });
+  check('modo prueba → próximo turno, asunto [PRUEBA], sin anotar en recordatorios_enviados',
+    pr.status === 200 && r.correos.length === 1 && /^\[PRUEBA\]/.test(r.correos[0].subject) && /26\/09\/2026/.test(r.correos[0].subject)
+    && r.insertados.length === 0);
+
+  r = cargar({ ...equipo, yaEnviados: ['a|2026-09-26'] });
+  await llamar(r.handler, 'sec', { prueba_voluntario_id: 'a' });
+  check('modo prueba ignora el "ya enviado" (se puede repetir)', r.correos.length === 1);
+
+  r = cargar(equipo);
+  const pr2 = await llamar(r.handler, null, { prueba_voluntario_id: 'a' });
+  check('modo prueba sin secreto → 401', pr2.status === 401 && r.correos.length === 0);
+
+  r = cargar(equipo);
+  const pr3 = await llamar(r.handler, 'sec', { prueba_voluntario_id: 'b' });
+  check('modo prueba con voluntario sin email → 400', pr3.status === 400 && r.correos.length === 0);
 
   console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
   process.exit(fallos ? 1 : 0);

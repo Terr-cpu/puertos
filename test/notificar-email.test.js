@@ -53,7 +53,7 @@ const F = '2026-09-26', R = '10:00 a 12:00';
 
   r = cargar({ email: 'c@x.com', tieneLlave: true });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_anadido', voluntario_id: 'a', nombre: 'CARLOS', fecha: F, rango: R } });
-  check('equipo_anadido (portador de llave) → correo con nota de llave', r.correos.length === 1 && /Turno confirmado/.test(r.correos[0].subject) && /llave/i.test(r.correos[0].html));
+  check('equipo_anadido (portador de llave) → correo con nota de llave y enlace al cuestionario', /forms\.gle/.test(r.correos[0].html) && r.correos.length === 1 && /Turno confirmado/.test(r.correos[0].subject) && /llave/i.test(r.correos[0].html));
 
   r = cargar({ email: 'd@x.com', tieneLlave: false });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_anadido', voluntario_id: 'a', nombre: 'DANI', fecha: F, rango: R } });

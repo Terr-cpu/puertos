@@ -65,12 +65,66 @@ async function voluntario(id: string | number | null): Promise<{ email: string |
 function htmlATexto(html: string): string {
   return html
     .replace(/<li[^>]*>/gi, '- ')
-    .replace(/<br\s*\/?>|<\/(p|h\d|li|ul|pre|div)>/gi, '\n')
+    .replace(/<br\s*\/?>|<\/(p|h\d|li|ul|pre|div|td|tr|table)>/gi, '\n')
     .replace(/<[^>]+>/g, '')
     .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
     .split('\n').map((l) => l.trim()).join('\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+// ── Plantilla visual de los correos (mismos colores que la app: azul marino, dorado, fondo gris claro) ──
+// Solo tablas y estilos en línea: es lo único que respetan Gmail, Outlook y Hotmail.
+const FUENTE_CORREO = `'Sora',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif`;
+const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+
+/** "2026-10-23" → "Viernes 23/10/2026". */
+function fechaLarga(iso: string | null | undefined): string {
+  if (!iso) return '';
+  return `${DIAS[new Date(iso + 'T12:00:00Z').getUTCDay()]} ${isoADMY(iso)}`;
+}
+
+/** Correo completo: cabecera azul marino con icono y título (como el "hero" de la app), tarjeta blanca y pie. */
+function envoltorio(icono: string, titulo: string, cuerpoHTML: string): string {
+  return `<div style="margin:0;padding:24px 12px;background:#f2f2f7;font-family:${FUENTE_CORREO};color:#1c1c1e">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;margin:0 auto;border-collapse:separate;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.09)">
+<tr><td bgcolor="#0a1628" style="background:#0a1628;background-image:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);padding:28px 24px 26px;text-align:center">
+<div style="display:inline-block;width:46px;height:46px;line-height:46px;font-size:22px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:13px">${icono}</div>
+<h1 style="margin:12px 0 0;font-size:21px;font-weight:700;letter-spacing:-.02em;color:#ffffff">${titulo}</h1>
+<p style="margin:5px 0 0;font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#8a96a8">Puerto de Sevilla · Turnos</p>
+<div style="width:22px;height:2px;margin:11px auto 0;background:#c9a84c;border-radius:2px"></div>
+</td></tr>
+<tr><td style="padding:24px 24px 8px;font-size:15px;line-height:1.55;color:#1c1c1e">${cuerpoHTML}</td></tr>
+<tr><td style="padding:16px 24px 22px;border-top:1px solid #e5e5ea;font-size:12px;line-height:1.5;color:#8e8e93;text-align:center">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</td></tr>
+</table></div>`;
+}
+
+/** Tarjeta de turno: día en pequeño, franja horaria grande y borde de color a la izquierda. */
+function tarjetaTurno(fecha: string, rango: string, color = '#0071e3', fondo = '#ddeeff', extra = ''): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0;border-collapse:separate"><tr>
+<td style="background:${fondo};border-left:4px solid ${color};border-radius:14px;padding:12px 16px">
+<div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${color}">${fecha}</div>
+<div style="font-size:20px;font-weight:700;color:#0a1628;margin-top:2px">${rango}</div>${extra}
+</td></tr></table>`;
+}
+
+/** Aviso destacado (la llave, etc.): caja de color suave. */
+function aviso(icono: string, texto: string, color = '#7c3aed', fondo = '#f0e9ff'): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0;border-collapse:separate"><tr>
+<td style="background:${fondo};border-radius:14px;padding:12px 16px;font-size:14px;font-weight:600;color:${color}">${icono} ${texto}</td></tr></table>`;
+}
+
+/** Cuestionario de Google que se rellena al terminar el turno (el mismo enlace que sale en el PDF del cuadrante). */
+const CUESTIONARIO_URL = Deno.env.get('CUESTIONARIO_URL') || 'https://forms.gle/CGyhjDJheehep5rNA';
+
+/** Bloque con botón al cuestionario de fin de turno. */
+function bloqueCuestionario(): string {
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0 14px;border-collapse:separate"><tr>
+<td style="background:#f5f7fa;border:1px solid #e5e5ea;border-radius:14px;padding:14px 16px;text-align:center">
+<div style="font-size:13px;color:#48484a;margin-bottom:10px">Al terminar, rellena el cuestionario del turno:</div>
+<a href="${CUESTIONARIO_URL}" style="display:inline-block;background:#0a1628;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:11px 22px;border-radius:12px">📝 ¿Cómo fue el turno?</a>
+<div style="font-size:11px;color:#8e8e93;margin-top:8px;word-break:break-all">${CUESTIONARIO_URL}</div>
+</td></tr></table>`;
 }
 
 async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<void> {
@@ -84,14 +138,6 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
     body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html, text: htmlATexto(html) }),
   });
   if (!r.ok) console.error('Error Resend:', r.status, await r.text());
-}
-
-function envoltorio(titulo: string, cuerpoHTML: string): string {
-  return `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1c2b3a">
-    <h2 style="color:#0f1f38;margin-bottom:.5rem">${titulo}</h2>
-    ${cuerpoHTML}
-    <p style="font-size:.78rem;color:#5c7a96;margin-top:2rem">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</p>
-  </div>`;
 }
 
 Deno.serve(async (req) => {
@@ -110,10 +156,10 @@ Deno.serve(async (req) => {
       const { voluntario_id, nombre, resumenTexto } = payload;
       const v = await voluntario(voluntario_id);
       if (!v?.email) return resp('sin email');
-      const html = envoltorio('Disponibilidad guardada', `
-        <p>Hola ${nombre || ''}, hemos guardado tu disponibilidad:</p>
-        <pre style="background:#f5f0e8;padding:.8rem 1rem;border-radius:8px;white-space:pre-wrap;font-family:inherit;font-size:.9rem">${resumenTexto || ''}</pre>
-        <p>Si cambia tu horario habitual, puedes volver a enviarlo cuando quieras.</p>`);
+      const html = envoltorio('📅', 'Disponibilidad guardada', `
+        <p style="margin:0">Hola <b>${nombre || ''}</b>, hemos guardado tu disponibilidad:</p>
+        <pre style="margin:14px 0;background:#f5f7fa;border:1px solid #e5e5ea;padding:12px 16px;border-radius:14px;white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.6;color:#1c1c1e">${resumenTexto || ''}</pre>
+        <p style="margin:0 0 14px;color:#48484a">Si cambia tu horario habitual, puedes volver a enviarlo cuando quieras.</p>`);
       await enviarCorreo(v.email, 'Disponibilidad guardada — Turnos Puerto', html);
       return resp('ok');
     }
@@ -131,24 +177,29 @@ Deno.serve(async (req) => {
 
     const nombre = record.nombre || '(voluntario)';
     const fecha = isoADMY(record.fecha);
+    const dia = fechaLarga(record.fecha);
     const rango = record.rango || 'turno';
 
     if (tipo === 'baja') {
-      const html = envoltorio('Baja registrada', `
-        <p>Hola ${nombre}, hemos registrado tu baja para el turno <b>${rango}</b> del <b>${fecha}</b>.</p>
-        <p>Gracias por avisar.</p>`);
+      const html = envoltorio('📝', 'Baja registrada', `
+        <p style="margin:0">Hola <b>${nombre}</b>, hemos registrado tu baja para este turno:</p>
+        ${tarjetaTurno(dia, rango, '#c0392b', '#fff0ef')}
+        <p style="margin:0 0 14px;color:#48484a">Gracias por avisar.</p>`);
       await enviarCorreo(v.email, `Baja registrada — ${rango} del ${fecha}`, html);
     } else if (tipo === 'equipo_anadido') {
-      const llaveTxt = v.tieneLlave ? '<p>🔑 Eres portador de llave — no olvides llevarla.</p>' : '';
-      const html = envoltorio('Turno confirmado', `
-        <p>Hola ${nombre}, tu turno <b>${rango}</b> del <b>${fecha}</b> ha quedado confirmado.</p>
+      const llaveTxt = v.tieneLlave ? aviso('🔑', 'Eres portador de llave — no olvides llevarla.') : '';
+      const html = envoltorio('✅', 'Turno confirmado', `
+        <p style="margin:0">Hola <b>${nombre}</b>, tu turno ha quedado confirmado:</p>
+        ${tarjetaTurno(dia, rango, '#1a9648', '#e6f7ed')}
         ${llaveTxt}
-        <p>¡Te esperamos!</p>`);
+        <p style="margin:0 0 14px;color:#48484a">¡Te esperamos!</p>
+        ${bloqueCuestionario()}`);
       await enviarCorreo(v.email, `Turno confirmado — ${rango} del ${fecha}`, html);
     } else if (tipo === 'equipo_quitado') {
-      const html = envoltorio('Cambios en tu turno', `
-        <p>Hola ${nombre}, el turno <b>${rango}</b> del <b>${fecha}</b> para el que estabas confirmado ha cambiado y ya no cuentas en el equipo.</p>
-        <p>Si tienes dudas, contacta con el coordinador.</p>`);
+      const html = envoltorio('⚠️', 'Cambios en tu turno', `
+        <p style="margin:0">Hola <b>${nombre}</b>, este turno para el que estabas confirmado ha cambiado y <b>ya no cuentas en el equipo</b>:</p>
+        ${tarjetaTurno(dia, rango, '#e07b00', '#fff3e0')}
+        <p style="margin:0 0 14px;color:#48484a">Si tienes dudas, contacta con el coordinador.</p>`);
       await enviarCorreo(v.email, `Cambios en tu turno — ${rango} del ${fecha}`, html);
     }
     return resp('ok');
