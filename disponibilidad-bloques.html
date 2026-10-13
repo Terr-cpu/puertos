@@ -2,72 +2,77 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Disponibilidad · Puerto de Sevilla</title>
 <meta name="description" content="Formulario de disponibilidad por turnos (mañana y tarde) para voluntarios del Puerto de Sevilla">
-<meta name="theme-color" content="#0f1f38">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0a1628">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --navy:#0f1f38; --ocean:#1a3a5c; --gold:#c9a84c;
-  --dawn:#f5f0e8; --mist:#eef2f7; --ink:#1c2b3a; --slate:#5c7a96;
-  --green:#1e7d5a; --green-soft:#e7f3ee; --red:#c0392b; --red-soft:#fbeceb;
-  --white:#fff; --line:#e4eaf3;
+  --navy:#0a1628; --ocean:#0d2346; --gold:#c9a84c; --blue:#0071e3;
+  --dawn:#f2f2f7; --mist:#f5f7fa; --ink:#1c1c1e; --slate:#6e6e73;
+  --green:#1a9648; --green-soft:#e6f7ed; --red:#c0392b; --red-soft:#fff0ef;
+  --white:#fff; --line:rgba(60,60,67,.12);
 }
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
 html{scroll-behavior:smooth}
-body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);min-height:100vh;padding-bottom:3rem}
+body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparent 42%),radial-gradient(circle at 88% 72%,rgba(201,168,76,.13),transparent 40%),radial-gradient(circle at 50% 100%,rgba(124,58,237,.06),transparent 45%) #f2f2f7;background-attachment:fixed;font-family:'Sora',system-ui,sans-serif;color:var(--ink);min-height:100vh;padding-bottom:3rem}
 
-.site-header{background:linear-gradient(135deg,var(--navy) 0%,var(--ocean) 100%);padding:2.4rem 1.5rem 1.9rem;text-align:center}
-.site-header h1{font-family:'DM Serif Display',serif;font-size:clamp(1.5rem,4vw,2.1rem);color:#fff;font-weight:400}
-.site-header p{color:rgba(255,255,255,.6);font-size:.78rem;margin-top:.35rem;letter-spacing:.08em;text-transform:uppercase}
-.gold-line{width:46px;height:3px;background:var(--gold);margin:1rem auto 0;border-radius:2px}
+.hero{background:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);padding:2rem 1.5rem 4.6rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 100%,rgba(0,113,227,.18) 0%,transparent 70%)}
+.hero-inner{position:relative}
+.hero-icon{width:46px;height:46px;margin:0 auto .65rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+.hero h1{font-size:clamp(1.15rem,4vw,1.55rem);font-weight:700;color:#fff;letter-spacing:-.02em}
+.hero p{color:rgba(255,255,255,.4);font-size:.67rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:.28rem}
+.hero-line{width:22px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:.65rem auto 0;border-radius:2px}
 
-.wrap{max-width:760px;margin:0 auto;padding:0 1rem}
-.intro{font-size:.9rem;line-height:1.6;color:var(--slate);margin:1.6rem 0 .4rem}
-.intro.small{font-size:.84rem;margin-top:0;margin-bottom:1.4rem}
+.wrap{max-width:760px;margin:-3rem auto 0;padding:0 16px;position:relative}
+.intro{font-size:.84rem;line-height:1.6;color:var(--slate);margin:.2rem .2rem .5rem}
+.intro.small{font-size:.78rem;margin-bottom:1.3rem}
 
-.card{background:var(--white);border-radius:14px;padding:1.4rem;box-shadow:0 2px 14px rgba(15,31,56,.07);border:1px solid var(--line);margin-bottom:1.3rem;position:relative}
-.card label{display:block;font-weight:700;font-size:.76rem;letter-spacing:.09em;text-transform:uppercase;color:var(--slate);margin-bottom:.6rem}
+.card{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.65);border-radius:20px;padding:1.3rem 1.25rem;box-shadow:0 12px 40px rgba(0,0,0,.10);margin-bottom:1.2rem;position:relative}
+.card label{display:block;font-weight:700;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--slate);margin-bottom:.55rem}
 .ac-wrap{position:relative}
-.ac-input{width:100%;border:2px solid var(--line);border-radius:9px;padding:.72rem .95rem;font-family:inherit;font-size:.95rem;color:var(--ink);outline:none;background:var(--mist)}
-.ac-input:focus{border-color:var(--gold)}
-.ac-sugs{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:10px;max-height:220px;overflow-y:auto;z-index:50;box-shadow:0 8px 28px rgba(15,31,56,.14);display:none}
+.ac-input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:.72rem .95rem;font-family:inherit;font-size:.95rem;font-weight:600;color:var(--ink);outline:none;background:rgba(245,247,250,.8)}
+.ac-input:focus{border-color:var(--blue);background:#fff}
+.ac-sugs{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;max-height:220px;overflow-y:auto;z-index:50;box-shadow:0 8px 28px rgba(0,0,0,.14);display:none}
 .ac-sugs.open{display:block}
 .ac-sug{padding:.6rem .9rem;font-size:.85rem;cursor:pointer;display:flex;align-items:center;gap:.5rem}
 .ac-sug:hover,.ac-sug.hi{background:var(--mist)}
-.ac-sug mark{background:transparent;color:var(--ocean);font-weight:700}
+.ac-sug mark{background:transparent;color:var(--blue);font-weight:700}
 .name-msg{font-size:.78rem;margin-top:.6rem}
 .name-msg.err{color:var(--red)}
 .name-msg.ok{color:var(--green)}
 
-.migra{display:none;align-items:flex-start;gap:.6rem;background:#eef4fb;border:1px solid #cfe0f0;border-radius:12px;padding:.85rem 1rem;margin-bottom:1.1rem;font-size:.8rem;color:var(--ink);line-height:1.5}
-.migra b{color:var(--ocean)}
+.migra{display:none;align-items:flex-start;gap:.6rem;background:rgba(221,238,255,.75);border:1px solid rgba(0,113,227,.18);border-radius:14px;padding:.85rem 1rem;margin-bottom:1.1rem;font-size:.8rem;color:var(--ink);line-height:1.5}
+.migra b{color:var(--blue)}
 
-.sec-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:.85rem}
-.sec-title span:first-child{font-family:'DM Serif Display',serif;font-size:1.15rem;color:var(--ink)}
-.sec-title span:last-child{font-size:.72rem;color:var(--slate)}
+.sec-title{display:flex;align-items:baseline;justify-content:space-between;gap:.6rem;margin:0 .2rem .85rem}
+.sec-title span:first-child{font-size:1.05rem;font-weight:700;letter-spacing:-.01em;color:var(--ink)}
+.sec-title span:last-child{font-size:.7rem;color:var(--slate);text-align:right}
 
-.dias-cont{display:flex;flex-direction:column;gap:1rem}
-.day-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 3px 16px rgba(15,31,56,.08);border:1px solid var(--line)}
-.day-bar{height:5px;background:linear-gradient(90deg,var(--navy),var(--ocean))}
+.dias-cont{display:flex;flex-direction:column;gap:.85rem}
+.day-card{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.65);border-radius:20px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.07)}
+.day-bar{height:4px;background:linear-gradient(90deg,var(--navy),var(--gold))}
 .day-body{padding:1rem 1.1rem 1.1rem}
 .day-head{display:flex;align-items:center;justify-content:space-between;gap:.6rem;margin-bottom:.9rem}
 .day-title{display:flex;align-items:center;gap:.65rem}
-.day-letra{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:var(--navy);color:var(--gold);font-size:.92rem;font-weight:700;flex-shrink:0}
-.day-nombre{font-family:'DM Serif Display',serif;font-weight:400;font-size:1.25rem;color:var(--ink)}
-.todo-dia{border:1.5px solid var(--line);background:#fff;color:var(--slate);border-radius:20px;padding:.32rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
+.day-letra{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:var(--navy);color:var(--gold);font-size:.88rem;font-weight:700;flex-shrink:0}
+.day-nombre{font-weight:700;font-size:1.05rem;letter-spacing:-.01em;color:var(--ink)}
+.todo-dia{border:1.5px solid var(--line);background:rgba(255,255,255,.7);color:var(--slate);border-radius:20px;padding:.32rem .8rem;font-size:.68rem;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap}
 .todo-dia.on{border-color:var(--navy);background:var(--navy);color:#fff}
 .todo-dia:disabled{opacity:.35;cursor:not-allowed}
 .chips-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
-.chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:10px;cursor:pointer;background:#fff;border:1.5px solid var(--line);color:var(--slate);font-family:inherit}
+.chip{display:flex;flex-direction:column;align-items:center;gap:.25rem;padding:.6rem .3rem;border-radius:12px;cursor:pointer;background:rgba(255,255,255,.75);border:1.5px solid var(--line);color:var(--slate);font-family:inherit}
 .chip.on{background:var(--green);border-color:var(--green);color:#fff}
-.chip .t-label{font-size:.68rem;font-weight:700}
+.chip .t-label{font-size:.7rem;font-weight:700}
 .chip .t-range{font-size:.6rem;opacity:.75}
 .chip svg{pointer-events:none}
 
-.cap-ask{background:var(--mist);border:1.5px dashed var(--line);border-radius:10px;padding:.7rem .8rem;margin-bottom:.7rem}
+.cap-ask{background:rgba(245,247,250,.8);border:1.5px dashed var(--line);border-radius:12px;padding:.7rem .8rem;margin-bottom:.7rem}
 .cap-ask p{font-size:.78rem;font-weight:600;color:var(--ink);margin-bottom:.55rem}
 .cap-opts{display:flex;gap:.4rem}
 .cap-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--line);background:#fff;color:var(--slate);font-family:inherit;font-weight:700;font-size:.85rem;cursor:pointer}
@@ -75,11 +80,11 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 .day-blocked{opacity:.4;pointer-events:none}
 .cap-ok{font-size:.74rem;color:var(--green);font-weight:600;margin-bottom:.7rem}
 
-.confirm{display:none;margin-top:1.2rem;background:var(--green-soft);border:1px solid var(--green);border-radius:12px;padding:1rem 1.1rem;color:#155a41;font-size:.88rem;font-weight:600}
+.confirm{display:none;margin-top:1.2rem;background:var(--green-soft);border:1px solid rgba(26,150,72,.35);border-radius:14px;padding:1rem 1.1rem;color:#14703a;font-size:.86rem;font-weight:600}
 
-.submit-bar{position:sticky;bottom:0;margin-top:1.4rem;background:rgba(245,240,232,.94);backdrop-filter:blur(6px);padding:.9rem 0 .2rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line)}
+.submit-bar{position:sticky;bottom:0;margin-top:1.4rem;background:rgba(242,242,247,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);padding:.9rem 0 calc(.6rem + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line)}
 .submit-bar span{font-size:.8rem;color:var(--slate)}
-.btn-enviar{background:var(--navy);color:#fff;border:none;border-radius:10px;padding:.75rem 1.6rem;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:.02em;font-family:inherit}
+.btn-enviar{background:var(--navy);color:#fff;border:none;border-radius:14px;padding:.8rem 1.5rem;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-enviar:disabled{opacity:.45;cursor:not-allowed}
 
 #form-dias{display:none}
@@ -90,21 +95,16 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
 </head>
 <body>
 
-<div class="site-header">
-  <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto .6rem;display:block">
-    <circle cx="12" cy="5" r="2"></circle>
-    <line x1="12" y1="7" x2="12" y2="21"></line>
-    <path d="M5 12h14"></path>
-    <path d="M5 12c0 4 3 7 7 9c4-2 7-5 7-9"></path>
-  </svg>
-  <h1>Disponibilidad</h1>
-  <p>Puerto de Sevilla</p>
-  <div class="gold-line"></div>
-</div>
+<header class="hero">
+  <div class="hero-inner">
+    <div class="hero-icon">🗓️</div>
+    <h1>Mi disponibilidad</h1>
+    <p>Puerto de Sevilla · Voluntarios</p>
+    <div class="hero-line"></div>
+  </div>
+</header>
 
 <div class="wrap">
-  <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
-  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
 
   <div class="card">
     <label for="inp-nombre">Nombre completo</label>
@@ -114,6 +114,9 @@ body{background:var(--dawn);font-family:'DM Sans',sans-serif;color:var(--ink);mi
     </div>
     <div class="name-msg err" id="name-err" style="display:none">No te encuentro en la lista de voluntarios activos. Pide al hermano que lleva los turnos que te dé de alta.</div>
   </div>
+
+  <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
+  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
 
   <div id="cargando-dias">Cargando tu disponibilidad…</div>
 
