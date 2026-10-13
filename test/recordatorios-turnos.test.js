@@ -85,6 +85,8 @@ const llamar = (h, secret) => h(new Request('http://x/', { method: 'POST', heade
   check('solo entra el turno de mañana (26/09), no el de pasado mañana (27/09)',
     r.correos.length === 1 && /10:00 a 12:00/.test(r.correos[0].html) && !/08:00 a 10:00/.test(r.correos[0].html));
   check('portador de llave → el correo lo recuerda', /llave/i.test(r.correos[0].html));
+  check('versión en texto plano con el turno en lista y la nota de no responder',
+    !/<[a-z/]/i.test(r.correos[0].text) && /- 10:00 a 12:00/.test(r.correos[0].text) && /no es necesario responder/.test(r.correos[0].text));
   check('se anota en recordatorios_enviados para no duplicar', r.insertados.some(i => i.t === 'recordatorios_enviados' && i.fila.clave === 'a|2026-09-26'));
 
   r = cargar({

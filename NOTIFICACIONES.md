@@ -285,7 +285,7 @@ escriba bien.
    `notificar-email` → pega
    [`index.ts`](supabase/functions/notificar-email/index.ts) → Deploy.
    **Secrets**: `RESEND_API_KEY` (paso 1), `RESEND_FROM` (p. ej.
-   `Turnos Puerto <avisos@tudominio.com>`, con el remitente verificado en
+   `Turnos Puerto <avisos@asispuerto.org>`, con el remitente verificado en
    Resend).
 4. **Database → Webhooks → Create a new webhook**:
    - Name: `Actividad → correo voluntario`
@@ -296,7 +296,8 @@ escriba bien.
    [`index.ts`](supabase/functions/recordatorios-turnos/index.ts) → Deploy.
    Desactiva **Verify JWT** (la protege `CRON_SECRET`, igual que
    `avisos-turnos`). **Secrets**: `RESEND_API_KEY`, `RESEND_FROM` (los
-   mismos del paso 3) y `CRON_SECRET` = el mismo texto del paso 2.
+   mismos del paso 3) y `CRON_SECRET_RECORDATORIOS` = el mismo texto del
+   paso 2 (no `CRON_SECRET`: ese ya lo usa `avisos-turnos`).
 6. En el planificador, pestaña **Voluntarios → Ficha** de cada persona:
    escribe su correo y pulsa 💾. Queda guardado al momento.
 7. Probar: registra una baja de prueba desde Sustituciones (de alguien con

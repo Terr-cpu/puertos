@@ -72,6 +72,8 @@ const F = '2026-09-26', R = '10:00 a 12:00';
   r = cargar({ email: 'g@x.com' });
   await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'GIOVANNI', resumenTexto: 'Sábado: Mañana, Tarde (máx. 3/mes)' });
   check('disponibilidad_guardada con email → correo recibo con el resumen', r.correos.length === 1 && /Disponibilidad guardada/.test(r.correos[0].subject) && /máx\. 3\/mes/.test(r.correos[0].html));
+  check('versión en texto plano: sin etiquetas, con el resumen y la nota de no responder',
+    typeof r.correos[0].text === 'string' && !/<[a-z/]/i.test(r.correos[0].text) && /máx\. 3\/mes/.test(r.correos[0].text) && /no es necesario responder/.test(r.correos[0].text));
 
   r = cargar({ email: null });
   await post(r.handler, { accion: 'disponibilidad_guardada', voluntario_id: 'a', nombre: 'H', resumenTexto: 'x' });

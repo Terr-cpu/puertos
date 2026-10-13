@@ -55,6 +55,18 @@ function agruparPorVoluntario(hist: { voluntario_id: string; rango: string }[]):
   return m;
 }
 
+/** Versión en texto plano a partir del HTML del correo (los correos solo-HTML puntúan peor en los filtros de spam). */
+function htmlATexto(html: string): string {
+  return html
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<br\s*\/?>|<\/(p|h\d|li|ul|pre|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .split('\n').map((l) => l.trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<void> {
   if (!RESEND_KEY || !RESEND_FROM) {
     console.warn('Faltan RESEND_API_KEY / RESEND_FROM — no se envía nada');
@@ -63,7 +75,7 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
-    body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html }),
+    body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html, text: htmlATexto(html) }),
   });
   if (!r.ok) console.error('Error Resend:', r.status, await r.text());
 }
@@ -97,7 +109,7 @@ Deno.serve(async (req) => {
         <p>Hola ${v.nombre}, mañana (${isoADMY(manana)}) tienes turno:</p>
         <ul>${lista}</ul>
         ${llaveTxt}
-        <p style="font-size:.78rem;color:#5c7a96;margin-top:2rem">Puerto de Sevilla — Turnos</p>
+        <p style="font-size:.78rem;color:#5c7a96;margin-top:2rem">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</p>
       </div>`;
       await enviarCorreo(v.email, `Recordatorio: turno mañana ${isoADMY(manana)}`, html);
       await sb.from('recordatorios_enviados').insert({ clave });

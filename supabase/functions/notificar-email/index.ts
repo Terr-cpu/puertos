@@ -61,6 +61,18 @@ async function voluntario(id: string | number | null): Promise<{ email: string |
   return { email: data[0].email || null, tieneLlave: !!data[0].tiene_llave };
 }
 
+/** Versión en texto plano a partir del HTML del correo (los correos solo-HTML puntúan peor en los filtros de spam). */
+function htmlATexto(html: string): string {
+  return html
+    .replace(/<li[^>]*>/gi, '- ')
+    .replace(/<br\s*\/?>|<\/(p|h\d|li|ul|pre|div)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+    .split('\n').map((l) => l.trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<void> {
   if (!RESEND_KEY || !RESEND_FROM) {
     console.warn('Faltan RESEND_API_KEY / RESEND_FROM — no se envía nada');
@@ -69,7 +81,7 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
   const r = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
-    body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html }),
+    body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html, text: htmlATexto(html) }),
   });
   if (!r.ok) console.error('Error Resend:', r.status, await r.text());
 }
@@ -78,7 +90,7 @@ function envoltorio(titulo: string, cuerpoHTML: string): string {
   return `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;color:#1c2b3a">
     <h2 style="color:#0f1f38;margin-bottom:.5rem">${titulo}</h2>
     ${cuerpoHTML}
-    <p style="font-size:.78rem;color:#5c7a96;margin-top:2rem">Puerto de Sevilla — Turnos</p>
+    <p style="font-size:.78rem;color:#5c7a96;margin-top:2rem">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</p>
   </div>`;
 }
 
