@@ -1,0 +1,109 @@
+// Prueba de supabase/functions/recordatorios-turnos/index.ts
+// Carga el archivo tal cual con Supabase, Resend y el reloj simulados.
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+const { stripTypeScriptTypes } = require('node:module');
+
+const FUENTE = path.join(__dirname, '..', 'supabase', 'functions', 'recordatorios-turnos', 'index.ts');
+let fallos = 0;
+function check(nombre, cond, detalle) {
+  console.log((cond ? '  ✅ ' : '  ❌ ') + nombre + (detalle ? ' — ' + detalle : ''));
+  if (!cond) fallos++;
+}
+
+function cargar({ ahoraUTC, hist = [], vols = [], yaEnviados = [], env = {} }) {
+  let codigo = fs.readFileSync(FUENTE, 'utf8').replace(/^import .*$/m, '');
+  codigo = stripTypeScriptTypes(codigo) + '\n;globalThis.__f = { agruparPorVoluntario };';
+
+  const FIJO = new Date(ahoraUTC).getTime();
+  class FakeDate extends Date {
+    constructor(...a) { if (a.length) super(...a); else super(FIJO); }
+    static now() { return FIJO; }
+  }
+  const correos = [], insertados = [];
+  const sb = {
+    from(t) {
+      const q = { t, filtros: [] };
+      const b = {
+        select() { return b; }, eq(c, v) { q.filtros.push([c, v]); return b; }, limit() { return b; },
+        insert(fila) { insertados.push({ t, fila }); return Promise.resolve({ data: null, error: null }); },
+        then(ok, ko) {
+          let data;
+          if (t === 'historial') {
+            const fechaF = (q.filtros.find(f => f[0] === 'fecha') || [])[1];
+            data = fechaF ? hist.filter(h => h.fecha === fechaF) : hist;
+          }
+          else if (t === 'voluntarios') data = vols;
+          else if (t === 'recordatorios_enviados') {
+            const clave = (q.filtros.find(f => f[0] === 'clave') || [])[1];
+            data = yaEnviados.includes(clave) ? [{ clave }] : [];
+          } else data = [];
+          return Promise.resolve({ data, error: null }).then(ok, ko);
+        },
+      };
+      return b;
+    },
+  };
+  let handler = null;
+  const entorno = { RESEND_API_KEY: 'k', RESEND_FROM: 'a@x.com', CRON_SECRET: 'sec', SUPABASE_URL: 'http://x', SUPABASE_SERVICE_ROLE_KEY: 'k', ...env };
+  const ctx = {
+    console, Math, JSON, Promise, Error, Intl, Response, String, Date: FakeDate,
+    createClient: () => sb,
+    Deno: { env: { get: (k) => entorno[k] }, serve: (fn) => { handler = fn; } },
+    fetch: async (u, o) => { correos.push(JSON.parse(o.body)); return { ok: true, text: async () => '' }; },
+  };
+  vm.createContext(ctx);
+  new vm.Script(codigo).runInContext(ctx);
+  return { handler, correos, insertados, f: ctx.__f };
+}
+
+const llamar = (h, secret) => h(new Request('http://x/', { method: 'POST', headers: secret ? { 'x-cron-secret': secret } : {}, body: '{}' }));
+
+(async () => {
+  console.log('\n═══ recordatorios-turnos — recordatorio diario por correo ═══');
+
+  let r = cargar({ ahoraUTC: '2026-09-25T12:00:00Z' });
+  const sinSecreto = await llamar(r.handler, null);
+  check('sin x-cron-secret → 401', sinSecreto.status === 401);
+  const malSecreto = await llamar(r.handler, 'otro');
+  check('con secreto incorrecto → 401', malSecreto.status === 401);
+
+  check('agruparPorVoluntario junta por voluntario_id',
+    (() => {
+      const m = r.f.agruparPorVoluntario([{ voluntario_id: 'a', rango: '10:00 a 12:00' }, { voluntario_id: 'a', rango: '16:00 a 18:00' }, { voluntario_id: 'b', rango: '08:00 a 10:00' }]);
+      return m.get('a').length === 2 && m.get('b').length === 1;
+    })());
+
+  // 25/09/2026 (viernes) a mediodía UTC → "mañana" en hora de Madrid es 2026-09-26
+  r = cargar({
+    ahoraUTC: '2026-09-25T12:00:00Z',
+    hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }, { voluntario_id: 'a', fecha: '2026-09-27', rango: '08:00 a 10:00' }],
+    vols: [{ id: 'a', nombre: 'ANA PRUEBA', email: 'ana@x.com', tiene_llave: true }],
+  });
+  await llamar(r.handler, 'sec');
+  check('solo entra el turno de mañana (26/09), no el de pasado mañana (27/09)',
+    r.correos.length === 1 && /10:00 a 12:00/.test(r.correos[0].html) && !/08:00 a 10:00/.test(r.correos[0].html));
+  check('portador de llave → el correo lo recuerda', /llave/i.test(r.correos[0].html));
+  check('se anota en recordatorios_enviados para no duplicar', r.insertados.some(i => i.t === 'recordatorios_enviados' && i.fila.clave === 'a|2026-09-26'));
+
+  r = cargar({
+    ahoraUTC: '2026-09-25T12:00:00Z',
+    hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }],
+    vols: [{ id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false }],
+    yaEnviados: ['a|2026-09-26'],
+  });
+  await llamar(r.handler, 'sec');
+  check('si ya se avisó hoy, no se repite', r.correos.length === 0);
+
+  r = cargar({
+    ahoraUTC: '2026-09-25T12:00:00Z',
+    hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }],
+    vols: [{ id: 'a', nombre: 'ANA', email: null, tiene_llave: false }],
+  });
+  await llamar(r.handler, 'sec');
+  check('sin email guardado → no se manda nada', r.correos.length === 0);
+
+  console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
+  process.exit(fallos ? 1 : 0);
+})();

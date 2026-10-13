@@ -302,6 +302,18 @@ async function enviarDisponibilidad(){
     // ya está guardada, así que se avisa sin tratarlo como un fallo del guardado principal.
     try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { max_sabados: CAPS.Sabado||null, max_domingos: CAPS.Domingo||null }); }
     catch(e){ alert('Tu disponibilidad está guardada, pero no se pudo guardar cuántos sábados/domingos puedes hacer. Avisa para revisarlo. ('+e.message+')'); }
+    // Recibo por correo — no bloqueante: si el voluntario no tiene email guardado o la función
+    // aún no está desplegada, no pasa nada, ya ha visto la confirmación en pantalla.
+    try{
+      const resumen=DIAS.map(d=>{
+        const bs=BLOQUES.filter(b=>SEL[keyOf(d.id,b.id)]).map(b=>b.label);
+        if(!bs.length) return null;
+        const capTxt=DIAS_CAP.includes(d.id)&&CAPS[d.id]?` (máx. ${CAPS[d.id]}/mes)`:'';
+        return `${d.nombre}: ${bs.join(', ')}${capTxt}`;
+      }).filter(Boolean).join('\n') || 'Sin turnos marcados';
+      fetch(SU+'/functions/v1/notificar-email',{method:'POST',headers:SBH,
+        body:JSON.stringify({accion:'disponibilidad_guardada',voluntario_id:volIdActual,nombre:document.getElementById('inp-nombre').value.trim(),resumenTexto:resumen})}).catch(()=>{});
+    }catch(e){}
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
   }catch(e){

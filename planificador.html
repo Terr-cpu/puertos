@@ -7094,8 +7094,13 @@ async function abrirFicha(nombre, id) {
     const rawS = await _stCargar(false), baseS = _statsBase(rawS, cargarReglas());
     const asistV = baseS.asist.filter(a => a.id === id).map(a => ({ fecha: a.fecha, rango: a.rango }));
     const bajas = rawS.bajas.filter(b => b.voluntario_id === id), refs = rawS.refs.filter(r => r.voluntario_id === id);
+    // select con email: si todavía no se ha ejecutado 12_notificar_email.sql en Supabase esa
+    // columna no existe y el select falla entero — se reintenta sin ella para no dejar caída
+    // la ficha mientras tanto.
+    const volQuery = sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email')
+      .catch(() => sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'));
     const [vol, disp, canc, anulR] = await Promise.all([
-      sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'),
+      volQuery,
       sbGet('disponibilidad', q + '&select=semana,dia,horario').catch(() => []),
       sbGet('actividad', q + '&tipo=eq.apunte_cancelado&select=id').catch(() => null),
       sbGet('turnos_no_realizados', 'origen=eq.anulado&select=fecha,rango').catch(() => []),
@@ -7120,6 +7125,10 @@ async function abrirFicha(nombre, id) {
           <div style="font-size:1.05rem;font-weight:800">${escH(v.nombre)}</div>
           <div style="font-size:.72rem;color:var(--label3);margin-top:.1rem">${v.tiene_llave ? '🔑 Portador de llave · ' : ''}${v.activo === false ? 'Fuera del grupo' : 'Activo'}${v.creado_en ? ' · alta ' + isoADMY(v.creado_en.slice(0, 10)) : ''}</div>
         </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.4rem;margin-bottom:.9rem">
+        <input class="fc" id="vol-email-${v.id}" type="email" value="${escH(v.email || '')}" placeholder="📧 Correo para avisos (opcional)" style="font-size:.76rem;padding:.4rem .6rem;flex:1">
+        <button class="btn btn-ghost btn-sm" onclick="guardarEmailVol('${v.id}')" title="Guardar correo">💾</button>
       </div>
       ${F.flags.map(f => `<div style="display:flex;gap:.5rem;align-items:center;background:${FI[f.tipo][1]};color:${FI[f.tipo][2]};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.35rem;font-size:.76rem;font-weight:600"><span>${FI[f.tipo][0]}</span>${escH(f.txt)}</div>`).join('')}
       <div class="stats-row" style="margin:.7rem 0">
@@ -7148,6 +7157,17 @@ async function abrirFicha(nombre, id) {
       </div>`;
   } catch(e) {
     body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
+  }
+}
+
+async function guardarEmailVol(id) {
+  const inp = document.getElementById('vol-email-' + id);
+  const email = inp.value.trim();
+  try {
+    await sbPatch('voluntarios', 'id=eq.' + id, { email: email || null });
+    toast('Correo guardado ✓', 'ok');
+  } catch(e) {
+    toast('No se pudo guardar: ' + e.message + ' — ¿has ejecutado 12_notificar_email.sql en Supabase?', 'err');
   }
 }
 

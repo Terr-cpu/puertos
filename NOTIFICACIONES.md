@@ -257,6 +257,59 @@ apunte de un día que ya pasó no aparece más (si se confirmó, ya está en el 
 no hay nada que hacer con él). El dato se conserva en la base de datos para las estadísticas,
 solo deja de listarse.
 
+## Ampliación I — Avisos por correo a cada voluntario (no al coordinador)
+
+Hasta aquí todos los avisos van siempre al mismo sitio: tu Telegram, como
+coordinador. Esto es distinto: que **cada voluntario reciba su propio
+correo** cuando se registra su baja, cuando se confirma un turno suyo,
+cuando le quitan uno ya confirmado, y un recordatorio el día antes de su
+turno (con una nota de "lleva la llave" si es portador). También manda un
+recibo por correo al guardar la disponibilidad por bloques.
+
+El email de cada voluntario lo pones tú, desde su ficha en el planificador
+— no se pide en el formulario público, para no fiarse de que cada uno lo
+escriba bien.
+
+1. Crea una cuenta en [Resend](https://resend.com) (gratis hasta 3.000
+   correos/mes). En **Domains**, verifica un dominio propio si tienes uno;
+   si no, usa el dominio de pruebas de Resend para empezar (los correos
+   solo llegan a direcciones que tú mismo hayas verificado en esa cuenta —
+   para enviar a cualquier voluntario hace falta verificar un dominio
+   propio tarde o temprano). En **API Keys**, crea una clave.
+2. Supabase → **SQL Editor** → New query → pega
+   [`supabase/12_notificar_email.sql`](supabase/12_notificar_email.sql),
+   cambia `CAMBIA_ESTE_SECRETO` por un texto largo inventado por ti → **Run**.
+   Añade `voluntarios.email`, la tabla `recordatorios_enviados` y la tarea
+   diaria.
+3. **Edge Functions → Create a new function** → nómbrala exactamente
+   `notificar-email` → pega
+   [`index.ts`](supabase/functions/notificar-email/index.ts) → Deploy.
+   **Secrets**: `RESEND_API_KEY` (paso 1), `RESEND_FROM` (p. ej.
+   `Turnos Puerto <avisos@tudominio.com>`, con el remitente verificado en
+   Resend).
+4. **Database → Webhooks → Create a new webhook**:
+   - Name: `Actividad → correo voluntario`
+   - Table: `actividad`, Events: solo **Insert**
+   - Type: **Supabase Edge Functions** → `notificar-email`
+5. **Edge Functions → Create a new function** → nómbrala exactamente
+   `recordatorios-turnos` → pega
+   [`index.ts`](supabase/functions/recordatorios-turnos/index.ts) → Deploy.
+   Desactiva **Verify JWT** (la protege `CRON_SECRET`, igual que
+   `avisos-turnos`). **Secrets**: `RESEND_API_KEY`, `RESEND_FROM` (los
+   mismos del paso 3) y `CRON_SECRET` = el mismo texto del paso 2.
+6. En el planificador, pestaña **Voluntarios → Ficha** de cada persona:
+   escribe su correo y pulsa 💾. Queda guardado al momento.
+7. Probar: registra una baja de prueba desde Sustituciones (de alguien con
+   correo guardado) — debería llegarle el aviso en unos segundos. Para el
+   recordatorio diario, sin esperar al cron:
+   ```bash
+   curl -X POST "https://inifdflvblnonzowbxie.supabase.co/functions/v1/recordatorios-turnos" -H "x-cron-secret: TU_SECRETO"
+   ```
+8. Si algo falla: Edge Functions → `notificar-email` o `recordatorios-turnos`
+   → **Logs**. Un voluntario sin correo guardado nunca da error, simplemente
+   no recibe nada (comprobar con `select nombre, email from public.voluntarios
+   where email is not null;`).
+
 ## Qué queda igual
 
 - Las notificaciones del navegador (🔔 campanita, panel de actividad dentro
