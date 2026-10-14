@@ -1,84 +1,76 @@
 # Login — cómo activarlo
 
-`asispuerto.org` pasa a ser una pantalla de entrada. Cada uno entra con su
-correo y contraseña:
+`asispuerto.org` pasa a ser una pantalla de entrada:
 
-- **El admin** (el coordinador) va al **planificador**. Nadie más puede entrar en él.
-- **Un voluntario** va a **su menú** (`inicio.html`): comunicar una baja, apuntarse a
-  turnos, su disponibilidad y sus próximos turnos con sus compañeros. En
-  Sustituciones y Disponibilidad ya no escribe su nombre: la página sabe quién es.
+- **Voluntarios: solo con el correo.** Escriben el correo de su ficha y entran, sin
+  contraseña ni código. La sesión se queda guardada en su móvil. La primera vez se
+  les crea la cuenta solos; tú solo tienes que guardar su correo en la ficha
+  (Voluntarios → Ficha → 💾). Entran a **su menú** (`inicio.html`): comunicar una
+  baja, apuntarse a turnos, su disponibilidad y sus próximos turnos con sus
+  compañeros. En Sustituciones y Disponibilidad ya no escriben su nombre.
+- **El coordinador (admin): correo y contraseña**, desde "Acceso coordinador", abajo
+  en la pantalla de entrada. Va al **planificador**, donde nadie más puede entrar.
+  Una cuenta de admin **nunca** entra solo con el correo, aunque ese correo esté
+  también en una ficha de voluntario.
 
-**Cuentas.** Cada voluntario crea la suya desde "Crear mi cuenta", con **el correo de
-su ficha**. Un correo que no esté en ninguna ficha de voluntario activo no puede
-registrarse. Para que alguien pueda entrar, basta con guardar su correo en su ficha
-(Voluntarios → Ficha → 💾). Si olvida la contraseña, la recupera él mismo desde
-"¿Olvidaste tu contraseña?".
+**Lo que se acepta a cambio de la comodidad:** quien sepa el correo de otro
+voluntario puede entrar como él, y darle de baja o apuntarle. No puede tocar nada
+del cuadrante ni de otros voluntarios; eso solo lo puede hacer el admin.
 
-**Seguridad de verdad.** Ocultar el planificador tras un login no basta: la clave
-pública de Supabase está en el código de las páginas y, con los permisos de antes,
-cualquiera podía leer y modificar las tablas directamente. Por eso hay dos fases:
-la 1 añade el login sin cambiar los permisos, y la 2 cierra la base de datos.
+**Seguridad de la base de datos.** Ocultar el planificador tras un login no basta:
+la clave pública de Supabase está en el código de las páginas y, con los permisos
+de antes, cualquiera podía leer y modificar las tablas directamente. Por eso hay
+dos fases: la 1 añade el login y la 2 cierra la base de datos.
 
 | Archivo | Para qué |
 |---|---|
 | [`auth.js`](auth.js) | Sesión compartida por todas las páginas |
-| [`index.html`](index.html) | Login: entrar, crear cuenta, recuperar contraseña |
+| [`index.html`](index.html) | Pantalla de entrada (voluntario y coordinador) |
 | [`inicio.html`](inicio.html) | Menú del voluntario |
-| [`supabase/13_login.sql`](supabase/13_login.sql) | Fase 1: quién es admin y quién es voluntario; solo se registran correos de fichas |
+| [`supabase/functions/entrar-voluntario`](supabase/functions/entrar-voluntario/index.ts) | Abre la sesión de un voluntario con solo su correo |
+| [`supabase/13_login.sql`](supabase/13_login.sql) | Fase 1: quién es admin y quién voluntario; solo hay cuentas para correos de fichas |
 | [`supabase/14_cerrar_bd.sql`](supabase/14_cerrar_bd.sql) | Fase 2: permisos de verdad en cada tabla |
-| [`supabase/correos-login/`](supabase/correos-login) | Plantillas en español de los correos de activar cuenta y de contraseña nueva |
+| [`supabase/correos-login/`](supabase/correos-login) | Plantilla en español del correo de contraseña nueva (solo coordinador) |
 
-## Fase 1 — Preparar Supabase (no cambia nada para nadie todavía)
+## Fase 1 — Preparar Supabase
 
-1. **SQL Editor** → New query → pega [`supabase/13_login.sql`](supabase/13_login.sql) → **Run**.
-2. **Authentication → Sign In / Providers → Email**: activado, con **Confirm email**
-   activado. Pon la longitud mínima de contraseña en 8.
-3. **Authentication → URL Configuration**:
-   - **Site URL**: `https://asispuerto.org`
-   - **Redirect URLs** (Add URL): `https://asispuerto.org/**` y, para las pruebas,
-     `http://127.0.0.1:8766/**`
-4. **Authentication → Emails → SMTP Settings** → *Enable custom SMTP*. Así los correos
-   de la cuenta salen de tu dominio por Resend, en vez del servidor de pruebas de
-   Supabase, que solo envía a los miembros del proyecto y muy pocos por hora:
-   - Sender email: `avisos@asispuerto.org` · Sender name: `Turnos Puerto`
-   - Host: `smtp.resend.com` · Port: `465`
-   - Username: `resend` · Password: una API key de Resend (puede ser la misma de
-     `RESEND_API_KEY`, o crea otra solo para esto)
-5. **Authentication → Emails → Templates**:
-   - **Confirm signup**: asunto `Activa tu cuenta — Turnos Puerto`; en el cuerpo pega
-     [`confirmar-cuenta.html`](supabase/correos-login/confirmar-cuenta.html).
-   - **Reset password**: asunto `Contraseña nueva — Turnos Puerto`; en el cuerpo pega
-     [`recuperar-contrasena.html`](supabase/correos-login/recuperar-contrasena.html).
+1. **SQL Editor** → pega [`supabase/13_login.sql`](supabase/13_login.sql) → **Run**. *(Hecho.)*
+2. **Edge Functions → Create a new function** → nómbrala exactamente
+   `entrar-voluntario` → pega
+   [`index.ts`](supabase/functions/entrar-voluntario/index.ts) → Deploy, y desactiva
+   **Verify JWT** (se llama antes de tener sesión).
+3. **Authentication → URL Configuration** *(hecho)*:
+   Site URL `https://asispuerto.org`; Redirect URLs `https://asispuerto.org/**` y
+   `http://127.0.0.1:8766/**`.
+4. **Authentication → Emails → SMTP** con Resend *(hecho)*. Solo se usa ya para el
+   correo de "contraseña nueva" del coordinador.
+5. **Templates → Reset password**: asunto `Contraseña nueva — Turnos Puerto`, cuerpo
+   [`recuperar-contrasena.html`](supabase/correos-login/recuperar-contrasena.html).
+   La plantilla de "Confirm signup" ya no se usa.
+6. Tu cuenta de admin *(hecho)*: creada con contraseña y con `rol = admin`.
 
-## Fase 1 — Probar (antes de publicar)
+## Probar (antes de publicar)
 
-Las páginas nuevas están en la rama `login`; la web publicada no cambia hasta
-fusionarla con `main`. Se prueban en local en `http://127.0.0.1:8766/`.
+Las páginas nuevas están en la rama `login`, así que la web publicada no cambia
+hasta fusionarla con `main`. Se prueban en local en `http://127.0.0.1:8766/`.
 
-1. Abre `index.html` → **Crear mi cuenta** con tu correo (el de tu ficha) → confirma
-   desde el correo que te llega.
-2. Hazte admin: SQL Editor →
-   ```sql
-   update auth.users
-   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"rol":"admin"}'::jsonb
-   where lower(email) = 'manuf.m@hotmail.com';
-   ```
-   Cierra sesión y vuelve a entrar: ahora vas al planificador.
-3. Prueba como voluntario: pon otro correo tuyo en una ficha de prueba, crea la
-   cuenta con él y comprueba el menú, Sustituciones y Disponibilidad.
+- **Voluntario**: pon otro correo tuyo en una ficha de prueba, escríbelo en
+  "Entrar" y comprueba el menú, Sustituciones y Disponibilidad.
+- **Coordinador**: "Acceso coordinador" → tu correo y contraseña → planificador.
+  Si escribes tu correo en la caja de voluntario, te pasa al acceso de coordinador.
 
 ## Publicar
 
 Al fusionar la rama `login` con `main`, GitHub Pages publica el login en
-`asispuerto.org`. **A partir de ese momento cada voluntario necesita cuenta** para
-comunicar bajas o apuntarse, incluidos los enlaces que ya circulan por WhatsApp.
-Antes de publicar, guarda los correos en las fichas y avisa en el grupo:
-*"Entrad en asispuerto.org → Crear mi cuenta, con el correo que os pedimos."*
+`asispuerto.org`. **A partir de ese momento cada voluntario necesita tener su
+correo en su ficha** para comunicar bajas o apuntarse, también desde los enlaces
+que ya circulan por WhatsApp. Antes de publicar, guarda los correos y avisa en el
+grupo: *"Desde hoy se entra por asispuerto.org con vuestro correo."*
 
 ## Fase 2 — Cerrar la base de datos (después de publicar)
 
 1. **SQL Editor** → pega [`supabase/14_cerrar_bd.sql`](supabase/14_cerrar_bd.sql) → **Run**.
-2. **Edge Functions → `notificar-email`** → pega su `index.ts` nuevo → Deploy. Ahora el
+2. **Edge Functions → `notificar-email`** → pega su `index.ts` nuevo → Deploy. Así el
    recibo de disponibilidad solo lo puede pedir el propio voluntario o el admin.
 3. Comprueba que el planificador, Sustituciones y Disponibilidad siguen funcionando.
    Si algo falla y hace falta tiempo para arreglarlo, al final de
@@ -86,12 +78,10 @@ Antes de publicar, guarda los correos en las fichas y avisa en el grupo:
 
 ## Preguntas habituales
 
-- **"Este correo no está en ninguna ficha"**: el voluntario está usando un correo
+- **"Este correo no está en ninguna ficha"**: el voluntario ha escrito un correo
   distinto del de su ficha, o su ficha no tiene correo, o está inactiva.
-- **No le llega el correo de activar la cuenta**: que mire en spam. Si sigue sin
-  llegar, Authentication → Users muestra si la cuenta existe y si está confirmada.
-- **Cambiar el correo de un voluntario** que ya tiene cuenta: cámbialo en su ficha
-  **y** en Authentication → Users. Si solo lo cambias en la ficha, al entrar ya no se
-  le reconoce.
-- **Dar de baja a un voluntario** (ficha inactiva): deja de poder usar las páginas
-  aunque conserve su contraseña.
+- **Cambiar el correo de un voluntario**: cámbialo en su ficha. La próxima vez que
+  entre con el correo nuevo se le crea otra cuenta. Puedes borrar la antigua en
+  Authentication → Users.
+- **Dar de baja a un voluntario** (ficha inactiva): ya no puede entrar, y si tenía
+  la sesión abierta deja de poder usar las páginas.
