@@ -80,6 +80,9 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .day-blocked{opacity:.4;pointer-events:none}
 .cap-ok{font-size:.74rem;color:var(--green);font-weight:600;margin-bottom:.7rem}
 
+.card[hidden]{display:none}
+.intro-card .intro{margin:0 0 .45rem}
+.intro-card .intro.small{margin:0}
 .aviso-bloqueo{display:flex;gap:.85rem;align-items:flex-start}
 .aviso-bloqueo[hidden]{display:none}
 .aviso-bloqueo .bv-ico{background:rgba(10,22,40,.08)}
@@ -129,7 +132,7 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     </div>
   </div>
 
-  <div class="card">
+  <div class="card" id="card-nombre">
     <label for="inp-nombre">Nombre completo</label>
     <div class="ac-wrap">
       <input type="text" class="ac-input" id="inp-nombre" placeholder="Escribe tu nombre…" autocomplete="off" oninput="sugerir(this)" onkeydown="navSug(event)">
@@ -138,8 +141,10 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="name-msg err" id="name-err" style="display:none">No te encuentro en la lista de voluntarios activos. Pide al hermano que lleva los turnos que te dé de alta.</div>
   </div>
 
-  <p class="intro" id="intro-fija">Esta disponibilidad se queda guardada de forma fija.</p>
-  <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
+  <div class="card intro-card">
+    <p class="intro" id="intro-fija">Esta disponibilidad se queda guardada de forma fija.</p>
+    <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
+  </div>
 
   <div id="cargando-dias">Cargando tu disponibilidad…</div>
 
@@ -414,6 +419,7 @@ async function enviarDisponibilidad(){
     // Voluntario con sesión: su nombre ya está puesto y no se puede cambiar
     const inp=document.getElementById('inp-nombre');
     inp.readOnly=true; inp.oninput=null; inp.style.cursor='default';
+    document.getElementById('card-nombre').hidden=true;   // ya sabe quién es por su correo
     vols=[yo.voluntario.nombre];
     elegir(yo.voluntario.nombre);
     return;
