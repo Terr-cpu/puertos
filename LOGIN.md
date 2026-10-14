@@ -11,6 +11,13 @@ contraseña**, pero sin trámites:
    volver a entrar en ese móvil. Desmarcada, la sesión se cierra al cerrar el navegador.
 4. **"Recordar contraseña"**: les llega un correo para elegir otra.
 
+**Lo primero, su disponibilidad nueva.** La primera vez que entra, antes de ver nada
+más, el voluntario va a "Mi disponibilidad" con un aviso de bienvenida; al guardarla
+(al menos un turno) sigue a su menú o a donde iba. Cuenta como hecha si ya tiene
+algún bloque guardado (Mañana/Tarde) o ha dicho cuántos sábados/domingos puede; la
+disponibilidad antigua por horas no vale, así que quien solo tenga esa también
+pasará por aquí una vez (verá marcados los bloques que más se le parecen).
+
 Tú solo tienes que guardar el correo de cada uno en su ficha (Voluntarios → Ficha →
 💾). Si un correo no está en ninguna ficha de voluntario activo, no puede entrar ni
 crear contraseña.

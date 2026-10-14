@@ -80,6 +80,12 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .day-blocked{opacity:.4;pointer-events:none}
 .cap-ok{font-size:.74rem;color:var(--green);font-weight:600;margin-bottom:.7rem}
 
+.bienvenida{display:flex;gap:.85rem;align-items:flex-start;border:1px solid rgba(201,168,76,.45)}
+.bienvenida[hidden]{display:none}
+.bv-ico{width:42px;height:42px;flex-shrink:0;border-radius:12px;background:rgba(201,168,76,.18);display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+.bienvenida b{display:block;font-size:.95rem;font-weight:700;color:var(--ink);line-height:1.35}
+.bienvenida p{font-size:.8rem;color:var(--slate);line-height:1.55;margin-top:.35rem}
+.bienvenida p b{display:inline;font-size:inherit;color:var(--ink)}
 .confirm{display:none;margin-top:1.2rem;background:var(--green-soft);border:1px solid rgba(26,150,72,.35);border-radius:14px;padding:1rem 1.1rem;color:#14703a;font-size:.86rem;font-weight:600}
 
 .submit-bar{position:sticky;bottom:0;margin-top:1.4rem;background:rgba(242,242,247,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);padding:.9rem 0 calc(.6rem + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid var(--line)}
@@ -105,6 +111,14 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 </header>
 
 <div class="wrap">
+
+  <div class="card bienvenida" id="bienvenida" hidden>
+    <div class="bv-ico">👋</div>
+    <div>
+      <b>¡Bienvenido! Antes de empezar, marca tu disponibilidad</b>
+      <p>Indica qué días y en qué bloques (mañana o tarde) puedes participar. Es lo primero que hay que hacer, <b>solo esta vez</b>: después podrás cambiarla cuando quieras desde tu menú.</p>
+    </div>
+  </div>
 
   <div class="card">
     <label for="inp-nombre">Nombre completo</label>
@@ -289,8 +303,18 @@ function actualizarResumen(){
   document.getElementById('btn-enviar').disabled=!volIdActual;
 }
 
+// Primera vez (auth.js trae aquí con ?primera=1&volver=…): al guardar se sigue a donde iba
+const _QP=new URLSearchParams(location.search);
+const PRIMERA=_QP.get('primera')==='1';
+const PAGINAS_VOLVER=['inicio.html','sustituciones.html'];
+function destinoTrasPrimera(){
+  const v=_QP.get('volver')||'';
+  return PAGINAS_VOLVER.includes(v.split(/[?#]/)[0])?v:'inicio.html';
+}
+
 async function enviarDisponibilidad(){
   if(!volIdActual) return;
+  if(PRIMERA&&!Object.values(SEL).some(Boolean)){ alert('Marca al menos un turno (mañana o tarde) en el que puedas participar.'); return; }
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true; const txtPrev=btn.textContent; btn.textContent='Guardando…';
   // Copia de seguridad de lo que ya había, por si el guardado falla a mitad — nunca se borra
@@ -322,6 +346,11 @@ async function enviarDisponibilidad(){
     }catch(e){}
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(PRIMERA){
+      Auth.disponibilidadMarcada();
+      document.getElementById('confirmacion').textContent='¡Gracias! Disponibilidad guardada. Te llevamos a tu menú…';
+      setTimeout(()=>location.replace(destinoTrasPrimera()),2200);
+    }
   }catch(e){
     const falta23505=/23505/.test(e.message);
     let restaurado=true;
@@ -337,6 +366,10 @@ async function enviarDisponibilidad(){
 (async function init(){
   const yo=await Auth.requerir('voluntario');
   Auth.barra(yo);
+  if(PRIMERA&&!yo.esAdmin){
+    document.getElementById('bienvenida').hidden=false;
+    const menu=document.querySelector('.auth-barra a'); if(menu) menu.style.visibility='hidden';   // primero, la disponibilidad
+  }
   if(yo.voluntario&&!yo.esAdmin){
     // Voluntario con sesión: su nombre ya está puesto y no se puede cambiar
     const inp=document.getElementById('inp-nombre');
