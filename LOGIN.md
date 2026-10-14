@@ -48,7 +48,9 @@ dos fases: la 1 añade el login y la 2 cierra la base de datos.
    `cuenta-voluntario` → pega
    [`index.ts`](supabase/functions/cuenta-voluntario/index.ts) → Deploy, y desactiva
    **Verify JWT** (se llama antes de tener sesión). Si llegaste a crear
-   `entrar-voluntario`, bórrala.
+   `entrar-voluntario`, bórrala. *(Hecho. Ojo: el panel le asignó la dirección
+   `smooth-task`; es la que llama `index.html`, en `FUNCION_CUENTA`. Si algún día la
+   vuelves a crear, cambia ahí el nombre.)*
 3. **Authentication → URL Configuration** *(hecho)*:
    Site URL `https://asispuerto.org`; Redirect URLs `https://asispuerto.org/**` y
    `http://127.0.0.1:8766/**`.
