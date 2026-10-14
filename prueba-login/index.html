@@ -212,9 +212,13 @@ function otroCorreo() {
   mostrarPaso('correo');
 }
 
+// La función se llama "cuenta-voluntario" en el panel de Supabase, pero al crearla desde
+// el panel le asignó la dirección (slug) "smooth-task": es la que hay que llamar.
+const FUNCION_CUENTA = 'smooth-task';
+
 /** Llama a la Edge Function cuenta-voluntario. */
 async function cuenta(body) {
-  const r = await fetch(Auth.URL + '/functions/v1/cuenta-voluntario', {
+  const r = await fetch(Auth.URL + '/functions/v1/' + FUNCION_CUENTA, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', apikey: Auth.CLAVE },
     body: JSON.stringify(body),
