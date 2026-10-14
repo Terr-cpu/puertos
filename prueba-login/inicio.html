@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Mi espacio · Puerto de Sevilla</title>
+<title>Predicación Puerto de Sevilla · Voluntarios</title>
 <meta name="theme-color" content="#0a1628">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -11,6 +11,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
+<script src="idioma.js"></script>
 <style>
 :root{
   --bg:#f2f2f7;--surface:#fff;--surface2:#f5f7fa;
@@ -79,11 +80,11 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 </head>
 <body>
 
-<header class="hero">
+<header class="hero" id="hero">
   <div class="hero-inner">
     <div class="hero-icon">⚓</div>
     <h1 id="saludo">Hola</h1>
-    <p>Puerto de Sevilla · Mi espacio</p>
+    <p data-t="sub">Predicación Puerto de Sevilla · Voluntarios</p>
     <div class="hero-line"></div>
   </div>
 </header>
@@ -92,46 +93,83 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
   <div class="acciones">
     <a class="accion" href="sustituciones.html">
       <span class="ico" style="background:var(--red-soft)">📤</span>
-      <span><b>Comunicar una baja</b><small>No puedo ir a un turno</small></span>
+      <span><b data-t="baja">Comunicar una baja</b><small data-t="bajaSub">No puedo ir a un turno</small></span>
     </a>
     <a class="accion" href="sustituciones.html#oferta">
       <span class="ico" style="background:var(--green-soft)">✋</span>
-      <span><b>Apuntarme a turnos</b><small>Ver dónde faltan voluntarios</small></span>
+      <span><b data-t="apuntarme">Apuntarme a turnos</b><small data-t="apuntarmeSub">Ver dónde faltan voluntarios</small></span>
     </a>
     <a class="accion" href="disponibilidad-bloques.html">
       <span class="ico" style="background:var(--blue-soft)">🗓️</span>
-      <span><b>Mi disponibilidad</b><small>Qué días y horas puedo</small></span>
+      <span><b data-t="dispo">Mi disponibilidad</b><small data-t="dispoSub">Qué días y horas puedo</small></span>
     </a>
   </div>
 
   <div class="sec">
-    <div class="sec-t">Mis próximos turnos</div>
-    <div class="card" id="turnos"><div class="vacio"><div class="spinner"></div>Cargando…</div></div>
+    <div class="sec-t" data-t="misTurnos">Mis próximos turnos</div>
+    <div class="card" id="turnos"><div class="vacio"><div class="spinner"></div><span data-t="cargando">Cargando…</span></div></div>
   </div>
 
   <div class="sec">
-    <div class="sec-t">Mi cuenta</div>
+    <div class="sec-t" data-t="miCuenta">Mi cuenta</div>
     <div class="card">
       <div class="fila"><span id="mi-email" style="color:var(--label2);overflow:hidden;text-overflow:ellipsis"></span></div>
-      <div class="fila"><span>Contraseña</span><button type="button" onclick="toggleClave()">Cambiar</button></div>
+      <div class="fila"><span data-t="clave">Contraseña</span><button type="button" onclick="toggleClave()" data-t="cambiar">Cambiar</button></div>
       <form id="form-clave" onsubmit="cambiarClave(event)">
-        <input type="password" id="k1" placeholder="Contraseña nueva (mín. 8)" autocomplete="new-password" minlength="8" required>
-        <input type="password" id="k2" placeholder="Repítela" autocomplete="new-password" minlength="8" required>
-        <button class="btn" id="k-btn">Guardar contraseña</button>
+        <input type="password" id="k1" placeholder="Contraseña nueva (mín. 8)" data-t-ph="claveNueva" autocomplete="new-password" minlength="8" required>
+        <input type="password" id="k2" placeholder="Repítela" data-t-ph="repitela" autocomplete="new-password" minlength="8" required>
+        <button class="btn" id="k-btn" data-t="guardarClave">Guardar contraseña</button>
         <div class="msg" id="k-msg"></div>
       </form>
-      <div class="fila"><span>Sesión</span><button type="button" class="rojo" onclick="Auth.salir()">Cerrar sesión</button></div>
+      <div class="fila"><span data-t="sesion">Sesión</span><button type="button" class="rojo" onclick="Auth.salir()" data-t="salir">Cerrar sesión</button></div>
     </div>
   </div>
 
-  <p class="pie">💬 Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.</p>
+  <p class="pie" data-t-html="pie">💬 Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.</p>
 </main>
 
 <script>
-const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+I18N.textos({
+  es: {
+    _titulo: 'Predicación Puerto de Sevilla · Voluntarios',
+    sub: 'Predicación Puerto de Sevilla · Voluntarios', hola: 'Hola', holaNombre: 'Hola, {nombre}',
+    baja: 'Comunicar una baja', bajaSub: 'No puedo ir a un turno',
+    apuntarme: 'Apuntarme a turnos', apuntarmeSub: 'Ver dónde faltan voluntarios',
+    dispo: 'Mi disponibilidad', dispoSub: 'Qué días y horas puedo',
+    misTurnos: 'Mis próximos turnos', cargando: 'Cargando…', miCuenta: 'Mi cuenta',
+    clave: 'Contraseña', cambiar: 'Cambiar', claveNueva: 'Contraseña nueva (mín. 8)', repitela: 'Repítela',
+    guardarClave: 'Guardar contraseña', sesion: 'Sesión', salir: 'Cerrar sesión',
+    pie: '💬 Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.',
+    sinFicha: 'Tu cuenta no está unida a ninguna ficha de voluntario.',
+    sinTurnos: 'No tienes turnos próximos.', verFaltan: '✋ Ver dónde faltan voluntarios',
+    errTurnos: 'No se han podido cargar tus turnos ({e}).', reintentar: 'Reintentar',
+    estAnulado: 'Anulado', estBaja: 'Baja comunicada', estApunte: 'Apuntado', estConf: 'Confirmado',
+    companeros: 'Compañeros:', nadieMas: 'de momento, ninguno más', hoy: 'HOY',
+    noCoinciden: 'Las dos contraseñas no coinciden.', noCambio: 'No se pudo cambiar: {e}', cambiada: '✓ Contraseña cambiada.',
+  },
+  en: {
+    _titulo: 'Seville Port Witnessing · Volunteers',
+    sub: 'Seville Port Witnessing · Volunteers', hola: 'Hi', holaNombre: 'Hi, {nombre}',
+    baja: 'Report an absence', bajaSub: 'I can’t make a shift',
+    apuntarme: 'Sign up for shifts', apuntarmeSub: 'See where volunteers are needed',
+    dispo: 'My availability', dispoSub: 'Days and times I can do',
+    misTurnos: 'My upcoming shifts', cargando: 'Loading…', miCuenta: 'My account',
+    clave: 'Password', cambiar: 'Change', claveNueva: 'New password (min. 8)', repitela: 'Repeat it',
+    guardarClave: 'Save password', sesion: 'Session', salir: 'Sign out',
+    pie: '💬 For any questions, you can contact<br>brother Manuel Fernández.',
+    sinFicha: 'Your account is not linked to any volunteer record.',
+    sinTurnos: 'You have no upcoming shifts.', verFaltan: '✋ See where volunteers are needed',
+    errTurnos: 'Your shifts could not be loaded ({e}).', reintentar: 'Try again',
+    estAnulado: 'Cancelled', estBaja: 'Absence reported', estApunte: 'Signed up', estConf: 'Confirmed',
+    companeros: 'Teammates:', nadieMas: 'no one else yet', hoy: 'TODAY',
+    noCoinciden: 'The two passwords do not match.', noCambio: 'Could not change it: {e}', cambiada: '✓ Password changed.',
+  },
+});
+I18N.selector(document.getElementById('hero'));
+
 const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const titulo = s => String(s || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+const mayus = s => s.charAt(0).toUpperCase() + s.slice(1);
 
 async function sbGet(t, p) {
   const r = await fetch(Auth.URL + '/rest/v1/' + t + (p ? '?' + p : ''), { headers: Auth.cabeceras() });
@@ -142,14 +180,16 @@ function hoyMadrid() {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
 }
 
+let YO = null, DATOS = null;   // lo cargado, para repintar al cambiar de idioma sin volver a pedirlo
+
 /**
  * Mis turnos desde hoy, con el mismo criterio que la app: equipo confirmado − bajas
  * activas + apuntados (baja + apunte = se reincorpora). Los compañeros salen igual.
  */
-async function cargarTurnos(yo) {
+async function cargarTurnos() {
   const cont = document.getElementById('turnos');
-  const me = yo.voluntario?.id;
-  if (!me) { cont.innerHTML = '<div class="vacio">Tu cuenta no está unida a ninguna ficha de voluntario.</div>'; return; }
+  const me = YO.voluntario?.id;
+  if (!me) { DATOS = { error: 'sinFicha' }; return pintarTurnos(); }
   const hoy = hoyMadrid();
   try {
     const [hist, refs, bajas, anul] = await Promise.all([
@@ -178,30 +218,52 @@ async function cargarTurnos(yo) {
       if (r.voluntario_id === me && !tu.yo) tu.yo = 'apunte';
     });
     const mios = [...turnos.values()].filter(x => x.yo)
-      .sort((a, b) => (a.fecha + a.rango).localeCompare(b.fecha + b.rango));
-    if (!mios.length) {
-      cont.innerHTML = '<div class="vacio">No tienes turnos próximos.<br><a href="sustituciones.html#oferta">✋ Ver dónde faltan voluntarios</a></div>';
-      return;
-    }
-    cont.innerHTML = mios.map(x => {
-      const anulado = anulados.has(k(x.fecha, x.rango));
-      const est = anulado ? ['anulado', 'Anulado'] : x.yo === 'baja' ? ['baja', 'Baja comunicada'] : x.yo === 'apunte' ? ['apunte', 'Apuntado'] : ['conf', 'Confirmado'];
-      const d = new Date(x.fecha + 'T12:00:00Z');
-      const comp = x.van.filter(v => v.voluntario_id !== me).map(v => escH(titulo(v.nombre)) + (v.tiene_llave ? ' 🔑' : ''));
-      const eq = x.yo === 'baja' || anulado ? '' : `<div class="eq"><b>Compañeros:</b> ${comp.length ? comp.join(', ') : 'de momento, ninguno más'}</div>`;
-      return `<div class="turno ${x.yo === 'baja' || anulado ? 'apagado' : ''}">
-        <div class="fecha"><div class="d">${d.getUTCDate()}</div><div class="m">${MESES[d.getUTCMonth()]}</div></div>
-        <div class="info">
-          <div class="hora">🕒 ${escH(x.rango)}<span class="est ${est[0]}">${est[1]}</span></div>
-          <div class="dia">${DIAS[d.getUTCDay()]}${x.fecha === hoy ? ' · <b style="color:var(--red)">HOY</b>' : ''}</div>
-          ${eq}
-        </div>
-      </div>`;
-    }).join('');
+      .sort((a, b) => (a.fecha + a.rango).localeCompare(b.fecha + b.rango))
+      .map(x => ({ ...x, anulado: anulados.has(k(x.fecha, x.rango)) }));
+    DATOS = { mios, hoy, me };
   } catch (e) {
-    cont.innerHTML = `<div class="vacio">No se han podido cargar tus turnos (${escH(e.message)}).<br><a href="#" onclick="location.reload();return false">Reintentar</a></div>`;
+    DATOS = { error: 'errTurnos', detalle: e.message };
   }
+  pintarTurnos();
 }
+
+function pintarTurnos() {
+  const cont = document.getElementById('turnos');
+  if (!DATOS) return;
+  const T = I18N.t;
+  if (DATOS.error === 'sinFicha') { cont.innerHTML = `<div class="vacio">${T('sinFicha')}</div>`; return; }
+  if (DATOS.error) {
+    cont.innerHTML = `<div class="vacio">${T('errTurnos', { e: escH(DATOS.detalle) })}<br><a href="#" onclick="location.reload();return false">${T('reintentar')}</a></div>`;
+    return;
+  }
+  const { mios, hoy, me } = DATOS;
+  if (!mios.length) {
+    cont.innerHTML = `<div class="vacio">${T('sinTurnos')}<br><a href="sustituciones.html#oferta">${T('verFaltan')}</a></div>`;
+    return;
+  }
+  const fmtMes = new Intl.DateTimeFormat(I18N.locale, { month: 'short', timeZone: 'UTC' });
+  const fmtDia = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', timeZone: 'UTC' });
+  cont.innerHTML = mios.map(x => {
+    const est = x.anulado ? ['anulado', T('estAnulado')] : x.yo === 'baja' ? ['baja', T('estBaja')] : x.yo === 'apunte' ? ['apunte', T('estApunte')] : ['conf', T('estConf')];
+    const d = new Date(x.fecha + 'T12:00:00Z');
+    const comp = x.van.filter(v => v.voluntario_id !== me).map(v => escH(titulo(v.nombre)) + (v.tiene_llave ? ' 🔑' : ''));
+    const eq = x.yo === 'baja' || x.anulado ? '' : `<div class="eq"><b>${T('companeros')}</b> ${comp.length ? comp.join(', ') : T('nadieMas')}</div>`;
+    return `<div class="turno ${x.yo === 'baja' || x.anulado ? 'apagado' : ''}">
+      <div class="fecha"><div class="d">${d.getUTCDate()}</div><div class="m">${fmtMes.format(d).replace('.', '')}</div></div>
+      <div class="info">
+        <div class="hora">🕒 ${escH(I18N.idioma === 'en' ? x.rango.replace(' a ', ' – ') : x.rango)}<span class="est ${est[0]}">${est[1]}</span></div>
+        <div class="dia">${mayus(fmtDia.format(d))}${x.fecha === hoy ? ` · <b style="color:var(--red)">${T('hoy')}</b>` : ''}</div>
+        ${eq}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pintarSaludo() {
+  const nombre = titulo(YO?.voluntario?.nombre || '').split(' ')[0];
+  document.getElementById('saludo').textContent = nombre ? I18N.t('holaNombre', { nombre }) : I18N.t('hola');
+}
+I18N.alCambiar(() => { pintarSaludo(); pintarTurnos(); });
 
 function toggleClave() {
   const f = document.getElementById('form-clave');
@@ -212,22 +274,21 @@ async function cambiarClave(ev) {
   ev.preventDefault();
   const m = document.getElementById('k-msg'), b = document.getElementById('k-btn');
   const k1 = document.getElementById('k1').value, k2 = document.getElementById('k2').value;
-  if (k1 !== k2) { m.className = 'msg err'; m.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  if (k1 !== k2) { m.className = 'msg err'; m.textContent = I18N.t('noCoinciden'); return; }
   b.disabled = true;
   const { error } = await Auth.sb.auth.updateUser({ password: k1 });
   b.disabled = false;
-  if (error) { m.className = 'msg err'; m.textContent = 'No se pudo cambiar: ' + error.message; return; }
-  m.className = 'msg ok'; m.textContent = '✓ Contraseña cambiada.';
+  if (error) { m.className = 'msg err'; m.textContent = I18N.t('noCambio', { e: error.message }); return; }
+  m.className = 'msg ok'; m.textContent = I18N.t('cambiada');
   document.getElementById('k1').value = document.getElementById('k2').value = '';
 }
 
 (async function () {
-  const yo = await Auth.requerir('voluntario');
-  if (yo.esAdmin && !yo.voluntario) { location.replace('planificador.html'); return; }
-  const nombre = titulo(yo.voluntario?.nombre || '').split(' ')[0];
-  document.getElementById('saludo').textContent = nombre ? `Hola, ${nombre}` : 'Hola';
-  document.getElementById('mi-email').textContent = yo.email;
-  cargarTurnos(yo);
+  YO = await Auth.requerir('voluntario');
+  if (YO.esAdmin && !YO.voluntario) { location.replace('planificador.html'); return; }
+  pintarSaludo();
+  document.getElementById('mi-email').textContent = YO.email;
+  cargarTurnos();
 })();
 </script>
 </body>
