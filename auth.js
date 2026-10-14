@@ -27,8 +27,23 @@
   st.textContent = 'html.auth-pendiente body{visibility:hidden}';
   document.head.appendChild(st);
 
+  // "Mantener la sesión iniciada" (casilla del login): con ella la sesión se guarda en
+  // localStorage y sigue abierta al volver; sin ella, en sessionStorage y se cierra al
+  // cerrar el navegador. Por defecto, mantenerla.
+  const recordar = () => { try { return localStorage.getItem('recordarme') !== '0'; } catch (e) { return true; } };
+  const almacen = {
+    getItem(k) { try { return localStorage.getItem(k) ?? sessionStorage.getItem(k); } catch (e) { return null; } },
+    setItem(k, v) {
+      try {
+        if (recordar()) { localStorage.setItem(k, v); sessionStorage.removeItem(k); }
+        else { sessionStorage.setItem(k, v); localStorage.removeItem(k); }
+      } catch (e) { /* sin almacenamiento (modo privado): la sesión dura lo que la página */ }
+    },
+    removeItem(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} },
+  };
+
   const sb = window.supabase.createClient(URL_SB, CLAVE_PUBLICA, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storage: almacen },
   });
 
   let token = null;
@@ -66,6 +81,10 @@
     URL: URL_SB,
     CLAVE: CLAVE_PUBLICA,
     yo: null,
+
+    /** Guarda la elección de la casilla "Mantener la sesión iniciada" (antes de entrar). */
+    recordarSesion(si) { try { localStorage.setItem('recordarme', si ? '1' : '0'); } catch (e) {} },
+    recordandoSesion: recordar,
 
     /** Token vigente para "Authorization: Bearer …" (la clave pública si aún no hay sesión). */
     token() { return token || CLAVE_PUBLICA; },

@@ -66,6 +66,12 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .fila:first-child{border-top:none}
 .fila button{font:600 .76rem 'Sora',system-ui,sans-serif;border:1px solid var(--sep);background:var(--surface2);color:var(--label1);border-radius:9px;padding:.4rem .8rem;cursor:pointer}
 .fila button.rojo{color:var(--red-dark)}
+#form-clave{display:none;padding:0 1rem 1rem}
+#form-clave input{width:100%;font:500 .9rem 'Sora',system-ui,sans-serif;padding:.7rem .85rem;border:1.5px solid var(--sep);border-radius:var(--r-sm);background:var(--surface2);margin-top:.5rem;outline:none}
+#form-clave input:focus{border-color:var(--blue);background:#fff}
+#form-clave .btn{width:100%;margin-top:.7rem;font:700 .85rem 'Sora',system-ui,sans-serif;padding:.75rem;border:none;border-radius:var(--r-md);background:var(--navy);color:#fff;cursor:pointer}
+.msg{font-size:.76rem;margin-top:.55rem;line-height:1.45}
+.msg.err{color:var(--red-dark)}.msg.ok{color:var(--green-dark)}
 .pie{text-align:center;font-size:.7rem;color:var(--label3);margin-top:1.6rem;line-height:1.6}
 .spinner{width:24px;height:24px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .6rem}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -107,6 +113,13 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="sec-t">Mi cuenta</div>
     <div class="card">
       <div class="fila"><span id="mi-email" style="color:var(--label2);overflow:hidden;text-overflow:ellipsis"></span></div>
+      <div class="fila"><span>Contraseña</span><button type="button" onclick="toggleClave()">Cambiar</button></div>
+      <form id="form-clave" onsubmit="cambiarClave(event)">
+        <input type="password" id="k1" placeholder="Contraseña nueva (mín. 8)" autocomplete="new-password" minlength="8" required>
+        <input type="password" id="k2" placeholder="Repítela" autocomplete="new-password" minlength="8" required>
+        <button class="btn" id="k-btn">Guardar contraseña</button>
+        <div class="msg" id="k-msg"></div>
+      </form>
       <div class="fila"><span>Sesión</span><button type="button" class="rojo" onclick="Auth.salir()">Cerrar sesión</button></div>
     </div>
   </div>
@@ -188,6 +201,24 @@ async function cargarTurnos(yo) {
   } catch (e) {
     cont.innerHTML = `<div class="vacio">No se han podido cargar tus turnos (${escH(e.message)}).<br><a href="#" onclick="location.reload();return false">Reintentar</a></div>`;
   }
+}
+
+function toggleClave() {
+  const f = document.getElementById('form-clave');
+  f.style.display = f.style.display === 'block' ? 'none' : 'block';
+  if (f.style.display === 'block') document.getElementById('k1').focus();
+}
+async function cambiarClave(ev) {
+  ev.preventDefault();
+  const m = document.getElementById('k-msg'), b = document.getElementById('k-btn');
+  const k1 = document.getElementById('k1').value, k2 = document.getElementById('k2').value;
+  if (k1 !== k2) { m.className = 'msg err'; m.textContent = 'Las dos contraseñas no coinciden.'; return; }
+  b.disabled = true;
+  const { error } = await Auth.sb.auth.updateUser({ password: k1 });
+  b.disabled = false;
+  if (error) { m.className = 'msg err'; m.textContent = 'No se pudo cambiar: ' + error.message; return; }
+  m.className = 'msg ok'; m.textContent = '✓ Contraseña cambiada.';
+  document.getElementById('k1').value = document.getElementById('k2').value = '';
 }
 
 (async function () {

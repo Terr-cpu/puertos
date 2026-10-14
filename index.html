@@ -48,7 +48,12 @@ input:focus{border-color:var(--blue);background:#fff}
 .msg.err{display:block;background:var(--red-soft);color:var(--red-dark)}
 .msg.ok{display:block;background:var(--green-soft);color:var(--green-dark)}
 .msg.inf{display:block;background:var(--blue-soft);color:#0a4fa0}
+[hidden]{display:none!important}
 .vista{display:none}.vista.on{display:block}
+input:read-only{color:var(--label2);background:rgba(229,229,234,.6);cursor:default}
+label.recordar{display:flex;align-items:center;gap:.55rem;text-transform:none;letter-spacing:0;font-size:.82rem;font-weight:500;color:var(--label2);margin:1rem 0 0;cursor:pointer}
+label.recordar input{width:18px;height:18px;accent-color:var(--navy);margin:0}
+.ayuda{font-size:.72rem;color:var(--label3);margin-top:.45rem;line-height:1.45}
 .pie{text-align:center;font-size:.7rem;color:var(--label3);margin-top:1.2rem;line-height:1.6}
 .cargando{text-align:center;padding:1.5rem 0;color:var(--label3);font-size:.85rem}
 .spinner{width:28px;height:28px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .7rem}
@@ -71,28 +76,30 @@ input:focus{border-color:var(--blue);background:#fff}
 
     <div class="vista on" id="v-cargando"><div class="cargando"><div class="spinner"></div>Un momento…</div></div>
 
-    <!-- VOLUNTARIO: SOLO EL CORREO -->
-    <form class="vista" id="v-entrar" onsubmit="entrarVoluntario(event)">
-      <h2>Entrar</h2>
-      <p class="sub">Escribe el correo que tienes guardado en tu ficha de voluntario.</p>
+    <!-- ENTRAR: primero el correo; luego la contraseña, o crearla si es la primera vez -->
+    <form class="vista" id="v-entrar" onsubmit="siguiente(event)">
+      <h2 id="e-titulo">Entrar</h2>
+      <p class="sub" id="e-sub">Escribe el correo que tienes guardado en tu ficha de voluntario.</p>
       <label for="e-email">Correo</label>
-      <input type="email" id="e-email" autocomplete="email" inputmode="email" required>
-      <button class="btn" id="e-btn">Entrar</button>
-      <div class="msg" id="e-msg"></div>
-      <div class="links" style="justify-content:center;margin-top:1.3rem"><a href="#" onclick="vista('admin');return false" style="color:var(--label3);font-weight:500">Acceso coordinador</a></div>
-    </form>
+      <input type="email" id="e-email" autocomplete="username" inputmode="email" required>
 
-    <!-- COORDINADOR: CORREO Y CONTRASEÑA -->
-    <form class="vista" id="v-admin" onsubmit="entrarAdmin(event)">
-      <h2>Acceso coordinador</h2>
-      <p class="sub">Con tu correo y tu contraseña.</p>
-      <label for="a-email">Correo</label>
-      <input type="email" id="a-email" autocomplete="email" required>
-      <label for="a-clave">Contraseña</label>
-      <div class="pw"><input type="password" id="a-clave" autocomplete="current-password" required><button type="button" onclick="verClave('a-clave',this)" aria-label="Mostrar contraseña">👁️</button></div>
-      <button class="btn" id="a-btn">Entrar</button>
-      <div class="links"><a href="#" onclick="vista('entrar');return false">← Soy voluntario</a><a href="#" onclick="vista('olvido');return false">¿Olvidaste tu contraseña?</a></div>
-      <div class="msg" id="a-msg"></div>
+      <div id="e-paso-clave" hidden>
+        <label for="e-clave">Contraseña</label>
+        <div class="pw"><input type="password" id="e-clave" autocomplete="current-password"><button type="button" onclick="verClave('e-clave',this)" aria-label="Mostrar contraseña">👁️</button></div>
+      </div>
+
+      <div id="e-paso-nueva" hidden>
+        <label for="e-nueva">Crea tu contraseña</label>
+        <div class="pw"><input type="password" id="e-nueva" autocomplete="new-password" minlength="8"><button type="button" onclick="verClave('e-nueva',this)" aria-label="Mostrar contraseña">👁️</button></div>
+        <label for="e-nueva2">Repítela</label>
+        <input type="password" id="e-nueva2" autocomplete="new-password" minlength="8">
+        <p class="ayuda">Mínimo 8 caracteres. Es la que usarás para entrar a partir de ahora.</p>
+      </div>
+
+      <label class="recordar" id="e-recordar" hidden><input type="checkbox" id="e-recordarme" checked> Mantener la sesión iniciada</label>
+      <button class="btn" id="e-btn">Continuar</button>
+      <div class="links" id="e-links" hidden><a href="#" onclick="otroCorreo();return false">← Usar otro correo</a><a href="#" id="e-olvido" onclick="vista('olvido');return false">Recordar contraseña</a></div>
+      <div class="msg" id="e-msg"></div>
     </form>
 
     <!-- OLVIDÉ LA CONTRASEÑA -->
@@ -102,7 +109,7 @@ input:focus{border-color:var(--blue);background:#fff}
       <label for="o-email">Correo</label>
       <input type="email" id="o-email" autocomplete="email" required>
       <button class="btn" id="o-btn">Enviar enlace</button>
-      <div class="links"><a href="#" onclick="vista('admin');return false">← Volver</a></div>
+      <div class="links"><a href="#" onclick="vista('entrar');return false">← Volver</a></div>
       <div class="msg" id="o-msg"></div>
     </form>
 
@@ -140,8 +147,8 @@ function vista(v) {
   const primero = document.querySelector('#v-' + v + ' input');
   if (primero) setTimeout(() => primero.focus(), 50);
   // Copiar el correo escrito de una vista a otra
-  const email = ['e-email', 'a-email', 'o-email'].map(id => document.getElementById(id).value).find(Boolean) || '';
-  ['e-email', 'a-email', 'o-email'].forEach(id => { if (!document.getElementById(id).value) document.getElementById(id).value = email; });
+  const email = ['e-email', 'o-email'].map(id => document.getElementById(id).value).find(Boolean) || '';
+  ['e-email', 'o-email'].forEach(id => { if (!document.getElementById(id).value) document.getElementById(id).value = email; });
 }
 function msg(id, tipo, html) { const m = document.getElementById(id); m.className = 'msg ' + tipo; m.innerHTML = html; }
 function ocupado(id, si, txt) { const b = document.getElementById(id); b.disabled = si; if (txt) b.textContent = txt; }
@@ -175,50 +182,87 @@ function traducirError(e) {
   return 'No se ha podido completar: ' + t.replace(/[<>&]/g, '');
 }
 
-/** Voluntario: solo el correo. La función entrar-voluntario comprueba que está en una
- *  ficha activa y devuelve un token de un solo uso con el que se abre la sesión. */
-async function entrarVoluntario(ev) {
+// ── Entrar por pasos ─────────────────────────────────────────
+// 1) correo → la función cuenta-voluntario dice si está en una ficha y si ya tiene cuenta
+// 2a) ya tiene cuenta → su contraseña            2b) primera vez → crea su contraseña y entra
+let paso = 'correo';
+
+function mostrarPaso(p) {
+  paso = p;
+  const email = document.getElementById('e-email');
+  email.readOnly = p !== 'correo';
+  document.getElementById('e-paso-clave').hidden = p !== 'clave';
+  document.getElementById('e-paso-nueva').hidden = p !== 'nueva';
+  document.getElementById('e-recordar').hidden = p === 'correo';
+  document.getElementById('e-links').hidden = p === 'correo';
+  document.getElementById('e-olvido').hidden = p !== 'clave';
+  document.getElementById('e-clave').required = p === 'clave';
+  document.getElementById('e-nueva').required = document.getElementById('e-nueva2').required = p === 'nueva';
+  document.getElementById('e-titulo').textContent = p === 'nueva' ? 'Primera vez' : 'Entrar';
+  document.getElementById('e-sub').innerHTML = p === 'nueva'
+    ? '¡Bienvenido! Es la primera vez que entras: <b>elige una contraseña</b> y listo.'
+    : p === 'clave' ? 'Escribe tu contraseña.' : 'Escribe el correo que tienes guardado en tu ficha de voluntario.';
+  document.getElementById('e-btn').textContent = p === 'nueva' ? 'Crear contraseña y entrar' : p === 'clave' ? 'Entrar' : 'Continuar';
+  const foco = { correo: 'e-email', clave: 'e-clave', nueva: 'e-nueva' }[p];
+  setTimeout(() => document.getElementById(foco).focus(), 50);
+}
+function otroCorreo() {
+  document.getElementById('e-msg').className = 'msg';
+  ['e-clave', 'e-nueva', 'e-nueva2'].forEach(id => { document.getElementById(id).value = ''; });
+  mostrarPaso('correo');
+}
+
+/** Llama a la Edge Function cuenta-voluntario. */
+async function cuenta(body) {
+  const r = await fetch(Auth.URL + '/functions/v1/cuenta-voluntario', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', apikey: Auth.CLAVE },
+    body: JSON.stringify(body),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (r.status >= 500 || r.status === 404 && !d.error) throw new Error(d.detalle || 'servicio no disponible');
+  return d;
+}
+
+async function entrarConClave(email, clave) {
+  Auth.recordarSesion(document.getElementById('e-recordarme').checked);
+  const { error } = await sb.auth.signInWithPassword({ email, password: clave });
+  if (error) throw error;
+  await irADentro();
+}
+
+async function siguiente(ev) {
   ev.preventDefault();
   const email = document.getElementById('e-email').value.trim();
-  ocupado('e-btn', true, 'Entrando…');
+  const btn = document.getElementById('e-btn'), txt = btn.textContent;
+  document.getElementById('e-msg').className = 'msg';
+  btn.disabled = true; btn.textContent = 'Un momento…';
   try {
-    const r = await fetch(Auth.URL + '/functions/v1/entrar-voluntario', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: Auth.CLAVE },
-      body: JSON.stringify({ email }),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (d.error === 'sin_ficha') { msg('e-msg', 'err', 'Este correo no está en ninguna ficha de voluntario. Revisa que esté bien escrito o pregunta al hermano Manuel Fernández.'); return; }
-    if (d.error === 'correo_invalido') { msg('e-msg', 'err', 'Escribe un correo válido.'); return; }
-    if (d.error === 'admin') {
-      vista('admin');
-      document.getElementById('a-email').value = email;
-      document.getElementById('a-clave').focus();
-      msg('a-msg', 'inf', 'Esta cuenta es de coordinador: entra con tu contraseña.');
+    if (paso === 'correo') {
+      let d;
+      try { d = await cuenta({ accion: 'estado', email }); }
+      catch (e) { mostrarPaso('clave'); return; }   // sin la función: al menos se puede entrar con contraseña
+      if (d.error === 'correo_invalido') { msg('e-msg', 'err', 'Escribe un correo válido.'); return; }
+      if (d.estado === 'sin_ficha') { msg('e-msg', 'err', 'Este correo no está en ninguna ficha de voluntario. Revisa que esté bien escrito o pregunta al hermano Manuel Fernández.'); return; }
+      mostrarPaso(d.estado === 'nueva' ? 'nueva' : 'clave');
       return;
     }
-    if (!r.ok || !d.token_hash) throw new Error(d.detalle || d.error || ('error ' + r.status));
-    let { error } = await sb.auth.verifyOtp({ token_hash: d.token_hash, type: 'email' });
-    if (error) ({ error } = await sb.auth.verifyOtp({ token_hash: d.token_hash, type: 'magiclink' }));
-    if (error) throw error;
-    await irADentro();
+    if (paso === 'clave') { await entrarConClave(email, document.getElementById('e-clave').value); return; }
+    // Primera vez: crear la contraseña y entrar
+    const c1 = document.getElementById('e-nueva').value, c2 = document.getElementById('e-nueva2').value;
+    if (c1.length < 8) { msg('e-msg', 'err', 'La contraseña debe tener al menos 8 caracteres.'); return; }
+    if (c1 !== c2) { msg('e-msg', 'err', 'Las dos contraseñas no coinciden.'); return; }
+    const d = await cuenta({ accion: 'crear', email, password: c1 });
+    if (d.error === 'existente') { mostrarPaso('clave'); msg('e-msg', 'inf', 'Este correo ya tiene contraseña: escríbela, o usa “Recordar contraseña”.'); return; }
+    if (d.error === 'sin_ficha') { otroCorreo(); msg('e-msg', 'err', 'Este correo no está en ninguna ficha de voluntario.'); return; }
+    if (!d.ok) throw new Error(d.detalle || d.error || 'no se pudo crear');
+    await entrarConClave(email, c1);
   } catch (e) {
     msg('e-msg', 'err', traducirError(e));
   } finally {
-    ocupado('e-btn', false, 'Entrar');
+    btn.disabled = false;
+    if (btn.textContent === 'Un momento…') btn.textContent = txt;
   }
-}
-
-/** Coordinador: correo y contraseña. */
-async function entrarAdmin(ev) {
-  ev.preventDefault();
-  ocupado('a-btn', true, 'Entrando…');
-  const { error } = await sb.auth.signInWithPassword({
-    email: document.getElementById('a-email').value.trim(),
-    password: document.getElementById('a-clave').value,
-  });
-  if (error) { msg('a-msg', 'err', traducirError(error)); ocupado('a-btn', false, 'Entrar'); return; }
-  await irADentro();
 }
 
 async function olvido(ev) {
