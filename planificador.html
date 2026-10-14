@@ -571,6 +571,8 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   .topbar-actions .btn span:not(:first-child){display:none}
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
 </head>
 <body>
 
@@ -608,7 +610,11 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
     <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
     <button class="nav-item" onclick="setTab('reglas')" id="nav-reglas"><span class="ni">🎛️</span> Reglas del motor</button>
   </div>
-  <div class="sidebar-footer"><p>v5.0 · Puerto de Sevilla</p></div>
+  <div class="sidebar-footer">
+    <button class="nav-item" onclick="Auth.salir()" style="margin-bottom:.4rem"><span class="ni">🚪</span> Cerrar sesión</button>
+    <p id="sidebar-usuario" style="margin-bottom:.25rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></p>
+    <p>v5.0 · Puerto de Sevilla</p>
+  </div>
 </aside>
 <div class="sidebar-overlay" id="soverlay" onclick="closeSidebar()"></div>
 
@@ -790,9 +796,11 @@ function setTab(id) {
 // ══════════════════════════════════════
 //  API — Supabase
 // ══════════════════════════════════════
+// Authorization lleva el token de la sesión (auth.js), no la clave pública: con la base de
+// datos cerrada (supabase/14_cerrar_bd.sql) solo el admin puede leer y escribir todo.
 const SB_H = {
   'apikey': SUPA_KEY,
-  'Authorization': 'Bearer ' + SUPA_KEY,
+  get 'Authorization'() { return 'Bearer ' + Auth.token(); },
   'Content-Type': 'application/json',
   'Accept': 'application/json'
 };
@@ -7152,7 +7160,8 @@ async function abrirFicha(nombre, id) {
     // select con email: si todavía no se ha ejecutado 12_notificar_email.sql en Supabase esa
     // columna no existe y el select falla entero — se reintenta sin ella para no dejar caída
     // la ficha mientras tanto.
-    const volQuery = sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email')
+    const volQuery = sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email,dispo_habilitada')
+      .catch(() => sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email'))
       .catch(() => sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'));
     const [vol, disp, canc, anulR] = await Promise.all([
       volQuery,
@@ -7185,6 +7194,9 @@ async function abrirFicha(nombre, id) {
         <input class="fc" id="vol-email-${v.id}" type="email" value="${escH(v.email || '')}" placeholder="📧 Correo para avisos (opcional)" style="font-size:.76rem;padding:.4rem .6rem;flex:1">
         <button class="btn btn-ghost btn-sm" onclick="guardarEmailVol('${v.id}')" title="Guardar correo">💾</button>
       </div>
+      ${v.dispo_habilitada === undefined ? '' : `<label style="display:flex;align-items:center;gap:.55rem;font-size:.76rem;font-weight:600;color:var(--label2);background:var(--surface2);border-radius:var(--r-sm);padding:.5rem .65rem;margin:-.4rem 0 .9rem;cursor:pointer" title="Tras marcarla la primera vez, su disponibilidad queda bloqueada. Actívalo para que pueda cambiarla una vez: al guardarla se vuelve a bloquear sola.">
+        <input type="checkbox" ${v.dispo_habilitada ? 'checked' : ''} onchange="habilitarDispoVol('${v.id}', this)" style="width:16px;height:16px;accent-color:var(--navy)">
+        🔓 Permitir que cambie su disponibilidad <span style="font-weight:400;color:var(--label3)">(se bloquea al guardarla)</span></label>`}
       ${F.flags.map(f => `<div style="display:flex;gap:.5rem;align-items:center;background:${FI[f.tipo][1]};color:${FI[f.tipo][2]};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.35rem;font-size:.76rem;font-weight:600"><span>${FI[f.tipo][0]}</span>${escH(f.txt)}</div>`).join('')}
       <div class="stats-row" style="margin:.7rem 0">
         ${kpi(F.hechos, 'Turnos hechos')}
@@ -7212,6 +7224,16 @@ async function abrirFicha(nombre, id) {
       </div>`;
   } catch(e) {
     body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
+  }
+}
+
+async function habilitarDispoVol(id, chk) {
+  try {
+    await sbPatch('voluntarios', 'id=eq.' + id, { dispo_habilitada: chk.checked });
+    toast(chk.checked ? '🔓 Ya puede cambiar su disponibilidad (una vez)' : '🔒 Disponibilidad bloqueada', 'ok');
+  } catch(e) {
+    chk.checked = !chk.checked;
+    toast('No se pudo guardar: ' + e.message + ' — ¿has ejecutado 15_dispo_habilitada.sql en Supabase?', 'err');
   }
 }
 
@@ -9154,15 +9176,18 @@ function _stDispoHTML() {
   </div>`;
 }
 
-// ── INIT
-loadCuadrante();
-// Cargar config calendario en background para tenerlo disponible en el cuadrante
-apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
-// Iniciar sistema de notificaciones
-actualizarBadge();
-iniciarPolling();
-// Pedir permiso de notificaciones al arrancar (no bloqueante)
-pedirPermisoNotif();
+// ── INIT — solo el admin (auth.js lleva al login si no hay sesión, y al menú si es voluntario)
+Auth.requerir('admin').then(yo => {
+  document.getElementById('sidebar-usuario').textContent = yo.email;
+  loadCuadrante();
+  // Cargar config calendario en background para tenerlo disponible en el cuadrante
+  apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
+  // Iniciar sistema de notificaciones
+  actualizarBadge();
+  iniciarPolling();
+  // Pedir permiso de notificaciones al arrancar (no bloqueante)
+  pedirPermisoNotif();
+});
 </script>
 </body>
 </html>

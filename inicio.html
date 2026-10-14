@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Predicación Puerto de Sevilla · Voluntarios</title>
+<meta name="theme-color" content="#0a1628">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script src="idioma.js"></script>
+<style>
+:root{
+  --bg:#f2f2f7;--surface:#fff;--surface2:#f5f7fa;
+  --navy:#0a1628;--blue:#0071e3;--blue-soft:#ddeeff;
+  --amber:#e07b00;--amber-soft:#fff3e0;
+  --gold:#c9a84c;--green:#34c759;--green-dark:#1a9648;--green-soft:#e6f7ed;
+  --red:#ff3b30;--red-dark:#c0392b;--red-soft:#fff0ef;
+  --purple:#7c3aed;--purple-soft:#f0e9ff;
+  --label1:#1c1c1e;--label2:#48484a;--label3:#8e8e93;--label4:#c7c7cc;
+  --sep:rgba(60,60,67,.12);
+  --shadow-sm:0 1px 4px rgba(0,0,0,.07);--shadow-md:0 4px 20px rgba(0,0,0,.09);--shadow-lg:0 12px 40px rgba(0,0,0,.14);
+  --r-sm:10px;--r-md:14px;--r-lg:20px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
+body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparent 42%),radial-gradient(circle at 88% 72%,rgba(201,168,76,.13),transparent 40%),radial-gradient(circle at 50% 100%,rgba(124,58,237,.06),transparent 45%) #f2f2f7;background-attachment:fixed;font-family:'Sora',system-ui,sans-serif;color:var(--label1);min-height:100vh;padding-bottom:calc(2rem + env(safe-area-inset-bottom))}
+.hero{background:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);padding:2rem 1.5rem 4.6rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 100%,rgba(0,113,227,.18) 0%,transparent 70%)}
+.hero-inner{position:relative}
+.hero-icon{width:46px;height:46px;margin:0 auto .65rem;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:1.25rem}
+.hero h1{font-size:clamp(1.15rem,4vw,1.55rem);font-weight:700;color:#fff;letter-spacing:-.02em}
+.hero p{color:rgba(255,255,255,.4);font-size:.67rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-top:.28rem}
+.hero-line{width:22px;height:2px;background:linear-gradient(90deg,var(--gold),transparent);margin:.65rem auto 0;border-radius:2px}
+.wrap{max-width:560px;margin:-3rem auto 0;padding:0 16px;position:relative}
+.acciones{display:grid;grid-template-columns:1fr;gap:.65rem}
+@media(min-width:520px){.acciones{grid-template-columns:repeat(3,1fr)}}
+.accion{display:flex;align-items:center;gap:.8rem;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.65);border-radius:var(--r-lg);box-shadow:var(--shadow-md);padding:1rem 1.05rem;text-decoration:none;color:var(--label1);transition:transform .12s}
+@media(min-width:520px){.accion{flex-direction:column;align-items:flex-start;gap:.55rem}}
+.accion:active{transform:scale(.98)}
+.accion .ico{width:42px;height:42px;flex-shrink:0;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+.accion b{display:block;font-size:.88rem;font-weight:700}
+.accion small{display:block;font-size:.7rem;color:var(--label3);margin-top:.12rem;line-height:1.35}
+.sec{margin-top:1.5rem}
+.sec-t{font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--label3);margin:0 .2rem .6rem}
+.card{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.65);border-radius:var(--r-lg);box-shadow:var(--shadow-md);overflow:hidden}
+.turno{display:flex;gap:.85rem;padding:.9rem 1rem;border-top:1px solid var(--sep)}
+.turno:first-child{border-top:none}
+.turno .fecha{width:50px;flex-shrink:0;text-align:center;border-radius:12px;padding:.4rem 0;background:var(--blue-soft);color:var(--blue)}
+.turno .fecha .d{font-size:1.15rem;font-weight:800;line-height:1.1}
+.turno .fecha .m{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.turno .info{flex:1;min-width:0}
+.turno .hora{font-size:.92rem;font-weight:700}
+.turno .dia{font-size:.72rem;color:var(--label3);margin-top:.1rem}
+.turno .eq{font-size:.72rem;color:var(--label2);margin-top:.35rem;line-height:1.45}
+.est{display:inline-block;font-size:.62rem;font-weight:700;padding:.12rem .45rem;border-radius:6px;margin-left:.35rem;vertical-align:middle}
+.est.conf{background:var(--green-soft);color:var(--green-dark)}
+.est.apunte{background:var(--purple-soft);color:var(--purple)}
+.est.baja{background:var(--red-soft);color:var(--red-dark)}
+.est.anulado{background:var(--surface2);color:var(--label3)}
+.turno.apagado .hora,.turno.apagado .fecha{opacity:.5}
+.vacio{padding:1.4rem 1rem;text-align:center;font-size:.8rem;color:var(--label3);line-height:1.55}
+.vacio a{color:var(--blue);font-weight:600;text-decoration:none}
+.fila{display:flex;align-items:center;justify-content:space-between;gap:.6rem;padding:.85rem 1rem;border-top:1px solid var(--sep);font-size:.84rem}
+.fila:first-child{border-top:none}
+.fila button{font:600 .76rem 'Sora',system-ui,sans-serif;border:1px solid var(--sep);background:var(--surface2);color:var(--label1);border-radius:9px;padding:.4rem .8rem;cursor:pointer}
+.fila button.rojo{color:var(--red-dark)}
+#form-clave{display:none;padding:0 1rem 1rem}
+#form-clave input{width:100%;font:500 .9rem 'Sora',system-ui,sans-serif;padding:.7rem .85rem;border:1.5px solid var(--sep);border-radius:var(--r-sm);background:var(--surface2);margin-top:.5rem;outline:none}
+#form-clave input:focus{border-color:var(--blue);background:#fff}
+#form-clave .btn{width:100%;margin-top:.7rem;font:700 .85rem 'Sora',system-ui,sans-serif;padding:.75rem;border:none;border-radius:var(--r-md);background:var(--navy);color:#fff;cursor:pointer}
+.msg{font-size:.76rem;margin-top:.55rem;line-height:1.45}
+.msg.err{color:var(--red-dark)}.msg.ok{color:var(--green-dark)}
+.pie{text-align:center;font-size:.7rem;color:var(--label3);margin-top:1.6rem;line-height:1.6}
+.spinner{width:24px;height:24px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .6rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header class="hero" id="hero">
+  <div class="hero-inner">
+    <div class="hero-icon">⚓</div>
+    <h1 id="saludo">Hola</h1>
+    <p data-t="sub">Predicación Puerto de Sevilla · Voluntarios</p>
+    <div class="hero-line"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="acciones">
+    <a class="accion" href="sustituciones.html">
+      <span class="ico" style="background:var(--red-soft)">📤</span>
+      <span><b data-t="baja">Comunicar una baja</b><small data-t="bajaSub">No puedo ir a un turno</small></span>
+    </a>
+    <a class="accion" href="sustituciones.html#oferta">
+      <span class="ico" style="background:var(--green-soft)">✋</span>
+      <span><b data-t="apuntarme">Apuntarme a turnos</b><small data-t="apuntarmeSub">Ver dónde faltan voluntarios</small></span>
+    </a>
+    <a class="accion" href="disponibilidad-bloques.html">
+      <span class="ico" style="background:var(--blue-soft)">🗓️</span>
+      <span><b data-t="dispo">Mi disponibilidad</b><small data-t="dispoSub">Qué días y horas puedo</small></span>
+    </a>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t" data-t="misTurnos">Mis próximos turnos</div>
+    <div class="card" id="turnos"><div class="vacio"><div class="spinner"></div><span data-t="cargando">Cargando…</span></div></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-t" data-t="miCuenta">Mi cuenta</div>
+    <div class="card">
+      <div class="fila"><span id="mi-email" style="color:var(--label2);overflow:hidden;text-overflow:ellipsis"></span></div>
+      <div class="fila"><span data-t="clave">Contraseña</span><button type="button" onclick="toggleClave()" data-t="cambiar">Cambiar</button></div>
+      <form id="form-clave" onsubmit="cambiarClave(event)">
+        <input type="password" id="k1" placeholder="Contraseña nueva (mín. 8)" data-t-ph="claveNueva" autocomplete="new-password" minlength="8" required>
+        <input type="password" id="k2" placeholder="Repítela" data-t-ph="repitela" autocomplete="new-password" minlength="8" required>
+        <button class="btn" id="k-btn" data-t="guardarClave">Guardar contraseña</button>
+        <div class="msg" id="k-msg"></div>
+      </form>
+      <div class="fila"><span data-t="sesion">Sesión</span><button type="button" class="rojo" onclick="Auth.salir()" data-t="salir">Cerrar sesión</button></div>
+    </div>
+  </div>
+
+  <p class="pie" data-t-html="pie">💬 Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.</p>
+</main>
+
+<script>
+I18N.textos({
+  es: {
+    _titulo: 'Predicación Puerto de Sevilla · Voluntarios',
+    sub: 'Predicación Puerto de Sevilla · Voluntarios', hola: 'Hola', holaNombre: 'Hola, {nombre}',
+    baja: 'Comunicar una baja', bajaSub: 'No puedo ir a un turno',
+    apuntarme: 'Apuntarme a turnos', apuntarmeSub: 'Ver dónde faltan voluntarios',
+    dispo: 'Mi disponibilidad', dispoSub: 'Qué días y horas puedo',
+    misTurnos: 'Mis próximos turnos', cargando: 'Cargando…', miCuenta: 'Mi cuenta',
+    clave: 'Contraseña', cambiar: 'Cambiar', claveNueva: 'Contraseña nueva (mín. 8)', repitela: 'Repítela',
+    guardarClave: 'Guardar contraseña', sesion: 'Sesión', salir: 'Cerrar sesión',
+    pie: '💬 Para cualquier duda o consulta, puedes ponerte en contacto<br>con el hermano Manuel Fernández.',
+    sinFicha: 'Tu cuenta no está unida a ninguna ficha de voluntario.',
+    sinTurnos: 'No tienes turnos próximos.', verFaltan: '✋ Ver dónde faltan voluntarios',
+    errTurnos: 'No se han podido cargar tus turnos ({e}).', reintentar: 'Reintentar',
+    estAnulado: 'Anulado', estBaja: 'Baja comunicada', estApunte: 'Apuntado', estConf: 'Confirmado',
+    companeros: 'Compañeros:', nadieMas: 'de momento, ninguno más', hoy: 'HOY',
+    noCoinciden: 'Las dos contraseñas no coinciden.', noCambio: 'No se pudo cambiar: {e}', cambiada: '✓ Contraseña cambiada.',
+  },
+  en: {
+    _titulo: 'Seville Port Witnessing · Volunteers',
+    sub: 'Seville Port Witnessing · Volunteers', hola: 'Hi', holaNombre: 'Hi, {nombre}',
+    baja: 'Report an absence', bajaSub: 'I can’t make a shift',
+    apuntarme: 'Sign up for shifts', apuntarmeSub: 'See where volunteers are needed',
+    dispo: 'My availability', dispoSub: 'Days and times I can do',
+    misTurnos: 'My upcoming shifts', cargando: 'Loading…', miCuenta: 'My account',
+    clave: 'Password', cambiar: 'Change', claveNueva: 'New password (min. 8)', repitela: 'Repeat it',
+    guardarClave: 'Save password', sesion: 'Session', salir: 'Sign out',
+    pie: '💬 For any questions, you can contact<br>brother Manuel Fernández.',
+    sinFicha: 'Your account is not linked to any volunteer record.',
+    sinTurnos: 'You have no upcoming shifts.', verFaltan: '✋ See where volunteers are needed',
+    errTurnos: 'Your shifts could not be loaded ({e}).', reintentar: 'Try again',
+    estAnulado: 'Cancelled', estBaja: 'Absence reported', estApunte: 'Signed up', estConf: 'Confirmed',
+    companeros: 'Teammates:', nadieMas: 'no one else yet', hoy: 'TODAY',
+    noCoinciden: 'The two passwords do not match.', noCambio: 'Could not change it: {e}', cambiada: '✓ Password changed.',
+  },
+});
+I18N.selector(document.getElementById('hero'));
+
+const escH = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const titulo = s => String(s || '').toLowerCase().replace(/(^|\s)\S/g, c => c.toUpperCase());
+const mayus = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+async function sbGet(t, p) {
+  const r = await fetch(Auth.URL + '/rest/v1/' + t + (p ? '?' + p : ''), { headers: Auth.cabeceras() });
+  if (!r.ok) throw new Error('Error ' + r.status + ' en ' + t);
+  return r.json();
+}
+function hoyMadrid() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+}
+
+let YO = null, DATOS = null;   // lo cargado, para repintar al cambiar de idioma sin volver a pedirlo
+
+/**
+ * Mis turnos desde hoy, con el mismo criterio que la app: equipo confirmado − bajas
+ * activas + apuntados (baja + apunte = se reincorpora). Los compañeros salen igual.
+ */
+async function cargarTurnos() {
+  const cont = document.getElementById('turnos');
+  const me = YO.voluntario?.id;
+  if (!me) { DATOS = { error: 'sinFicha' }; return pintarTurnos(); }
+  const hoy = hoyMadrid();
+  try {
+    const [hist, refs, bajas, anul] = await Promise.all([
+      sbGet('v_historial', 'fecha=gte.' + hoy + '&select=fecha,rango,nombre,voluntario_id,tiene_llave'),
+      sbGet('v_refuerzos', 'fecha=gte.' + hoy + '&es_dia_completo=eq.false&select=fecha,rango,nombre,voluntario_id,tiene_llave'),
+      sbGet('v_bajas_activas', 'fecha=gte.' + hoy + '&select=fecha,rango,voluntario_id'),
+      sbGet('turnos_no_realizados', 'fecha=gte.' + hoy + '&select=fecha,rango').catch(() => []),
+    ]);
+    const k = (f, r) => f + '|' + r;
+    const conBaja = new Set(bajas.map(b => k(b.fecha, b.rango) + '|' + b.voluntario_id));
+    const apuntado = new Set(refs.map(r => k(r.fecha, r.rango) + '|' + r.voluntario_id));
+    const anulados = new Set(anul.map(a => k(a.fecha, a.rango)));
+    // Quién va a cada turno
+    const turnos = new Map();
+    const t = (f, r) => { const kk = k(f, r); if (!turnos.has(kk)) turnos.set(kk, { fecha: f, rango: r, van: [], yo: null }); return turnos.get(kk); };
+    hist.forEach(h => {
+      const tu = t(h.fecha, h.rango), id = k(h.fecha, h.rango) + '|' + h.voluntario_id;
+      const va = !conBaja.has(id) || apuntado.has(id);
+      if (va) tu.van.push(h);
+      if (h.voluntario_id === me) tu.yo = va ? 'conf' : 'baja';
+    });
+    refs.forEach(r => {
+      const tu = t(r.fecha, r.rango);
+      if (tu.van.some(v => v.voluntario_id === r.voluntario_id)) return;
+      tu.van.push(r);
+      if (r.voluntario_id === me && !tu.yo) tu.yo = 'apunte';
+    });
+    const mios = [...turnos.values()].filter(x => x.yo)
+      .sort((a, b) => (a.fecha + a.rango).localeCompare(b.fecha + b.rango))
+      .map(x => ({ ...x, anulado: anulados.has(k(x.fecha, x.rango)) }));
+    DATOS = { mios, hoy, me };
+  } catch (e) {
+    DATOS = { error: 'errTurnos', detalle: e.message };
+  }
+  pintarTurnos();
+}
+
+function pintarTurnos() {
+  const cont = document.getElementById('turnos');
+  if (!DATOS) return;
+  const T = I18N.t;
+  if (DATOS.error === 'sinFicha') { cont.innerHTML = `<div class="vacio">${T('sinFicha')}</div>`; return; }
+  if (DATOS.error) {
+    cont.innerHTML = `<div class="vacio">${T('errTurnos', { e: escH(DATOS.detalle) })}<br><a href="#" onclick="location.reload();return false">${T('reintentar')}</a></div>`;
+    return;
+  }
+  const { mios, hoy, me } = DATOS;
+  if (!mios.length) {
+    cont.innerHTML = `<div class="vacio">${T('sinTurnos')}<br><a href="sustituciones.html#oferta">${T('verFaltan')}</a></div>`;
+    return;
+  }
+  const fmtMes = new Intl.DateTimeFormat(I18N.locale, { month: 'short', timeZone: 'UTC' });
+  const fmtDia = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', timeZone: 'UTC' });
+  cont.innerHTML = mios.map(x => {
+    const est = x.anulado ? ['anulado', T('estAnulado')] : x.yo === 'baja' ? ['baja', T('estBaja')] : x.yo === 'apunte' ? ['apunte', T('estApunte')] : ['conf', T('estConf')];
+    const d = new Date(x.fecha + 'T12:00:00Z');
+    const comp = x.van.filter(v => v.voluntario_id !== me).map(v => escH(titulo(v.nombre)) + (v.tiene_llave ? ' 🔑' : ''));
+    const eq = x.yo === 'baja' || x.anulado ? '' : `<div class="eq"><b>${T('companeros')}</b> ${comp.length ? comp.join(', ') : T('nadieMas')}</div>`;
+    return `<div class="turno ${x.yo === 'baja' || x.anulado ? 'apagado' : ''}">
+      <div class="fecha"><div class="d">${d.getUTCDate()}</div><div class="m">${fmtMes.format(d).replace('.', '')}</div></div>
+      <div class="info">
+        <div class="hora">🕒 ${escH(I18N.idioma === 'en' ? x.rango.replace(' a ', ' – ') : x.rango)}<span class="est ${est[0]}">${est[1]}</span></div>
+        <div class="dia">${mayus(fmtDia.format(d))}${x.fecha === hoy ? ` · <b style="color:var(--red)">${T('hoy')}</b>` : ''}</div>
+        ${eq}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function pintarSaludo() {
+  const nombre = titulo(YO?.voluntario?.nombre || '').split(' ')[0];
+  document.getElementById('saludo').textContent = nombre ? I18N.t('holaNombre', { nombre }) : I18N.t('hola');
+}
+I18N.alCambiar(() => { pintarSaludo(); pintarTurnos(); });
+
+function toggleClave() {
+  const f = document.getElementById('form-clave');
+  f.style.display = f.style.display === 'block' ? 'none' : 'block';
+  if (f.style.display === 'block') document.getElementById('k1').focus();
+}
+async function cambiarClave(ev) {
+  ev.preventDefault();
+  const m = document.getElementById('k-msg'), b = document.getElementById('k-btn');
+  const k1 = document.getElementById('k1').value, k2 = document.getElementById('k2').value;
+  if (k1 !== k2) { m.className = 'msg err'; m.textContent = I18N.t('noCoinciden'); return; }
+  b.disabled = true;
+  const { error } = await Auth.sb.auth.updateUser({ password: k1 });
+  b.disabled = false;
+  if (error) { m.className = 'msg err'; m.textContent = I18N.t('noCambio', { e: error.message }); return; }
+  m.className = 'msg ok'; m.textContent = I18N.t('cambiada');
+  document.getElementById('k1').value = document.getElementById('k2').value = '';
+}
+
+(async function () {
+  YO = await Auth.requerir('voluntario');
+  if (YO.esAdmin && !YO.voluntario) { location.replace('planificador.html'); return; }
+  pintarSaludo();
+  document.getElementById('mi-email').textContent = YO.email;
+  cargarTurnos();
+})();
+</script>
+</body>
+</html>

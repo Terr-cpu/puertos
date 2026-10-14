@@ -248,6 +248,9 @@ body {
   .dia-row, .dia-header-row { grid-template-columns: 80px 1fr 1fr; }
 }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="auth.js"></script>
+<script>addEventListener('DOMContentLoaded',async()=>{Auth.barra(await Auth.requerir('voluntario'));});</script>
 </head>
 <body>
 

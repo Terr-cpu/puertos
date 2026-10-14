@@ -8,6 +8,8 @@ abre directamente en el navegador o se publica como página estática.
 
 | Archivo | Uso | Público | Backend |
 |---|---|---|---|
+| [`index.html`](index.html) | Entrada (`asispuerto.org`) con correo y contraseña; la primera vez el voluntario crea su contraseña ahí mismo. Admin → planificador; voluntario → su menú. Ver [LOGIN.md](LOGIN.md). | Todos | Supabase Auth ([`auth.js`](auth.js)). |
+| [`inicio.html`](inicio.html) | Menú del voluntario: baja, apuntarse, disponibilidad y sus próximos turnos con compañeros. | Voluntarios | Supabase REST. |
 | [`disponibilidad.html`](disponibilidad.html) | Formulario para que cada voluntario registre su disponibilidad semanal (5 semanas × 7 días, hora de entrada/salida). | Voluntarios | Google Apps Script (`APP_URL`) que escribe en una hoja de cálculo. |
 | [`disponibilidad-bloques.html`](disponibilidad-bloques.html) | Formulario de disponibilidad por bloques (Mañana/Mediodía/Tarde/Noche × L-D), fija hasta que se actualice, con migración automática desde la disponibilidad ya registrada. | Voluntarios | Supabase REST (`SU` / `SK`). |
 | [`planificador.html`](planificador.html) | Panel de administración: cuadrante mensual con motor de planificación automática, balance de carga, alertas de portador de llave, gestión de voluntarios, bajas y sustituciones, archivo de meses, reglas del motor y notificaciones (navegador + Telegram opcional). | Coordinación | Supabase REST (`SUPA_URL` / `SUPA_KEY`). |

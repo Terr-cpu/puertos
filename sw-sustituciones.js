@@ -4,7 +4,7 @@
 // como respaldo offline. Sube el número de caché (CACHE) si necesitas forzar
 // que los dispositivos ya instalados descarten la caché antigua tras un
 // cambio grande.
-const CACHE = 'sust-v2';
+const CACHE = 'sust-v3';
 const APP_SHELL = ['./', './sustituciones.html', './manifest-sustituciones.webmanifest'];
 
 self.addEventListener('install', (e) => {
@@ -24,6 +24,9 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // Solo archivos de esta web: los datos de Supabase llevan la sesión del usuario y no
+  // deben quedarse guardados en el móvil (ni servirse a otro tras cerrar sesión).
+  if (new URL(e.request.url).origin !== self.location.origin) return;
   e.respondWith(
     fetch(e.request)
       .then((res) => {
