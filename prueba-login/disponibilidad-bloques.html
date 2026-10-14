@@ -80,6 +80,15 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .day-blocked{opacity:.4;pointer-events:none}
 .cap-ok{font-size:.74rem;color:var(--green);font-weight:600;margin-bottom:.7rem}
 
+.aviso-bloqueo{display:flex;gap:.85rem;align-items:flex-start}
+.aviso-bloqueo[hidden]{display:none}
+.aviso-bloqueo .bv-ico{background:rgba(10,22,40,.08)}
+.aviso-bloqueo b{display:block;font-size:.95rem;font-weight:700;color:var(--ink);line-height:1.35}
+.aviso-bloqueo p{font-size:.8rem;color:var(--slate);line-height:1.55;margin-top:.35rem}
+.aviso-bloqueo p b{display:inline;font-size:inherit}
+.solo-ver .chip,.solo-ver .todo-dia,.solo-ver .cap-btn,.solo-ver .cap-ok a{pointer-events:none}
+.solo-ver .todo-dia,.solo-ver .cap-ok a{display:none}
+.submit-bar[hidden]{display:none}
 .bienvenida{display:flex;gap:.85rem;align-items:flex-start;border:1px solid rgba(201,168,76,.45)}
 .bienvenida[hidden]{display:none}
 .bv-ico{width:42px;height:42px;flex-shrink:0;border-radius:12px;background:rgba(201,168,76,.18);display:flex;align-items:center;justify-content:center;font-size:1.25rem}
@@ -129,10 +138,18 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="name-msg err" id="name-err" style="display:none">No te encuentro en la lista de voluntarios activos. Pide al hermano que lleva los turnos que te dé de alta.</div>
   </div>
 
-  <p class="intro" id="intro-fija">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
+  <p class="intro" id="intro-fija">Esta disponibilidad se queda guardada de forma fija.</p>
   <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
 
   <div id="cargando-dias">Cargando tu disponibilidad…</div>
+
+  <div class="card aviso-bloqueo" id="aviso-bloqueo" hidden>
+    <div class="bv-ico">🔒</div>
+    <div>
+      <b>Tu disponibilidad ya está guardada</b>
+      <p>Esta es la que tienes ahora. ¿Necesitas cambiarla? Pide al <b>hermano Manuel Fernández</b> que te la habilite.</p>
+    </div>
+  </div>
 
   <div id="form-dias">
     <div class="migra" id="aviso-migracion">
@@ -144,7 +161,7 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 
     <div class="dias-cont" id="dias-cont"></div>
 
-    <div class="confirm" id="confirmacion">Disponibilidad guardada. Gracias — puedes volver y actualizarla cuando cambie tu horario.</div>
+    <div class="confirm" id="confirmacion">Disponibilidad guardada. ¡Gracias!</div>
 
     <div class="submit-bar">
       <span id="resumen-total">0 turnos marcados</span>
@@ -236,8 +253,11 @@ async function elegir(nombre){
     // Supabase esas columnas no existen y el filtro falla — probamos sin ellas para no dejar
     // la búsqueda de nombre rota para todo el mundo mientras tanto.
     let vs;
-    try{ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id,max_sabados,max_domingos'); }
-    catch(e){ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id'); }
+    try{ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id,max_sabados,max_domingos,dispo_habilitada'); }
+    catch(e){
+      try{ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id,max_sabados,max_domingos'); }
+      catch(e2){ vs=await sbGet('voluntarios','nombre=eq.'+encodeURIComponent(nombre)+'&activo=eq.true&select=id'); }
+    }
     if(!vs.length){ document.getElementById('name-err').style.display='block'; return; }
     volIdActual=vs[0].id;
     CAPS={ Sabado: vs[0].max_sabados||null, Domingo: vs[0].max_domingos||null };
@@ -254,8 +274,13 @@ async function elegir(nombre){
         if(cubiertas/(b.h1-b.h0) >= 0.5){ SEL[keyOf(d.id,b.id)]=true; huboMigracion=true; }
       });
     });
-    document.getElementById('aviso-migracion').style.display=huboMigracion?'flex':'none';
+    // Bloqueada tras la primera vez: ya tiene la disponibilidad nueva (bloques o topes de fin de
+    // semana) y el coordinador no le ha habilitado cambiarla. El admin nunca la ve bloqueada.
+    const yaNueva=filas.some(f=>BLOQUES.some(b=>b.rango===f.horario)) || !!(CAPS.Sabado||CAPS.Domingo);
+    BLOQUEADA=!ES_ADMIN && yaNueva && vs[0].dispo_habilitada===false;
+    document.getElementById('aviso-migracion').style.display=huboMigracion&&!yaNueva?'flex':'none';
     renderDias();
+    aplicarBloqueo();
   }catch(e){ alert('Error: '+e.message); }
   finally{ document.getElementById('cargando-dias').style.display='none'; if(volIdActual) document.getElementById('form-dias').style.display='block'; }
 }
@@ -312,8 +337,17 @@ function destinoTrasPrimera(){
   return PAGINAS_VOLVER.includes(v.split(/[?#]/)[0])?v:'inicio.html';
 }
 
+// ── Bloqueo tras la primera vez ──
+let BLOQUEADA=false, ES_ADMIN=false;
+function aplicarBloqueo(){
+  document.getElementById('form-dias').classList.toggle('solo-ver',BLOQUEADA);
+  document.getElementById('aviso-bloqueo').hidden=!BLOQUEADA;
+  document.querySelector('.submit-bar').hidden=BLOQUEADA;
+  document.querySelector('.sec-title span:last-child').textContent=BLOQUEADA?'Así la tienes ahora':'Toca los turnos en los que puedes estar';
+}
+
 async function enviarDisponibilidad(){
-  if(!volIdActual) return;
+  if(!volIdActual||BLOQUEADA) return;
   if(PRIMERA&&!Object.values(SEL).some(Boolean)){ alert('Marca al menos un turno (mañana o tarde) en el que puedas participar.'); return; }
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true; const txtPrev=btn.textContent; btn.textContent='Guardando…';
@@ -332,6 +366,10 @@ async function enviarDisponibilidad(){
     // ya está guardada, así que se avisa sin tratarlo como un fallo del guardado principal.
     try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { max_sabados: CAPS.Sabado||null, max_domingos: CAPS.Domingo||null }); }
     catch(e){ alert('Tu disponibilidad está guardada, pero no se pudo guardar cuántos sábados/domingos puedes hacer. Avisa para revisarlo. ('+e.message+')'); }
+    // Guardada: queda bloqueada otra vez hasta que el coordinador la vuelva a habilitar
+    if(!ES_ADMIN){
+      try{ await sbPatch('voluntarios', 'id=eq.'+volIdActual, { dispo_habilitada: false }); }catch(e){ /* sin 15_dispo_habilitada.sql: no hay bloqueo */ }
+    }
     // Recibo por correo — no bloqueante: si el voluntario no tiene email guardado o la función
     // aún no está desplegada, no pasa nada, ya ha visto la confirmación en pantalla.
     try{
@@ -346,6 +384,7 @@ async function enviarDisponibilidad(){
     }catch(e){}
     document.getElementById('confirmacion').style.display='block';
     document.getElementById('confirmacion').scrollIntoView({behavior:'smooth',block:'nearest'});
+    if(!ES_ADMIN&&!PRIMERA){ BLOQUEADA=true; aplicarBloqueo(); }
     if(PRIMERA){
       Auth.disponibilidadMarcada();
       document.getElementById('confirmacion').textContent='¡Gracias! Disponibilidad guardada. Te llevamos a tu menú…';
@@ -365,10 +404,10 @@ async function enviarDisponibilidad(){
 
 (async function init(){
   const yo=await Auth.requerir('voluntario');
+  ES_ADMIN=!!yo.esAdmin;
   Auth.barra(yo);
   if(PRIMERA&&!yo.esAdmin){
     document.getElementById('bienvenida').hidden=false;
-    document.getElementById('intro-fija').textContent='Esta disponibilidad se queda guardada de forma fija.';
     const menu=document.querySelector('.auth-barra a'); if(menu) menu.style.visibility='hidden';   // primero, la disponibilidad
   }
   if(yo.voluntario&&!yo.esAdmin){
