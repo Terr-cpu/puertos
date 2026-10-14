@@ -310,7 +310,7 @@ async function entrarConClave(email, clave) {
 async function siguiente(ev) {
   ev.preventDefault();
   const email = document.getElementById('e-email').value.trim();
-  const btn = document.getElementById('e-btn'), txt = btn.textContent;
+  const btn = document.getElementById('e-btn');
   document.getElementById('e-msg').className = 'msg';
   btn.disabled = true; btn.textContent = I18N.t('unMomento');
   try {
@@ -337,7 +337,8 @@ async function siguiente(ev) {
     msg('e-msg', 'err', traducirError(e));
   } finally {
     btn.disabled = false;
-    if (btn.textContent === I18N.t('unMomento')) btn.textContent = txt;
+    // El texto del botón según el paso en el que se ha quedado (Continuar / Entrar / Crear…)
+    btn.textContent = I18N.t(paso === 'nueva' ? 'btnCrear' : paso === 'clave' ? 'btnEntrar' : 'btnContinuar');
   }
 }
 
