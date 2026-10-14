@@ -194,6 +194,23 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
 .toast{background:rgba(26,26,46,.93);backdrop-filter:blur(14px);color:#fff;padding:.58rem 1rem;border-radius:40px;font-size:.76rem;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .24s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:auto}
 .toast.ok{background:rgba(26,150,72,.93)}.toast.err{background:rgba(192,57,43,.93)}.toast.inf{background:rgba(10,22,40,.93);border:1px solid rgba(201,168,76,.5)}
 @keyframes toastIn{from{opacity:0;transform:scale(.86) translateY(6px)}to{opacity:1;transform:scale(1) translateY(0)}}
+/* ── Cristal: mismo estilo que la entrada, el menú y Disponibilidad ── */
+body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparent 42%),radial-gradient(circle at 88% 72%,rgba(201,168,76,.13),transparent 40%),radial-gradient(circle at 50% 100%,rgba(124,58,237,.06),transparent 45%) #f2f2f7;background-attachment:fixed}
+.tabs-pill{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%)}
+.card,.stepper,.sec-tabs,.tr-group{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border:1px solid rgba(255,255,255,.65);box-shadow:var(--shadow-md)}
+.card{border-radius:var(--r-lg)}
+.nd-group{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);box-shadow:var(--shadow-md)}
+.tr-head{background:rgba(245,247,250,.6)}
+.ti{background:rgba(245,247,250,.75)}
+.ti.sel{background:rgba(255,240,239,.9)}
+.ti.conf{background:rgba(230,247,237,.9)}
+.ac-input{background:rgba(245,247,250,.8)}
+.ac-input:focus{background:#fff}
+.btn-ghost{background:rgba(245,247,250,.8)}
+.user-bar{background:linear-gradient(160deg,#0a1628 0%,#0d2346 60%,#0f3060 100%);box-shadow:var(--shadow-md);border-radius:var(--r-lg)}
+.resumen{background:rgba(255,248,225,.85);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+.fb-ok{background:rgba(230,247,237,.85)}
+.ov-modal{background:rgba(255,255,255,.88);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.7)}
 .identidad-fija .ubar-change{display:none}
 .identidad-fija #card-nombre .ac-input{cursor:default}
 </style>
@@ -219,7 +236,7 @@ body{background:var(--bg);font-family:'Sora',system-ui,sans-serif;color:var(--la
   <div class="hero-inner">
     <div class="hero-icon">🔄</div>
     <h1>Sustituciones</h1>
-    <p>Puerto de Sevilla · Gestión de cambios</p>
+    <p>Predicación Puerto de Sevilla · Voluntarios</p>
     <div class="hero-line"></div>
   </div>
 </header>
@@ -717,7 +734,7 @@ function renderConf(c){
       const rid='rd-'+(fk+t.rango).replace(/[^a-z0-9]/gi,'_');
 
       const card=document.createElement('div');
-      card.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.65rem;animation:fadeUp .24s ease both;animation-delay:${(gi*3+ti)*.05}s`;
+      card.style.cssText=`background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:.65rem;animation:fadeUp .24s ease both;animation-delay:${(gi*3+ti)*.05}s`;
 
       // Barra de color + header
       const accentColor=tard?'var(--amber)':'var(--blue)';
@@ -776,7 +793,7 @@ function renderNuev(c){
 
   nuevosActual.forEach((t,gi)=>{
     const card=document.createElement('div');
-    card.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:${t.yaApuntado?'1.5px solid var(--teal)':'1px solid var(--sep)'};box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.7rem;animation:fadeUp .24s ease both;animation-delay:${gi*.06}s`;
+    card.style.cssText=`background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:var(--r-lg);border:${t.yaApuntado?'1.5px solid var(--teal)':'1px solid var(--sep)'};box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.7rem;animation:fadeUp .24s ease both;animation-delay:${gi*.06}s`;
     const bid='nb-'+t.fechaISO;
     const navsHtml=t.navieras&&t.navieras.length
       ?`<div style="display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.7rem">${t.navieras.map(n=>`<span style="font-size:.8rem;background:var(--surface2);border:1px solid var(--sep);border-radius:20px;padding:.22rem .65rem;color:var(--label2)">🚢 ${n}</span>`).join('')}</div>`
@@ -853,7 +870,7 @@ function renderMisApuntes(c){
     const tard=parseInt((r.rango||'0').split(':')[0])>=14;
     const esNuevo=r.es_dia_completo||!r.rango||r.rango.trim()==='';
     const g=document.createElement('div');
-    g.style.cssText=`background:var(--surface);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:.45rem;animation:fadeUp .22s ease both;animation-delay:${gi*.04}s`;
+    g.style.cssText=`background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-radius:var(--r-lg);border:1px solid var(--sep);box-shadow:var(--shadow-md);overflow:hidden;margin-bottom:.45rem;animation:fadeUp .22s ease both;animation-delay:${gi*.04}s`;
     g.innerHTML=`
       <div style="height:3px;background:${esNuevo?'linear-gradient(90deg,var(--teal),#0ac9b0)':tard?'linear-gradient(90deg,var(--amber),#ffcc00)':'linear-gradient(90deg,var(--blue),#34aadc)'}"></div>
       <div style="display:flex;align-items:center;gap:.5rem;padding:.5rem .82rem">
