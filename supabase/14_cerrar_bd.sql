@@ -14,12 +14,18 @@
 --  Las Edge Functions (correo, Telegram, avisos) usan la clave de servidor y no
 --  les afecta. Los triggers (actividad, webhooks) tampoco.
 --
+--  Disponibilidad: el voluntario solo la cambia la primera vez o si el admin se lo ha
+--  habilitado en su ficha (15_dispo_habilitada.sql).
+--
 --  EJECUTAR SOLO cuando las páginas nuevas (con login) ya estén publicadas:
 --  las antiguas usan la clave pública y dejarían de funcionar.
 --  Requiere haber ejecutado antes 13_login.sql.
 --
 --  Para deshacerlo en una emergencia: ver el final del archivo.
 -- ══════════════════════════════════════════════════════════════
+
+-- Columna de 15_dispo_habilitada.sql (por si no se ha ejecutado antes)
+alter table public.voluntarios add column if not exists dispo_habilitada boolean not null default false;
 
 -- ── 1. Quitar todas las políticas abiertas ────────────────────
 do $$
@@ -73,6 +79,11 @@ begin
      is distinct from (old.id, old.nombre, old.tiene_llave, old.activo, old.email, old.creado_en) then
     raise exception 'Solo puedes cambiar cuántos sábados y domingos puedes hacer';
   end if;
+  -- Habilitar el cambio de disponibilidad solo lo hace el admin; el voluntario solo la
+  -- vuelve a bloquear (al guardarla)
+  if new.dispo_habilitada and not coalesce(old.dispo_habilitada, false) then
+    raise exception 'Solo el coordinador puede habilitar el cambio de disponibilidad';
+  end if;
   return new;
 end;
 $$;
@@ -97,11 +108,29 @@ create policy vol_mias_ver      on public.bajas for select to authenticated usin
 create policy vol_mias_insertar on public.bajas for insert to authenticated with check (voluntario_id = public.mi_voluntario_id());
 create policy vol_mias_editar   on public.bajas for update to authenticated using (voluntario_id = public.mi_voluntario_id()) with check (voluntario_id = public.mi_voluntario_id());
 
--- Su disponibilidad
+-- Su disponibilidad: verla siempre; cambiarla solo la primera vez (aún no tiene la nueva,
+-- por bloques) o si el coordinador se lo ha habilitado (15_dispo_habilitada.sql)
+create or replace function public.puede_editar_dispo()
+returns boolean
+language sql stable
+security definer
+set search_path = public
+as $$
+  select coalesce((
+    select v.dispo_habilitada
+        or (v.max_sabados is null and v.max_domingos is null
+            and not exists (select 1 from public.disponibilidad d
+                            where d.voluntario_id = v.id and d.horario in ('08:00 a 14:00', '16:00 a 22:00')))
+    from public.voluntarios v where v.id = public.mi_voluntario_id()
+  ), false)
+$$;
+revoke execute on function public.puede_editar_dispo() from public, anon;
+grant  execute on function public.puede_editar_dispo() to authenticated;
+
 create policy vol_mia_ver      on public.disponibilidad for select to authenticated using (voluntario_id = public.mi_voluntario_id());
-create policy vol_mia_insertar on public.disponibilidad for insert to authenticated with check (voluntario_id = public.mi_voluntario_id());
-create policy vol_mia_editar   on public.disponibilidad for update to authenticated using (voluntario_id = public.mi_voluntario_id()) with check (voluntario_id = public.mi_voluntario_id());
-create policy vol_mia_borrar   on public.disponibilidad for delete to authenticated using (voluntario_id = public.mi_voluntario_id());
+create policy vol_mia_insertar on public.disponibilidad for insert to authenticated with check (voluntario_id = public.mi_voluntario_id() and public.puede_editar_dispo());
+create policy vol_mia_editar   on public.disponibilidad for update to authenticated using (voluntario_id = public.mi_voluntario_id() and public.puede_editar_dispo()) with check (voluntario_id = public.mi_voluntario_id());
+create policy vol_mia_borrar   on public.disponibilidad for delete to authenticated using (voluntario_id = public.mi_voluntario_id() and public.puede_editar_dispo());
 
 -- Turnos anulados: verlos (el menú del voluntario no enseña un turno anulado)
 create policy vol_ver on public.turnos_no_realizados for select to authenticated using (public.mi_voluntario_id() is not null);

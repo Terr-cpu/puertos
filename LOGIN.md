@@ -18,6 +18,13 @@ algún bloque guardado (Mañana/Tarde) o ha dicho cuántos sábados/domingos pue
 disponibilidad antigua por horas no vale, así que quien solo tenga esa también
 pasará por aquí una vez (verá marcados los bloques que más se le parecen).
 
+**Después queda bloqueada.** En "Mi disponibilidad" la ve pero no puede cambiarla
+("¿Necesitas cambiarla? Pide al hermano Manuel Fernández que te la habilite"). Para
+dejarle cambiarla, en su **ficha del planificador** marca *"🔓 Permitir que cambie su
+disponibilidad"*: podrá cambiarla una vez y, al guardarla, se bloquea sola otra vez.
+Requiere ejecutar [`supabase/15_dispo_habilitada.sql`](supabase/15_dispo_habilitada.sql)
+(sin él no hay bloqueo); la fase 2 hace que la base de datos también lo cumpla.
+
 Tú solo tienes que guardar el correo de cada uno en su ficha (Voluntarios → Ficha →
 💾). Si un correo no está en ninguna ficha de voluntario activo, no puede entrar ni
 crear contraseña.

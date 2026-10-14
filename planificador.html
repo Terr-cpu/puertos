@@ -7160,7 +7160,8 @@ async function abrirFicha(nombre, id) {
     // select con email: si todavía no se ha ejecutado 12_notificar_email.sql en Supabase esa
     // columna no existe y el select falla entero — se reintenta sin ella para no dejar caída
     // la ficha mientras tanto.
-    const volQuery = sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email')
+    const volQuery = sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email,dispo_habilitada')
+      .catch(() => sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en,email'))
       .catch(() => sbGet('voluntarios', 'id=eq.' + id + '&select=id,nombre,tiene_llave,activo,creado_en'));
     const [vol, disp, canc, anulR] = await Promise.all([
       volQuery,
@@ -7193,6 +7194,9 @@ async function abrirFicha(nombre, id) {
         <input class="fc" id="vol-email-${v.id}" type="email" value="${escH(v.email || '')}" placeholder="📧 Correo para avisos (opcional)" style="font-size:.76rem;padding:.4rem .6rem;flex:1">
         <button class="btn btn-ghost btn-sm" onclick="guardarEmailVol('${v.id}')" title="Guardar correo">💾</button>
       </div>
+      ${v.dispo_habilitada === undefined ? '' : `<label style="display:flex;align-items:center;gap:.55rem;font-size:.76rem;font-weight:600;color:var(--label2);background:var(--surface2);border-radius:var(--r-sm);padding:.5rem .65rem;margin:-.4rem 0 .9rem;cursor:pointer" title="Tras marcarla la primera vez, su disponibilidad queda bloqueada. Actívalo para que pueda cambiarla una vez: al guardarla se vuelve a bloquear sola.">
+        <input type="checkbox" ${v.dispo_habilitada ? 'checked' : ''} onchange="habilitarDispoVol('${v.id}', this)" style="width:16px;height:16px;accent-color:var(--navy)">
+        🔓 Permitir que cambie su disponibilidad <span style="font-weight:400;color:var(--label3)">(se bloquea al guardarla)</span></label>`}
       ${F.flags.map(f => `<div style="display:flex;gap:.5rem;align-items:center;background:${FI[f.tipo][1]};color:${FI[f.tipo][2]};border-radius:var(--r-sm);padding:.45rem .65rem;margin-bottom:.35rem;font-size:.76rem;font-weight:600"><span>${FI[f.tipo][0]}</span>${escH(f.txt)}</div>`).join('')}
       <div class="stats-row" style="margin:.7rem 0">
         ${kpi(F.hechos, 'Turnos hechos')}
@@ -7220,6 +7224,16 @@ async function abrirFicha(nombre, id) {
       </div>`;
   } catch(e) {
     body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
+  }
+}
+
+async function habilitarDispoVol(id, chk) {
+  try {
+    await sbPatch('voluntarios', 'id=eq.' + id, { dispo_habilitada: chk.checked });
+    toast(chk.checked ? '🔓 Ya puede cambiar su disponibilidad (una vez)' : '🔒 Disponibilidad bloqueada', 'ok');
+  } catch(e) {
+    chk.checked = !chk.checked;
+    toast('No se pudo guardar: ' + e.message + ' — ¿has ejecutado 15_dispo_habilitada.sql en Supabase?', 'err');
   }
 }
 
