@@ -116,7 +116,7 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="bv-ico">👋</div>
     <div>
       <b>¡Bienvenido! Antes de empezar, marca tu disponibilidad</b>
-      <p>Indica qué días y en qué bloques (mañana o tarde) puedes participar. Es lo primero que hay que hacer, <b>solo esta vez</b>: después podrás cambiarla cuando quieras desde tu menú.</p>
+      <p>Indica qué días y en qué bloques (mañana o tarde) puedes participar. Es lo primero que hay que hacer antes de empezar: <b>revísala bien antes de enviarla</b>.</p>
     </div>
   </div>
 
@@ -129,7 +129,7 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="name-msg err" id="name-err" style="display:none">No te encuentro en la lista de voluntarios activos. Pide al hermano que lleva los turnos que te dé de alta.</div>
   </div>
 
-  <p class="intro">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
+  <p class="intro" id="intro-fija">Esta disponibilidad se queda guardada de forma fija — solo tienes que volver aquí si cambia tu horario habitual.</p>
   <p class="intro small">Los turnos siguen siendo de 2 horas; marcar un bloque entero (Mañana o Tarde) significa que puedes cubrir cualquier turno de 2 horas dentro de él, y ayuda a que más hermanos coincidan a la misma hora. En sábado y domingo primero se pregunta cuántos puedes hacer al mes — así no te tocan todos los fines de semana solo por estar libre.</p>
 
   <div id="cargando-dias">Cargando tu disponibilidad…</div>
@@ -368,6 +368,7 @@ async function enviarDisponibilidad(){
   Auth.barra(yo);
   if(PRIMERA&&!yo.esAdmin){
     document.getElementById('bienvenida').hidden=false;
+    document.getElementById('intro-fija').textContent='Esta disponibilidad se queda guardada de forma fija.';
     const menu=document.querySelector('.auth-barra a'); if(menu) menu.style.visibility='hidden';   // primero, la disponibilidad
   }
   if(yo.voluntario&&!yo.esAdmin){
