@@ -61,6 +61,31 @@
     location.replace('index.html?' + q.toString());
   }
 
+  /**
+   * ¿Ha marcado ya su NUEVA disponibilidad (por bloques)? Lo primero que tiene que hacer un
+   * voluntario la primera vez que entra. Cuenta como hecha si tiene guardado algún bloque de
+   * disponibilidad-bloques.html (Mañana "08:00 a 14:00" / Tarde "16:00 a 22:00") o ha dicho
+   * cuántos sábados/domingos puede: la disponibilidad antigua por horas no vale.
+   * Si la consulta falla (sin red…), no se bloquea a nadie.
+   */
+  const BLOQUES_NUEVOS = ['08:00 a 14:00', '16:00 a 22:00'];
+  async function disponibilidadHecha(yo) {
+    const id = yo.voluntario.id;
+    try { if (sessionStorage.getItem('dispoOk') === id) return true; } catch (e) {}
+    try {
+      const h = { apikey: CLAVE_PUBLICA, Authorization: 'Bearer ' + token };
+      const enLista = BLOQUES_NUEVOS.map(b => '"' + b + '"').join(',');
+      const [filas, ficha] = await Promise.all([
+        fetch(URL_SB + '/rest/v1/disponibilidad?voluntario_id=eq.' + id + '&horario=in.(' + encodeURIComponent(enLista) + ')&select=id&limit=1', { headers: h }).then(r => r.ok ? r.json() : null),
+        fetch(URL_SB + '/rest/v1/voluntarios?id=eq.' + id + '&select=max_sabados,max_domingos', { headers: h }).then(r => r.ok ? r.json() : null),
+      ]);
+      if (!filas || !ficha) return true;
+      const ok = filas.length > 0 || !!(ficha[0] && (ficha[0].max_sabados || ficha[0].max_domingos));
+      if (ok) { try { sessionStorage.setItem('dispoOk', id); } catch (e) {} }
+      return ok;
+    } catch (e) { return true; }
+  }
+
   /** Perfil del usuario con sesión: admin y/o voluntario (por el correo de su ficha). */
   async function perfil(sesion) {
     const esAdminJwt = sesion.user?.app_metadata?.rol === 'admin';
@@ -116,9 +141,18 @@
         irAlLogin('sin-ficha');
         return new Promise(() => {});
       }
+      // Primera vez: antes que nada, marcar la nueva disponibilidad (y luego seguir a donde iba)
+      if (rol === 'voluntario' && !yo.esAdmin && !/disponibilidad-bloques\.html$/.test(location.pathname)
+          && !(await disponibilidadHecha(yo))) {
+        location.replace('disponibilidad-bloques.html?primera=1&volver=' + encodeURIComponent(paginaActual()));
+        return new Promise(() => {});
+      }
       document.documentElement.classList.remove('auth-pendiente');
       return yo;
     },
+
+    /** Tras guardar la disponibilidad nueva: ya no se vuelve a pedir en esta sesión. */
+    disponibilidadMarcada() { try { if (Auth.yo?.voluntario) sessionStorage.setItem('dispoOk', Auth.yo.voluntario.id); } catch (e) {} },
 
     async salir() {
       await sb.auth.signOut();
