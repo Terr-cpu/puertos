@@ -572,44 +572,127 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 }
 
 /* ══════════════════════════════════════════════════════════════
-   REDISEÑO — mismo estilo que la entrada y el menú del voluntario
-   (solo aspecto: ninguna función cambia)
+   REDISEÑO v2 — panel moderno con la identidad de la web
+   (azul marino, ancla y dorado). Solo aspecto: ninguna función cambia.
    ══════════════════════════════════════════════════════════════ */
 :root{
-  --bg:#f2f2f7; --surface:rgba(255,255,255,.82); --surface2:rgba(245,247,250,.88);
-  --sep:rgba(60,60,67,.12);
-  --shadow-sm:0 1px 3px rgba(10,22,40,.05),0 4px 14px rgba(10,22,40,.05);
-  --shadow-md:0 4px 22px rgba(10,22,40,.09);
+  --bg:#eef1f6; --surface:rgba(255,255,255,.86); --surface2:rgba(244,246,250,.9);
+  --sep:rgba(60,60,67,.1);
+  --shadow-sm:0 1px 2px rgba(10,22,40,.04),0 6px 18px rgba(10,22,40,.06);
+  --shadow-md:0 2px 4px rgba(10,22,40,.04),0 12px 32px rgba(10,22,40,.08);
+  --r-md:14px; --r-lg:20px; --r-xl:28px;
+  --sidebar-w:252px;
 }
-body{background:radial-gradient(circle at 18% 30%,rgba(0,113,227,.09),transparent 42%),radial-gradient(circle at 92% 75%,rgba(201,168,76,.12),transparent 40%),radial-gradient(circle at 55% 105%,rgba(124,58,237,.05),transparent 45%) #f2f2f7;background-attachment:fixed}
-/* Barra lateral: el degradado de la cabecera, ancla y línea dorada */
-.sidebar{background:linear-gradient(170deg,#0a1628 0%,#0d2346 55%,#0f3060 100%);box-shadow:4px 0 30px rgba(10,22,40,.18)}
-.sidebar-logo{display:flex;flex-direction:column;align-items:flex-start;padding:1.35rem 1.1rem 1.05rem}
-.sidebar-logo .li{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;margin-bottom:.7rem}
-.sidebar-logo h2{font-family:'Sora',system-ui,sans-serif;font-size:.9rem;font-weight:700;letter-spacing:-.01em}
-.sidebar-logo p{color:rgba(255,255,255,.42);letter-spacing:.12em}
-.sidebar-logo::after{content:'';width:22px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--gold),transparent);margin-top:.7rem}
-.nav-lbl{color:rgba(255,255,255,.34)}
-.nav-item{position:relative;color:rgba(255,255,255,.66)}
-.nav-item.active{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
-.nav-item.active::before{content:'';position:absolute;left:-.4rem;top:22%;bottom:22%;width:3px;border-radius:3px;background:var(--gold)}
-.sidebar-footer p{color:rgba(255,255,255,.3)}
-/* Barra superior translúcida */
-.topbar{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.6);box-shadow:0 1px 0 rgba(60,60,67,.08)}
-.topbar-title{font-weight:800;letter-spacing:-.02em}
-/* Tarjetas de cristal */
-.card,.tc,.st-sec,.sbox,.ev-card,.baja-card,.al-item,.vbar,.vol-row2,.cal-row,.dpanel,.ev-feed{border-color:rgba(255,255,255,.75)}
-.card,.tc,.st-sec{box-shadow:var(--shadow-md)}
-.fc{background:rgba(255,255,255,.92)}
+body{background:radial-gradient(circle at 20% 0%,rgba(0,113,227,.10),transparent 38%),radial-gradient(circle at 100% 60%,rgba(201,168,76,.14),transparent 40%),radial-gradient(circle at 40% 110%,rgba(124,58,237,.07),transparent 45%) #eef1f6;background-attachment:fixed}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:rgba(10,22,40,.18);border-radius:10px;border:3px solid transparent;background-clip:padding-box}
+::-webkit-scrollbar-thumb:hover{background-color:rgba(10,22,40,.3)}
+
+/* ── Barra lateral flotante ── */
+.sidebar{top:12px;left:12px;bottom:12px;border-radius:24px;overflow-x:hidden;
+  background:radial-gradient(ellipse 90% 40% at 0% 100%,rgba(0,113,227,.28),transparent 70%),radial-gradient(ellipse 70% 30% at 100% 0%,rgba(201,168,76,.16),transparent 70%),linear-gradient(170deg,#0a1628 0%,#0d2346 55%,#0f3060 100%);
+  box-shadow:0 20px 50px rgba(10,22,40,.28),inset 0 0 0 1px rgba(255,255,255,.06)}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15)}
+.sidebar-logo{display:grid;grid-template-columns:42px 1fr;column-gap:.75rem;row-gap:.15rem;align-items:center;padding:1.3rem 1.1rem 1.15rem;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar-logo .li{grid-row:span 2}
+.sidebar-logo .li{width:42px;height:42px;flex-shrink:0;border-radius:13px;margin:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;
+  background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.22);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+.sidebar-logo h2{font-family:'Sora',system-ui,sans-serif;font-size:.86rem;font-weight:700;letter-spacing:-.01em;line-height:1.25;flex:1;min-width:0}
+.sidebar-logo h2{align-self:end}
+.sidebar-logo p{align-self:start;color:rgba(201,168,76,.9);letter-spacing:.12em;font-weight:700;margin:0;font-size:.56rem}
+.nav-sec{padding:.9rem .7rem .2rem}
+.nav-lbl{color:rgba(255,255,255,.36);font-size:.57rem;letter-spacing:.16em;margin-bottom:.35rem}
+.nav-item{position:relative;color:rgba(255,255,255,.7);padding:.42rem .55rem;border-radius:12px;font-size:.79rem;gap:.65rem}
+.nav-item .ni{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.85rem;background:rgba(255,255,255,.07);transition:background .16s}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item:hover .ni{background:rgba(255,255,255,.14)}
+.nav-item.active{background:#fff;color:#0a1628;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.22)}
+.nav-item.active .ni{background:linear-gradient(145deg,#0a1628,#0f3060);box-shadow:0 2px 6px rgba(10,22,40,.35)}
+.nav-item.active::after{content:'';position:absolute;right:.7rem;top:50%;width:6px;height:6px;margin-top:-3px;border-radius:50%;background:var(--gold)}
+.nav-item .nbadge{box-shadow:0 0 0 2px rgba(10,22,40,.6)}
+.nav-item.active .nbadge{box-shadow:none;margin-right:.9rem}
+.sidebar-footer{border-top:1px solid rgba(255,255,255,.08);padding:.8rem .7rem .9rem}
+.sidebar-footer .nav-item{color:rgba(255,255,255,.62)}
+.sidebar-footer p{color:rgba(255,255,255,.34);padding:0 .55rem}
+.sidebar-footer #sidebar-usuario{color:rgba(255,255,255,.62);font-size:.68rem}
+
+/* ── Zona principal ── */
+.main-area{margin-left:calc(var(--sidebar-w) + 24px)}
+.topbar{margin:12px 12px 0 0;border-radius:20px;padding:.75rem 1.1rem .75rem 1.3rem;top:12px;
+  background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
+  border:1px solid rgba(255,255,255,.75);box-shadow:var(--shadow-sm)}
+.topbar-titulo{flex:1;min-width:0}
+.topbar-grupo{font-size:.6rem;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:.05rem}
+.topbar-title{font-size:1.12rem;font-weight:800;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#notif-bell{border-radius:12px!important;background:rgba(255,255,255,.7)!important}
+.topbar-mas{display:none}
+.content{padding:1.4rem 1.4rem 2rem 0}
+.tab-pane.active{animation:panelIn .32s cubic-bezier(.2,.8,.2,1)}
+@keyframes panelIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── Tarjetas ── */
+.card,.tc,.st-sec,.sbox,.ev-card,.baja-card,.al-item,.vbar,.vol-row2,.cal-row,.dpanel,.ev-feed{border:1px solid rgba(255,255,255,.8)}
+.card,.tc,.st-sec,.baja-card,.ev-feed{border-radius:var(--r-lg);box-shadow:var(--shadow-md)}
+.ev-card,.al-item,.vbar,.cal-row,.dpanel{border-radius:16px;box-shadow:var(--shadow-sm);transition:transform .18s,box-shadow .18s}
+.ev-card:hover,.al-item:hover,.vbar:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.ev-card{border-left-width:4px}
+
+/* ── Cifras resumen (tarjetas de números) ── */
+.stats-row{gap:.8rem}
+.sbox{position:relative;overflow:hidden;border-radius:18px;padding:1rem 1.1rem;text-align:left;box-shadow:var(--shadow-sm);border-left-width:1px!important}
+.sbox::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--navy);opacity:.85}
+.sbox[style*="--red"]::before{background:var(--red)}
+.sbox[style*="--amber"]::before{background:var(--amber)}
+.sbox[style*="--blue"]::before{background:var(--blue)}
+.sbox[style*="--green"]::before{background:var(--green)}
+.sbox .sv{font-size:1.9rem;line-height:1.1}
+.sbox .sl{font-size:.6rem;margin-top:.25rem}
+
+/* ── Filtros, botones y campos ── */
+.ev-pill{border-radius:999px;padding:.34rem .8rem;background:rgba(255,255,255,.8);border-color:rgba(60,60,67,.1);box-shadow:0 1px 2px rgba(10,22,40,.04);transition:all .15s}
+.ev-pill:hover{background:#fff;box-shadow:var(--shadow-sm)}
+.ev-pill.on{background:linear-gradient(160deg,#0a1628,#0f3060);border-color:transparent;box-shadow:0 4px 12px rgba(10,22,40,.25)}
 .btn{border-radius:12px}
-.btn-navy{background:linear-gradient(160deg,#0a1628,#0f3060)}
-/* Lo que flota encima del contenido: casi opaco y con desenfoque, para que se lea bien */
-.moverlay{background:rgba(10,22,40,.38)}
-.mbox{background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.7)}
-#notif-panel,#of-sug{background:rgba(255,255,255,.96)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.btn-navy{background:linear-gradient(160deg,#0a1628,#0f3060);box-shadow:0 4px 12px rgba(10,22,40,.22)}
+.btn-blue{box-shadow:0 4px 12px rgba(0,113,227,.25)}
+.btn-green{box-shadow:0 4px 12px rgba(26,150,72,.25)}
+.btn-ghost{background:rgba(255,255,255,.8);border-color:rgba(60,60,67,.12)}
+.btn-ghost:hover{background:#fff}
+.fc{background:rgba(255,255,255,.92);border-radius:12px}
+.ev-dia b{background:linear-gradient(160deg,#0a1628,#0f3060);color:#fff;border-radius:8px}
+
+/* ── Voluntarios: la fila entera abre la ficha ── */
+.vol-row2{border-radius:16px;padding:.7rem 1rem;cursor:pointer;transition:transform .16s,box-shadow .16s,background .16s}
+.vol-row2:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);background:#fff}
+.vavatar{background:linear-gradient(145deg,#0a1628,#0f3060);box-shadow:0 3px 8px rgba(10,22,40,.25)}
+.vol-ir{color:var(--label4);font-size:1.3rem;font-weight:300;padding:0 .2rem;transition:transform .16s,color .16s}
+.vol-row2:hover .vol-ir{color:var(--navy);transform:translateX(3px)}
+.ficha-acciones{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--sep)}
+
+/* ── Modales y lo que flota encima: casi opaco y con desenfoque ── */
+.moverlay{background:rgba(10,22,40,.4)}
+.mbox{background:rgba(255,255,255,.95);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.8);border-radius:26px;box-shadow:0 30px 80px rgba(10,22,40,.3)}
+.mhead h3{font-size:1.02rem;font-weight:800;letter-spacing:-.02em}
+#notif-panel,#of-sug{background:rgba(255,255,255,.97)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border-radius:18px!important}
 .ev-feed{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
-.ev-feed>div:first-child{background:rgba(255,255,255,.94)!important}
-@media print{body{background:#fff}}
+.ev-feed>div:first-child{background:rgba(255,255,255,.95)!important}
+
+/* ── Móvil: barra lateral a pantalla completa y acciones en "⋯" ── */
+@media(max-width:768px){
+  .sidebar{top:0;left:0;bottom:0;border-radius:0 24px 24px 0}
+  .main-area{margin-left:0}
+  .topbar{margin:8px 8px 0;top:8px;border-radius:18px;padding:.6rem .7rem}
+  .content{padding:1rem .8rem 1.6rem}
+  .topbar-mas{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;border:1px solid var(--sep);background:rgba(255,255,255,.8);font-size:1.2rem;font-weight:800;color:var(--navy);cursor:pointer;flex-shrink:0}
+  .topbar-mas[hidden]{display:none}
+  .topbar-actions{display:none;position:absolute;top:calc(100% + 8px);right:0;flex-direction:column;align-items:stretch;gap:.35rem;min-width:200px;padding:.5rem;
+    background:rgba(255,255,255,.97);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.8);border-radius:18px;box-shadow:0 18px 40px rgba(10,22,40,.2)}
+  .topbar-actions.abierta{display:flex}
+  .topbar-actions .btn{justify-content:flex-start;width:100%;padding:.6rem .8rem;font-size:.8rem}
+  .topbar-actions .btn span:not(:first-child){display:inline}
+  .topbar-title{font-size:1rem}
+}
+@media print{body{background:#fff}.sidebar,.topbar{display:none}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
@@ -668,13 +751,14 @@ body{background:radial-gradient(circle at 18% 30%,rgba(0,113,227,.09),transparen
 <div class="main-area">
   <div class="topbar">
     <button class="topbar-menu-btn" onclick="toggleSidebar()">☰</button>
-    <div class="topbar-title" id="topbar-title">📅 Cuadrante mensual</div>
+    <div class="topbar-titulo"><div class="topbar-grupo" id="topbar-grupo">Día a día</div><div class="topbar-title" id="topbar-title">🛰️ En vivo</div></div>
     <button id="notif-bell" onclick="toggleNotifPanel()" title="Notificaciones"
       style="position:relative;background:none;border:1px solid var(--sep);border-radius:var(--r-sm);padding:.32rem .6rem;cursor:pointer;font-size:1.1rem;line-height:1;transition:all .15s;flex-shrink:0"
       onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">
       🔔
       <span id="notif-badge" style="display:none;position:absolute;top:-5px;right:-5px;background:var(--red);color:#fff;font-size:.55rem;font-weight:800;min-width:16px;height:16px;border-radius:8px;padding:0 3px;display:none;align-items:center;justify-content:center;font-family:'Sora',sans-serif;border:2px solid var(--surface)">0</span>
     </button>
+    <button class="topbar-mas" id="topbar-mas" onclick="toggleTopbarMas(event)" title="Más acciones" aria-label="Más acciones">⋯</button>
     <div class="topbar-actions" id="topbar-acts">
       <button id="pwa-install-topbar" class="btn btn-ghost btn-sm" style="display:none" title="Instalar app">📲 <span>Instalar</span></button>
       <button class="btn btn-ghost btn-sm" onclick="imprimirCuadrante()" title="Genera el PDF del cuadrante — en el diálogo elige «Guardar como PDF»">📄 <span>PDF</span></button>
@@ -812,6 +896,23 @@ const TAB_ACTS = {
   reglas:`<button class="btn btn-green btn-sm" onclick="guardarReglasCfg()">💾 Guardar reglas</button>`,
 };
 
+// Sección del menú lateral a la que pertenece cada pestaña (sale encima del título)
+const TAB_GRUPO = {
+  envivo:'Día a día', bajas:'Día a día', apuntes:'Día a día', alertas:'Día a día',
+  cuadrante:'Planificar el mes', calendario:'Planificar el mes', historial:'Planificar el mes', busqueda:'Planificar el mes',
+  voluntarios:'Voluntarios', disponibilidad:'Voluntarios', dispobloques:'Voluntarios', carga:'Voluntarios',
+  estadisticas:'Análisis y ajustes', archivo:'Análisis y ajustes', reglas:'Análisis y ajustes',
+};
+// Móvil: las acciones de la barra superior van en un menú "⋯"
+function toggleTopbarMas(ev) {
+  ev?.stopPropagation();
+  document.getElementById('topbar-acts').classList.toggle('abierta');
+}
+document.addEventListener('click', e => {
+  const a = document.getElementById('topbar-acts');
+  if (a && a.classList.contains('abierta') && (!a.contains(e.target) || e.target.closest('button'))) a.classList.remove('abierta');
+});
+
 let tabActual = 'cuadrante';
 function setTab(id) {
   TABS.forEach(t => {
@@ -820,6 +921,9 @@ function setTab(id) {
   });
   document.getElementById('topbar-title').textContent = TAB_TITLES[id]||'';
   document.getElementById('topbar-acts').innerHTML = TAB_ACTS[id]||'';
+  document.getElementById('topbar-acts').classList.remove('abierta');
+  document.getElementById('topbar-mas').hidden = !(TAB_ACTS[id]||'').trim();
+  document.getElementById('topbar-grupo').textContent = TAB_GRUPO[id]||'';
   tabActual = id;
   closeSidebar();
   if (id==='envivo')                            entrarEnVivo();
@@ -3296,22 +3400,16 @@ function renderListaVoluntarios() {
   c.innerHTML = lista.map((r, i) => {
     const nom = r.nombre, nAttr = escH(nom).replace(/'/g, '&#39;'), ini = nom.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
     const info = r.ultimo ? `último turno hace ${_stDiasEntre(r.ultimo, hoy)} d · ${r.total} en total` : (r.proximos ? `${r.proximos} próximo${r.proximos === 1 ? '' : 's'}` : 'sin turnos todavía');
-    const acts = r.activo ? `
-      <button class="btn btn-ghost btn-sm" data-vnom="${nAttr}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Nombre</button>
-      <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nAttr}', ${r.llave})">✏️ Editar</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
-      <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nAttr}')">📋 Turnos</button>
-      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirDesactivar('${r.id}')" title="Sacar del grupo (reversible): deja de salir en el cuadrante y en los sustitutos, pero se conserva su historial">🚪 Sacar del grupo</button>` : `
-      <button class="btn btn-green btn-sm" onclick="reactivarVoluntario('${r.id}')">♻️ Volver al grupo</button>
-      <button class="btn btn-ghost btn-sm" onclick="abrirFicha('${nAttr}','${r.id}')">📊 Ficha</button>
-      <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirEliminar('${r.id}')" title="${r.historia ? 'Tiene historial: solo se puede eliminar si no consta en ningún turno' : 'Eliminar definitivamente'}">🗑️ Eliminar</button>`;
-    return `<div class="vol-row2" style="animation-delay:${i * .015}s;${r.activo ? '' : 'opacity:.75'}">
+    // Fuera del grupo: "Volver al grupo" a mano; el resto de acciones, dentro de la ficha
+    const acts = r.activo ? '' : `
+      <button class="btn btn-green btn-sm" onclick="event.stopPropagation();reactivarVoluntario('${r.id}')">♻️ Volver al grupo</button>`;
+    return `<div class="vol-row2" style="animation-delay:${i * .015}s;${r.activo ? '' : 'opacity:.75'}" data-vnom="${nAttr}" data-vid="${r.id}" onclick="abrirFicha(this.dataset.vnom,this.dataset.vid)" title="Ver ficha">
       <div class="vavatar">${ini}</div>
       <div class="vinfo2">
         <div class="vn">${escH(nom)}${r.llave ? ' <span style="font-size:.55rem;background:var(--navy);color:var(--gold);padding:.08rem .35rem;border-radius:3px">🔑 Llave</span>' : ''}${r.activo ? '' : ' <span style="font-size:.6rem;background:var(--surface2);color:var(--label3);padding:.08rem .4rem;border-radius:3px">Fuera del grupo</span>'}${{ dejo: ' <span title="Dejó de participar: su último turno fue hace más de ' + (window._volUmbral || 6) + ' meses y no tiene ninguno próximo" style="font-size:.7rem">💤</span>', nuevo: ' <span title="Nunca ha tenido un turno" style="font-size:.7rem">🆕</span>', dudoso: ' <span title="Sin turnos recientes, pero faltan meses registrados para saber si se fue" style="font-size:.7rem">❔</span>' }[_volSinActividad(r)] || ''}</div>
         <div class="vm2">${info}</div>
       </div>
-      <div class="vol-acts">${acts}</div></div>`;
+      <div class="vol-acts">${acts}</div><span class="vol-ir">›</span></div>`;
   }).join('');
 }
 
@@ -7264,9 +7362,11 @@ async function abrirFicha(nombre, id) {
         <div><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.3rem">Próximos</div>${lista(F.proximos.slice(0, 5), 'Ninguno programado')}</div>
         <div><div style="font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--label3);margin-bottom:.3rem">Últimos</div>${lista(F.hechosLista, 'Sin turnos hechos')}</div>
       </div>
-      <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem">
+      <div class="ficha-acciones">
         <button class="btn btn-ghost btn-sm" onclick="verTurnos('${nomAttr}')">📋 Todos sus turnos</button>
-        <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nomAttr}', ${!!v.tiene_llave})">✏️ Disponibilidad</button>
+        <button class="btn btn-ghost btn-sm" onclick="editarDisponibilidad('${nomAttr}', ${!!v.tiene_llave})">✏️ Disponibilidad y llave</button>
+        <button class="btn btn-ghost btn-sm" data-vnom="${nomAttr}" onclick="abrirRenombrar(this.dataset.vnom)">🏷️ Cambiar nombre</button>
+        ${_fichaAccionGrupo(v)}
       </div>`;
   } catch(e) {
     body.innerHTML = `<p style="color:var(--red);font-size:.85rem;padding:1rem">Error: ${escH(e.message)}</p>`;
@@ -7281,6 +7381,16 @@ async function habilitarDispoVol(id, chk) {
     chk.checked = !chk.checked;
     toast('No se pudo guardar: ' + e.message + ' — ¿has ejecutado 15_dispo_habilitada.sql en Supabase?', 'err');
   }
+}
+
+// Sacar del grupo / volver / eliminar desde la ficha (necesita la lista de Voluntarios cargada)
+function _fichaAccionGrupo(v) {
+  const r = v.id && _volPorId(v.id);
+  if (!r) return v.id ? `<button class="btn btn-ghost btn-sm" onclick="closeModal('mvol');setTab('voluntarios')">👥 Más opciones en Voluntarios</button>` : '';
+  return r.activo
+    ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirDesactivar('${r.id}')" title="Reversible: deja de salir en el cuadrante y en los sustitutos, pero se conserva su historial">🚪 Sacar del grupo</button>`
+    : `<button class="btn btn-green btn-sm" onclick="closeModal('mvol');reactivarVoluntario('${r.id}')">♻️ Volver al grupo</button>
+       <button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="abrirEliminar('${r.id}')">🗑️ Eliminar</button>`;
 }
 
 async function guardarEmailVol(id) {
@@ -9226,6 +9336,8 @@ function _stDispoHTML() {
 Auth.requerir('admin').then(yo => {
   document.getElementById('sidebar-usuario').textContent = yo.email;
   loadCuadrante();
+  // Se abre en "En vivo" (lo del día a día); el cuadrante queda calculado para cuando se abra
+  setTab('envivo');
   // Cargar config calendario en background para tenerlo disponible en el cuadrante
   apiGet({action:'getCalendarioConfig'}).then(d => { if (!d.error) S.calConfig=d.dias||[]; }).catch(()=>{});
   // Iniciar sistema de notificaciones
