@@ -10316,7 +10316,7 @@ function _stDispoHTML() {
 (function () {
   const T = t => t.fecha;
   const nivelTxt = { rojo: 'Sin cubrir', ambar: 'Falta gente', verde: 'Cubierto', gris: 'Anulado' };
-  let AVISOS = undefined;   // registro de avisos enviados (null = la tabla aún no existe)
+  let AVISOS = undefined, AVISOS_TS = 0, AVISOS_ERR = '';   // registro de avisos enviados (null = la tabla aún no existe)
 
   function mini(t, M) {
     const pres = t.chips.filter(c => c.tipo !== 'baja');
@@ -10330,8 +10330,9 @@ function _stDispoHTML() {
   }
 
   async function cargarAvisos() {
-    try { AVISOS = await sbGet('registro_avisos', 'order=ts.desc&limit=40'); }
-    catch (e) { AVISOS = null; }
+    AVISOS_TS = Date.now();
+    try { AVISOS = await sbGet('registro_avisos', 'order=ts.desc&limit=40'); AVISOS_ERR = ''; }
+    catch (e) { AVISOS = null; AVISOS_ERR = e.message; }
   }
 
   async function alEntrar() {
@@ -10348,9 +10349,28 @@ function _stDispoHTML() {
   }
 
   window.paFiltroAvisos = 'todos';
+  // Volver a leer el registro de avisos y repintar el Inicio si está abierto
+  window.paAvisosRecargar = async function (btn) {
+    if (btn) btn.textContent = '…';
+    await cargarAvisos();
+    if (tabActual === 'inicio') pintar();
+  };
+  // Tras enviar recordatorios (desde un turno o desde un día), refrescar el registro:
+  // la función tarda un momento en anotar cada correo
+  const tras = nombre => {
+    const orig = window[nombre]; if (typeof orig !== 'function') return;
+    window[nombre] = async function () {
+      const r = await orig.apply(this, arguments);
+      setTimeout(() => paAvisosRecargar(), 2500);
+      return r;
+    };
+  };
+  tras('evEnviarRecordatorio'); tras('pbRecordatorioDia');
+  // Al refrescarse los datos cada minuto, leer también el registro si tiene más de 1 minuto
+  setInterval(() => { if (tabActual === 'inicio' && !document.hidden && Date.now() - AVISOS_TS > 55000) paAvisosRecargar(); }, 60000);
   window.paAvisosFiltrar = function (f) { window.paFiltroAvisos = f; pintar(); };
   function bloqueAvisos() {
-    if (AVISOS === null) return `<div class="pa-pend">📧 Aquí verás los correos que se envían a los voluntarios (confirmaciones, bajas, recordatorios…) y si llegaron bien.<br><small>Pendiente de activar: falta ejecutar <b>16_registro_avisos.sql</b> y volver a desplegar las funciones de correo.</small></div>`;
+    if (AVISOS === null) return `<div class="pa-pend">📧 Aquí verás los correos que se envían a los voluntarios (confirmaciones, bajas, recordatorios…) y si llegaron bien.<br><small>${AVISOS_ERR ? 'No se ha podido leer el registro (' + escH(AVISOS_ERR) + '). ' : ''}Si es la primera vez: falta ejecutar <b>16_registro_avisos.sql</b> y volver a desplegar las funciones de correo.</small></div>`;
     if (!AVISOS || !AVISOS.length) return '<div class="pa-vacio">Todavía no se ha enviado ningún aviso</div>';
     const TIPO = { recordatorio: '⏰ Recordatorio', turno_confirmado: '✅ Turno confirmado', turno_quitado: '↩️ Cambio de turno', baja: '📤 Baja registrada', disponibilidad: '🗓️ Disponibilidad' };
     const f = window.paFiltroAvisos;
@@ -10460,7 +10480,7 @@ function _stDispoHTML() {
       </div>
       <div class="pa-cols">${barco}${recordatorio}</div>
       <div class="pa-cols">
-        <section class="pa-card"><div class="pa-ch"><h3>📧 Avisos enviados</h3></div>${bloqueAvisos()}</section>
+        <section class="pa-card"><div class="pa-ch"><h3>📧 Avisos enviados</h3><button class="pa-link" onclick="paAvisosRecargar(this)" title="Volver a leer el registro">↻ Actualizar</button></div>${bloqueAvisos()}</section>
         <section class="pa-card"><div class="pa-ch"><h3>⚡ Últimas novedades</h3><button class="pa-link" onclick="setTab('envivo')">En vivo →</button></div>${novedades}</section>
       </div>`;
   }
