@@ -128,6 +128,19 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .kpi b{display:block;font-size:1.6rem;font-weight:800;letter-spacing:-.03em;color:var(--navy);line-height:1.1}
 .kpi b.peq{font-size:.92rem;line-height:1.75rem}
 .kpi span{display:block;font-size:.64rem;color:var(--label3);margin-top:.2rem;line-height:1.3}
+#cal-ios{position:fixed;inset:0;z-index:1000;background:rgba(10,22,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+@media(min-width:560px){#cal-ios{align-items:center}}
+.ci-caja{width:100%;max-width:440px;background:#fff;border-radius:24px;padding:1.4rem 1.3rem 1.1rem;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:calc(100vh - 32px);overflow-y:auto}
+.ci-ico{width:52px;height:52px;border-radius:16px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto .7rem}
+.ci-caja h3{font-size:1.08rem;font-weight:800;text-align:center;letter-spacing:-.02em}
+.ci-turno{text-align:center;font-size:.8rem;color:var(--label2);margin-top:.25rem}
+.ci-caja ol{margin:1rem 0 0;padding:0;list-style:none;counter-reset:p}
+.ci-caja li{counter-increment:p;position:relative;padding:.1rem 0 .85rem 2.3rem;font-size:.84rem;line-height:1.5;color:var(--label1)}
+.ci-caja li::before{content:counter(p);position:absolute;left:0;top:0;width:1.65rem;height:1.65rem;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:.8rem;display:flex;align-items:center;justify-content:center}
+.ci-nota{font-size:.72rem;color:var(--label3);text-align:center;margin-bottom:.9rem}
+.ci-ok,.ci-no{display:block;width:100%;font:700 .9rem 'Sora',system-ui,sans-serif;border:none;border-radius:14px;padding:.85rem;cursor:pointer}
+.ci-ok{background:var(--blue);color:#fff}
+.ci-no{background:none;color:var(--label3);margin-top:.35rem;font-weight:600}
 </style>
 </head>
 <body>
@@ -369,6 +382,11 @@ I18N.textos({
     adminBanda: 'Estás en tu panel de voluntario', volverPlan: '← Planificador',
     adminSinFicha: 'Tu correo ({e}) no está en ninguna solicitud de voluntario. Para apuntarte o darte de baja como un voluntario más, añádelo a tu ficha en el planificador → Voluntarios.',
     icsDesc: 'Turno de predicación en el Puerto de Sevilla',
+    ciTitulo: 'Añadir el turno a tu calendario', ciAbrir: '📅 Abrir el evento', ciCerrar: 'Cerrar',
+    ciPaso1: 'Pulsa el botón azul <b>«Abrir el evento»</b>.',
+    ciPaso2: 'El iPhone te preguntará qué hacer con el archivo: elige <b>«Ver»</b>. (Si solo te deja <b>«Descargar»</b>, descárgalo y después toca la <b>flecha azul ⬇</b> de la barra de direcciones y luego el archivo del turno).',
+    ciPaso3: 'Verás el turno con su día y su hora: pulsa <b>«Añadir al calendario»</b> (o «Añadir todo»). ¡Listo! Te avisará 2 horas antes.',
+    ciNota: 'Solo tienes que hacerlo una vez por turno.',
   },
   en: {
     proximo: 'Your next shift', hoyMay: 'Today', manana: 'Tomorrow', enDias: 'In {n} days',
@@ -384,6 +402,11 @@ I18N.textos({
     adminBanda: 'You are in your volunteer panel', volverPlan: '← Planner',
     adminSinFicha: 'Your email ({e}) is not in any volunteer application. To sign up or drop out like any other volunteer, add it to your record in the planner → Volunteers.',
     icsDesc: 'Witnessing shift at the Port of Seville',
+    ciTitulo: 'Add the shift to your calendar', ciAbrir: '📅 Open the event', ciCerrar: 'Close',
+    ciPaso1: 'Tap the blue <b>“Open the event”</b> button.',
+    ciPaso2: 'Your iPhone will ask what to do with the file: choose <b>“View”</b>. (If it only offers <b>“Download”</b>, download it, then tap the <b>blue arrow ⬇</b> in the address bar and then the shift file.)',
+    ciPaso3: 'You will see the shift with its date and time: tap <b>“Add to Calendar”</b> (or “Add All”). Done! It will remind you 2 hours before.',
+    ciNota: 'You only need to do this once per shift.',
   },
 });
 
@@ -466,7 +489,58 @@ function abrirCalendario(fecha, rango) {
     location: 'Puerto de Sevilla',
     details: I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
   });
+  // iPhone/iPad: el Calendario de Apple solo acepta el evento como archivo → explicar los pasos
+  if (esIOS()) return pasosIOS(fecha, rango, m);
   window.open('https://calendar.google.com/calendar/render?' + q.toString(), '_blank', 'noopener');
+}
+
+const esIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/** Evento en formato de calendario (.ics) para el Calendario del iPhone, con aviso 2 h antes. */
+function icsDe(fecha, rango, m) {
+  const f = fecha.replace(/-/g, ''), p = n => String(n).padStart(2, '0');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//asispuerto.org//turnos//ES', 'BEGIN:VEVENT',
+    'UID:' + f + '-' + p(m[1]) + m[2] + '-' + (YO.voluntario?.id || 'x') + '@asispuerto.org',
+    'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
+    'DTSTART;TZID=Europe/Madrid:' + f + 'T' + p(m[1]) + m[2] + '00',
+    'DTEND;TZID=Europe/Madrid:' + f + 'T' + p(m[3]) + m[4] + '00',
+    'SUMMARY:' + (I18N.idioma === 'en' ? 'Port shift ' : 'Turno Puerto ') + rango,
+    'LOCATION:Puerto de Sevilla', 'DESCRIPTION:' + I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
+    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + I18N.t('icsDesc'), 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+}
+
+/** Ventana con los pasos para el iPhone y el botón que abre el evento. */
+function pasosIOS(fecha, rango, m) {
+  const T = I18N.t;
+  document.getElementById('cal-ios')?.remove();
+  const fmt = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const v = document.createElement('div');
+  v.id = 'cal-ios';
+  v.innerHTML = `<div class="ci-caja" role="dialog" aria-modal="true" aria-labelledby="ci-t">
+    <div class="ci-ico">📅</div>
+    <h3 id="ci-t">${T('ciTitulo')}</h3>
+    <p class="ci-turno">${escH(rango)} · ${mayus(fmt.format(new Date(fecha + 'T12:00:00Z')))}</p>
+    <ol>
+      <li>${T('ciPaso1')}</li>
+      <li>${T('ciPaso2')}</li>
+      <li>${T('ciPaso3')}</li>
+    </ol>
+    <p class="ci-nota">${T('ciNota')}</p>
+    <button type="button" class="ci-ok">${T('ciAbrir')}</button>
+    <button type="button" class="ci-no">${T('ciCerrar')}</button>
+  </div>`;
+  const cerrar = () => v.remove();
+  v.onclick = e => { if (e.target === v) cerrar(); };
+  v.querySelector('.ci-no').onclick = cerrar;
+  v.querySelector('.ci-ok').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([icsDe(fecha, rango, m)], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'turno-' + fecha + '.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  };
+  document.body.appendChild(v);
 }
 
 pintarTurnos = function () {
