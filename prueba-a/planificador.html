@@ -721,6 +721,87 @@ th{letter-spacing:.06em}
 .proto-etiqueta{position:fixed;left:50%;transform:translateX(-50%);top:8px;z-index:9999;font:700 .66rem 'Sora',sans-serif;letter-spacing:.06em;
   padding:.3rem .8rem;border-radius:999px;background:#c9a84c;color:#0a1628;box-shadow:0 4px 14px rgba(0,0,0,.25);pointer-events:none;white-space:nowrap}
 @media(max-width:768px){.proto-etiqueta{top:2px;font-size:.5rem;padding:.15rem .55rem}}
+/* ══ "Mes": calendario potenciado ══ */
+.pb-layout{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(330px,1fr);gap:1.1rem;align-items:start}
+@media(max-width:1100px){.pb-layout{grid-template-columns:1fr}}
+.pb-cal{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:26px;box-shadow:var(--shadow-md);padding:1.2rem 1.3rem;touch-action:pan-y}
+.pb-cab{display:flex;align-items:center;gap:.55rem;margin-bottom:.8rem;flex-wrap:wrap}
+.pb-cab h2{font-size:1.4rem;font-weight:800;letter-spacing:-.03em;min-width:0;margin-right:auto;order:-1;width:100%}
+@media(min-width:700px){.pb-cab h2{width:auto;order:0;margin-right:0}.pb-cab .pb-seg{margin-left:auto}}
+.pb-flecha{width:38px;height:38px;border-radius:12px;border:1px solid var(--sep);background:rgba(255,255,255,.8);font-size:1.3rem;font-weight:700;color:var(--navy);cursor:pointer;flex-shrink:0}
+.pb-flecha:hover{background:#fff;box-shadow:var(--shadow-sm)}
+.pb-seg{display:inline-flex;padding:3px;border-radius:12px;background:rgba(10,22,40,.06)}
+.pb-seg button{border:none;background:none;font:700 .74rem 'Sora',sans-serif;color:var(--label2);padding:.4rem .8rem;border-radius:9px;cursor:pointer}
+.pb-seg button.on{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(10,22,40,.12)}
+.pb-filtros{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center;margin-bottom:.75rem}
+.pb-filtros select{max-width:240px;padding:.42rem .7rem;font-size:.78rem}
+.pb-resumen{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center;margin-bottom:.9rem}
+.pb-resumen span{display:inline-flex;align-items:center;gap:.4rem;font-size:.72rem;font-weight:700;padding:.28rem .65rem;border-radius:999px}
+.pb-resumen small{font-size:.66rem;color:var(--label3)}
+.pb-resumen i{width:8px;height:8px;border-radius:50%}
+.pb-resumen .rojo{background:var(--red-soft);color:var(--red)}.pb-resumen .rojo i{background:var(--red)}
+.pb-resumen .ambar{background:var(--amber-soft);color:var(--amber)}.pb-resumen .ambar i{background:var(--amber)}
+.pb-resumen .verde{background:var(--green-soft);color:#146c34}.pb-resumen .verde i{background:var(--green)}
+.pb-sem,.pb-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.45rem}
+.pb-sem span{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);text-align:center;padding-bottom:.2rem}
+.pb-cel{position:relative;min-height:104px;display:flex;flex-direction:column;align-items:stretch;gap:.18rem;padding:.45rem .5rem;border-radius:16px;border:1px solid var(--sep);background:rgba(255,255,255,.55);font-family:inherit;text-align:left;cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s,opacity .15s;overflow:hidden}
+.pb-cel:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm);background:#fff}
+.pb-cel.vacia{background:none;border:none;cursor:default}.pb-cel.vacia:hover{transform:none;box-shadow:none}
+.pb-cel.pasado{opacity:.55}
+.pb-cel.atenuado{opacity:.22}
+.pb-cel.rojo{background:linear-gradient(160deg,rgba(217,48,37,.13),rgba(217,48,37,.04));border-color:rgba(217,48,37,.3)}
+.pb-cel.ambar{background:linear-gradient(160deg,rgba(224,123,0,.14),rgba(224,123,0,.04));border-color:rgba(224,123,0,.3)}
+.pb-cel.verde{background:linear-gradient(160deg,rgba(26,150,72,.12),rgba(26,150,72,.03));border-color:rgba(26,150,72,.26)}
+.pb-cel.hoy{box-shadow:0 0 0 2px var(--navy)}
+.pb-cel.sel{box-shadow:0 0 0 3px var(--gold),0 8px 20px rgba(10,22,40,.15);transform:translateY(-2px);opacity:1}
+.pb-cel.v-turno{box-shadow:0 0 0 3px var(--blue);opacity:1}
+.pb-cel.v-no{opacity:.35}
+.pb-top{display:flex;align-items:center;gap:.25rem;font-size:.7rem}
+.pb-num{font-size:.95rem;font-weight:800;color:var(--label1);margin-right:auto}
+.pb-cel.hoy .pb-num{background:var(--navy);color:#fff;border-radius:8px;padding:0 .4rem}
+.pb-lt{display:flex;align-items:center;gap:.25rem;font-size:.6rem;color:var(--label2);white-space:nowrap}
+.pb-lt b{color:var(--label1)}
+.pb-lt i{width:7px;height:7px;border-radius:50%;background:var(--label4);flex-shrink:0}
+.pb-lt.rojo i,.pb-ley i.rojo{background:var(--red)}.pb-lt.ambar i,.pb-ley i.ambar{background:var(--amber)}.pb-lt.verde i,.pb-ley i.verde{background:var(--green)}
+.pb-disp{margin-top:auto;font-size:.58rem;color:var(--label3);font-weight:600}
+.pb-vtag{font-size:.58rem;font-weight:700;color:#fff;background:var(--blue);border-radius:6px;padding:.05rem .35rem;align-self:flex-start;white-space:nowrap;overflow:hidden;max-width:100%}
+.pb-vtag.baja{background:var(--red)}.pb-vtag.disp{background:var(--green-soft);color:#146c34}
+@media(max-width:620px){.pb-cel{min-height:66px;padding:.3rem}.pb-lt{font-size:0}.pb-lt i{width:8px;height:8px}.pb-cel{flex-direction:column}.pb-disp,.pb-vtag{display:none}.pb-sem,.pb-grid{gap:.22rem}.pb-cal{padding:1rem .7rem}.pb-cab h2{font-size:1.15rem}}
+.pb-semana{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.5rem}
+@media(max-width:820px){.pb-semana{grid-template-columns:1fr}}
+.pb-scol{display:flex;flex-direction:column;gap:.35rem;padding:.45rem;border-radius:16px;background:rgba(255,255,255,.5);border:1px solid var(--sep);min-height:160px}
+.pb-scol.hoy{box-shadow:0 0 0 2px var(--navy)}.pb-scol.sel{box-shadow:0 0 0 3px var(--gold)}
+.pb-scol.v-turno{box-shadow:0 0 0 3px var(--blue)}.pb-scol.v-no{opacity:.4}
+.pb-scab{display:flex;align-items:baseline;gap:.35rem;border:none;background:none;font-family:inherit;cursor:pointer;padding:.1rem .2rem}
+.pb-scab span{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--label3)}
+.pb-scab b{font-size:1.1rem;font-weight:800}
+.pb-sbarco{font-size:.62rem;color:var(--blue);font-weight:600}
+.pb-sturno{display:flex;flex-direction:column;gap:.1rem;text-align:left;border:1px solid var(--sep);border-left:4px solid var(--green);background:rgba(255,255,255,.85);border-radius:12px;padding:.4rem .5rem;font-family:inherit;cursor:pointer}
+.pb-sturno.rojo{border-left-color:var(--red)}.pb-sturno.ambar{border-left-color:var(--amber)}.pb-sturno.gris{border-left-color:var(--label4)}
+.pb-sturno b{font-size:.74rem}.pb-sturno span{font-size:.64rem;color:var(--label2);font-weight:700}.pb-sturno small{font-size:.6rem;color:var(--label3)}
+.pb-svacio{font-size:.7rem;color:var(--label4);text-align:center;padding:.6rem 0}
+.pb-ley{display:flex;flex-wrap:wrap;gap:.4rem .9rem;margin-top:1rem;font-size:.68rem;color:var(--label3)}
+.pb-ley i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:.3rem;vertical-align:middle}
+.pb-panel{position:sticky;top:100px;background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:26px;box-shadow:var(--shadow-md);padding:1.1rem 1.1rem .4rem;max-height:calc(100vh - 120px);overflow-y:auto}
+@media(max-width:1100px){.pb-panel{position:static;max-height:none}}
+.pb-ph{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem;margin-bottom:.6rem}
+.pb-pdia{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold)}
+.pb-ph h3{font-size:1.35rem;font-weight:800;letter-spacing:-.03em}
+.pb-acciones{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.8rem}
+.pb-navs{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.6rem}
+.pb-navs span{font-size:.72rem;font-weight:600;background:var(--blue-soft);color:var(--blue);padding:.2rem .6rem;border-radius:999px}
+.pb-libres{font-size:.76rem;color:var(--label2);background:var(--green-soft);border-radius:12px;padding:.5rem .7rem;margin-bottom:.7rem}
+.pb-dc{font-size:.74rem;color:#7c3aed;margin-bottom:.7rem}
+.pb-ayuda{text-align:center;color:var(--label3);font-size:.85rem;padding:2.2rem 1rem}
+.pb-ayuda span{display:block;font-size:2rem;margin-bottom:.4rem}
+.pb-panel .ev-card{margin-bottom:.7rem}
+@media(max-width:700px){
+  .pb-filtros{flex-wrap:nowrap;overflow-x:auto;padding-bottom:.2rem;scrollbar-width:none}
+  .pb-filtros::-webkit-scrollbar{display:none}
+  .pb-filtros>*{flex-shrink:0}
+  .pb-filtros select{max-width:170px}
+  .pb-resumen small{display:none}
+}
 /* ══ PROTOTIPO A — Inicio con tarjetas y navegación tipo app ══ */
 /* Ordenador: barra lateral estrecha de iconos que se despliega al pasar el ratón */
 @media(min-width:769px){
@@ -812,6 +893,47 @@ i.rojo{background:var(--red)}i.ambar{background:var(--amber)}i.verde{background:
 .pa-accesos button{display:flex;flex-direction:column;align-items:center;gap:.4rem;padding:1rem .5rem;border-radius:20px;border:1px solid rgba(255,255,255,.8);background:var(--surface);box-shadow:var(--shadow-sm);font:700 .78rem 'Sora',sans-serif;color:var(--label1);cursor:pointer;transition:transform .15s}
 .pa-accesos button:hover{transform:translateY(-3px)}
 .pa-accesos span{font-size:1.5rem}
+
+/* ══ A v2: bloques nuevos del Inicio, subpestañas y móvil ══ */
+.pa-ctas{display:flex;gap:.5rem;flex-wrap:wrap;position:relative;z-index:1}
+.pa-cta.sec{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);box-shadow:none}
+.pa-mcs{display:grid;grid-template-columns:repeat(7,1fr);gap:.3rem}
+.pa-mcd{font-size:.6rem;font-weight:700;color:var(--label3);text-align:center}
+.pa-mc{aspect-ratio:1;border-radius:10px;border:1px solid var(--sep);background:rgba(255,255,255,.6);font:700 .74rem 'Sora',sans-serif;color:var(--label1);cursor:pointer;transition:transform .12s}
+.pa-mc:hover{transform:scale(1.08)}
+.pa-mc.rojo{background:rgba(217,48,37,.16);border-color:rgba(217,48,37,.35)}
+.pa-mc.ambar{background:rgba(224,123,0,.16);border-color:rgba(224,123,0,.35)}
+.pa-mc.verde{background:rgba(26,150,72,.14);border-color:rgba(26,150,72,.3)}
+.pa-mc.pasado{opacity:.45}
+.pa-mc.hoy{background:var(--navy);color:#fff;border-color:var(--navy)}
+.pa-bnom{font-size:1.05rem;font-weight:800;letter-spacing:-.02em;color:var(--blue)}
+.pa-bfecha{font-size:.76rem;color:var(--label3);margin:.1rem 0 .6rem}
+.pa-recor p{font-size:.82rem;color:var(--label2);line-height:1.55;margin-bottom:.7rem}
+.pa-avfil{display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.5rem}
+.pa-avfil .ev-pill{padding:.2rem .6rem;font-size:.7rem}
+.pa-av{display:flex;gap:.6rem;align-items:flex-start;padding:.5rem 0;border-bottom:1px solid var(--sep);font-size:.76rem;line-height:1.4}
+.pa-av:last-child{border-bottom:none}
+.pa-av>div{flex:1;min-width:0}
+.pa-av small{color:var(--label3);font-size:.66rem;white-space:nowrap}
+.pa-av small.err{color:var(--red);white-space:normal}
+.pa-avi{width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:.66rem;font-weight:800;background:var(--green-soft);color:#146c34}
+.pa-av.mal .pa-avi{background:var(--red-soft);color:var(--red)}
+.pa-pend{font-size:.8rem;color:var(--label2);line-height:1.55;background:var(--surface2);border:1px dashed var(--sep);border-radius:14px;padding:.8rem .9rem}
+.pa-pend small{color:var(--label3)}
+.pa-subnav{display:none;gap:.3rem;padding:4px;margin-bottom:1rem;border-radius:14px;background:rgba(10,22,40,.06);width:max-content;max-width:100%;overflow-x:auto}
+.pa-subnav button{border:none;background:none;font:700 .78rem 'Sora',sans-serif;color:var(--label2);padding:.5rem .95rem;border-radius:11px;cursor:pointer;white-space:nowrap}
+.pa-subnav button.on{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(10,22,40,.12)}
+/* Móvil: el menú "Más" se abre por encima de la barra inferior, sin taparla ni quedar tapado */
+@media(max-width:768px){
+  .sidebar{bottom:calc(92px + env(safe-area-inset-bottom))}
+  .sidebar-overlay{z-index:240}
+  .pa-bottom{z-index:260}
+  .sidebar{z-index:270}
+  .sidebar.mobile-open~.pa-bottom .pa-mas{background:linear-gradient(160deg,#0a1628,#0f3060);color:#fff}
+  .pa-hero{padding:1.3rem 1.2rem}
+  .pa-hero h2{font-size:1.35rem}
+}
+.pa-mc{aspect-ratio:auto;height:34px}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -9510,11 +9632,230 @@ function _stDispoHTML() {
 })();
 
 // ══════════════════════════════════════════════════════════════
-//  PROTOTIPO A — Inicio con tarjetas ("widgets") y navegación tipo app
+//  "Mes": calendario potenciado (vista mes / semana, filtros, disponibles,
+//  acciones del día completo). Usa los datos y las tarjetas de "En vivo".
+// ══════════════════════════════════════════════════════════════
+(function () {
+  const C = { mes: null, sel: null, vista: 'mes', semIni: null, soloAtencion: false, soloBarco: false, vol: '' };
+  window.PA_CAL = C;
+  const ORDEN = { rojo: 3, ambar: 2, verde: 1, gris: 0 };
+  const DIA_SIN_TILDE = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
+  let DISPO = null;   // filas de v_disponibilidad (cargadas una vez)
+
+  async function cargarDispo() {
+    if (DISPO) return DISPO;
+    try { DISPO = await sbGet('v_disponibilidad', 'horario=not.is.null&select=voluntario_id,nombre,semana,dia,horario'); }
+    catch (e) { DISPO = []; }
+    return DISPO;
+  }
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  /** Voluntarios con disponibilidad ese día (por día de la semana y semana del mes). */
+  function disponiblesEn(f) {
+    if (!DISPO) return null;
+    const d = new Date(f + 'T12:00:00'), sem = Math.min(5, Math.ceil(d.getDate() / 7)), dia = norm(DIA_SIN_TILDE[d.getDay()]);
+    const ids = new Set(DISPO.filter(r => +r.semana === sem && norm(r.dia) === dia).map(r => r.voluntario_id));
+    return ids;
+  }
+  function voluntariosLista() {
+    const m = new Map();
+    (DISPO || []).forEach(r => m.set(r.voluntario_id, r.nombre));
+    (EV.data?.turnos || []).forEach(t => t.chips.forEach(c => c.id && m.set(c.id, c.nombre)));
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }
+  const iso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  function lunesDe(f) { const d = new Date(f + 'T12:00:00'); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return iso(d); }
+
+  async function alEntrar() {
+    const c = document.getElementById('tab-mes');
+    if (!EV.data) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Preparando el calendario…</p></div>`;
+    await Promise.all([protoDatos(), cargarDispo()]);
+    pintar();
+  }
+  window.paAbrirDia = function (f) {
+    C.sel = f; C.mes = f.slice(0, 7); C.semIni = lunesDe(f);
+    setTab('mes');
+  };
+  window.pbMover = function (delta) {
+    if (C.vista === 'semana') { const d = new Date(C.semIni + 'T12:00:00'); d.setDate(d.getDate() + 7 * delta); C.semIni = iso(d); C.mes = C.semIni.slice(0, 7); }
+    else { const [y, m] = C.mes.split('-').map(Number); const d = new Date(y, m - 1 + delta, 1); C.mes = iso(d).slice(0, 7); }
+    pintar();
+  };
+  window.pbHoy = function () { C.sel = EV.data.hoy; C.mes = C.sel.slice(0, 7); C.semIni = lunesDe(C.sel); pintar(); };
+  window.pbDia = function (f) { C.sel = f; pintar(); if (innerWidth < 980) setTimeout(() => document.getElementById('pb-panel')?.scrollIntoView({ behavior: 'smooth' }), 60); };
+  window.pbVista = function (v) { C.vista = v; if (!C.semIni) C.semIni = lunesDe(C.sel || EV.data.hoy); pintar(); };
+  window.pbFiltro = function (k, v) { C[k] = v; pintar(); };
+
+  /** "Copiar aviso" del día entero (los turnos que necesitan gente). */
+  window.pbCopiarAvisoDia = function (f) {
+    const ts = EV.data.turnos.filter(t => t.fecha === f && t.atencion);
+    if (!ts.length) { toast('Ese día no tiene turnos que necesiten gente', 'ok'); return; }
+    const cuando = protoFecha(f, { weekday: 'long', day: 'numeric', month: 'numeric' }).toLowerCase();
+    const lineas = ts.map(t => `• ${t.rango}: ${t.estado === 'vacio' ? 'necesitamos voluntarios' : 'faltan ' + t.faltan}${t.sinLlave ? ' (y alguien con llave)' : ''}`);
+    const txt = `🚨 El ${cuando} necesitamos ayuda:\n${lineas.join('\n')}\nSi puedes, apúntate aquí: ${SUST_URL_FIJA}`;
+    const ok = () => toast('Aviso copiado — pégalo en el grupo', 'ok');
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el aviso:', txt));
+    else window.prompt('Copia el aviso:', txt);
+  };
+
+  /** Recordatorio por correo a todos los turnos de un día, con una sola confirmación. */
+  window.pbRecordatorioDia = async function (f, btn) {
+    const ts = EV.data.turnos.filter(t => t.fecha === f && !t.anulado && t.n > 0);
+    if (!ts.length) { toast('Ese día no tiene turnos con voluntarios', 'err'); return; }
+    const sec = cargarNotifCfg().recordatoriosSecreto;
+    if (!sec) { toast('Primero guarda el secreto de recordatorios en 🔔 → Correo a voluntarios', 'err'); abrirCfgNotif(); return; }
+    const total = ts.reduce((a, t) => a + t.n, 0);
+    if (!confirm(`¿Enviar el recordatorio de los ${ts.length} turno${ts.length === 1 ? '' : 's'} del ${f.split('-').reverse().join('/')} a sus ${total} voluntarios?\n\n(Solo les llega a quienes tengan correo guardado.)`)) return;
+    if (btn) { btn.disabled = true; btn.textContent = '📧 Enviando…'; }
+    const env = [], sin = [], fal = [];
+    for (const t of ts) {
+      try {
+        const r = await fetch(SUPA_URL + '/functions/v1/recordatorios-turnos', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-secret': sec },
+          body: JSON.stringify({ turno: { fecha: t.fecha, rango: t.rango } }),
+        });
+        if (r.status === 401) throw new Error('el secreto no coincide — revísalo en 🔔 → Correo a voluntarios');
+        if (!r.ok) throw new Error(await r.text());
+        const res = await r.json();
+        env.push(...res.enviados); sin.push(...res.sinEmail); fal.push(...res.fallidos);
+      } catch (e) { toast('No se pudo enviar: ' + e.message, 'err'); break; }
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '📧 Recordatorio a todos'; }
+    if (env.length || sin.length || fal.length)
+      toast(`📧 Enviado a ${env.length}${sin.length ? ' · sin correo: ' + sin.join(', ') : ''}${fal.length ? ' · falló: ' + fal.join(', ') : ''}`, fal.length ? 'err' : 'ok');
+  };
+
+  function marcaVol(f, ts, disp) {
+    if (!C.vol) return { cls: '', html: '' };
+    const mios = ts.filter(t => t.chips.some(c => c.id === C.vol && c.tipo !== 'baja'));
+    const baja = ts.some(t => t.chips.some(c => c.id === C.vol && c.tipo === 'baja'));
+    if (mios.length) return { cls: 'v-turno', html: `<span class="pb-vtag">👤 ${mios.map(t => t.rango.slice(0, 5)).join(' · ')}</span>` };
+    if (baja) return { cls: 'v-baja', html: '<span class="pb-vtag baja">Baja</span>' };
+    if (disp && disp.has(C.vol)) return { cls: 'v-disp', html: '<span class="pb-vtag disp">Disponible</span>' };
+    return { cls: 'v-no', html: '' };
+  }
+
+  function celdaMes(f, ts, M) {
+    const info = M.dias.get(f) || { navieras: [] };
+    const peor = ts.reduce((a, t) => ORDEN[t.nivel] > ORDEN[a] ? t.nivel : a, ts.length ? 'gris' : '');
+    const disp = disponiblesEn(f), v = marcaVol(f, ts, disp);
+    const atenuar = (C.soloAtencion && !ts.some(t => t.atencion)) || (C.soloBarco && !info.navieras.length);
+    const llave = ts.some(t => t.sinLlave && !t.anulado);
+    const lineas = ts.slice(0, 3).map(t => `<span class="pb-lt ${t.nivel}"><i></i>${t.rango.slice(0, 5)} <b>${t.n}/${M.IDEAL}</b></span>`).join('') + (ts.length > 3 ? `<span class="pb-lt">+${ts.length - 3}</span>` : '');
+    return `<button class="pb-cel ${peor} ${f === M.hoy ? 'hoy' : ''} ${f === C.sel ? 'sel' : ''} ${f < M.hoy ? 'pasado' : ''} ${atenuar ? 'atenuado' : ''} ${v.cls}" onclick="pbDia('${f}')">
+      <span class="pb-top"><span class="pb-num">${+f.slice(8)}</span>${llave ? '<span title="Falta portador de llave">🔑</span>' : ''}${info.navieras.length ? '<span title="Barco previsto">🚢</span>' : ''}</span>
+      ${lineas}
+      ${v.html}
+      ${disp && f >= M.hoy && !C.vol ? `<span class="pb-disp" title="Voluntarios con disponibilidad ese día">👥 ${disp.size}</span>` : ''}
+    </button>`;
+  }
+
+  function panelDia(f, M) {
+    const ts = M.turnos.filter(t => t.fecha === f);
+    const info = M.dias.get(f) || { navieras: [], diaCompleto: [] };
+    const disp = disponiblesEn(f);
+    const ocupados = new Set(ts.flatMap(t => t.chips.filter(c => c.tipo !== 'baja').map(c => c.id)));
+    const libres = disp ? [...disp].filter(id => !ocupados.has(id)).length : null;
+    return `
+      <div class="pb-ph">
+        <div><div class="pb-pdia">${protoFecha(f, { weekday: 'long' })}</div><h3>${protoFecha(f, { day: 'numeric', month: 'long' })}</h3></div>
+      </div>
+      <div class="pb-acciones">
+        <button class="btn btn-ghost btn-sm" onclick="pbCopiarAvisoDia('${f}')">📋 Copiar aviso del día</button>
+        <button class="btn btn-ghost btn-sm" onclick="pbRecordatorioDia('${f}', this)">📧 Recordatorio a todos</button>
+        <button class="btn btn-ghost btn-sm" onclick="setTab('cuadrante')">📅 Ver en el cuadrante</button>
+      </div>
+      ${info.navieras.length ? `<div class="pb-navs">${info.navieras.map(n => `<span>🚢 ${escH(n)}</span>`).join('')}</div>` : ''}
+      ${libres !== null && f >= M.hoy ? `<div class="pb-libres">👥 <b>${libres}</b> voluntario${libres === 1 ? '' : 's'} con disponibilidad ese día que aún no tienen turno</div>` : ''}
+      ${(info.diaCompleto || []).length ? `<div class="pb-dc">📅 Se ofrecen todo el día: ${info.diaCompleto.map(x => escH(x.nombre)).join(', ')}</div>` : ''}
+      ${ts.length ? ts.map(_evCard).join('') : `<div class="pb-ayuda"><span>📭</span>Este día no tiene turnos.</div>`}`;
+  }
+
+  function pintar() {
+    const c = document.getElementById('tab-mes'), M = EV.data;
+    if (!M) { c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>No se han podido cargar los datos</h4></div>`; return; }
+    if (!C.mes) { C.mes = M.hoy.slice(0, 7); C.sel = C.sel || M.hoy; }
+    if (!C.semIni) C.semIni = lunesDe(C.sel || M.hoy);
+    const porDia = new Map();
+    M.turnos.forEach(t => { if (!porDia.has(t.fecha)) porDia.set(t.fecha, []); porDia.get(t.fecha).push(t); });
+    let cuerpo, titulo;
+    if (C.vista === 'semana') {
+      const dias = Array.from({ length: 7 }, (_, i) => { const d = new Date(C.semIni + 'T12:00:00'); d.setDate(d.getDate() + i); return iso(d); });
+      titulo = `${protoFecha(dias[0], { day: 'numeric', month: 'short' })} – ${protoFecha(dias[6], { day: 'numeric', month: 'short' })}`;
+      cuerpo = `<div class="pb-semana">${dias.map(f => {
+        const ts = porDia.get(f) || [], info = M.dias.get(f) || { navieras: [] }, v = marcaVol(f, ts, disponiblesEn(f));
+        return `<div class="pb-scol ${f === M.hoy ? 'hoy' : ''} ${f === C.sel ? 'sel' : ''} ${v.cls}">
+          <button class="pb-scab" onclick="pbDia('${f}')"><span>${protoFecha(f, { weekday: 'short' }).replace('.', '')}</span><b>${+f.slice(8)}</b></button>
+          ${info.navieras.length ? `<div class="pb-sbarco">🚢 ${escH(info.navieras.join(', '))}</div>` : ''}
+          ${v.html}
+          ${ts.map(t => `<button class="pb-sturno ${t.nivel}" onclick="pbDia('${f}')"><b>${escH(t.rango)}</b><span>${t.n}/${M.IDEAL}${t.sinLlave ? ' · 🔑' : ''}</span>
+            <small>${t.chips.filter(x => x.tipo !== 'baja').map(x => escH(x.nombre.split(' ')[0])).join(', ') || 'sin voluntarios'}</small></button>`).join('') || '<div class="pb-svacio">—</div>'}
+        </div>`;
+      }).join('')}</div>`;
+    } else {
+      const [y, m] = C.mes.split('-').map(Number);
+      const ini = (new Date(y, m - 1, 1).getDay() + 6) % 7, n = new Date(y, m, 0).getDate();
+      const celdas = Array.from({ length: ini }, () => '<div class="pb-cel vacia"></div>');
+      for (let d = 1; d <= n; d++) { const f = C.mes + '-' + String(d).padStart(2, '0'); celdas.push(celdaMes(f, porDia.get(f) || [], M)); }
+      titulo = new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      cuerpo = `<div class="pb-sem">${['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map(d => `<span>${d}</span>`).join('')}</div><div class="pb-grid">${celdas.join('')}</div>`;
+    }
+    const delMes = M.turnos.filter(t => t.fecha.startsWith(C.mes) && t.fecha >= M.hoy && !t.anulado);
+    const cuenta = n => delMes.filter(t => t.nivel === n).length;
+    const vols = voluntariosLista();
+    c.innerHTML = `
+      <div class="pb-layout">
+        <section class="pb-cal" id="pb-cal">
+          <div class="pb-cab">
+            <button class="pb-flecha" onclick="pbMover(-1)" aria-label="Anterior">‹</button>
+            <h2>${titulo.charAt(0).toUpperCase() + titulo.slice(1)}</h2>
+            <button class="pb-flecha" onclick="pbMover(1)" aria-label="Siguiente">›</button>
+            <div class="pb-seg"><button class="${C.vista === 'mes' ? 'on' : ''}" onclick="pbVista('mes')">Mes</button><button class="${C.vista === 'semana' ? 'on' : ''}" onclick="pbVista('semana')">Semana</button></div>
+            <button class="btn btn-ghost btn-sm" onclick="pbHoy()">Hoy</button>
+          </div>
+          <div class="pb-filtros">
+            <select class="fc" onchange="pbFiltro('vol', this.value)" title="Resaltar los turnos, bajas y días disponibles de un voluntario">
+              <option value="">👤 Ver un voluntario…</option>
+              ${vols.map(([id, n]) => `<option value="${id}" ${C.vol === id ? 'selected' : ''}>${escH(n)}</option>`).join('')}
+            </select>
+            <button class="ev-pill ${C.soloAtencion ? 'on' : ''}" onclick="pbFiltro('soloAtencion', ${!C.soloAtencion})">⚠️ Solo lo que necesita atención</button>
+            <button class="ev-pill ${C.soloBarco ? 'on' : ''}" onclick="pbFiltro('soloBarco', ${!C.soloBarco})">🚢 Días con barco</button>
+          </div>
+          <div class="pb-resumen">
+            <span class="rojo"><i></i>${cuenta('rojo')} sin cubrir</span>
+            <span class="ambar"><i></i>${cuenta('ambar')} con faltas</span>
+            <span class="verde"><i></i>${cuenta('verde')} cubiertos</span>
+            <small>turnos de aquí a fin de mes</small>
+          </div>
+          ${cuerpo}
+          <div class="pb-ley"><span><i class="rojo"></i>Sin cubrir</span><span><i class="ambar"></i>Falta gente o llave</span><span><i class="verde"></i>Cubierto</span><span>🔑 Falta llave</span><span>🚢 Barco</span><span>👥 Con disponibilidad</span></div>
+        </section>
+        <aside class="pb-panel" id="pb-panel">${C.sel ? panelDia(C.sel, M) : `<div class="pb-ayuda"><span>👆</span>Toca un día para ver sus turnos y actuar.</div>`}</aside>
+      </div>`;
+    // Deslizar con el dedo para pasar de mes / semana
+    const cal = document.getElementById('pb-cal');
+    let x0 = null, y0 = null;
+    cal.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; }, { passive: true });
+    cal.addEventListener('touchend', e => {
+      if (x0 === null) return;
+      const dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) pbMover(dx < 0 ? 1 : -1);
+      x0 = null;
+    }, { passive: true });
+  }
+
+  window.paMesPintar = pintar;
+  window.paDisponiblesEn = disponiblesEn;
+  window.paCargarDispo = cargarDispo;
+  protoTab({ id: 'mes', titulo: '🗓️ Calendario del mes', grupo: 'Resumen', ico: '🗓️', txt: 'Mes', sec: 0, alEntrar, pintar });
+})();
+
+// ══════════════════════════════════════════════════════════════
+//  PROTOTIPO A — Inicio con tarjetas, calendario del mes y menú reorganizado
 // ══════════════════════════════════════════════════════════════
 (function () {
   const T = t => t.fecha;
   const nivelTxt = { rojo: 'Sin cubrir', ambar: 'Falta gente', verde: 'Cubierto', gris: 'Anulado' };
+  let AVISOS = undefined;   // registro de avisos enviados (null = la tabla aún no existe)
 
   function mini(t, M) {
     const pres = t.chips.filter(c => c.tipo !== 'baja');
@@ -9527,11 +9868,59 @@ function _stDispoHTML() {
     </button>`;
   }
 
+  async function cargarAvisos() {
+    try { AVISOS = await sbGet('registro_avisos', 'order=ts.desc&limit=40'); }
+    catch (e) { AVISOS = null; }
+  }
+
   async function alEntrar() {
     const c = document.getElementById('tab-inicio');
     if (!EV.data) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Preparando tu resumen…</p></div>`;
-    await protoDatos();
+    await Promise.all([protoDatos(), paCargarDispo(), cargarAvisos()]);
     pintar();
+  }
+
+  /** Hora local de los recordatorios automáticos (la tarea va a las 19:00 UTC). */
+  function horaRecordatorios() {
+    const d = new Date(); d.setUTCHours(19, 0, 0, 0);
+    return d.toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' });
+  }
+
+  window.paFiltroAvisos = 'todos';
+  window.paAvisosFiltrar = function (f) { window.paFiltroAvisos = f; pintar(); };
+  function bloqueAvisos() {
+    if (AVISOS === null) return `<div class="pa-pend">📧 Aquí verás los correos que se envían a los voluntarios (confirmaciones, bajas, recordatorios…) y si llegaron bien.<br><small>Pendiente de activar: falta ejecutar <b>16_registro_avisos.sql</b> y volver a desplegar las funciones de correo.</small></div>`;
+    if (!AVISOS || !AVISOS.length) return '<div class="pa-vacio">Todavía no se ha enviado ningún aviso</div>';
+    const TIPO = { recordatorio: '⏰ Recordatorio', turno_confirmado: '✅ Turno confirmado', turno_quitado: '↩️ Cambio de turno', baja: '📤 Baja registrada', disponibilidad: '🗓️ Disponibilidad' };
+    const f = window.paFiltroAvisos;
+    const lista = AVISOS.filter(a => f === 'todos' || (f === 'errores' ? !a.ok : a.tipo === f)).slice(0, 8);
+    const errores = AVISOS.filter(a => !a.ok).length;
+    const pills = [['todos', 'Todos'], ['recordatorio', '⏰'], ['turno_confirmado', '✅'], ['baja', '📤'], ['errores', `⚠️ ${errores}`]]
+      .map(([k, l]) => `<button class="ev-pill ${f === k ? 'on' : ''}" onclick="paAvisosFiltrar('${k}')">${l}</button>`).join('');
+    return `<div class="pa-avfil">${pills}</div>` + (lista.map(a => `<div class="pa-av ${a.ok ? '' : 'mal'}">
+      <span class="pa-avi">${a.ok ? '✓' : '!'}</span>
+      <div><b>${escH(a.nombre || a.destino || '—')}</b> · ${TIPO[a.tipo] || escH(a.tipo)}${a.asunto ? `<br><small>${escH(a.asunto)}</small>` : ''}${!a.ok && a.detalle ? `<br><small class="err">${escH(a.detalle)}</small>` : ''}</div>
+      <small>${_evRel(a.ts)}</small></div>`).join('') || '<div class="pa-vacio">Nada con ese filtro</div>');
+  }
+
+  window.paEnviarRecordatoriosManana = function (btn) { pbRecordatorioDia(_evSumaDias(EV.data.hoy, 1), btn); };
+
+  function miniCalendario(M) {
+    const mes = M.hoy.slice(0, 7), [y, m] = mes.split('-').map(Number);
+    const ini = (new Date(y, m - 1, 1).getDay() + 6) % 7, n = new Date(y, m, 0).getDate();
+    const ORD = { rojo: 3, ambar: 2, verde: 1, gris: 0 };
+    const cel = Array.from({ length: ini }, () => '<span></span>');
+    for (let d = 1; d <= n; d++) {
+      const f = mes + '-' + String(d).padStart(2, '0');
+      const ts = M.turnos.filter(t => t.fecha === f);
+      const peor = ts.reduce((a, t) => ORD[t.nivel] > ORD[a] ? t.nivel : a, ts.length ? 'gris' : '');
+      cel.push(`<button class="pa-mc ${peor} ${f === M.hoy ? 'hoy' : ''} ${f < M.hoy ? 'pasado' : ''}" onclick="paAbrirDia('${f}')">${d}</button>`);
+    }
+    const nombre = new Date(y, m - 1, 1).toLocaleDateString('es-ES', { month: 'long' });
+    return `<section class="pa-card">
+      <div class="pa-ch"><h3>🗓️ ${nombre.charAt(0).toUpperCase() + nombre.slice(1)}</h3><button class="pa-link" onclick="setTab('mes')">Abrir calendario →</button></div>
+      <div class="pa-mcs">${['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => `<span class="pa-mcd">${d}</span>`).join('')}${cel.join('')}</div>
+    </section>`;
   }
 
   function pintar() {
@@ -9550,7 +9939,7 @@ function _stDispoHTML() {
       const ts = fut.filter(t => T(t) === f);
       const peor = ts.some(t => t.nivel === 'rojo') ? 'rojo' : ts.some(t => t.nivel === 'ambar') ? 'ambar' : ts.length ? 'verde' : '';
       const barco = (M.dias.get(f)?.navieras || []).length;
-      return `<button class="pa-dia ${peor}" onclick="setTab('cuadrante')">
+      return `<button class="pa-dia ${peor}" onclick="paAbrirDia('${f}')">
         <span class="pa-dsem">${protoFecha(f, { weekday: 'short' }).replace('.', '')}</span>
         <span class="pa-dnum">${+f.slice(8)}</span>
         <span class="pa-dpts">${ts.map(t => `<i class="${t.nivel}"></i>`).join('') || (barco ? '🚢' : '·')}</span>
@@ -9560,6 +9949,26 @@ function _stDispoHTML() {
     const lista = (ts, vacio) => ts.length ? ts.map(t => mini(t, M)).join('') : `<div class="pa-vacio">${vacio}</div>`;
     const novedades = M.eventos.slice(0, 6).map(e => `<div class="pa-ev"><span class="pa-evi ${e.tipo}"></span><div><div>${e.texto}</div><small>${_evRel(e.ts)}</small></div></div>`).join('') || '<div class="pa-vacio">Sin novedades todavía</div>';
 
+    // Próximo barco
+    const fBarco = [...M.dias.entries()].filter(([f, d]) => f >= hoy && d.navieras.length).map(([f]) => f).sort()[0];
+    const barco = fBarco ? (() => {
+      const ts = fut.filter(t => T(t) === fBarco);
+      return `<section class="pa-card pa-barco">
+        <div class="pa-ch"><h3>🚢 Próximo barco</h3><button class="pa-link" onclick="paAbrirDia('${fBarco}')">Ver día →</button></div>
+        <div class="pa-bnom">${M.dias.get(fBarco).navieras.map(escH).join(' · ')}</div>
+        <div class="pa-bfecha">${protoFecha(fBarco)}${fBarco === hoy ? ' · <b>HOY</b>' : fBarco === man ? ' · <b>mañana</b>' : ''}</div>
+        ${ts.length ? ts.map(t => mini(t, M)).join('') : '<div class="pa-vacio">Sin turnos ese día todavía</div>'}
+      </section>`;
+    })() : `<section class="pa-card"><div class="pa-ch"><h3>🚢 Próximo barco</h3></div><div class="pa-vacio">No hay barcos previstos</div></section>`;
+
+    // Recordatorios de mañana
+    const conGente = deMan.filter(t => t.n > 0), personas = conGente.reduce((a, t) => a + t.n, 0);
+    const recordatorio = `<section class="pa-card pa-recor">
+      <div class="pa-ch"><h3>⏰ Recordatorios de mañana</h3></div>
+      ${conGente.length ? `<p>Mañana hay <b>${conGente.length} turno${conGente.length === 1 ? '' : 's'}</b> con <b>${personas} voluntario${personas === 1 ? '' : 's'}</b>. Los recordatorios por correo salen solos esta noche a las <b>${horaRecordatorios()}</b>.</p>
+        <button class="btn btn-ghost btn-sm" onclick="paEnviarRecordatoriosManana(this)">📧 Enviarlos ahora</button>` : '<div class="pa-vacio">Mañana no hay turnos con voluntarios</div>'}
+    </section>`;
+
     c.innerHTML = `
       <section class="pa-hero">
         <div>
@@ -9567,7 +9976,7 @@ function _stDispoHTML() {
           <h2>${protoFecha(hoy)}</h2>
           <p>${aten.length ? `Hay <b>${aten.length} turno${aten.length === 1 ? '' : 's'}</b> que necesita${aten.length === 1 ? '' : 'n'} atención en las próximas dos semanas.` : 'Todo en orden: los turnos de las próximas dos semanas están cubiertos. ✓'}</p>
         </div>
-        <button class="pa-cta" onclick="setTab('envivo')">Ver en vivo →</button>
+        <div class="pa-ctas"><button class="pa-cta" onclick="setTab('envivo')">Resolver turnos →</button><button class="pa-cta sec" onclick="setTab('mes')">🗓️ Calendario</button></div>
       </section>
       <div class="pa-kpis">
         ${kpi(aten.length, 'Necesitan atención', 'próximas 2 semanas', aten.length ? 'rojo' : 'verde', "setTab('envivo')")}
@@ -9576,7 +9985,7 @@ function _stDispoHTML() {
         ${kpi(ap24, 'Apuntes nuevos', 'últimas 24 horas', 'azul', "setTab('apuntes')")}
       </div>
       <section class="pa-card">
-        <div class="pa-ch"><h3>📆 Esta semana</h3><button class="pa-link" onclick="setTab('cuadrante')">Cuadrante →</button></div>
+        <div class="pa-ch"><h3>📆 Esta semana</h3><button class="pa-link" onclick="setTab('mes')">Calendario →</button></div>
         <div class="pa-semana">${semana}</div>
       </section>
       <div class="pa-cols">
@@ -9586,22 +9995,67 @@ function _stDispoHTML() {
       <div class="pa-cols">
         <section class="pa-card"><div class="pa-ch"><h3>⚠️ Por resolver</h3><button class="pa-link" onclick="setTab('envivo')">Todos →</button></div>
           ${aten.slice(0, 5).map(t => `<div class="pa-fecha">${protoFecha(T(t), { weekday: 'short', day: 'numeric', month: 'short' })}</div>${mini(t, M)}`).join('') || '<div class="pa-vacio">Nada pendiente 🎉</div>'}</section>
-        <section class="pa-card"><div class="pa-ch"><h3>⚡ Últimas novedades</h3></div>${novedades}</section>
+        ${miniCalendario(M)}
       </div>
-      <section class="pa-accesos">
-        ${[['📅', 'Cuadrante', 'cuadrante'], ['⚙️', 'Calendario', 'calendario'], ['👥', 'Voluntarios', 'voluntarios'], ['📈', 'Estadísticas', 'estadisticas']]
-          .map(([i, t, id]) => `<button onclick="setTab('${id}')"><span>${i}</span>${t}</button>`).join('')}
-      </section>`;
+      <div class="pa-cols">${barco}${recordatorio}</div>
+      <div class="pa-cols">
+        <section class="pa-card"><div class="pa-ch"><h3>📧 Avisos enviados</h3></div>${bloqueAvisos()}</section>
+        <section class="pa-card"><div class="pa-ch"><h3>⚡ Últimas novedades</h3><button class="pa-link" onclick="setTab('envivo')">En vivo →</button></div>${novedades}</section>
+      </div>`;
   }
 
   protoTab({ id: 'inicio', titulo: '🏠 Inicio', grupo: 'Resumen', ico: '🏠', txt: 'Inicio', sec: 0, alEntrar, pintar });
 
+  // ── Menú lateral reorganizado (mismos botones y pestañas, mejor agrupados) ──
+  (function reorganizar() {
+    const btn = id => document.getElementById('nav-' + id);
+    const cambia = (id, ico, txt) => { const b = btn(id); const badge = b.querySelector('.nbadge'); b.innerHTML = `<span class="ni">${ico}</span> ${txt}`; if (badge) b.appendChild(badge); };
+    cambia('calendario', '🚢', 'Días y barcos');
+    cambia('envivo', '🛰️', 'En vivo');
+    TAB_TITLES.calendario = '🚢 Días y barcos · configurar el calendario';
+    const GRUPOS = [
+      ['Resumen', ['inicio', 'mes']],
+      ['Día a día', ['envivo', 'bajas', 'apuntes', 'alertas']],
+      ['Planificar', ['cuadrante', 'calendario', 'historial']],
+      ['Voluntarios', ['voluntarios', 'disponibilidad', 'carga']],
+      ['Análisis y ajustes', ['estadisticas', 'busqueda', 'archivo', 'reglas']],
+    ];
+    const botones = {}; TABS.forEach(id => { botones[id] = btn(id); });
+    const secs = [...document.querySelectorAll('.sidebar .nav-sec')], padre = secs[0].parentNode, pie = document.querySelector('.sidebar-footer');
+    secs.forEach(s => s.remove());
+    GRUPOS.forEach(([lbl, ids]) => {
+      const sec = document.createElement('div'); sec.className = 'nav-sec';
+      sec.innerHTML = `<div class="nav-lbl">${lbl}</div>`;
+      ids.forEach(id => { sec.appendChild(botones[id]); TAB_GRUPO[id] = lbl; });
+      padre.insertBefore(sec, pie);
+    });
+    // "Disponibilidad por bloques" pasa a ser una vista dentro de Disponibilidad
+    botones.dispobloques.style.display = 'none'; padre.insertBefore(botones.dispobloques, pie);
+    TAB_GRUPO.dispobloques = 'Voluntarios';
+  })();
+
+  // Subpestañas encima del contenido (Disponibilidad: tabla / por bloques)
+  const SUB = { disponibilidad: [['disponibilidad', '📋 Tabla semanal'], ['dispobloques', '🧱 Por bloques']] };
+  SUB.dispobloques = SUB.disponibilidad;
+  const sub = document.createElement('div'); sub.id = 'pa-subnav'; sub.className = 'pa-subnav';
+  document.querySelector('.content').prepend(sub);
+  const setTabAntes = window.setTab;
+  window.setTab = function (id) {
+    setTabAntes(id);
+    const s = SUB[id];
+    sub.style.display = s ? 'flex' : 'none';
+    if (s) sub.innerHTML = s.map(([t, l]) => `<button class="${t === id ? 'on' : ''}" onclick="setTab('${t}')">${l}</button>`).join('');
+    if (id === 'dispobloques') document.getElementById('nav-disponibilidad').classList.add('active');
+    // Móvil: cerrar el menú al elegir
+    document.body.classList.remove('pa-menu-abierto');
+  };
+
   // Barra inferior tipo app (móvil)
   const nav = document.createElement('nav');
   nav.className = 'pa-bottom';
-  nav.innerHTML = [['inicio', '🏠', 'Inicio'], ['envivo', '🛰️', 'Hoy'], ['cuadrante', '📅', 'Mes'], ['voluntarios', '👥', 'Voluntarios']]
+  nav.innerHTML = [['inicio', '🏠', 'Inicio'], ['envivo', '🛰️', 'Hoy'], ['mes', '🗓️', 'Mes'], ['voluntarios', '👥', 'Voluntarios']]
     .map(([id, i, t]) => `<button data-proto-tab="${id}" onclick="setTab('${id}')"><span>${i}</span>${t}</button>`).join('')
-    + `<button onclick="toggleSidebar()"><span>☰</span>Más</button>`;
+    + `<button class="pa-mas" onclick="toggleSidebar()"><span>☰</span>Más</button>`;
   document.body.appendChild(nav);
   window.PROTO_INICIO = 'inicio';
 })();
