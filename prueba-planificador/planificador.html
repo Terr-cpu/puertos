@@ -669,6 +669,28 @@ body{background:radial-gradient(circle at 20% 0%,rgba(0,113,227,.10),transparent
 .vol-row2:hover .vol-ir{color:var(--navy);transform:translateX(3px)}
 .ficha-acciones{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:1rem;padding-top:.9rem;border-top:1px solid var(--sep)}
 
+/* ── Contenido de las pestañas (mismo lenguaje que los menús) ── */
+.dia-hdr{border-bottom:1px solid var(--sep);padding:.2rem 0 .6rem;margin-bottom:.75rem;gap:.6rem}
+.dia-fecha{font-family:'Sora',system-ui,sans-serif;font-size:1.12rem;font-weight:800;letter-spacing:-.025em;color:var(--navy)}
+.dia-tag,.naviera-pill,.tc-tipo,.tc-edit-badge,.ev-badge,.baja-badge{border-radius:999px}
+.dia-tag{padding:.2rem .6rem;box-shadow:0 2px 6px rgba(10,22,40,.15)}
+.dia-tag.ok{background:linear-gradient(160deg,#1fae55,#178a43)}
+.naviera-pill{padding:.16rem .55rem}
+.tc{overflow:hidden}
+.tc-accent,.baja-accent{height:4px;margin:0 1.1rem;border-radius:0 0 6px 6px;opacity:.9}
+.tc-hora,.baja-titulo{letter-spacing:-.025em}
+.no-turno{border-radius:18px;background:rgba(255,255,255,.55);border:1.5px dashed rgba(60,60,67,.18)}
+.aviso-bar{border-radius:12px;border-left-width:4px;box-shadow:var(--shadow-sm)}
+.al-item.grave,.al-item.aviso{border-left-width:4px}
+#tab-reglas .card{padding:1.2rem 1.3rem}
+.card-hd{background:rgba(255,255,255,.5)}
+.card-hd h3{font-size:.9rem;font-weight:800;letter-spacing:-.01em}
+table{border-collapse:separate;border-spacing:0}
+th{letter-spacing:.06em}
+.st-sec h4{font-size:.88rem;font-weight:800;letter-spacing:-.01em}
+.st-track{border-radius:999px}.st-fill{border-radius:999px}
+.toggle-sl{box-shadow:inset 0 1px 2px rgba(0,0,0,.08)}
+
 /* ── Modales y lo que flota encima: casi opaco y con desenfoque ── */
 .moverlay{background:rgba(10,22,40,.4)}
 .mbox{background:rgba(255,255,255,.95);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.8);border-radius:26px;box-shadow:0 30px 80px rgba(10,22,40,.3)}
@@ -679,7 +701,8 @@ body{background:radial-gradient(circle at 20% 0%,rgba(0,113,227,.10),transparent
 
 /* ── Móvil: barra lateral a pantalla completa y acciones en "⋯" ── */
 @media(max-width:768px){
-  .sidebar{top:0;left:0;bottom:0;border-radius:0 24px 24px 0}
+  .sidebar{top:10px;left:10px;bottom:10px;width:min(300px,calc(100vw - 20px));border-radius:24px;transform:translateX(calc(-100% - 24px))}
+  .sidebar.mobile-open{transform:translateX(0)}
   .main-area{margin-left:0}
   .topbar{margin:8px 8px 0;top:8px;border-radius:18px;padding:.6rem .7rem}
   .content{padding:1rem .8rem 1.6rem}
