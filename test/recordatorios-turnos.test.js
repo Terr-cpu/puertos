@@ -143,7 +143,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   const pr = await llamar(r.handler, 'sec', { prueba_voluntario_id: 'a' });
   check('modo prueba → próximo turno, asunto [PRUEBA], sin anotar en recordatorios_enviados',
     pr.status === 200 && r.correos.length === 1 && /^\[PRUEBA\]/.test(r.correos[0].subject) && /26\/09\/2026/.test(r.correos[0].subject)
-    && r.insertados.length === 0);
+    && r.insertados.filter(i => i.t === 'recordatorios_enviados').length === 0);
 
   r = cargar({ ...equipo, yaEnviados: ['a|2026-09-26'] });
   await llamar(r.handler, 'sec', { prueba_voluntario_id: 'a' });
@@ -208,7 +208,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   r = cargar({ ...equipo, vols: equipo.vols.map(v => ({ ...v, email: v.id + '@x.com' })) });
   man = await llamar(r.handler, 'sec', { turno: { fecha: '2026-10-23', rango: '16:00 a 18:00' } });
   check('manual: turno de otro día → "el 23/10/2026" y no se anota como enviado',
-    r.correos.length === 2 && /turno el 23\/10\/2026/.test(r.correos[0].subject) && r.insertados.length === 0);
+    r.correos.length === 2 && /turno el 23\/10\/2026/.test(r.correos[0].subject) && r.insertados.filter(i => i.t === 'recordatorios_enviados').length === 0);
 
   r = cargar(equipo);
   man = await llamar(r.handler, null, { turno: { fecha: '2026-09-26', rango: '10:00 a 12:00' } });
@@ -217,6 +217,13 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   r = cargar(equipo);
   const pre = await r.handler(new Request('http://x/', { method: 'OPTIONS' }));
   check('OPTIONS (preflight del navegador) → 200 y permite x-cron-secret', pre.status === 200 && /x-cron-secret/.test(pre.headers.get('Access-Control-Allow-Headers')));
+
+  // Registro de avisos enviados (16_registro_avisos.sql)
+  r = cargar({ ...equipo, vols: equipo.vols.map(v => ({ ...v, email: v.id + '@x.com' })) });
+  await llamar(r.handler, 'sec');
+  const reg = r.insertados.filter(i => i.t === 'registro_avisos');
+  check('cada recordatorio enviado queda anotado en registro_avisos (tipo, voluntario, asunto, ok)',
+    reg.length === r.correos.length && reg.every(i => i.fila.tipo === 'recordatorio' && i.fila.ok === true && i.fila.voluntario_id && /Recordatorio/.test(i.fila.asunto)));
 
   console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
   process.exit(fallos ? 1 : 0);
