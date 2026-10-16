@@ -141,14 +141,18 @@ function bloqueCuestionario(): string {
 </td></tr></table>`;
 }
 
+/** Último fallo al anotar en registro_avisos (se devuelve en la respuesta para poder verlo). */
+let errorRegistro = '';
+
 /** Anota el envío en registro_avisos (16_registro_avisos.sql). Si la tabla no existe, no pasa nada. */
 async function registrar(meta: { tipo: string; voluntario_id?: string | null; nombre?: string | null } | undefined,
                          destino: string, asunto: string, ok: boolean, detalle = ''): Promise<void> {
   if (!meta) return;
   try {
-    await sb.from('registro_avisos').insert({ canal: 'correo', tipo: meta.tipo, voluntario_id: meta.voluntario_id || null,
+    const { error } = await sb.from('registro_avisos').insert({ canal: 'correo', tipo: meta.tipo, voluntario_id: meta.voluntario_id || null,
       nombre: meta.nombre || null, destino, asunto, ok, detalle: detalle ? detalle.slice(0, 300) : null });
-  } catch (e) { /* sin tabla de registro: se envía igual */ }
+    if (error) { errorRegistro = error.message; console.error('registro_avisos:', error.message); }
+  } catch (e) { errorRegistro = (e as Error).message; console.error('registro_avisos:', errorRegistro); }  // el correo se envía igual
 }
 
 async function enviarCorreo(destinatario: string, asunto: string, html: string,
