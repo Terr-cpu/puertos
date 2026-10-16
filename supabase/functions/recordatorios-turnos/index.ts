@@ -198,9 +198,21 @@ function bloqueCuestionario(): string {
 </td></tr></table>`;
 }
 
-async function enviarCorreo(destinatario: string, asunto: string, html: string): Promise<boolean> {
+/** Anota el envío en registro_avisos (16_registro_avisos.sql). Si la tabla no existe, no pasa nada. */
+async function registrar(meta: { tipo: string; voluntario_id?: string | null; nombre?: string | null } | undefined,
+                         destino: string, asunto: string, ok: boolean, detalle = ''): Promise<void> {
+  if (!meta) return;
+  try {
+    await sb.from('registro_avisos').insert({ canal: 'correo', tipo: meta.tipo, voluntario_id: meta.voluntario_id || null,
+      nombre: meta.nombre || null, destino, asunto, ok, detalle: detalle ? detalle.slice(0, 300) : null });
+  } catch (e) { /* sin tabla de registro: se envía igual */ }
+}
+
+async function enviarCorreo(destinatario: string, asunto: string, html: string,
+                            meta?: { tipo: string; voluntario_id?: string | null; nombre?: string | null }): Promise<boolean> {
   if (!RESEND_KEY || !RESEND_FROM) {
     console.warn('Faltan RESEND_API_KEY / RESEND_FROM — no se envía nada');
+    await registrar(meta, destinatario, asunto, false, 'Faltan RESEND_API_KEY / RESEND_FROM');
     return false;
   }
   const r = await fetch('https://api.resend.com/emails', {
@@ -208,7 +220,9 @@ async function enviarCorreo(destinatario: string, asunto: string, html: string):
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_KEY}` },
     body: JSON.stringify({ from: RESEND_FROM, to: [destinatario], subject: asunto, html, text: htmlATexto(html) }),
   });
-  if (!r.ok) console.error('Error Resend:', r.status, await r.text());
+  let detalle = '';
+  if (!r.ok) { detalle = `Resend ${r.status}: ${await r.text()}`; console.error('Error Resend:', detalle); }
+  await registrar(meta, destinatario, asunto, r.ok, detalle);
   return r.ok;
 }
 
@@ -258,7 +272,7 @@ Deno.serve(async (req) => {
         if (!v) continue;
         if (!v.email) { sinEmail.push(v.nombre); continue; }
         const html = construirRecordatorio(v, cuando, fecha, [rango], pres, volPorId);
-        if (await enviarCorreo(v.email, `Recordatorio: turno ${cuandoCorto} ${isoADMY(fecha)} · ${rango}`, html)) {
+        if (await enviarCorreo(v.email, `Recordatorio: turno ${cuandoCorto} ${isoADMY(fecha)} · ${rango}`, html, { tipo: 'recordatorio', voluntario_id: v.id, nombre: v.nombre })) {
           enviados.push(v.nombre);
           if (fecha === manana) await sb.from('recordatorios_enviados').insert({ clave: `${v.id}|${manana}` });
         } else fallidos.push(v.nombre);
@@ -278,7 +292,7 @@ Deno.serve(async (req) => {
       const rangos = agruparPorVoluntario(presDia).get(v.id) || [];
       if (!rangos.length) return resp('prueba: en su próximo turno tiene baja o está anulado', { status: 404 });
       const html = construirRecordatorio(v, `el ${isoADMY(fecha)}`, fecha, rangos, presDia, volPorId);
-      await enviarCorreo(v.email, `[PRUEBA] Recordatorio: turno el ${isoADMY(fecha)}`, html);
+      await enviarCorreo(v.email, `[PRUEBA] Recordatorio: turno el ${isoADMY(fecha)}`, html, { tipo: 'prueba', voluntario_id: v.id, nombre: v.nombre });
       return json({ ok: true, prueba: true, fecha, rangos });
     }
 
@@ -294,7 +308,7 @@ Deno.serve(async (req) => {
       if (ya?.length) continue;
 
       const html = construirRecordatorio(v, `mañana (${isoADMY(manana)})`, manana, rangos, pres, volPorId);
-      await enviarCorreo(v.email, `Recordatorio: turno mañana ${isoADMY(manana)}`, html);
+      await enviarCorreo(v.email, `Recordatorio: turno mañana ${isoADMY(manana)}`, html, { tipo: 'recordatorio', voluntario_id: v.id, nombre: v.nombre });
       await sb.from('recordatorios_enviados').insert({ clave });
       enviados++;
     }
