@@ -802,6 +802,45 @@ th{letter-spacing:.06em}
   .pb-filtros select{max-width:170px}
   .pb-resumen small{display:none}
 }
+/* ══ Bajas y apuntes unificados ══ */
+.pc-resumen{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-bottom:1rem}
+@media(max-width:800px){.pc-resumen{grid-template-columns:repeat(2,1fr)}}
+.pc-k{display:flex;flex-direction:column;gap:.1rem;padding:.9rem 1rem;border-radius:18px;background:var(--surface);border:1px solid rgba(255,255,255,.8);box-shadow:var(--shadow-sm)}
+.pc-k b{font-size:1.8rem;font-weight:800;letter-spacing:-.04em;line-height:1}
+.pc-k span{font-size:.7rem;font-weight:600;color:var(--label3)}
+.pc-k.rojo b{color:var(--red)}.pc-k.ambar b{color:var(--amber)}.pc-k.verde b{color:var(--green)}.pc-k.azul b{color:var(--blue)}
+.pc-card{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-left:5px solid var(--green);border-radius:20px;box-shadow:var(--shadow-sm);padding:.95rem 1.1rem;margin-bottom:.8rem}
+.pc-card.ambar{border-left-color:var(--amber)}.pc-card.rojo{border-left-color:var(--red)}.pc-card.gris{border-left-color:var(--label4);opacity:.7}
+.pc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem;flex-wrap:wrap;margin-bottom:.7rem}
+.pc-fecha{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3)}
+.pc-hora{font-size:1.15rem;font-weight:800;letter-spacing:-.025em;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.pc-llave{font-size:.64rem;font-weight:700;background:var(--amber-soft);color:var(--amber);padding:.14rem .5rem;border-radius:999px}
+.pc-res{text-align:right;display:flex;flex-direction:column;gap:.1rem}
+.pc-res b{font-size:.82rem;font-weight:800;padding:.25rem .7rem;border-radius:999px;background:var(--green-soft);color:#146c34;align-self:flex-end}
+.pc-card.ambar .pc-res b{background:var(--amber-soft);color:var(--amber)}
+.pc-card.rojo .pc-res b{background:var(--red-soft);color:var(--red)}
+.pc-card.gris .pc-res b{background:var(--surface2);color:var(--label3)}
+.pc-res small{font-size:.68rem;color:var(--label3)}
+.pc-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+@media(max-width:700px){.pc-cols{grid-template-columns:1fr}.pc-res{text-align:left}.pc-res b{align-self:flex-start}}
+.pc-col{border-radius:14px;padding:.6rem .7rem;display:flex;flex-wrap:wrap;gap:.3rem;align-content:flex-start;min-height:62px}
+.pc-col.conf{background:rgba(26,150,72,.07);border:1px solid rgba(26,150,72,.18)}
+.pc-col.baja{background:rgba(217,48,37,.06);border:1px solid rgba(217,48,37,.16)}
+.pc-col.apu{background:rgba(0,113,227,.06);border:1px solid rgba(0,113,227,.16)}
+.pc-ct{width:100%;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.1rem}
+.pc-ct b{color:var(--label1)}
+.pc-n{font-size:.72rem;font-weight:600;background:rgba(255,255,255,.85);border:1px solid var(--sep);border-radius:999px;padding:.12rem .55rem}
+.pc-col.baja .pc-n{text-decoration:line-through;color:var(--red)}
+.pc-v{font-size:.7rem;color:var(--label4)}
+.pc-acc{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
+.pc-dc{background:var(--surface);border-radius:20px;padding:1rem 1.1rem;border:1px dashed rgba(124,58,237,.35);font-size:.8rem;line-height:1.7}
+.pc-dc h4{font-size:.88rem;margin-bottom:.3rem}
+.pc-dc p{font-size:.72rem;color:var(--label3);margin-top:.3rem}
+/* ══ Estadísticas por módulos ══ */
+.pa-stmods{display:flex;gap:.3rem;padding:4px;margin-bottom:1rem;border-radius:16px;background:rgba(10,22,40,.06);width:max-content;max-width:100%;overflow-x:auto;position:sticky;top:96px;z-index:5;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.pa-stmods button{border:none;background:none;font:700 .8rem 'Sora',sans-serif;color:var(--label2);padding:.55rem 1rem;border-radius:12px;cursor:pointer;white-space:nowrap}
+.pa-stmods button.on{background:#fff;color:var(--navy);box-shadow:0 2px 8px rgba(10,22,40,.12)}
+@media(max-width:768px){.pa-stmods{top:76px}}
 /* ══ PROTOTIPO A — Inicio con tarjetas y navegación tipo app ══ */
 /* Ordenador: barra lateral estrecha de iconos que se despliega al pasar el ratón */
 @media(min-width:769px){
@@ -9632,6 +9671,63 @@ function _stDispoHTML() {
 })();
 
 // ══════════════════════════════════════════════════════════════
+//  Llave como aviso en el propio turno + Estadísticas por módulos
+// ══════════════════════════════════════════════════════════════
+(function () {
+  // ── Llave: un turno confirmado o con apuntados avisa "falta llave" solo si
+  //    NINGUNO de los que van la tiene. Si alguien la tiene, no hay aviso.
+  const modeloOriginal = window._evModelo;
+  window._evModelo = function (raw, hoy, reglas) {
+    const M = modeloOriginal(raw, hoy, reglas);
+    M.turnos.forEach(t => {
+      const van = t.chips.filter(c => c.tipo !== 'baja');
+      t.sinLlave = !t.anulado && t.n > 0 && !van.some(c => c.llave);
+      t.nivel = t.anulado ? 'gris' : t.estado === 'vacio' ? 'rojo' : (t.estado === 'falta' || t.sinLlave) ? 'ambar' : 'verde';
+      t.atencion = !t.pasado && !t.anulado && t.nivel !== 'verde';
+    });
+    return M;
+  };
+
+  // ── Estadísticas en módulos (en vez de una página muy larga) ──
+  const MODS = [['resumen', '📊 Resumen'], ['turnos', '🎯 Turnos'], ['tendencias', '📈 Tendencias'], ['voluntarios', '👥 Voluntarios']];
+  window.PA_STMOD = 'resumen';
+  const modDe = txt => /salieron|acaban|antelaci/i.test(txt) ? 'turnos'
+    : /tendencia|semana|mapa/i.test(txt) ? 'tendencias'
+    : /voluntario|dificulta|disponib|particip/i.test(txt) ? 'voluntarios' : 'resumen';
+  const titulo = el => ((el.querySelector('h4, summary') || el).textContent || '');
+
+  function modularizar() {
+    const body = document.getElementById('st-body'); if (!body) return;
+    body.querySelector('.pa-stmods')?.remove();
+    const hijos = [...body.children];
+    hijos.forEach(el => {
+      if (el.classList.contains('st-cols')) [...el.children].forEach(s => { s.dataset.mod = modDe(titulo(s)); });
+      else el.dataset.mod = el.matches('.st-sec, details') ? modDe(titulo(el)) : 'resumen';
+    });
+    const aplicar = () => {
+      const m = window.PA_STMOD;
+      hijos.forEach(el => {
+        if (el.classList.contains('st-cols')) {
+          const vis = [...el.children].filter(s => s.dataset.mod === m);
+          [...el.children].forEach(s => { s.style.display = s.dataset.mod === m ? '' : 'none'; });
+          el.style.display = vis.length ? '' : 'none';
+          el.style.gridTemplateColumns = vis.length === 1 ? 'minmax(0,1fr)' : '';
+        } else el.style.display = el.dataset.mod === m ? '' : 'none';
+      });
+      bar.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.mod === m));
+    };
+    const bar = document.createElement('div');
+    bar.className = 'pa-stmods';
+    bar.innerHTML = MODS.map(([k, l]) => `<button data-mod="${k}">${l}</button>`).join('');
+    bar.querySelectorAll('button').forEach(b => { b.onclick = () => { window.PA_STMOD = b.dataset.mod; aplicar(); body.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
+    body.prepend(bar);
+    aplicar();
+  }
+  const renderStOriginal = window.renderEstadisticas;
+  window.renderEstadisticas = function () { const r = renderStOriginal.apply(this, arguments); modularizar(); return r; };
+})();
+
+// ══════════════════════════════════════════════════════════════
 //  "Mes": calendario potenciado (vista mes / semana, filtros, disponibles,
 //  acciones del día completo). Usa los datos y las tarjetas de "En vivo".
 // ══════════════════════════════════════════════════════════════
@@ -9850,6 +9946,104 @@ function _stDispoHTML() {
 })();
 
 // ══════════════════════════════════════════════════════════════
+//  "Bajas y apuntes" unificados: por cada turno afectado, quién estaba
+//  confirmado, quién dio baja, quién se apuntó, si el turno SALE o no y qué
+//  hacer (confirmar apuntes, sugerir sustitutos, copiar aviso, anular).
+//  Datos de "En vivo"; acciones = las mismas funciones de siempre.
+// ══════════════════════════════════════════════════════════════
+(function () {
+  const F = { filtro: 'pendientes' };
+
+  async function alEntrar() {
+    const c = document.getElementById('tab-cambios');
+    if (!EV.data) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando bajas y apuntes…</p></div>`;
+    await protoDatos();
+    pintar();
+  }
+  window.pcFiltro = function (f) { F.filtro = f; pintar(); };
+
+  /** Confirmar en el equipo a los apuntados de un turno (misma operación que la pestaña Apuntes). */
+  window.pcConfirmarApuntes = async function (k) {
+    const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
+    const eq = new Set(t.equipo.map(e => e.id));
+    const pend = t.apuntes.filter(a => !eq.has(a.id));
+    if (!pend.length) { toast('Todos ya están en el equipo', 'ok'); return; }
+    if (!confirm(`¿Confirmar el turno ${_evFechaCorta(t.fecha)} · ${t.rango}?\n\nSe añadirán al equipo:\n• ${pend.map(a => a.nombre).join('\n• ')}\n\nA cada uno le llegará el correo de turno confirmado.`)) return;
+    try {
+      const sd = _evSemanaDia(t.fecha);
+      await apiPost({ accion: 'confirmarTurno', asignados: pend.map(a => a.nombre), fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
+      invalidar('historial', 'oferta', 'carga');
+      ['_hOk', '_cOk', '_bOk', '_apOk', '_aOk'].forEach(x => { window[x] = false; });
+      S.plan = null; ST.raw = null; ST.S = null;
+      toast(`Turno confirmado (${pend.length} en el equipo) ✓`, 'ok');
+      loadEnVivo(true, true);
+    } catch (e) { toast('Error: ' + e.message, 'err'); }
+  };
+
+  function resultado(t, M) {
+    if (t.anulado) return ['gris', '🚫 Anulado', 'No se realiza'];
+    if (t.n === 0) return ['rojo', '✕ No sale', 'Nadie disponible: se anulará si nadie se apunta'];
+    if (t.n < M.MIN) return ['ambar', `⚠️ En riesgo · faltan ${M.MIN - t.n}`, `Van ${t.n} de un mínimo de ${M.MIN}`];
+    return ['verde', '✓ Sale', `Van ${t.n}${t.n < M.IDEAL ? ` (ideal ${M.IDEAL})` : ''}`];
+  }
+
+  function tarjeta(t, M) {
+    const [nivel, res, sub] = resultado(t, M);
+    const eqIds = new Set(t.equipo.map(e => e.id)), bajaIds = new Set(t.bajas.map(b => b.id)), apIds = new Set(t.apuntes.map(a => a.id));
+    const conf = t.equipo.filter(e => !bajaIds.has(e.id) || apIds.has(e.id));
+    const bajas = t.chips.filter(c => c.tipo === 'baja');
+    const apuntados = t.apuntes.filter(a => !eqIds.has(a.id));
+    const nom = c => `<span class="pc-n">${escH(c.nombre)}${c.llave ? ' 🔑' : ''}</span>`;
+    const col = (cls, tit, arr, vacio) => `<div class="pc-col ${cls}"><div class="pc-ct">${tit} <b>${arr.length}</b></div>${arr.length ? arr.map(nom).join('') : `<span class="pc-v">${vacio}</span>`}</div>`;
+    const acciones = [];
+    if (apuntados.length && !t.pasado) acciones.push(`<button class="btn btn-green btn-sm" onclick="pcConfirmarApuntes('${escH(t.k)}')">✓ Confirmar apuntados (${apuntados.length})</button>`);
+    if (!t.pasado && !t.anulado && nivel !== 'verde') acciones.push(`<button class="btn btn-navy btn-sm" onclick="evSugerir('${escH(t.k)}')">👥 Sugerir sustitutos</button>`,
+      `<button class="btn btn-ghost btn-sm" onclick="evCopiarAviso('${escH(t.k)}')">📋 Copiar aviso</button>`);
+    if (!t.pasado && !t.anulado && nivel !== 'verde') acciones.push(`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="anularTurno('${t.fecha}','${escH(t.rango)}',${t.n},'${t.bajas.length ? 'bajas' : 'sin voluntarios'}','envivo')">🚫 Anular</button>`);
+    if (t.anulado) acciones.push(`<button class="btn btn-ghost btn-sm" onclick="restaurarTurno('${t.fecha}','${escH(t.rango)}','envivo')">↩︎ Restaurar</button>`);
+    return `<article class="pc-card ${nivel}">
+      <header class="pc-h">
+        <div><div class="pc-fecha">${protoFecha(t.fecha, { weekday: 'long', day: 'numeric', month: 'long' })}</div><div class="pc-hora">${escH(t.rango)}${t.sinLlave && !t.anulado ? ' <span class="pc-llave" title="Ninguno de los que van tiene llave">🔑 Falta llave</span>' : ''}</div></div>
+        <div class="pc-res"><b>${res}</b><small>${sub}</small></div>
+      </header>
+      <div class="pc-cols">
+        ${col('conf', '✓ Confirmados', conf, 'nadie')}
+        ${col('baja', '✕ Bajas', bajas, 'ninguna')}
+        ${col('apu', '✋ Se han apuntado', apuntados, 'nadie todavía')}
+      </div>
+      ${acciones.length ? `<div class="pc-acc">${acciones.join('')}</div>` : ''}
+    </article>`;
+  }
+
+  function pintar() {
+    const c = document.getElementById('tab-cambios'), M = EV.data;
+    if (!M) { c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>No se han podido cargar los datos</h4></div>`; return; }
+    const todos = M.turnos.filter(t => !t.pasado && (t.bajas.length || t.apuntes.length));
+    const pend = todos.filter(t => !t.anulado && (t.n < M.MIN || t.apuntes.some(a => !t.equipo.some(e => e.id === a.id))));
+    const lista = F.filtro === 'pendientes' ? pend : F.filtro === 'bajas' ? todos.filter(t => t.bajas.length) : F.filtro === 'apuntes' ? todos.filter(t => t.apuntes.length) : todos;
+    const diasCompletos = [...M.dias.entries()].filter(([f, d]) => f >= M.hoy && d.diaCompleto.length);
+    const nBajas = todos.reduce((a, t) => a + t.bajas.length, 0), nAp = todos.reduce((a, t) => a + t.apuntes.filter(x => !t.equipo.some(e => e.id === x.id)).length, 0);
+    const porFecha = new Map(); lista.forEach(t => { if (!porFecha.has(t.fecha)) porFecha.set(t.fecha, []); porFecha.get(t.fecha).push(t); });
+    c.innerHTML = `
+      <div class="pc-resumen">
+        <div class="pc-k ${pend.length ? 'ambar' : 'verde'}"><b>${pend.length}</b><span>turnos por resolver</span></div>
+        <div class="pc-k rojo"><b>${nBajas}</b><span>bajas activas</span></div>
+        <div class="pc-k azul"><b>${nAp}</b><span>apuntes sin confirmar</span></div>
+        <div class="pc-k"><b>${todos.length}</b><span>turnos con cambios</span></div>
+      </div>
+      <div class="ev-filtros">
+        ${[['pendientes', '⚠️ Por resolver'], ['todos', 'Todos'], ['bajas', '✕ Con bajas'], ['apuntes', '✋ Con apuntes']].map(([k, l]) => `<button class="ev-pill ${F.filtro === k ? 'on' : ''}" onclick="pcFiltro('${k}')">${l}</button>`).join('')}
+        <span style="margin-left:auto;display:flex;gap:.4rem"><button class="btn btn-ghost btn-sm" onclick="setTab('bajas')">🏥 Registrar baja / portal</button></span>
+      </div>
+      ${lista.length ? [...porFecha.values()].map(ts => ts.map(t => tarjeta(t, M)).join('')).join('') :
+        `<div class="empty"><span class="ei">✅</span><h4>${F.filtro === 'pendientes' ? 'Nada por resolver' : 'Sin bajas ni apuntes'}</h4><p>${F.filtro === 'pendientes' ? 'Todos los turnos con cambios salen adelante.' : ''}</p></div>`}
+      ${diasCompletos.length ? `<section class="pc-dc"><h4>📅 Se ofrecen para todo el día</h4>${diasCompletos.map(([f, d]) => `<div><b>${protoFecha(f, { weekday: 'short', day: 'numeric', month: 'short' })}:</b> ${d.diaCompleto.map(x => escH(x.nombre)).join(', ')}</div>`).join('')}<p>Para asignarlos a una franja, usa <a href="#" onclick="setTab('apuntes');return false">el detalle de Apuntes</a>.</p></section>` : ''}`;
+  }
+
+  protoTab({ id: 'cambios', titulo: '🔄 Bajas y apuntes', grupo: 'Día a día', ico: '🔄', txt: 'Bajas y apuntes', sec: 0, alEntrar, pintar });
+})();
+
+// ══════════════════════════════════════════════════════════════
 //  PROTOTIPO A — Inicio con tarjetas, calendario del mes y menú reorganizado
 // ══════════════════════════════════════════════════════════════
 (function () {
@@ -9980,9 +10174,9 @@ function _stDispoHTML() {
       </section>
       <div class="pa-kpis">
         ${kpi(aten.length, 'Necesitan atención', 'próximas 2 semanas', aten.length ? 'rojo' : 'verde', "setTab('envivo')")}
-        ${kpi(bajasSin, 'Bajas sin cubrir', 'turnos con baja', bajasSin ? 'ambar' : 'verde', "setTab('bajas')")}
-        ${kpi(llave, 'Sin portador de llave', 'próximas 2 semanas', llave ? 'ambar' : 'verde', "setTab('alertas')")}
-        ${kpi(ap24, 'Apuntes nuevos', 'últimas 24 horas', 'azul', "setTab('apuntes')")}
+        ${kpi(bajasSin, 'Bajas sin cubrir', 'turnos con baja', bajasSin ? 'ambar' : 'verde', "setTab('cambios')")}
+        ${kpi(llave, 'Falta llave', 'turnos sin nadie con llave', llave ? 'ambar' : 'verde', "PA_CAL.soloAtencion=true;setTab('mes')")}
+        ${kpi(ap24, 'Apuntes nuevos', 'últimas 24 horas', 'azul', "pcFiltro('apuntes');setTab('cambios')")}
       </div>
       <section class="pa-card">
         <div class="pa-ch"><h3>📆 Esta semana</h3><button class="pa-link" onclick="setTab('mes')">Calendario →</button></div>
@@ -10015,9 +10209,9 @@ function _stDispoHTML() {
     TAB_TITLES.calendario = '🚢 Días y barcos · configurar el calendario';
     const GRUPOS = [
       ['Resumen', ['inicio', 'mes']],
-      ['Día a día', ['envivo', 'bajas', 'apuntes', 'alertas']],
+      ['Día a día', ['envivo', 'cambios']],
       ['Planificar', ['cuadrante', 'calendario', 'historial']],
-      ['Voluntarios', ['voluntarios', 'disponibilidad', 'carga']],
+      ['Voluntarios', ['voluntarios', 'disponibilidad']],
       ['Análisis y ajustes', ['estadisticas', 'busqueda', 'archivo', 'reglas']],
     ];
     const botones = {}; TABS.forEach(id => { botones[id] = btn(id); });
@@ -10029,14 +10223,19 @@ function _stDispoHTML() {
       ids.forEach(id => { sec.appendChild(botones[id]); TAB_GRUPO[id] = lbl; });
       padre.insertBefore(sec, pie);
     });
-    // "Disponibilidad por bloques" pasa a ser una vista dentro de Disponibilidad
-    botones.dispobloques.style.display = 'none'; padre.insertBefore(botones.dispobloques, pie);
-    TAB_GRUPO.dispobloques = 'Voluntarios';
+    // Pestañas que pasan a ser subpestañas de otra (siguen existiendo, sin entrada propia en el menú):
+    //  Bajas y Apuntes → dentro de "Bajas y apuntes"; Por bloques → Disponibilidad;
+    //  Balance de carga → Estadísticas. "Alertas de llave" desaparece: el aviso 🔑 va en cada turno.
+    [['bajas', 'Día a día'], ['apuntes', 'Día a día'], ['dispobloques', 'Voluntarios'], ['carga', 'Análisis y ajustes'], ['alertas', 'Día a día']]
+      .forEach(([id, g]) => { botones[id].style.display = 'none'; padre.insertBefore(botones[id], pie); TAB_GRUPO[id] = g; });
   })();
 
   // Subpestañas encima del contenido (Disponibilidad: tabla / por bloques)
-  const SUB = { disponibilidad: [['disponibilidad', '📋 Tabla semanal'], ['dispobloques', '🧱 Por bloques']] };
-  SUB.dispobloques = SUB.disponibilidad;
+  const SUB = {}, PADRE = {};
+  const grupoSub = (lista) => { lista.forEach(([t]) => { SUB[t] = lista; PADRE[t] = lista[0][0]; }); };
+  grupoSub([['disponibilidad', '📋 Tabla semanal'], ['dispobloques', '🧱 Por bloques']]);
+  grupoSub([['cambios', '🔄 Resumen por turno'], ['bajas', '🏥 Detalle de bajas'], ['apuntes', '✋ Detalle de apuntes']]);
+  grupoSub([['estadisticas', '📈 Estadísticas'], ['carga', '📊 Balance de carga']]);
   const sub = document.createElement('div'); sub.id = 'pa-subnav'; sub.className = 'pa-subnav';
   document.querySelector('.content').prepend(sub);
   const setTabAntes = window.setTab;
@@ -10045,7 +10244,7 @@ function _stDispoHTML() {
     const s = SUB[id];
     sub.style.display = s ? 'flex' : 'none';
     if (s) sub.innerHTML = s.map(([t, l]) => `<button class="${t === id ? 'on' : ''}" onclick="setTab('${t}')">${l}</button>`).join('');
-    if (id === 'dispobloques') document.getElementById('nav-disponibilidad').classList.add('active');
+    if (PADRE[id] && PADRE[id] !== id) document.getElementById('nav-' + PADRE[id]).classList.add('active');
     // Móvil: cerrar el menú al elegir
     document.body.classList.remove('pa-menu-abierto');
   };
@@ -10053,7 +10252,7 @@ function _stDispoHTML() {
   // Barra inferior tipo app (móvil)
   const nav = document.createElement('nav');
   nav.className = 'pa-bottom';
-  nav.innerHTML = [['inicio', '🏠', 'Inicio'], ['envivo', '🛰️', 'Hoy'], ['mes', '🗓️', 'Mes'], ['voluntarios', '👥', 'Voluntarios']]
+  nav.innerHTML = [['inicio', '🏠', 'Inicio'], ['envivo', '🛰️', 'Hoy'], ['mes', '🗓️', 'Mes'], ['cambios', '🔄', 'Bajas']]
     .map(([id, i, t]) => `<button data-proto-tab="${id}" onclick="setTab('${id}')"><span>${i}</span>${t}</button>`).join('')
     + `<button class="pa-mas" onclick="toggleSidebar()"><span>☰</span>Más</button>`;
   document.body.appendChild(nav);
