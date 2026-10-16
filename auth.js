@@ -151,6 +151,16 @@
       return yo;
     },
 
+    /**
+     * ¿Actúa como él mismo? Siempre el voluntario; el admin, si tiene ficha y no ha elegido
+     * "en nombre de otro voluntario" (botón de la barra; se recuerda en esta pestaña).
+     */
+    comoYo(yo) {
+      if (!yo.voluntario) return false;
+      if (!yo.esAdmin) return true;
+      try { return sessionStorage.getItem('admin_otro') !== '1'; } catch (e) { return true; }
+    },
+
     /** Tras guardar la disponibilidad nueva: ya no se vuelve a pedir en esta sesión. */
     disponibilidadMarcada() { try { if (Auth.yo?.voluntario) sessionStorage.setItem('dispoOk', Auth.yo.voluntario.id); } catch (e) {} },
 
@@ -166,10 +176,20 @@
     barra(yo) {
       const b = document.createElement('div');
       b.className = 'auth-barra';
+      const yoMismo = Auth.comoYo(yo);
+      // Admin con ficha: enlace a su panel y botón para alternar entre él mismo y "otro voluntario"
+      const alternar = yo.esAdmin && yo.voluntario
+        ? `<button type="button" class="alt">${yoMismo ? '👥 En nombre de otro' : '🙋 Volver a mí'}</button>` : '';
       b.innerHTML = `<a href="${yo.esAdmin ? 'planificador.html' : 'inicio.html'}">← ${yo.esAdmin ? 'Planificador' : 'Menú'}</a>
-        <span>${(yo.voluntario?.nombre || yo.email).replace(/[<>&]/g, '')}</span>
-        <button type="button">Salir</button>`;
-      b.querySelector('button').onclick = () => Auth.salir();
+        ${yo.esAdmin && yo.voluntario ? '<a href="inicio.html">Mi panel</a>' : ''}
+        <span>${(yoMismo ? yo.voluntario.nombre : yo.esAdmin ? 'Admin · cualquier voluntario' : yo.email).replace(/[<>&]/g, '')}</span>
+        ${alternar}<button type="button" class="salir">Salir</button>`;
+      b.querySelector('.salir').onclick = () => Auth.salir();
+      const alt = b.querySelector('.alt');
+      if (alt) alt.onclick = () => {
+        try { sessionStorage.setItem('admin_otro', yoMismo ? '1' : '0'); } catch (e) {}
+        location.reload();
+      };
       const css = document.createElement('style');
       css.textContent = `.auth-barra{display:flex;align-items:center;gap:.75rem;background:#0a1628;color:rgba(255,255,255,.7);
         padding:.45rem 1rem;font:600 .74rem 'Sora',system-ui,sans-serif;border-bottom:1px solid rgba(255,255,255,.08)}

@@ -402,7 +402,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   aplicarConfigSust();
   cargarCfgDesdeDB();
   initPWA();
-  if(yo.voluntario&&!yo.esAdmin){
+  if(Auth.comoYo(yo)){
     // Voluntario con sesión: ya sabemos quién es — sin escribir el nombre ni poder cambiarlo
     fijarIdentidad(yo.voluntario.nombre);
   }else{

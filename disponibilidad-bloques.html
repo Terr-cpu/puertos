@@ -427,7 +427,7 @@ async function enviarDisponibilidad(){
     document.getElementById('bienvenida').hidden=false;
     const menu=document.querySelector('.auth-barra a'); if(menu) menu.style.visibility='hidden';   // primero, la disponibilidad
   }
-  if(yo.voluntario&&!yo.esAdmin){
+  if(Auth.comoYo(yo)){
     // Voluntario con sesión: su nombre ya está puesto y no se puede cambiar
     const inp=document.getElementById('inp-nombre');
     inp.readOnly=true; inp.oninput=null; inp.style.cursor='default';

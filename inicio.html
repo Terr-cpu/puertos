@@ -88,6 +88,59 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
 .pie{text-align:center;font-size:.7rem;color:var(--label3);margin-top:1.6rem;line-height:1.6}
 .spinner{width:24px;height:24px;border:3px solid var(--sep);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto .6rem}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Panel ampliado ── */
+#banda-admin{display:flex;align-items:center;justify-content:space-between;gap:.6rem;background:#c9a84c;color:#0a1628;padding:.5rem 1rem;font:700 .76rem 'Sora',system-ui,sans-serif}
+#banda-admin a{color:#0a1628;background:rgba(255,255,255,.55);border-radius:8px;padding:.25rem .65rem;text-decoration:none;white-space:nowrap}
+.prox.lleno{padding:1.1rem 1.15rem 1rem;border-left:4px solid var(--blue)}
+.prox-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.prox-cuando{font-size:.7rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);background:var(--blue-soft);padding:.22rem .6rem;border-radius:999px}
+.prox-cuando.ya{background:var(--navy);color:#fff}
+.prox-top .est{margin-left:0}
+.prox-hora{font-size:1.65rem;font-weight:800;letter-spacing:-.03em;margin-top:.55rem;line-height:1.1}
+.prox-fecha{font-size:.8rem;color:var(--label2);margin-top:.2rem}
+.prox-comp{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.75rem}
+.chip{font-size:.72rem;font-weight:600;background:var(--surface2);border:1px solid var(--sep);border-radius:999px;padding:.18rem .6rem}
+.chip.vacio-c{color:var(--label3);font-weight:500}
+.prox-linea{font-size:.74rem;color:var(--label2);margin-top:.45rem}
+.aviso{font-size:.72rem;font-weight:600;border-radius:10px;padding:.45rem .65rem;margin-top:.5rem;line-height:1.4}
+.aviso.rojo{background:var(--red-soft);color:var(--red-dark)}
+.aviso.ambar{background:var(--amber-soft);color:#9a5500}
+.prox-btns{display:flex;gap:.45rem;margin-top:.9rem;flex-wrap:wrap}
+.prox-btns button,.prox-btns a{flex:1;min-width:140px;text-align:center;font:700 .78rem 'Sora',system-ui,sans-serif;padding:.65rem .8rem;border-radius:12px;cursor:pointer;text-decoration:none}
+.prox-btns button{background:var(--navy);color:#fff;border:none}
+.prox-btns a{background:var(--surface2);color:var(--red-dark);border:1px solid var(--sep)}
+.mini-cal{margin-top:.5rem;font:600 .68rem 'Sora',system-ui,sans-serif;border:1px solid var(--sep);background:var(--surface2);color:var(--label2);border-radius:8px;padding:.28rem .6rem;cursor:pointer}
+.sec-sub{font-size:.72rem;color:var(--label3);margin:-.35rem .2rem .6rem}
+.nec{display:flex;align-items:center;gap:.7rem;padding:.75rem 1rem;border-top:1px solid var(--sep);text-decoration:none;color:inherit}
+.nec:first-child{border-top:none}
+.nec:active{background:var(--surface2)}
+.nec-f{width:62px;flex-shrink:0;font-size:.68rem;font-weight:700;color:var(--label2);line-height:1.25}
+.nec-i{flex:1;min-width:0}
+.nec-i b{display:block;font-size:.86rem}
+.nec-i small{display:block;font-size:.68rem;color:var(--label3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nec-p{font-size:.64rem;font-weight:800;background:var(--amber-soft);color:#9a5500;border-radius:999px;padding:.15rem .5rem;white-space:nowrap}
+.nec-p.rojo{background:var(--red-soft);color:var(--red-dark)}
+.nec-b{font-size:.72rem;font-weight:700;color:var(--green-dark);white-space:nowrap}
+@media(max-width:420px){.nec-b{display:none}}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem}
+.kpi{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.65);border-radius:var(--r-lg);box-shadow:var(--shadow-sm);padding:.85rem .8rem;text-align:center}
+.kpi b{display:block;font-size:1.6rem;font-weight:800;letter-spacing:-.03em;color:var(--navy);line-height:1.1}
+.kpi b.peq{font-size:.92rem;line-height:1.75rem}
+.kpi span{display:block;font-size:.64rem;color:var(--label3);margin-top:.2rem;line-height:1.3}
+#cal-ios{position:fixed;inset:0;z-index:1000;background:rgba(10,22,40,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;padding:16px}
+@media(min-width:560px){#cal-ios{align-items:center}}
+.ci-caja{width:100%;max-width:440px;background:#fff;border-radius:24px;padding:1.4rem 1.3rem 1.1rem;box-shadow:0 20px 60px rgba(0,0,0,.3);max-height:calc(100vh - 32px);overflow-y:auto}
+.ci-ico{width:52px;height:52px;border-radius:16px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto .7rem}
+.ci-caja h3{font-size:1.08rem;font-weight:800;text-align:center;letter-spacing:-.02em}
+.ci-turno{text-align:center;font-size:.8rem;color:var(--label2);margin-top:.25rem}
+.ci-caja ol{margin:1rem 0 0;padding:0;list-style:none;counter-reset:p}
+.ci-caja li{counter-increment:p;position:relative;padding:.1rem 0 .85rem 2.3rem;font-size:.84rem;line-height:1.5;color:var(--label1)}
+.ci-caja li::before{content:counter(p);position:absolute;left:0;top:0;width:1.65rem;height:1.65rem;border-radius:50%;background:var(--navy);color:#fff;font-weight:800;font-size:.8rem;display:flex;align-items:center;justify-content:center}
+.ci-nota{font-size:.72rem;color:var(--label3);text-align:center;margin-bottom:.9rem}
+.ci-ok,.ci-no{display:block;width:100%;font:700 .9rem 'Sora',system-ui,sans-serif;border:none;border-radius:14px;padding:.85rem;cursor:pointer}
+.ci-ok{background:var(--blue);color:#fff}
+.ci-no{background:none;color:var(--label3);margin-top:.35rem;font-weight:600}
 </style>
 </head>
 <body>
@@ -118,8 +171,19 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
   </div>
 
   <div class="sec">
-    <div class="sec-t" data-t="misTurnos">Mis próximos turnos</div>
-    <div class="card" id="turnos"><div class="vacio"><div class="spinner"></div><span data-t="cargando">Cargando…</span></div></div>
+    <div class="sec-t" data-t="proximo">Tu próximo turno</div>
+    <div class="card prox" id="prox"><div class="vacio"><div class="spinner"></div><span data-t="cargando">Cargando…</span></div></div>
+    <div class="sec-t" id="resto-t" data-t="otrosTurnos" style="margin-top:1.1rem" hidden>Después</div>
+    <div class="card" id="turnos" hidden></div>
+  </div>
+  <div class="sec" hidden>
+    <div class="sec-t" data-t="necesitan">Se necesitan voluntarios</div>
+    <div class="sec-sub" data-t="necesitanSub">Turnos de las próximas dos semanas a los que les faltan voluntarios</div>
+    <div class="card" id="necesitan"></div>
+  </div>
+  <div class="sec" hidden>
+    <div class="sec-t" data-t="actividad">Mi actividad</div>
+    <div class="kpis" id="actividad"></div>
   </div>
 
   <div class="sec">
@@ -295,9 +359,306 @@ async function cambiarClave(ev) {
   document.getElementById('k1').value = document.getElementById('k2').value = '';
 }
 
+// ══════════════════════════════════════════════════════════════
+//  Panel del voluntario, ampliado:
+//   · "Tu próximo turno" destacado: cuenta atrás, compañeros, llave, barcos del día,
+//     aviso si un compañero se ha dado de baja o faltan voluntarios, y añadirlo al calendario.
+//   · "Se necesitan voluntarios": turnos de las próximas 2 semanas a los que les faltan voluntarios.
+//   · "Mi actividad": turnos hechos este mes, próximos y el último.
+//   · El admin entra aquí como un voluntario más ("Mi panel de voluntario").
+// ══════════════════════════════════════════════════════════════
+I18N.textos({
+  es: {
+    proximo: 'Tu próximo turno', hoyMay: 'Hoy', manana: 'Mañana', enDias: 'En {n} días',
+    alCal: '📅 Añadir a mi calendario',
+    barcos: 'Barcos', llaveTu: '🔑 Llevas tú la llave', llaveLleva: '🔑 Lleva la llave: {n}', sinLlave: '🔑 Nadie del turno tiene llave todavía',
+    seDioBaja: '{n} se ha dado de baja', seDieronBaja: '{n} se han dado de baja',
+    faltanUno: 'Falta 1 voluntario para este turno', faltanN: 'Faltan {n} voluntarios para este turno',
+    necesitan: 'Se necesitan voluntarios', necesitanSub: 'Turnos de las próximas dos semanas a los que les faltan voluntarios',
+    faltaN: 'Falta {n}', faltanNc: 'Faltan {n}', sinNadie: 'Sin nadie todavía', apuntarmeBtn: 'Apuntarme',
+    nadaFalta: '🎉 Todos los turnos de las próximas dos semanas tienen voluntarios suficientes.',
+    actividad: 'Mi actividad', hechosMes: 'turnos hechos este mes', proximos: 'próximos turnos', ultimo: 'último turno', nunca: '—',
+    otrosTurnos: 'Después',
+    adminBanda: 'Estás en tu panel de voluntario', volverPlan: '← Planificador',
+    adminSinFicha: 'Tu correo ({e}) no está en ninguna solicitud de voluntario. Para apuntarte o darte de baja como un voluntario más, añádelo a tu ficha en el planificador → Voluntarios.',
+    icsDesc: 'Turno de predicación en el Puerto de Sevilla',
+    ciTitulo: 'Añadir el turno a tu calendario', ciAbrir: '📅 Abrir el evento', ciCerrar: 'Cerrar',
+    ciPaso1: 'Pulsa el botón azul <b>«Abrir el evento»</b>.',
+    ciPaso2: 'El iPhone te preguntará qué hacer con el archivo: elige <b>«Ver»</b>. (Si solo te deja <b>«Descargar»</b>, descárgalo y después toca la <b>flecha azul ⬇</b> de la barra de direcciones y luego el archivo del turno).',
+    ciPaso3: 'Verás el turno con su día y su hora: pulsa <b>«Añadir al calendario»</b> (o «Añadir todo»). ¡Listo! Te avisará 2 horas antes.',
+    ciNota: 'Solo tienes que hacerlo una vez por turno.',
+  },
+  en: {
+    proximo: 'Your next shift', hoyMay: 'Today', manana: 'Tomorrow', enDias: 'In {n} days',
+    alCal: '📅 Add to my calendar',
+    barcos: 'Ships', llaveTu: '🔑 You carry the key', llaveLleva: '🔑 Key holder: {n}', sinLlave: '🔑 Nobody on this shift has a key yet',
+    seDioBaja: '{n} has dropped out', seDieronBaja: '{n} have dropped out',
+    faltanUno: '1 more volunteer is needed for this shift', faltanN: '{n} more volunteers are needed for this shift',
+    necesitan: 'Volunteers needed', necesitanSub: 'Shifts in the next two weeks that are short of volunteers',
+    faltaN: '{n} needed', faltanNc: '{n} needed', sinNadie: 'Nobody yet', apuntarmeBtn: 'Sign up',
+    nadaFalta: '🎉 Every shift in the next two weeks has enough volunteers.',
+    actividad: 'My activity', hechosMes: 'shifts done this month', proximos: 'upcoming shifts', ultimo: 'last shift', nunca: '—',
+    otrosTurnos: 'Later',
+    adminBanda: 'You are in your volunteer panel', volverPlan: '← Planner',
+    adminSinFicha: 'Your email ({e}) is not in any volunteer application. To sign up or drop out like any other volunteer, add it to your record in the planner → Volunteers.',
+    icsDesc: 'Witnessing shift at the Port of Seville',
+    ciTitulo: 'Add the shift to your calendar', ciAbrir: '📅 Open the event', ciCerrar: 'Close',
+    ciPaso1: 'Tap the blue <b>“Open the event”</b> button.',
+    ciPaso2: 'Your iPhone will ask what to do with the file: choose <b>“View”</b>. (If it only offers <b>“Download”</b>, download it, then tap the <b>blue arrow ⬇</b> in the address bar and then the shift file.)',
+    ciPaso3: 'You will see the shift with its date and time: tap <b>“Add to Calendar”</b> (or “Add All”). Done! It will remind you 2 hours before.',
+    ciNota: 'You only need to do this once per shift.',
+  },
+});
+
+const MIN_EQ = 3;      // mínimo de voluntarios por turno (mismo valor por defecto que el planificador)
+let EXTRA = null;      // barcos por día, turnos a los que les faltan voluntarios, actividad
+
+const sumaDias = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const diasEntre = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
+const navierasReales = arr => (Array.isArray(arr) ? arr : []).map(String).filter(n => !/^(turno:|opt:|info:|muelle:)/.test(n) && n !== 'ocultoVol');
+
+/**
+ * Mis turnos (igual que antes) y, además, todo lo que hace falta para el panel ampliado.
+ * Mismo criterio que la app: equipo confirmado − bajas activas + apuntados (baja + apunte = vuelve).
+ */
+cargarTurnos = async function () {
+  const me = YO.voluntario?.id;
+  if (!me) { DATOS = { error: 'sinFicha' }; return pintarTurnos(); }
+  const hoy = hoyMadrid(), fin = sumaDias(hoy, 20), mes = hoy.slice(0, 8) + '01';
+  try {
+    const [hist, refs, bajas, anul, cal, misPasados] = await Promise.all([
+      sbGet('v_historial', 'fecha=gte.' + hoy + '&select=fecha,rango,nombre,voluntario_id,tiene_llave'),
+      sbGet('v_refuerzos', 'fecha=gte.' + hoy + '&es_dia_completo=eq.false&select=fecha,rango,nombre,voluntario_id,tiene_llave'),
+      sbGet('v_bajas_activas', 'fecha=gte.' + hoy + '&select=fecha,rango,voluntario_id'),
+      sbGet('turnos_no_realizados', 'fecha=gte.' + hoy + '&select=fecha,rango').catch(() => []),
+      sbGet('v_calendario', 'fecha=gte.' + hoy + '&fecha=lte.' + fin + '&activo=eq.true&select=fecha,navieras').catch(() => []),
+      sbGet('v_historial', 'voluntario_id=eq.' + me + '&fecha=lt.' + hoy + '&select=fecha,rango&order=fecha.desc&limit=60').catch(() => []),
+    ]);
+    const k = (f, r) => f + '|' + r;
+    const conBaja = new Set(bajas.map(b => k(b.fecha, b.rango) + '|' + b.voluntario_id));
+    const apuntado = new Set(refs.map(r => k(r.fecha, r.rango) + '|' + r.voluntario_id));
+    const anulados = new Set(anul.map(a => k(a.fecha, a.rango)));
+    const turnos = new Map();
+    const t = (f, r) => { const kk = k(f, r); if (!turnos.has(kk)) turnos.set(kk, { fecha: f, rango: r, van: [], fuera: [], yo: null }); return turnos.get(kk); };
+    hist.forEach(h => {
+      const tu = t(h.fecha, h.rango), id = k(h.fecha, h.rango) + '|' + h.voluntario_id;
+      const va = !conBaja.has(id) || apuntado.has(id);
+      if (va) tu.van.push(h); else tu.fuera.push(h);   // fuera = compañeros que se han dado de baja
+      if (h.voluntario_id === me) tu.yo = va ? 'conf' : 'baja';
+    });
+    refs.forEach(r => {
+      const tu = t(r.fecha, r.rango);
+      if (tu.van.some(v => v.voluntario_id === r.voluntario_id)) return;
+      tu.van.push(r);
+      if (r.voluntario_id === me && !tu.yo) tu.yo = 'apunte';
+    });
+    // Franjas abiertas en el calendario (aunque nadie esté aún confirmado) y días ocultos
+    const ocultos = new Set(), barcos = new Map();
+    cal.forEach(c => {
+      const navs = Array.isArray(c.navieras) ? c.navieras.map(String) : [];
+      if (navs.includes('ocultoVol')) { ocultos.add(c.fecha); return; }
+      barcos.set(c.fecha, navierasReales(navs));
+      navs.filter(n => n.startsWith('turno:')).forEach(n => t(c.fecha, n.slice(6)));
+    });
+    const lista = [...turnos.values()].map(x => ({ ...x, anulado: anulados.has(k(x.fecha, x.rango)) }))
+      .sort((a, b) => (a.fecha + a.rango).localeCompare(b.fecha + b.rango));
+    const mios = lista.filter(x => x.yo);
+    const lim = sumaDias(hoy, 13);
+    const necesitan = lista.filter(x => !x.yo && !x.anulado && !ocultos.has(x.fecha) && x.fecha <= lim && x.van.length < MIN_EQ).slice(0, 5);
+    // Actividad: turnos ya hechos (sin contar los que tenía con baja)
+    const misBajasPas = await sbGet('bajas', 'voluntario_id=eq.' + me + '&fecha=gte.' + mes + '&fecha=lt.' + hoy + '&activa=eq.true&select=fecha,rango').catch(() => []);
+    const conBajaPas = new Set(misBajasPas.map(b => k(b.fecha, b.rango)));
+    const hechos = misPasados.filter(h => !conBajaPas.has(k(h.fecha, h.rango)));
+    EXTRA = { barcos, necesitan, hechosMes: hechos.filter(h => h.fecha >= mes).length, ultimo: hechos[0]?.fecha || '' };
+    DATOS = { mios, hoy, me };
+  } catch (e) {
+    DATOS = { error: 'errTurnos', detalle: e.message };
+  }
+  pintarTurnos();
+};
+
+/** Abre el calendario con el evento del turno ya rellenado: solo queda pulsar "Guardar". */
+function abrirCalendario(fecha, rango) {
+  const m = /(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/.exec(rango); if (!m) return;
+  const f = fecha.replace(/-/g, ''), p = n => String(n).padStart(2, '0');
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: (I18N.idioma === 'en' ? 'Port shift ' : 'Turno Puerto ') + rango,
+    dates: f + 'T' + p(m[1]) + m[2] + '00/' + f + 'T' + p(m[3]) + m[4] + '00',
+    ctz: 'Europe/Madrid',
+    location: 'Puerto de Sevilla',
+    details: I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
+  });
+  // iPhone/iPad: el Calendario de Apple solo acepta el evento como archivo → explicar los pasos
+  if (esIOS()) return pasosIOS(fecha, rango, m);
+  window.open('https://calendar.google.com/calendar/render?' + q.toString(), '_blank', 'noopener');
+}
+
+const esIOS = () => /iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+/** Evento en formato de calendario (.ics) para el Calendario del iPhone, con aviso 2 h antes. */
+function icsDe(fecha, rango, m) {
+  const f = fecha.replace(/-/g, ''), p = n => String(n).padStart(2, '0');
+  return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//asispuerto.org//turnos//ES', 'BEGIN:VEVENT',
+    'UID:' + f + '-' + p(m[1]) + m[2] + '-' + (YO.voluntario?.id || 'x') + '@asispuerto.org',
+    'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
+    'DTSTART;TZID=Europe/Madrid:' + f + 'T' + p(m[1]) + m[2] + '00',
+    'DTEND;TZID=Europe/Madrid:' + f + 'T' + p(m[3]) + m[4] + '00',
+    'SUMMARY:' + (I18N.idioma === 'en' ? 'Port shift ' : 'Turno Puerto ') + rango,
+    'LOCATION:Puerto de Sevilla', 'DESCRIPTION:' + I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
+    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + I18N.t('icsDesc'), 'END:VALARM',
+    'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+}
+
+/** Ventana con los pasos para el iPhone y el botón que abre el evento. */
+function pasosIOS(fecha, rango, m) {
+  const T = I18N.t;
+  document.getElementById('cal-ios')?.remove();
+  const fmt = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const v = document.createElement('div');
+  v.id = 'cal-ios';
+  v.innerHTML = `<div class="ci-caja" role="dialog" aria-modal="true" aria-labelledby="ci-t">
+    <div class="ci-ico">📅</div>
+    <h3 id="ci-t">${T('ciTitulo')}</h3>
+    <p class="ci-turno">${escH(rango)} · ${mayus(fmt.format(new Date(fecha + 'T12:00:00Z')))}</p>
+    <ol>
+      <li>${T('ciPaso1')}</li>
+      <li>${T('ciPaso2')}</li>
+      <li>${T('ciPaso3')}</li>
+    </ol>
+    <p class="ci-nota">${T('ciNota')}</p>
+    <button type="button" class="ci-ok">${T('ciAbrir')}</button>
+    <button type="button" class="ci-no">${T('ciCerrar')}</button>
+  </div>`;
+  const cerrar = () => v.remove();
+  v.onclick = e => { if (e.target === v) cerrar(); };
+  v.querySelector('.ci-no').onclick = cerrar;
+  v.querySelector('.ci-ok').onclick = () => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([icsDe(fecha, rango, m)], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'turno-' + fecha + '.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  };
+  document.body.appendChild(v);
+}
+
+pintarTurnos = function () {
+  const cont = document.getElementById('turnos'), prox = document.getElementById('prox');
+  if (!DATOS) return;
+  const T = I18N.t;
+  pintarExtra();
+  // Los mensajes (sin ficha, error, sin turnos) van en la tarjeta principal
+  const mensaje = html => { prox.hidden = false; prox.classList.remove('lleno'); prox.innerHTML = `<div class="vacio">${html}</div>`; cont.hidden = true; document.getElementById('resto-t').hidden = true; };
+  if (DATOS.error === 'sinFicha') {
+    return mensaje(YO.esAdmin ? T('adminSinFicha', { e: escH(YO.email) }) : T('sinFicha'));
+  }
+  if (DATOS.error) {
+    return mensaje(`${T('errTurnos', { e: escH(DATOS.detalle) })}<br><a href="#" onclick="location.reload();return false">${T('reintentar')}</a>`);
+  }
+  const { mios, hoy, me } = DATOS;
+  if (!mios.length) return mensaje(`${T('sinTurnos')}<br><a href="sustituciones.html#oferta">${T('verFaltan')}</a>`);
+  const fmtMes = new Intl.DateTimeFormat(I18N.locale, { month: 'short', timeZone: 'UTC' });
+  const fmtDia = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', timeZone: 'UTC' });
+  const fmtLargo = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+  const rangoTxt = r => escH(I18N.idioma === 'en' ? r.replace(' a ', ' – ') : r);
+  const nombre = v => escH(titulo(v.nombre));
+  // Avisos de un turno: compañeros que se han dado de baja y si faltan voluntarios
+  const avisos = x => {
+    const out = [];
+    const fuera = x.fuera.filter(v => v.voluntario_id !== me && !x.van.some(o => o.voluntario_id === v.voluntario_id));
+    if (fuera.length) out.push(`<div class="aviso rojo">⚠️ ${T(fuera.length > 1 ? 'seDieronBaja' : 'seDioBaja', { n: fuera.map(nombre).join(', ') })}</div>`);
+    const faltan = MIN_EQ - x.van.length;
+    if (faltan > 0) out.push(`<div class="aviso ambar">👥 ${faltan === 1 ? T('faltanUno') : T('faltanN', { n: faltan })}</div>`);
+    return out.join('');
+  };
+  const llave = x => {
+    const yoLlave = x.van.some(v => v.voluntario_id === me && v.tiene_llave);
+    if (yoLlave) return T('llaveTu');
+    const con = x.van.filter(v => v.tiene_llave);
+    return con.length ? T('llaveLleva', { n: con.map(nombre).join(', ') }) : T('sinLlave');
+  };
+  // ── Próximo turno destacado (el primero al que va) ──
+  const sig = mios.find(x => x.yo !== 'baja' && !x.anulado);
+  if (sig) {
+    const d = diasEntre(hoy, sig.fecha);
+    const cuando = d === 0 ? T('hoyMay') : d === 1 ? T('manana') : T('enDias', { n: d });
+    const comp = sig.van.filter(v => v.voluntario_id !== me);
+    const bs = EXTRA?.barcos.get(sig.fecha) || [];
+    prox.hidden = false; prox.classList.add('lleno');
+    prox.innerHTML = `
+      <div class="prox-top"><span class="prox-cuando ${d <= 1 ? 'ya' : ''}">${cuando}</span><span class="est ${sig.yo === 'apunte' ? 'apunte' : 'conf'}">${T(sig.yo === 'apunte' ? 'estApunte' : 'estConf')}</span></div>
+      <div class="prox-hora">${rangoTxt(sig.rango)}</div>
+      <div class="prox-fecha">${mayus(fmtLargo.format(new Date(sig.fecha + 'T12:00:00Z')))}</div>
+      <div class="prox-comp">${comp.length ? comp.map(v => `<span class="chip">${nombre(v)}${v.tiene_llave ? ' 🔑' : ''}</span>`).join('') : `<span class="chip vacio-c">${T('nadieMas')}</span>`}</div>
+      <div class="prox-linea">${llave(sig)}</div>
+      ${bs.length ? `<div class="prox-linea">🚢 ${T('barcos')}: ${bs.map(escH).join(', ')}</div>` : ''}
+      ${avisos(sig)}
+      <div class="prox-btns">
+        <button type="button" onclick="abrirCalendario('${sig.fecha}','${escH(sig.rango)}')">${T('alCal')}</button>
+      </div>`;
+  } else { prox.hidden = false; prox.classList.remove('lleno'); prox.innerHTML = `<div class="vacio">${T('sinTurnos')}<br><a href="sustituciones.html#oferta">${T('verFaltan')}</a></div>`; }
+  // ── El resto de mis turnos ──
+  const resto = mios.filter(x => x !== sig);
+  document.getElementById('resto-t').hidden = !resto.length;
+  cont.hidden = !resto.length;
+  cont.innerHTML = resto.map(x => {
+    const est = x.anulado ? ['anulado', T('estAnulado')] : x.yo === 'baja' ? ['baja', T('estBaja')] : x.yo === 'apunte' ? ['apunte', T('estApunte')] : ['conf', T('estConf')];
+    const d = new Date(x.fecha + 'T12:00:00Z');
+    const apagado = x.yo === 'baja' || x.anulado;
+    const comp = x.van.filter(v => v.voluntario_id !== me).map(v => nombre(v) + (v.tiene_llave ? ' 🔑' : ''));
+    const bs = EXTRA?.barcos.get(x.fecha) || [];
+    return `<div class="turno ${apagado ? 'apagado' : ''}">
+      <div class="fecha"><div class="d">${d.getUTCDate()}</div><div class="m">${fmtMes.format(d).replace('.', '')}</div></div>
+      <div class="info">
+        <div class="hora">🕒 ${rangoTxt(x.rango)}<span class="est ${est[0]}">${est[1]}</span></div>
+        <div class="dia">${mayus(fmtDia.format(d))}${x.fecha === hoy ? ` · <b style="color:var(--red)">${T('hoy')}</b>` : ''}${bs.length ? ' · 🚢 ' + bs.map(escH).join(', ') : ''}</div>
+        ${apagado ? '' : `<div class="eq"><b>${T('companeros')}</b> ${comp.length ? comp.join(', ') : T('nadieMas')}</div>${avisos(x)}
+        <button type="button" class="mini-cal" onclick="abrirCalendario('${x.fecha}','${escH(x.rango)}')">${T('alCal')}</button>`}
+      </div>
+    </div>`;
+  }).join('');
+};
+
+function pintarExtra() {
+  const T = I18N.t;
+  const nec = document.getElementById('necesitan'), act = document.getElementById('actividad');
+  if (!EXTRA || !DATOS || DATOS.error) { nec.parentNode.hidden = true; act.parentNode.hidden = true; return; }
+  nec.parentNode.hidden = false; act.parentNode.hidden = false;
+  const fmt = new Intl.DateTimeFormat(I18N.locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+  nec.innerHTML = EXTRA.necesitan.length ? EXTRA.necesitan.map(x => {
+    const falta = MIN_EQ - x.van.length;
+    return `<a class="nec" href="sustituciones.html#oferta">
+      <div class="nec-f">${mayus(fmt.format(new Date(x.fecha + 'T12:00:00Z'))).replace('.', '')}</div>
+      <div class="nec-i"><b>${escH(I18N.idioma === 'en' ? x.rango.replace(' a ', ' – ') : x.rango)}</b>
+        <small>${x.van.length ? x.van.map(v => escH(titulo(v.nombre).split(' ')[0])).join(', ') : T('sinNadie')}</small></div>
+      <span class="nec-p ${x.van.length ? '' : 'rojo'}">${falta === 1 ? T('faltaN', { n: 1 }) : T('faltanNc', { n: falta })}</span>
+      <span class="nec-b">${T('apuntarmeBtn')} →</span>
+    </a>`;
+  }).join('') : `<div class="vacio">${T('nadaFalta')}</div>`;
+  const prox = DATOS.mios.filter(x => x.yo !== 'baja' && !x.anulado).length;
+  const fUlt = EXTRA.ultimo ? mayus(fmt.format(new Date(EXTRA.ultimo + 'T12:00:00Z'))).replace('.', '') : T('nunca');
+  act.innerHTML = `<div class="kpi"><b>${EXTRA.hechosMes}</b><span>${T('hechosMes')}</span></div>
+    <div class="kpi"><b>${prox}</b><span>${T('proximos')}</span></div>
+    <div class="kpi"><b class="peq">${fUlt}</b><span>${T('ultimo')}</span></div>`;
+}
+
+/** El admin entra aquí como un voluntario más: banda para volver al planificador. */
+function bandaAdmin() {
+  if (!YO?.esAdmin || document.getElementById('banda-admin')) return;
+  const b = document.createElement('div');
+  b.id = 'banda-admin';
+  b.innerHTML = `<span>🙋 ${I18N.t('adminBanda')}</span><a href="planificador.html">${I18N.t('volverPlan')}</a>`;
+  document.body.insertBefore(b, document.body.firstChild);
+}
+I18N.alCambiar(() => { document.getElementById('banda-admin')?.remove(); bandaAdmin(); });
+
+// Los textos nuevos se registran después del primer pintado: aplicarlos ya
+I18N.aplicar();
+
 (async function () {
   YO = await Auth.requerir('voluntario');
-  if (YO.esAdmin && !YO.voluntario) { location.replace('planificador.html'); return; }
+  bandaAdmin();
   pintarSaludo();
   document.getElementById('mi-email').textContent = YO.email;
   cargarTurnos();
