@@ -1034,6 +1034,11 @@ i.rojo{background:var(--red)}i.ambar{background:var(--amber)}i.verde{background:
 }
 .pa-mc{aspect-ratio:auto;height:34px}
 
+.pa-diag{font-size:.72rem;font-weight:600;padding:.5rem .7rem;border-radius:12px;margin-bottom:.6rem;background:var(--green-soft);color:#146c34}
+.pa-diag.mal{background:var(--red-soft);color:var(--red)}
+.pa-diag summary{cursor:pointer;font-weight:500;opacity:.8;margin-top:.2rem}
+.pa-diag code{display:block;white-space:pre-wrap;word-break:break-all;font-size:.65rem;margin-top:.3rem;color:var(--label2)}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
@@ -10366,9 +10371,34 @@ function _stDispoHTML() {
     };
   };
   tras('evEnviarRecordatorio'); tras('pbRecordatorioDia');
+  // Diagnóstico: guardar lo que responde la función de recordatorios en cada envío.
+  // La versión nueva devuelve "registro" ('ok' o el motivo por el que no pudo anotar el correo).
+  window.PA_DIAG = null;
+  const fetchOrig = window.fetch;
+  window.fetch = async function (url, opt) {
+    const r = await fetchOrig.apply(this, arguments);
+    if (String(url).includes('/functions/v1/recordatorios-turnos') && opt && opt.method === 'POST') {
+      r.clone().text().then(txt => {
+        let j = null; try { j = JSON.parse(txt); } catch (e) {}
+        const reg = j && 'registro' in j ? j.registro : null;
+        window.PA_DIAG = { ts: new Date().toISOString(), status: r.status, reg, txt: txt.slice(0, 300) };
+        if (r.ok && j && reg === null) toast('⚠️ La función de recordatorios publicada es la versión antigua: envía pero no anota', 'err');
+        else if (reg && reg !== 'ok') toast('⚠️ Correo enviado, pero no se pudo anotar: ' + reg, 'err');
+        if (tabActual === 'inicio') pintar();
+      }).catch(() => {});
+    }
+    return r;
+  };
   // Al refrescarse los datos cada minuto, leer también el registro si tiene más de 1 minuto
   setInterval(() => { if (tabActual === 'inicio' && !document.hidden && Date.now() - AVISOS_TS > 55000) paAvisosRecargar(); }, 60000);
   window.paAvisosFiltrar = function (f) { window.paFiltroAvisos = f; pintar(); };
+  function diagAvisos() {
+    const d = window.PA_DIAG; if (!d) return '';
+    const est = !d.status || d.status >= 400 ? 'mal' : d.reg === null ? 'mal' : d.reg === 'ok' ? 'bien' : 'mal';
+    const msg = d.status >= 400 ? `La función respondió ${d.status}` : d.reg === null ? 'La función publicada es la versión antigua (no anota los envíos)'
+      : d.reg === 'ok' ? 'Último envío anotado correctamente' : 'No se pudo anotar: ' + d.reg;
+    return `<div class="pa-diag ${est}">🔎 ${escH(msg)}<details><summary>Respuesta completa</summary><code>${escH(d.txt)}</code></details></div>`;
+  }
   function bloqueAvisos() {
     if (AVISOS === null) return `<div class="pa-pend">📧 Aquí verás los correos que se envían a los voluntarios (confirmaciones, bajas, recordatorios…) y si llegaron bien.<br><small>${AVISOS_ERR ? 'No se ha podido leer el registro (' + escH(AVISOS_ERR) + '). ' : ''}Si es la primera vez: falta ejecutar <b>16_registro_avisos.sql</b> y volver a desplegar las funciones de correo.</small></div>`;
     if (!AVISOS || !AVISOS.length) return '<div class="pa-vacio">Todavía no se ha enviado ningún aviso</div>';
@@ -10480,7 +10510,7 @@ function _stDispoHTML() {
       </div>
       <div class="pa-cols">${barco}${recordatorio}</div>
       <div class="pa-cols">
-        <section class="pa-card"><div class="pa-ch"><h3>📧 Avisos enviados</h3><button class="pa-link" onclick="paAvisosRecargar(this)" title="Volver a leer el registro">↻ Actualizar</button></div>${bloqueAvisos()}</section>
+        <section class="pa-card"><div class="pa-ch"><h3>📧 Avisos enviados</h3><button class="pa-link" onclick="paAvisosRecargar(this)" title="Volver a leer el registro">↻ Actualizar</button></div>${diagAvisos()}${bloqueAvisos()}</section>
         <section class="pa-card"><div class="pa-ch"><h3>⚡ Últimas novedades</h3><button class="pa-link" onclick="setTab('envivo')">En vivo →</button></div>${novedades}</section>
       </div>`;
   }
