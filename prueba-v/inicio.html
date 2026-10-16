@@ -164,8 +164,8 @@ body{background:radial-gradient(circle at 12% 38%,rgba(0,113,227,.10),transparen
     <div class="card" id="turnos" hidden></div>
   </div>
   <div class="sec" hidden>
-    <div class="sec-t" data-t="necesitan">Se necesita gente</div>
-    <div class="sec-sub" data-t="necesitanSub">Turnos de las próximas dos semanas a los que les falta gente</div>
+    <div class="sec-t" data-t="necesitan">Se necesitan voluntarios</div>
+    <div class="sec-sub" data-t="necesitanSub">Turnos de las próximas dos semanas a los que les faltan voluntarios</div>
     <div class="card" id="necesitan"></div>
   </div>
   <div class="sec" hidden>
@@ -350,20 +350,20 @@ async function cambiarClave(ev) {
 //  Panel del voluntario, ampliado:
 //   · "Tu próximo turno" destacado: cuenta atrás, compañeros, llave, barcos del día,
 //     aviso si un compañero se ha dado de baja o faltan voluntarios, y añadirlo al calendario.
-//   · "Se necesita gente": turnos de las próximas 2 semanas a los que les falta gente.
+//   · "Se necesitan voluntarios": turnos de las próximas 2 semanas a los que les faltan voluntarios.
 //   · "Mi actividad": turnos hechos este mes, próximos y el último.
 //   · El admin entra aquí como un voluntario más ("Mi panel de voluntario").
 // ══════════════════════════════════════════════════════════════
 I18N.textos({
   es: {
     proximo: 'Tu próximo turno', hoyMay: 'Hoy', manana: 'Mañana', enDias: 'En {n} días',
-    alCal: '📅 Añadir a mi calendario', noPuedo: '📤 No puedo ir',
+    alCal: '📅 Añadir a mi calendario',
     barcos: 'Barcos', llaveTu: '🔑 Llevas tú la llave', llaveLleva: '🔑 Lleva la llave: {n}', sinLlave: '🔑 Nadie del turno tiene llave todavía',
     seDioBaja: '{n} se ha dado de baja', seDieronBaja: '{n} se han dado de baja',
     faltanUno: 'Falta 1 voluntario para este turno', faltanN: 'Faltan {n} voluntarios para este turno',
-    necesitan: 'Se necesita gente', necesitanSub: 'Turnos de las próximas dos semanas a los que les falta gente',
+    necesitan: 'Se necesitan voluntarios', necesitanSub: 'Turnos de las próximas dos semanas a los que les faltan voluntarios',
     faltaN: 'Falta {n}', faltanNc: 'Faltan {n}', sinNadie: 'Sin nadie todavía', apuntarmeBtn: 'Apuntarme',
-    nadaFalta: '🎉 Todos los turnos de las próximas dos semanas tienen gente suficiente.',
+    nadaFalta: '🎉 Todos los turnos de las próximas dos semanas tienen voluntarios suficientes.',
     actividad: 'Mi actividad', hechosMes: 'turnos hechos este mes', proximos: 'próximos turnos', ultimo: 'último turno', nunca: '—',
     otrosTurnos: 'Después',
     adminBanda: 'Estás en tu panel de voluntario', volverPlan: '← Planificador',
@@ -372,13 +372,13 @@ I18N.textos({
   },
   en: {
     proximo: 'Your next shift', hoyMay: 'Today', manana: 'Tomorrow', enDias: 'In {n} days',
-    alCal: '📅 Add to my calendar', noPuedo: '📤 I can’t go',
+    alCal: '📅 Add to my calendar',
     barcos: 'Ships', llaveTu: '🔑 You carry the key', llaveLleva: '🔑 Key holder: {n}', sinLlave: '🔑 Nobody on this shift has a key yet',
     seDioBaja: '{n} has dropped out', seDieronBaja: '{n} have dropped out',
     faltanUno: '1 more volunteer is needed for this shift', faltanN: '{n} more volunteers are needed for this shift',
-    necesitan: 'Volunteers needed', necesitanSub: 'Shifts in the next two weeks that are short of people',
+    necesitan: 'Volunteers needed', necesitanSub: 'Shifts in the next two weeks that are short of volunteers',
     faltaN: '{n} needed', faltanNc: '{n} needed', sinNadie: 'Nobody yet', apuntarmeBtn: 'Sign up',
-    nadaFalta: '🎉 Every shift in the next two weeks has enough people.',
+    nadaFalta: '🎉 Every shift in the next two weeks has enough volunteers.',
     actividad: 'My activity', hechosMes: 'shifts done this month', proximos: 'upcoming shifts', ultimo: 'last shift', nunca: '—',
     otrosTurnos: 'Later',
     adminBanda: 'You are in your volunteer panel', volverPlan: '← Planner',
@@ -388,7 +388,7 @@ I18N.textos({
 });
 
 const MIN_EQ = 3;      // mínimo de voluntarios por turno (mismo valor por defecto que el planificador)
-let EXTRA = null;      // barcos por día, turnos que necesitan gente, actividad
+let EXTRA = null;      // barcos por día, turnos a los que les faltan voluntarios, actividad
 
 const sumaDias = (iso, n) => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const diasEntre = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 864e5);
@@ -454,24 +454,19 @@ cargarTurnos = async function () {
   pintarTurnos();
 };
 
-/** Archivo .ics del turno: el teléfono lo abre con su calendario (con aviso 2 h antes). */
-function descargarICS(fecha, rango) {
+/** Abre el calendario con el evento del turno ya rellenado: solo queda pulsar "Guardar". */
+function abrirCalendario(fecha, rango) {
   const m = /(\d{1,2}):(\d{2})\s*a\s*(\d{1,2}):(\d{2})/.exec(rango); if (!m) return;
   const f = fecha.replace(/-/g, ''), p = n => String(n).padStart(2, '0');
-  const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//asispuerto.org//turnos//ES', 'BEGIN:VEVENT',
-    'UID:' + f + '-' + p(m[1]) + p(m[2]) + '-' + (YO.voluntario?.id || 'x') + '@asispuerto.org',
-    'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
-    'DTSTART;TZID=Europe/Madrid:' + f + 'T' + p(m[1]) + m[2] + '00',
-    'DTEND;TZID=Europe/Madrid:' + f + 'T' + p(m[3]) + m[4] + '00',
-    'SUMMARY:' + (I18N.idioma === 'en' ? 'Port shift ' : 'Turno Puerto ') + rango,
-    'LOCATION:Puerto de Sevilla', 'DESCRIPTION:' + I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
-    'BEGIN:VALARM', 'TRIGGER:-PT2H', 'ACTION:DISPLAY', 'DESCRIPTION:' + I18N.t('icsDesc'), 'END:VALARM',
-    'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
-  a.download = 'turno-' + fecha + '.ics';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  const q = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: (I18N.idioma === 'en' ? 'Port shift ' : 'Turno Puerto ') + rango,
+    dates: f + 'T' + p(m[1]) + m[2] + '00/' + f + 'T' + p(m[3]) + m[4] + '00',
+    ctz: 'Europe/Madrid',
+    location: 'Puerto de Sevilla',
+    details: I18N.t('icsDesc') + ' · https://asispuerto.org/inicio.html',
+  });
+  window.open('https://calendar.google.com/calendar/render?' + q.toString(), '_blank', 'noopener');
 }
 
 pintarTurnos = function () {
@@ -494,7 +489,7 @@ pintarTurnos = function () {
   const fmtLargo = new Intl.DateTimeFormat(I18N.locale, { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
   const rangoTxt = r => escH(I18N.idioma === 'en' ? r.replace(' a ', ' – ') : r);
   const nombre = v => escH(titulo(v.nombre));
-  // Avisos de un turno: compañeros que se han dado de baja y si falta gente
+  // Avisos de un turno: compañeros que se han dado de baja y si faltan voluntarios
   const avisos = x => {
     const out = [];
     const fuera = x.fuera.filter(v => v.voluntario_id !== me && !x.van.some(o => o.voluntario_id === v.voluntario_id));
@@ -526,8 +521,7 @@ pintarTurnos = function () {
       ${bs.length ? `<div class="prox-linea">🚢 ${T('barcos')}: ${bs.map(escH).join(', ')}</div>` : ''}
       ${avisos(sig)}
       <div class="prox-btns">
-        <button type="button" onclick="descargarICS('${sig.fecha}','${escH(sig.rango)}')">${T('alCal')}</button>
-        <a href="sustituciones.html">${T('noPuedo')}</a>
+        <button type="button" onclick="abrirCalendario('${sig.fecha}','${escH(sig.rango)}')">${T('alCal')}</button>
       </div>`;
   } else { prox.hidden = false; prox.classList.remove('lleno'); prox.innerHTML = `<div class="vacio">${T('sinTurnos')}<br><a href="sustituciones.html#oferta">${T('verFaltan')}</a></div>`; }
   // ── El resto de mis turnos ──
@@ -546,7 +540,7 @@ pintarTurnos = function () {
         <div class="hora">🕒 ${rangoTxt(x.rango)}<span class="est ${est[0]}">${est[1]}</span></div>
         <div class="dia">${mayus(fmtDia.format(d))}${x.fecha === hoy ? ` · <b style="color:var(--red)">${T('hoy')}</b>` : ''}${bs.length ? ' · 🚢 ' + bs.map(escH).join(', ') : ''}</div>
         ${apagado ? '' : `<div class="eq"><b>${T('companeros')}</b> ${comp.length ? comp.join(', ') : T('nadieMas')}</div>${avisos(x)}
-        <button type="button" class="mini-cal" onclick="descargarICS('${x.fecha}','${escH(x.rango)}')">${T('alCal')}</button>`}
+        <button type="button" class="mini-cal" onclick="abrirCalendario('${x.fecha}','${escH(x.rango)}')">${T('alCal')}</button>`}
       </div>
     </div>`;
   }).join('');
