@@ -802,40 +802,100 @@ th{letter-spacing:.06em}
   .pb-filtros select{max-width:170px}
   .pb-resumen small{display:none}
 }
-/* ══ Bajas y apuntes unificados ══ */
-.pc-resumen{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-bottom:1rem}
-@media(max-width:800px){.pc-resumen{grid-template-columns:repeat(2,1fr)}}
-.pc-k{display:flex;flex-direction:column;gap:.1rem;padding:.9rem 1rem;border-radius:18px;background:var(--surface);border:1px solid rgba(255,255,255,.8);box-shadow:var(--shadow-sm)}
-.pc-k b{font-size:1.8rem;font-weight:800;letter-spacing:-.04em;line-height:1}
-.pc-k span{font-size:.7rem;font-weight:600;color:var(--label3)}
-.pc-k.rojo b{color:var(--red)}.pc-k.ambar b{color:var(--amber)}.pc-k.verde b{color:var(--green)}.pc-k.azul b{color:var(--blue)}
-.pc-card{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-left:5px solid var(--green);border-radius:20px;box-shadow:var(--shadow-sm);padding:.95rem 1.1rem;margin-bottom:.8rem}
-.pc-card.ambar{border-left-color:var(--amber)}.pc-card.rojo{border-left-color:var(--red)}.pc-card.gris{border-left-color:var(--label4);opacity:.7}
-.pc-h{display:flex;justify-content:space-between;align-items:flex-start;gap:.8rem;flex-wrap:wrap;margin-bottom:.7rem}
-.pc-fecha{font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--label3)}
-.pc-hora{font-size:1.15rem;font-weight:800;letter-spacing:-.025em;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-.pc-llave{font-size:.64rem;font-weight:700;background:var(--amber-soft);color:var(--amber);padding:.14rem .5rem;border-radius:999px}
-.pc-res{text-align:right;display:flex;flex-direction:column;gap:.1rem}
-.pc-res b{font-size:.82rem;font-weight:800;padding:.25rem .7rem;border-radius:999px;background:var(--green-soft);color:#146c34;align-self:flex-end}
-.pc-card.ambar .pc-res b{background:var(--amber-soft);color:var(--amber)}
-.pc-card.rojo .pc-res b{background:var(--red-soft);color:var(--red)}
-.pc-card.gris .pc-res b{background:var(--surface2);color:var(--label3)}
-.pc-res small{font-size:.68rem;color:var(--label3)}
-.pc-cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
-@media(max-width:700px){.pc-cols{grid-template-columns:1fr}.pc-res{text-align:left}.pc-res b{align-self:flex-start}}
-.pc-col{border-radius:14px;padding:.6rem .7rem;display:flex;flex-wrap:wrap;gap:.3rem;align-content:flex-start;min-height:62px}
-.pc-col.conf{background:rgba(26,150,72,.07);border:1px solid rgba(26,150,72,.18)}
-.pc-col.baja{background:rgba(217,48,37,.06);border:1px solid rgba(217,48,37,.16)}
-.pc-col.apu{background:rgba(0,113,227,.06);border:1px solid rgba(0,113,227,.16)}
-.pc-ct{width:100%;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--label3);margin-bottom:.1rem}
-.pc-ct b{color:var(--label1)}
-.pc-n{font-size:.72rem;font-weight:600;background:rgba(255,255,255,.85);border:1px solid var(--sep);border-radius:999px;padding:.12rem .55rem}
-.pc-col.baja .pc-n{text-decoration:line-through;color:var(--red)}
-.pc-v{font-size:.7rem;color:var(--label4)}
-.pc-acc{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.75rem}
-.pc-dc{background:var(--surface);border-radius:20px;padding:1rem 1.1rem;border:1px dashed rgba(124,58,237,.35);font-size:.8rem;line-height:1.7}
-.pc-dc h4{font-size:.88rem;margin-bottom:.3rem}
-.pc-dc p{font-size:.72rem;color:var(--label3);margin-top:.3rem}
+/* ══ Bajas y apuntes: bandeja de trabajo ══ */
+.pc-top{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1rem}
+.pc-carriles{display:flex;gap:.35rem;overflow-x:auto;padding:4px;border-radius:18px;background:rgba(10,22,40,.06);scrollbar-width:none}
+.pc-carriles::-webkit-scrollbar{display:none}
+.pc-carriles button{flex-shrink:0;border:none;background:none;font:700 .8rem 'Sora',sans-serif;color:var(--label2);padding:.55rem .85rem;border-radius:14px;cursor:pointer;display:flex;align-items:center;gap:.45rem;white-space:nowrap}
+.pc-carriles button b{font-size:.68rem;min-width:1.4rem;padding:.1rem .4rem;border-radius:999px;background:rgba(10,22,40,.08);color:var(--label2)}
+.pc-carriles button.on{background:#fff;color:var(--navy);box-shadow:0 2px 10px rgba(10,22,40,.12)}
+.pc-carriles button.gente b{background:var(--red-soft);color:var(--red)}
+.pc-carriles button.aceptar b{background:rgba(0,113,227,.12);color:var(--blue)}
+.pc-carriles button.llave b{background:var(--amber-soft);color:var(--amber)}
+.pc-carriles button.pendientes.on b{background:var(--navy);color:#fff}
+.pc-herr{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.pc-herr select{font:600 .78rem 'Sora',sans-serif;padding:.45rem .7rem;border-radius:12px;border:1px solid var(--sep);background:var(--surface);color:var(--label1)}
+.pc-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:1.1rem;align-items:start}
+@media(max-width:1000px){.pc-layout{grid-template-columns:1fr}}
+.pc-lado{display:flex;flex-direction:column;gap:.8rem;position:sticky;top:96px}
+@media(max-width:1000px){.pc-lado{position:static}}
+.pc-dia{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--label3);margin:1rem 0 .45rem .3rem}
+.pc-dia:first-child{margin-top:0}
+.pc-card{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:20px;box-shadow:var(--shadow-sm);margin-bottom:.6rem;overflow:hidden;position:relative}
+.pc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--green)}
+.pc-card.rojo::before{background:var(--red)}.pc-card.ambar::before{background:var(--amber)}.pc-card.azul::before{background:var(--blue)}.pc-card.gris::before{background:var(--label4)}
+.pc-card.gris{opacity:.75}
+.pc-h{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:.9rem;align-items:center;padding:.8rem 1rem .8rem 1.2rem;cursor:pointer;user-select:none}
+.pc-h:hover{background:rgba(10,22,40,.025)}
+.pc-cuando{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:72px;padding:.35rem .5rem;border-radius:12px;background:rgba(10,22,40,.05)}
+.pc-cuando b{font-size:.78rem;font-weight:800;color:var(--label1)}
+.pc-cuando small{font-size:.62rem;color:var(--label3);white-space:nowrap}
+.pc-cuando.pronto{background:var(--navy)}.pc-cuando.pronto b{color:#fff}.pc-cuando.pronto small{color:rgba(255,255,255,.7)}
+.pc-hora{font-size:1.02rem;font-weight:800;letter-spacing:-.02em;display:flex;align-items:center;gap:.4rem}
+.pc-punto{width:8px;height:8px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 3px rgba(0,113,227,.18)}
+.pc-asientos{display:flex;align-items:center;gap:4px;margin-top:.3rem}
+.pc-asientos i{width:13px;height:13px;border-radius:50%;display:block;box-sizing:border-box}
+.pc-asientos i.lleno{background:var(--green)}
+.pc-card.rojo .pc-asientos i.lleno{background:var(--red)}.pc-card.ambar .pc-asientos i.lleno{background:var(--amber)}.pc-card.azul .pc-asientos i.lleno{background:var(--blue)}
+.pc-asientos i.falta{border:2px solid var(--red);opacity:.55}
+.pc-asientos i.ideal{border:2px dashed var(--label4)}
+.pc-asientos span{font-size:.66rem;font-weight:700;color:var(--label3);margin-left:.25rem}
+.pc-est{display:flex;flex-direction:column;align-items:flex-end;gap:.15rem;text-align:right}
+.pc-est b{font-size:.74rem;font-weight:800;padding:.25rem .65rem;border-radius:999px;background:var(--green-soft);color:#146c34;white-space:nowrap}
+.pc-card.rojo .pc-est b{background:var(--red-soft);color:var(--red)}.pc-card.ambar .pc-est b{background:var(--amber-soft);color:var(--amber)}
+.pc-card.azul .pc-est b{background:rgba(0,113,227,.1);color:var(--blue)}.pc-card.gris .pc-est b{background:var(--surface2);color:var(--label3)}
+.pc-est small{font-size:.64rem;color:var(--amber);font-weight:700}
+.pc-flecha{color:var(--label4);font-size:.8rem}
+@media(max-width:600px){
+  .pc-h{grid-template-columns:auto minmax(0,1fr) auto;gap:.6rem;padding:.7rem .8rem .7rem 1rem}
+  .pc-flecha{display:none}.pc-cuando{min-width:60px}
+  .pc-est b{font-size:.66rem;padding:.2rem .5rem}
+}
+.pc-cuerpo{padding:0 1rem 1rem 1.2rem;display:flex;flex-direction:column;gap:.75rem}
+.pc-gente{display:flex;flex-direction:column;gap:.3rem}
+.pc-p{display:flex;align-items:center;gap:.6rem;padding:.45rem .6rem;border-radius:12px;background:rgba(26,150,72,.06)}
+.pc-p.apunte{background:rgba(0,113,227,.07)}
+.pc-p.baja{background:rgba(217,48,37,.06)}
+.pc-p.baja .pc-p-n>b:first-child{text-decoration:line-through;color:var(--red)}
+.pc-p-i{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:800;flex-shrink:0;background:var(--green);color:#fff}
+.pc-p.apunte .pc-p-i{background:var(--blue)}.pc-p.baja .pc-p-i{background:var(--red)}
+.pc-p-n{flex:1;min-width:0;font-size:.8rem;display:flex;flex-wrap:wrap;align-items:center;gap:.1rem .4rem}
+.pc-p-n small{width:100%;font-size:.64rem;color:var(--label3)}
+.pc-p-b{display:flex;gap:.3rem;flex-shrink:0}
+.pc-tag{font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;padding:.08rem .4rem;border-radius:999px}
+.pc-tag.azul{background:var(--blue);color:#fff}.pc-tag.verde{background:var(--green-soft);color:#146c34}
+.pc-tag.ambar{background:var(--amber-soft);color:var(--amber)}.pc-tag.morado{background:#7c3aed;color:#fff}
+.pc-mini{font:700 .7rem 'Sora',sans-serif;border:1px solid var(--sep);background:#fff;color:var(--label1);padding:.32rem .6rem;border-radius:10px;cursor:pointer;white-space:nowrap}
+.pc-mini:hover{border-color:var(--label4)}
+.pc-mini.verde{background:var(--green);border-color:var(--green);color:#fff}
+.pc-mini.suave{background:none;border-color:transparent;color:var(--label3);font-weight:600}
+.pc-mini.suave:hover{color:var(--red)}
+.pc-mini:disabled{opacity:.5}
+.pc-sug{border-radius:14px;padding:.6rem .7rem;background:rgba(124,58,237,.05);border:1px dashed rgba(124,58,237,.3)}
+.pc-sug-t{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#7c3aed;margin-bottom:.4rem}
+.pc-sug-v{font-size:.74rem;color:var(--label3);display:flex;align-items:center;gap:.45rem;padding:.2rem 0}
+.pc-cand{display:flex;align-items:center;gap:.4rem;padding:.35rem 0;border-top:1px solid rgba(10,22,40,.06)}
+.pc-cand:first-child{border-top:none}
+.pc-cand-n{flex:1;min-width:0;display:flex;flex-direction:column}
+.pc-cand-n b{font-size:.78rem}
+.pc-cand-n small{font-size:.63rem;color:var(--label3)}
+.pc-link{border:none;background:none;font:700 .72rem 'Sora',sans-serif;color:#7c3aed;cursor:pointer;padding:.35rem 0 0}
+.pc-acc{display:flex;flex-wrap:wrap;gap:.35rem}
+.pc-panel{background:var(--surface);border:1px solid rgba(255,255,255,.8);border-radius:20px;box-shadow:var(--shadow-sm);padding:.9rem 1rem}
+.pc-panel h4{font-size:.84rem;margin-bottom:.5rem}
+.pc-ev{display:flex;align-items:flex-start;gap:.55rem;width:100%;text-align:left;border:none;background:none;padding:.45rem .3rem;border-radius:10px;cursor:pointer;font:inherit;font-size:.76rem;color:var(--label1)}
+.pc-ev:hover{background:rgba(10,22,40,.04)}
+.pc-ev>span{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:.62rem;font-weight:800;color:#fff;background:var(--blue);flex-shrink:0;margin-top:.1rem}
+.pc-ev.baja>span{background:var(--red)}.pc-ev.vuelve>span{background:var(--green)}
+.pc-ev>div{flex:1;min-width:0}
+.pc-ev small{display:block;font-size:.64rem;color:var(--label3)}
+.pc-dc{padding:.4rem 0;border-top:1px solid rgba(10,22,40,.06)}
+.pc-dc:first-of-type{border-top:none}
+.pc-dc-f{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#7c3aed;margin-bottom:.25rem}
+.pc-dc-p{display:flex;flex-wrap:wrap;align-items:center;gap:.3rem;font-size:.76rem;padding:.15rem 0}
+.pc-dc-p b{margin-right:.2rem}
+.pc-dc-p small{font-size:.64rem;color:var(--label3)}
+.pc-ayuda{font-size:.68rem;color:var(--label3);line-height:1.5;padding:0 .3rem}
 /* ══ Estadísticas por módulos ══ */
 .pa-stmods{display:flex;gap:.3rem;padding:4px;margin-bottom:1rem;border-radius:16px;background:rgba(10,22,40,.06);width:max-content;max-width:100%;overflow-x:auto;position:sticky;top:96px;z-index:5;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
 .pa-stmods button{border:none;background:none;font:700 .8rem 'Sora',sans-serif;color:var(--label2);padding:.55rem 1rem;border-radius:12px;cursor:pointer;white-space:nowrap}
@@ -9946,99 +10006,306 @@ function _stDispoHTML() {
 })();
 
 // ══════════════════════════════════════════════════════════════
-//  "Bajas y apuntes" unificados: por cada turno afectado, quién estaba
-//  confirmado, quién dio baja, quién se apuntó, si el turno SALE o no y qué
-//  hacer (confirmar apuntes, sugerir sustitutos, copiar aviso, anular).
-//  Datos de "En vivo"; acciones = las mismas funciones de siempre.
+//  "Bajas y apuntes" como BANDEJA DE TRABAJO: cada turno que pide algo
+//  aparece una sola vez, ordenado por urgencia, con todo lo necesario para
+//  resolverlo ahí mismo (aceptar o descartar apuntes, reincorporar una baja,
+//  dar de baja, añadir a un sustituto sugerido, copiar aviso, anular).
+//  Datos de "En vivo"; las operaciones son las mismas de siempre
+//  (apiPost confirmarTurno / registrarRefuerzo / registrarBaja, refuerzos, bajas).
 // ══════════════════════════════════════════════════════════════
 (function () {
-  const F = { filtro: 'pendientes' };
+  const F = { carril: 'pendientes', horizonte: 14, abiertas: new Set() };
+  const SUG = new Map();          // k → { cargando, lista, error }
+  let visto = '', yaVisto = false; // novedades desde la última visita
+
+  const CARRILES = [
+    ['pendientes', '⚡ Por resolver'],
+    ['gente', '🔴 Necesitan gente'],
+    ['aceptar', '✋ Por aceptar'],
+    ['llave', '🔑 Sin llave'],
+    ['ok', '✅ Resueltos'],
+    ['anulado', '🚫 Anulados'],
+  ];
 
   async function alEntrar() {
+    if (!yaVisto) {
+      try { visto = localStorage.getItem('pc_visto') || ''; localStorage.setItem('pc_visto', new Date().toISOString()); } catch (e) {}
+      yaVisto = true;
+    }
     const c = document.getElementById('tab-cambios');
     if (!EV.data) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Cargando bajas y apuntes…</p></div>`;
     await protoDatos();
     pintar();
   }
-  window.pcFiltro = function (f) { F.filtro = f; pintar(); };
+  // Compatibilidad con los accesos del Inicio
+  window.pcFiltro = function (f) { F.carril = f === 'apuntes' ? 'aceptar' : f === 'bajas' ? 'gente' : f === 'todos' ? 'pendientes' : f; if (tabActual === 'cambios') pintar(); };
 
-  /** Confirmar en el equipo a los apuntados de un turno (misma operación que la pestaña Apuntes). */
-  window.pcConfirmarApuntes = async function (k) {
-    const t = EV.data?.turnos.find(x => x.k === k); if (!t) return;
-    const eq = new Set(t.equipo.map(e => e.id));
-    const pend = t.apuntes.filter(a => !eq.has(a.id));
-    if (!pend.length) { toast('Todos ya están en el equipo', 'ok'); return; }
-    if (!confirm(`¿Confirmar el turno ${_evFechaCorta(t.fecha)} · ${t.rango}?\n\nSe añadirán al equipo:\n• ${pend.map(a => a.nombre).join('\n• ')}\n\nA cada uno le llegará el correo de turno confirmado.`)) return;
-    try {
+  // ── Clasificación de cada turno ──
+  const personas = t => ({
+    van: t.chips.filter(c => c.tipo === 'conf' || c.tipo === 'vuelve'),
+    apuntados: t.chips.filter(c => c.tipo === 'apunte'),
+    bajas: t.chips.filter(c => c.tipo === 'baja'),
+  });
+  function carril(t, M) {
+    if (t.anulado) return 'anulado';
+    if (t.n < M.MIN) return 'gente';
+    if (personas(t).apuntados.length) return 'aceptar';
+    if (t.sinLlave) return 'llave';
+    return 'ok';
+  }
+  const diasHasta = (f, hoy) => Math.round((new Date(f + 'T12:00:00') - new Date(hoy + 'T12:00:00')) / 86400000);
+  const cuando = (f, hoy) => { const d = diasHasta(f, hoy); return d === 0 ? 'Hoy' : d === 1 ? 'Mañana' : `En ${d} días`; };
+  const esNuevo = ts => !!(visto && ts && ts > visto);
+
+  // ── Operaciones (las mismas que usa el resto del planificador) ──
+  const turnoDe = k => EV.data?.turnos.find(x => x.k === k);
+  function refrescar(msg) {
+    invalidar('historial', 'oferta', 'carga', 'bajas');
+    ['_hOk', '_cOk', '_bOk', '_apOk', '_aOk', '_oOk'].forEach(x => { window[x] = false; });
+    S.plan = null; ST.raw = null; ST.S = null;
+    SUG.clear();
+    toast(msg, 'ok');
+    loadEnVivo(true, true);
+  }
+  const fechaCorta = t => _evFechaCorta(t.fecha) + ' · ' + t.rango;
+  async function hacer(btn, fn) {
+    const txt = btn.textContent; btn.disabled = true; btn.textContent = '…';
+    try { await fn(); } catch (e) { toast('Error: ' + e.message, 'err'); } finally { if (btn.isConnected) { btn.disabled = false; btn.textContent = txt; } }
+  }
+  const ACC = {
+    // Aceptar a un apuntado (o a todos) → entra en el equipo y le llega el correo de turno confirmado
+    async aceptar(t, d) {
+      const noms = d.n ? [d.n] : personas(t).apuntados.map(a => a.nombre);
+      if (!noms.length) return;
+      if (!confirm(`¿Confirmar en el turno ${fechaCorta(t)}?\n\n• ${noms.join('\n• ')}\n\nLe${noms.length > 1 ? 's' : ''} llegará el correo de turno confirmado.`)) return;
       const sd = _evSemanaDia(t.fecha);
-      await apiPost({ accion: 'confirmarTurno', asignados: pend.map(a => a.nombre), fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
-      invalidar('historial', 'oferta', 'carga');
-      ['_hOk', '_cOk', '_bOk', '_apOk', '_aOk'].forEach(x => { window[x] = false; });
-      S.plan = null; ST.raw = null; ST.S = null;
-      toast(`Turno confirmado (${pend.length} en el equipo) ✓`, 'ok');
-      loadEnVivo(true, true);
-    } catch (e) { toast('Error: ' + e.message, 'err'); }
+      await apiPost({ accion: 'confirmarTurno', asignados: noms, fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
+      refrescar(noms.length > 1 ? `${noms.length} confirmados ✓` : `${noms[0]} confirmado ✓`);
+    },
+    // Descartar un apunte (no entra en el turno)
+    async descartar(t, d) {
+      if (!confirm(`¿Descartar el apunte de ${d.n} al turno ${fechaCorta(t)}?`)) return;
+      await sbDelete('refuerzos', `voluntario_id=eq.${d.id}&fecha=eq.${t.fecha}&rango=eq.${encodeURIComponent(t.rango)}`);
+      refrescar('Apunte descartado');
+    },
+    // Anular una baja: vuelve a contar en el turno
+    async reincorporar(t, d) {
+      if (!confirm(`¿Anular la baja de ${d.n}? Volverá a contar en el turno ${fechaCorta(t)}.`)) return;
+      await sbPatch('bajas', `voluntario_id=eq.${d.id}&fecha=eq.${t.fecha}&rango=eq.${encodeURIComponent(t.rango)}&activa=eq.true`, { activa: false });
+      refrescar(`${d.n} reincorporado ✓`);
+    },
+    // Registrar la baja de un confirmado (p. ej. avisó por teléfono)
+    async baja(t, d) {
+      if (!confirm(`¿Registrar la baja de ${d.n} en el turno ${fechaCorta(t)}?`)) return;
+      const sd = _evSemanaDia(t.fecha);
+      await apiPost({ accion: 'registrarBaja', nombre: d.n, turnos: [{ fecha: t.fecha.split('-').reverse().join('/'), semana: sd.semana, dia: sd.dia, rango: t.rango }] });
+      refrescar(`Baja de ${d.n} registrada`);
+    },
+    // Añadir un sustituto: se apunta y se confirma a la vez (le llega el correo de turno confirmado)
+    async anadir(t, d) {
+      if (!confirm(`¿Añadir a ${d.n} al turno ${fechaCorta(t)}?\n\nQueda confirmado y le llegará el correo de turno confirmado.`)) return;
+      const sd = _evSemanaDia(t.fecha);
+      await apiPost({ accion: 'registrarRefuerzo', nombre: d.n, fecha: t.fecha, rango: t.rango, semana: sd.semana, dia: sd.dia });
+      await apiPost({ accion: 'confirmarTurno', asignados: [d.n], fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
+      refrescar(`${d.n} añadido al turno ✓`);
+    },
+    wa(t, d) { evMsgSust(d.n, t.k, 'wa'); },
+    copiar(t, d) { evMsgSust(d.n, t.k, 'copiar'); },
+    aviso(t) { evCopiarAviso(t.k); },
+    todos(t) { evSugerir(t.k); },
+    anular(t) { anularTurno(t.fecha, t.rango, t.n, t.bajas.length ? 'bajas' : 'sin voluntarios', 'envivo'); },
+    restaurar(t) { restaurarTurno(t.fecha, t.rango, 'envivo'); },
+    ver(t) { protoIrA(t.k); },
+    abrir(t) { F.abiertas.has(t.k) ? F.abiertas.delete(t.k) : F.abiertas.add(t.k); pintar(); },
   };
 
-  function resultado(t, M) {
-    if (t.anulado) return ['gris', '🚫 Anulado', 'No se realiza'];
-    if (t.n === 0) return ['rojo', '✕ No sale', 'Nadie disponible: se anulará si nadie se apunta'];
-    if (t.n < M.MIN) return ['ambar', `⚠️ En riesgo · faltan ${M.MIN - t.n}`, `Van ${t.n} de un mínimo de ${M.MIN}`];
-    return ['verde', '✓ Sale', `Van ${t.n}${t.n < M.IDEAL ? ` (ideal ${M.IDEAL})` : ''}`];
+  // ── Sustitutos sugeridos (mismo criterio que "👥 Sugerir sustitutos") ──
+  const horas = r => { const m = /(\d{1,2}):\d{2}\s*a\s*(\d{1,2}):\d{2}/.exec(r || ''); return m ? [+m[1], +m[2]] : null; };
+  async function cargarSug(t) {
+    if (SUG.has(t.k)) return;
+    SUG.set(t.k, { cargando: true });
+    try {
+      const sd = _evSemanaDia(t.fecha);
+      const data = await rpcCandidatos({ p_semana: sd.semana, p_dia: sd.dia, p_rango: t.rango, p_fecha: t.fecha });
+      const yaEn = new Set(t.chips.map(c => c.nombre.toUpperCase()));
+      const ofrecidos = new Set(((EV.data.dias.get(t.fecha) || {}).diaCompleto || []).map(x => x.nombre.toUpperCase()));
+      const hr = horas(t.rango);
+      const cubre = c => { const h = horas(c.horario); return !h || !hr || (h[0] <= hr[0] && h[1] >= hr[1]); };
+      const peso = c => (ofrecidos.has(c.nombre.toUpperCase()) ? -100 : 0) + (c.estado === 'reducido' ? 50 : 0) - Math.min(c.dias || 0, 30)
+        - (t.sinLlave && c.llave ? 200 : 0);
+      const lista = (Array.isArray(data) ? data : []).filter(c => !yaEn.has(String(c.nombre).toUpperCase()) && c.estado !== 'bloqueado' && cubre(c))
+        .sort((a, b) => peso(a) - peso(b)).map(c => ({ ...c, ofrece: ofrecidos.has(c.nombre.toUpperCase()) }));
+      SUG.set(t.k, { lista });
+    } catch (e) { SUG.set(t.k, { error: e.message }); }
+    if (tabActual === 'cambios') pintarSug(t.k);
+  }
+  function htmlSug(t) {
+    const s = SUG.get(t.k);
+    if (!s || s.cargando) return `<div class="pc-sug-v"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Buscando quién puede cubrirlo…</div>`;
+    if (s.error) return `<div class="pc-sug-v" style="color:var(--red)">No se han podido cargar: ${escH(s.error)}</div>`;
+    if (!s.lista.length) return `<div class="pc-sug-v">Nadie disponible cubre este horario. Prueba con el aviso al grupo.</div>`;
+    const k = escH(t.k);
+    return s.lista.slice(0, 4).map(c => {
+      const n = escH(c.nombre);
+      const extra = [c.ofrece ? '<b class="pc-tag morado">se ofrece</b>' : '', c.estado === 'reducido' ? '<b class="pc-tag ambar">poco descanso</b>' : '',
+        c.dias != null ? `${c.dias} días sin turno` : ''].filter(Boolean).join(' · ');
+      return `<div class="pc-cand">
+        <div class="pc-cand-n"><b>${c.llave ? '🔑 ' : ''}${n}</b><small>${extra}</small></div>
+        <button class="pc-mini" data-acc="wa" data-k="${k}" data-n="${n}" title="Escribirle por WhatsApp">💬</button>
+        <button class="pc-mini verde" data-acc="anadir" data-k="${k}" data-n="${n}">＋ Añadir</button>
+      </div>`;
+    }).join('') + (s.lista.length > 4 ? `<button class="pc-link" data-acc="todos" data-k="${k}">Ver los ${s.lista.length} candidatos →</button>` : '');
+  }
+  function pintarSug(k) {
+    const el = document.querySelector(`#tab-cambios [data-sug="${CSS.escape(k)}"]`);
+    const t = turnoDe(k); if (el && t) el.innerHTML = htmlSug(t);
   }
 
+  // ── Tarjeta de un turno ──
   function tarjeta(t, M) {
-    const [nivel, res, sub] = resultado(t, M);
-    const eqIds = new Set(t.equipo.map(e => e.id)), bajaIds = new Set(t.bajas.map(b => b.id)), apIds = new Set(t.apuntes.map(a => a.id));
-    const conf = t.equipo.filter(e => !bajaIds.has(e.id) || apIds.has(e.id));
-    const bajas = t.chips.filter(c => c.tipo === 'baja');
-    const apuntados = t.apuntes.filter(a => !eqIds.has(a.id));
-    const nom = c => `<span class="pc-n">${escH(c.nombre)}${c.llave ? ' 🔑' : ''}</span>`;
-    const col = (cls, tit, arr, vacio) => `<div class="pc-col ${cls}"><div class="pc-ct">${tit} <b>${arr.length}</b></div>${arr.length ? arr.map(nom).join('') : `<span class="pc-v">${vacio}</span>`}</div>`;
-    const acciones = [];
-    if (apuntados.length && !t.pasado) acciones.push(`<button class="btn btn-green btn-sm" onclick="pcConfirmarApuntes('${escH(t.k)}')">✓ Confirmar apuntados (${apuntados.length})</button>`);
-    if (!t.pasado && !t.anulado && nivel !== 'verde') acciones.push(`<button class="btn btn-navy btn-sm" onclick="evSugerir('${escH(t.k)}')">👥 Sugerir sustitutos</button>`,
-      `<button class="btn btn-ghost btn-sm" onclick="evCopiarAviso('${escH(t.k)}')">📋 Copiar aviso</button>`);
-    if (!t.pasado && !t.anulado && nivel !== 'verde') acciones.push(`<button class="btn btn-ghost btn-sm" style="color:var(--red)" onclick="anularTurno('${t.fecha}','${escH(t.rango)}',${t.n},'${t.bajas.length ? 'bajas' : 'sin voluntarios'}','envivo')">🚫 Anular</button>`);
-    if (t.anulado) acciones.push(`<button class="btn btn-ghost btn-sm" onclick="restaurarTurno('${t.fecha}','${escH(t.rango)}','envivo')">↩︎ Restaurar</button>`);
-    return `<article class="pc-card ${nivel}">
-      <header class="pc-h">
-        <div><div class="pc-fecha">${protoFecha(t.fecha, { weekday: 'long', day: 'numeric', month: 'long' })}</div><div class="pc-hora">${escH(t.rango)}${t.sinLlave && !t.anulado ? ' <span class="pc-llave" title="Ninguno de los que van tiene llave">🔑 Falta llave</span>' : ''}</div></div>
-        <div class="pc-res"><b>${res}</b><small>${sub}</small></div>
+    const c = carril(t, M), p = personas(t), k = escH(t.k);
+    const d = diasHasta(t.fecha, M.hoy);
+    const estado = c === 'anulado' ? ['gris', '🚫 Anulado'] : t.n === 0 ? ['rojo', '✕ Sin nadie · no sale'] : t.n < M.MIN ? ['rojo', `Faltan ${M.MIN - t.n}`]
+      : c === 'aceptar' ? ['azul', `Sale · ${p.apuntados.length} por aceptar`] : t.sinLlave ? ['ambar', 'Sale · sin llave'] : ['verde', '✓ Sale'];
+    // Plazas: las del mínimo, más las hasta el ideal
+    const plazas = Math.max(M.IDEAL, t.n);
+    const asientos = Array.from({ length: plazas }, (_, i) => `<i class="${i < t.n ? 'lleno' : i < M.MIN ? 'falta' : 'ideal'}"></i>`).join('');
+    const fila = (x, rol) => {
+      const n = escH(x.nombre), id = escH(x.id || '');
+      const nuevo = esNuevo(x.ts) ? '<b class="pc-tag azul">nuevo</b>' : '';
+      const cuando = x.ts ? `<small>${rol === 'apunte' ? 'se apuntó' : 'baja'} ${_evRel(x.ts)}</small>` : '';
+      const btns = t.anulado || t.pasado ? '' : rol === 'apunte'
+        ? `<button class="pc-mini verde" data-acc="aceptar" data-k="${k}" data-n="${n}">✓ Aceptar</button><button class="pc-mini" data-acc="descartar" data-k="${k}" data-n="${n}" data-id="${id}" title="Descartar apunte">✕</button>`
+        : rol === 'baja' ? (t.equipo.some(e => e.id === x.id) ? `<button class="pc-mini" data-acc="reincorporar" data-k="${k}" data-n="${n}" data-id="${id}">↩ Reincorporar</button>` : '')
+        : `<button class="pc-mini suave" data-acc="baja" data-k="${k}" data-n="${n}" title="Registrar su baja">Dar de baja</button>`;
+      const ico = rol === 'apunte' ? '✋' : rol === 'baja' ? '✕' : rol === 'vuelve' ? '↩' : '✓';
+      return `<div class="pc-p ${rol}"><span class="pc-p-i">${ico}</span><div class="pc-p-n"><b>${n}${x.llave ? ' 🔑' : ''}</b> ${rol === 'vuelve' ? '<b class="pc-tag verde">vuelve</b>' : ''}${nuevo}${cuando}</div><div class="pc-p-b">${btns}</div></div>`;
+    };
+    // Abiertas de entrada: las que piden algo en la próxima semana
+    const abierta = ((c === 'gente' || c === 'aceptar') && d < 7) !== F.abiertas.has(t.k);   // pulsando se invierte
+    const verSug = !t.anulado && (c === 'gente' || t.sinLlave);
+    if (verSug && abierta) cargarSug(t);
+    const novedad = esNuevo(t.novedad);
+    return `<article class="pc-card ${estado[0]}${abierta ? ' abierta' : ''}">
+      <header class="pc-h" data-acc="abrir" data-k="${k}">
+        <div class="pc-cuando ${d <= 1 ? 'pronto' : ''}"><b>${cuando(t.fecha, M.hoy)}</b><small>${protoFecha(t.fecha, { weekday: 'short', day: 'numeric', month: 'short' })}</small></div>
+        <div class="pc-tit"><div class="pc-hora">${escH(t.rango)}${novedad ? ' <span class="pc-punto" title="Cambios desde tu última visita"></span>' : ''}</div>
+          <div class="pc-asientos" title="${t.n} van · mínimo ${M.MIN} · ideal ${M.IDEAL}">${asientos}<span>${t.n}/${M.MIN}</span></div></div>
+        <div class="pc-est"><b>${estado[1]}</b>${t.sinLlave && !t.anulado && c !== 'llave' ? '<small>🔑 nadie lleva llave</small>' : ''}</div>
+        <span class="pc-flecha">${abierta ? '▾' : '▸'}</span>
       </header>
-      <div class="pc-cols">
-        ${col('conf', '✓ Confirmados', conf, 'nadie')}
-        ${col('baja', '✕ Bajas', bajas, 'ninguna')}
-        ${col('apu', '✋ Se han apuntado', apuntados, 'nadie todavía')}
-      </div>
-      ${acciones.length ? `<div class="pc-acc">${acciones.join('')}</div>` : ''}
+      ${abierta ? `<div class="pc-cuerpo">
+        <div class="pc-gente">
+          ${p.van.map(x => fila(x, x.tipo === 'vuelve' ? 'vuelve' : 'conf')).join('')}
+          ${p.apuntados.map(x => fila(t.apuntes.find(a => a.id === x.id) || x, 'apunte')).join('')}
+          ${p.bajas.map(x => fila(t.bajas.find(b => b.id === x.id) || x, 'baja')).join('')}
+          ${!t.chips.length ? '<div class="pc-sug-v">Nadie apuntado todavía.</div>' : ''}
+        </div>
+        ${verSug ? `<div class="pc-sug"><div class="pc-sug-t">${t.sinLlave && t.n >= M.MIN ? '🔑 Pueden cubrir (con llave primero)' : '👥 Pueden cubrir'}</div><div data-sug="${k}">${htmlSug(t)}</div></div>` : ''}
+        <div class="pc-acc">
+          ${p.apuntados.length > 1 && !t.anulado ? `<button class="btn btn-green btn-sm" data-acc="aceptar" data-k="${k}">✓ Aceptar a los ${p.apuntados.length}</button>` : ''}
+          ${c === 'gente' ? `<button class="btn btn-ghost btn-sm" data-acc="aviso" data-k="${k}">📋 Aviso al grupo</button>` : ''}
+          ${!verSug && !t.anulado ? `<button class="btn btn-ghost btn-sm" data-acc="todos" data-k="${k}">👥 Buscar sustituto</button>` : ''}
+          ${t.anulado ? `<button class="btn btn-ghost btn-sm" data-acc="restaurar" data-k="${k}">↩︎ Restaurar turno</button>`
+            : c === 'gente' ? `<button class="btn btn-ghost btn-sm" style="color:var(--red)" data-acc="anular" data-k="${k}">🚫 Anular turno</button>` : ''}
+          <button class="btn btn-ghost btn-sm" style="margin-left:auto" data-acc="ver" data-k="${k}">Ver en Hoy →</button>
+        </div>
+      </div>` : ''}
     </article>`;
   }
+
+  // ── Actividad reciente: lo último que ha pasado, en una línea por cambio ──
+  function actividad(M) {
+    const ev = [];
+    M.turnos.filter(t => !t.pasado).forEach(t => {
+      t.bajas.forEach(b => ev.push({ ts: b.ts, t, n: b.nombre, tipo: 'baja' }));
+      t.apuntes.forEach(a => ev.push({ ts: a.ts, t, n: a.nombre, tipo: t.equipo.some(e => e.id === a.id) ? 'vuelve' : 'apunte' }));
+    });
+    ev.sort((a, b) => String(b.ts || '').localeCompare(String(a.ts || '')));
+    if (!ev.length) return '<div class="pc-sug-v">Sin cambios recientes.</div>';
+    return ev.slice(0, 12).map(e => `<button class="pc-ev ${e.tipo}" data-acc="ver" data-k="${escH(e.t.k)}">
+      <span>${e.tipo === 'baja' ? '✕' : e.tipo === 'vuelve' ? '↩' : '✋'}</span>
+      <div><b>${escH(e.n)}</b> ${e.tipo === 'baja' ? 'se dio de baja' : e.tipo === 'vuelve' ? 'vuelve a' : 'se apuntó a'}
+        <small>${protoFecha(e.t.fecha, { weekday: 'short', day: 'numeric', month: 'short' })} · ${escH(e.t.rango)}${e.ts ? ' · ' + _evRel(e.ts) : ''}</small></div>
+      ${esNuevo(e.ts) ? '<b class="pc-tag azul">nuevo</b>' : ''}</button>`).join('');
+  }
+
+  // ── Voluntarios que se ofrecen todo el día: asignarlos a una franja con un toque ──
+  function diaCompleto(M, enHorizonte) {
+    const filas = [...M.dias.entries()].filter(([f, d]) => f >= M.hoy && enHorizonte(f) && d.diaCompleto.length).sort(([a], [b]) => a.localeCompare(b));
+    if (!filas.length) return '';
+    return `<section class="pc-panel"><h4>📅 Se ofrecen todo el día</h4>${filas.map(([f, d]) => {
+      const huecos = M.turnos.filter(t => t.fecha === f && !t.anulado && t.n < M.IDEAL);
+      return `<div class="pc-dc"><div class="pc-dc-f">${protoFecha(f, { weekday: 'short', day: 'numeric', month: 'short' })}</div>${d.diaCompleto.map(x => {
+        const n = escH(x.nombre);
+        const libres = huecos.filter(t => !t.chips.some(c => c.nombre.toUpperCase() === x.nombre.toUpperCase()));
+        return `<div class="pc-dc-p"><b>${n}</b>${libres.length ? libres.map(t => `<button class="pc-mini ${t.n < M.MIN ? 'verde' : ''}" data-acc="anadir" data-k="${escH(t.k)}" data-n="${n}">＋ ${escH(t.rango)}</button>`).join('') : '<small>sin huecos ese día</small>'}</div>`;
+      }).join('')}</div>`;
+    }).join('')}</section>`;
+  }
+
+  // Aviso único para el grupo con todos los turnos que necesitan gente
+  window.pcAvisoConjunto = function () {
+    const M = EV.data; if (!M) return;
+    const ts = (window._pcLista || []).filter(t => carril(t, M) === 'gente');
+    if (!ts.length) { toast('No hay turnos que necesiten gente', 'ok'); return; }
+    const linea = t => { const [y, m, d] = t.fecha.split('-').map(Number); return `• ${DIAS_ES_L[new Date(y, m - 1, d).getDay()].toLowerCase()} ${d}/${String(m).padStart(2, '0')}, de ${t.rango} (${t.n === 0 ? 'sin nadie' : `faltan ${M.MIN - t.n}`})`; };
+    const txt = `🚨 Necesitamos voluntarios para estos turnos:\n${ts.map(linea).join('\n')}\n\nSi puedes alguno, apúntate aquí: ${SUST_URL_FIJA}`;
+    const ok = () => toast('Aviso copiado — pégalo en el grupo', 'ok');
+    if (navigator.clipboard?.writeText) navigator.clipboard.writeText(txt).then(ok, () => window.prompt('Copia el aviso:', txt));
+    else window.prompt('Copia el aviso:', txt);
+  };
+  window.pcHorizonte = function (h) { F.horizonte = h; pintar(); };
 
   function pintar() {
     const c = document.getElementById('tab-cambios'), M = EV.data;
     if (!M) { c.innerHTML = `<div class="empty"><span class="ei">⚠️</span><h4>No se han podido cargar los datos</h4></div>`; return; }
-    const todos = M.turnos.filter(t => !t.pasado && (t.bajas.length || t.apuntes.length));
-    const pend = todos.filter(t => !t.anulado && (t.n < M.MIN || t.apuntes.some(a => !t.equipo.some(e => e.id === a.id))));
-    const lista = F.filtro === 'pendientes' ? pend : F.filtro === 'bajas' ? todos.filter(t => t.bajas.length) : F.filtro === 'apuntes' ? todos.filter(t => t.apuntes.length) : todos;
-    const diasCompletos = [...M.dias.entries()].filter(([f, d]) => f >= M.hoy && d.diaCompleto.length);
-    const nBajas = todos.reduce((a, t) => a + t.bajas.length, 0), nAp = todos.reduce((a, t) => a + t.apuntes.filter(x => !t.equipo.some(e => e.id === x.id)).length, 0);
-    const porFecha = new Map(); lista.forEach(t => { if (!porFecha.has(t.fecha)) porFecha.set(t.fecha, []); porFecha.get(t.fecha).push(t); });
+    const enHorizonte = f => !F.horizonte || diasHasta(f, M.hoy) < F.horizonte;
+    // Turnos que interesan: con bajas o apuntes, o que piden algo (faltan voluntarios, sin llave, anulados)
+    const base = M.turnos.filter(t => !t.pasado && enHorizonte(t.fecha) && (t.bajas.length || t.apuntes.length || t.atencion || t.anulado));
+    window._pcLista = base;
+    const cuenta = {}; base.forEach(t => { const k = carril(t, M); cuenta[k] = (cuenta[k] || 0) + 1; });
+    cuenta.pendientes = (cuenta.gente || 0) + (cuenta.aceptar || 0) + (cuenta.llave || 0);
+    const lista = base.filter(t => F.carril === 'pendientes' ? ['gente', 'aceptar', 'llave'].includes(carril(t, M)) : carril(t, M) === F.carril)
+      .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.rango.localeCompare(b.rango));
+    // Agrupado por día
+    const porDia = new Map(); lista.forEach(t => { if (!porDia.has(t.fecha)) porDia.set(t.fecha, []); porDia.get(t.fecha).push(t); });
+    const vacio = {
+      pendientes: ['🎉', 'Todo resuelto', 'No hay turnos que necesiten gente, apuntes por aceptar ni turnos sin llave.'],
+      gente: ['✅', 'Ningún turno necesita gente', ''], aceptar: ['✋', 'No hay apuntes por aceptar', ''],
+      llave: ['🔑', 'Todos los turnos llevan llave', ''], ok: ['📭', 'Sin turnos resueltos con cambios', ''], anulado: ['🚫', 'No hay turnos anulados', ''],
+    }[F.carril];
     c.innerHTML = `
-      <div class="pc-resumen">
-        <div class="pc-k ${pend.length ? 'ambar' : 'verde'}"><b>${pend.length}</b><span>turnos por resolver</span></div>
-        <div class="pc-k rojo"><b>${nBajas}</b><span>bajas activas</span></div>
-        <div class="pc-k azul"><b>${nAp}</b><span>apuntes sin confirmar</span></div>
-        <div class="pc-k"><b>${todos.length}</b><span>turnos con cambios</span></div>
+      <div class="pc-top">
+        <div class="pc-carriles">${CARRILES.map(([k, l]) => `<button class="${F.carril === k ? 'on' : ''} ${k}" onclick="pcFiltro('${k}')">${l}<b>${cuenta[k] || 0}</b></button>`).join('')}</div>
+        <div class="pc-herr">
+          <select onchange="pcHorizonte(+this.value)" title="Hasta cuándo mirar">${[[7, 'Próximos 7 días'], [14, 'Próximas 2 semanas'], [31, 'Próximo mes'], [0, 'Todo']].map(([v, l]) => `<option value="${v}" ${F.horizonte === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+          ${cuenta.gente ? `<button class="btn btn-navy btn-sm" onclick="pcAvisoConjunto()">📋 Aviso de los ${cuenta.gente} turnos</button>` : ''}
+          <button class="btn btn-ghost btn-sm" onclick="setTab('bajas')">＋ Registrar baja</button>
+        </div>
       </div>
-      <div class="ev-filtros">
-        ${[['pendientes', '⚠️ Por resolver'], ['todos', 'Todos'], ['bajas', '✕ Con bajas'], ['apuntes', '✋ Con apuntes']].map(([k, l]) => `<button class="ev-pill ${F.filtro === k ? 'on' : ''}" onclick="pcFiltro('${k}')">${l}</button>`).join('')}
-        <span style="margin-left:auto;display:flex;gap:.4rem"><button class="btn btn-ghost btn-sm" onclick="setTab('bajas')">🏥 Registrar baja / portal</button></span>
-      </div>
-      ${lista.length ? [...porFecha.values()].map(ts => ts.map(t => tarjeta(t, M)).join('')).join('') :
-        `<div class="empty"><span class="ei">✅</span><h4>${F.filtro === 'pendientes' ? 'Nada por resolver' : 'Sin bajas ni apuntes'}</h4><p>${F.filtro === 'pendientes' ? 'Todos los turnos con cambios salen adelante.' : ''}</p></div>`}
-      ${diasCompletos.length ? `<section class="pc-dc"><h4>📅 Se ofrecen para todo el día</h4>${diasCompletos.map(([f, d]) => `<div><b>${protoFecha(f, { weekday: 'short', day: 'numeric', month: 'short' })}:</b> ${d.diaCompleto.map(x => escH(x.nombre)).join(', ')}</div>`).join('')}<p>Para asignarlos a una franja, usa <a href="#" onclick="setTab('apuntes');return false">el detalle de Apuntes</a>.</p></section>` : ''}`;
+      <div class="pc-layout">
+        <div class="pc-lista">
+          ${lista.length ? [...porDia.entries()].map(([f, ts]) => `<div class="pc-dia">${protoFecha(f)}</div>${ts.map(t => tarjeta(t, M)).join('')}`).join('')
+            : `<div class="empty"><span class="ei">${vacio[0]}</span><h4>${vacio[1]}</h4><p>${vacio[2]}</p></div>`}
+        </div>
+        <aside class="pc-lado">
+          <section class="pc-panel"><h4>🕑 Últimos cambios</h4>${actividad(M)}</section>
+          ${diaCompleto(M, enHorizonte)}
+          <p class="pc-ayuda">Pulsa un turno para abrirlo o cerrarlo. <b>Aceptar</b> y <b>Añadir</b> confirman el turno y envían el correo de turno confirmado.</p>
+        </aside>
+      </div>`;
   }
+
+  // Un solo manejador para todos los botones de la bandeja
+  document.addEventListener('click', ev => {
+    const b = ev.target.closest('#tab-cambios [data-acc]'); if (!b) return;
+    const t = turnoDe(b.dataset.k); if (!t) return;
+    ev.preventDefault();
+    const fn = ACC[b.dataset.acc]; if (!fn) return;
+    if (fn.constructor.name === 'AsyncFunction') hacer(b, () => fn(t, b.dataset));
+    else fn(t, b.dataset);
+  });
 
   protoTab({ id: 'cambios', titulo: '🔄 Bajas y apuntes', grupo: 'Día a día', ico: '🔄', txt: 'Bajas y apuntes', sec: 0, alEntrar, pintar });
 })();
