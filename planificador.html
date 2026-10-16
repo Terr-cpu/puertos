@@ -570,6 +570,46 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
   .tc-right{border-left:none;padding-left:0;margin-top:.65rem;border-top:1px solid var(--sep);padding-top:.65rem}
   .topbar-actions .btn span:not(:first-child){display:none}
 }
+
+/* ══════════════════════════════════════════════════════════════
+   REDISEÑO — mismo estilo que la entrada y el menú del voluntario
+   (solo aspecto: ninguna función cambia)
+   ══════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f2f2f7; --surface:rgba(255,255,255,.82); --surface2:rgba(245,247,250,.88);
+  --sep:rgba(60,60,67,.12);
+  --shadow-sm:0 1px 3px rgba(10,22,40,.05),0 4px 14px rgba(10,22,40,.05);
+  --shadow-md:0 4px 22px rgba(10,22,40,.09);
+}
+body{background:radial-gradient(circle at 18% 30%,rgba(0,113,227,.09),transparent 42%),radial-gradient(circle at 92% 75%,rgba(201,168,76,.12),transparent 40%),radial-gradient(circle at 55% 105%,rgba(124,58,237,.05),transparent 45%) #f2f2f7;background-attachment:fixed}
+/* Barra lateral: el degradado de la cabecera, ancla y línea dorada */
+.sidebar{background:linear-gradient(170deg,#0a1628 0%,#0d2346 55%,#0f3060 100%);box-shadow:4px 0 30px rgba(10,22,40,.18)}
+.sidebar-logo{display:flex;flex-direction:column;align-items:flex-start;padding:1.35rem 1.1rem 1.05rem}
+.sidebar-logo .li{width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:1.15rem;margin-bottom:.7rem}
+.sidebar-logo h2{font-family:'Sora',system-ui,sans-serif;font-size:.9rem;font-weight:700;letter-spacing:-.01em}
+.sidebar-logo p{color:rgba(255,255,255,.42);letter-spacing:.12em}
+.sidebar-logo::after{content:'';width:22px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--gold),transparent);margin-top:.7rem}
+.nav-lbl{color:rgba(255,255,255,.34)}
+.nav-item{position:relative;color:rgba(255,255,255,.66)}
+.nav-item.active{background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.nav-item.active::before{content:'';position:absolute;left:-.4rem;top:22%;bottom:22%;width:3px;border-radius:3px;background:var(--gold)}
+.sidebar-footer p{color:rgba(255,255,255,.3)}
+/* Barra superior translúcida */
+.topbar{background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,.6);box-shadow:0 1px 0 rgba(60,60,67,.08)}
+.topbar-title{font-weight:800;letter-spacing:-.02em}
+/* Tarjetas de cristal */
+.card,.tc,.st-sec,.sbox,.ev-card,.baja-card,.al-item,.vbar,.vol-row2,.cal-row,.dpanel,.ev-feed{border-color:rgba(255,255,255,.75)}
+.card,.tc,.st-sec{box-shadow:var(--shadow-md)}
+.fc{background:rgba(255,255,255,.92)}
+.btn{border-radius:12px}
+.btn-navy{background:linear-gradient(160deg,#0a1628,#0f3060)}
+/* Lo que flota encima del contenido: casi opaco y con desenfoque, para que se lea bien */
+.moverlay{background:rgba(10,22,40,.38)}
+.mbox{background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(24px) saturate(180%);backdrop-filter:blur(24px) saturate(180%);border:1px solid rgba(255,255,255,.7)}
+#notif-panel,#of-sug{background:rgba(255,255,255,.96)!important;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.ev-feed{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.ev-feed>div:first-child{background:rgba(255,255,255,.94)!important}
+@media print{body{background:#fff}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
@@ -586,28 +626,34 @@ input:checked + .toggle-sl:before{transform:translateX(16px)}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-logo">
     <div class="li">⚓</div>
-    <h2>Puerto de Sevilla</h2>
-    <p>Gestión de Turnos</p>
+    <h2>Predicación Puerto de Sevilla</h2>
+    <p>Panel del responsable</p>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">Planificación</div>
+    <div class="nav-lbl">Día a día</div>
     <button class="nav-item" onclick="setTab('envivo')" id="nav-envivo"><span class="ni">🛰️</span> En vivo <span class="nbadge" id="nbadge-ev" style="display:none">0</span></button>
-    <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante"><span class="ni">📅</span> Cuadrante</button>
-    <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas"><span class="ni">🔑</span> Alertas <span class="nbadge" id="nbadge" style="display:none">0</span></button>
-    <button class="nav-item" onclick="setTab('carga')" id="nav-carga"><span class="ni">📊</span> Balance</button>
-    <button class="nav-item" onclick="setTab('estadisticas')" id="nav-estadisticas"><span class="ni">📈</span> Estadísticas</button>
+    <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
+    <button class="nav-item" onclick="setTab('apuntes')" id="nav-apuntes"><span class="ni">✋</span> Apuntes</button>
+    <button class="nav-item" onclick="setTab('alertas')" id="nav-alertas"><span class="ni">🔑</span> Alertas de llave <span class="nbadge" id="nbadge" style="display:none">0</span></button>
   </div>
   <div class="nav-sec">
-    <div class="nav-lbl">Gestión</div>
+    <div class="nav-lbl">Planificar el mes</div>
+    <button class="nav-item active" onclick="setTab('cuadrante')" id="nav-cuadrante"><span class="ni">📅</span> Cuadrante</button>
+    <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
+    <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Turnos confirmados</button>
+    <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Voluntarios</div>
     <button class="nav-item" onclick="setTab('voluntarios')" id="nav-voluntarios"><span class="ni">👥</span> Voluntarios</button>
     <button class="nav-item" onclick="setTab('disponibilidad')" id="nav-disponibilidad"><span class="ni">🗓️</span> Disponibilidad</button>
-    <button class="nav-item" onclick="setTab('dispobloques')" id="nav-dispobloques"><span class="ni">🧱</span> Nueva disponibilidad</button>
-    <button class="nav-item" onclick="setTab('bajas')" id="nav-bajas"><span class="ni">🏥</span> Bajas</button>
-    <button class="nav-item" onclick="setTab('historial')" id="nav-historial"><span class="ni">📋</span> Turnos confirmados</button>
-    <button class="nav-item" onclick="setTab('apuntes')" id="nav-apuntes"><span class="ni">✋</span> Apuntes</button>
-    <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo meses</button>
-    <button class="nav-item" onclick="setTab('busqueda')" id="nav-busqueda"><span class="ni">🔎</span> Búsqueda manual</button>
-    <button class="nav-item" onclick="setTab('calendario')" id="nav-calendario"><span class="ni">⚙️</span> Calendario</button>
+    <button class="nav-item" onclick="setTab('dispobloques')" id="nav-dispobloques"><span class="ni">🧱</span> Disponibilidad por bloques</button>
+    <button class="nav-item" onclick="setTab('carga')" id="nav-carga"><span class="ni">📊</span> Balance de carga</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Análisis y ajustes</div>
+    <button class="nav-item" onclick="setTab('estadisticas')" id="nav-estadisticas"><span class="ni">📈</span> Estadísticas</button>
+    <button class="nav-item" onclick="setTab('archivo')" id="nav-archivo"><span class="ni">🗄️</span> Archivo de meses</button>
     <button class="nav-item" onclick="setTab('reglas')" id="nav-reglas"><span class="ni">🎛️</span> Reglas del motor</button>
   </div>
   <div class="sidebar-footer">
@@ -740,7 +786,7 @@ const TAB_TITLES = {
   estadisticas:'📈 Estadísticas de actividad',
   cuadrante:'📅 Cuadrante mensual', alertas:'🔑 Alertas de llave',
   carga:'📊 Balance de carga', voluntarios:'👥 Voluntarios',
-  disponibilidad:'🗓️ Disponibilidad total', dispobloques:'🧱 Nueva disponibilidad · migración por bloques',
+  disponibilidad:'🗓️ Disponibilidad total', dispobloques:'🧱 Disponibilidad por bloques',
   bajas:'🏥 Bajas y sustituciones',
   historial:'📋 Turnos confirmados', apuntes:'✋ Apuntes de voluntarios', archivo:'🗄️ Archivo de meses', busqueda:'🔎 Búsqueda manual',
   calendario:'⚙️ Configurar calendario', reglas:'🎛️ Reglas del motor de planificación',
