@@ -187,7 +187,7 @@ const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SE
 const TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN');
 const CHAT = Deno.env.get('TELEGRAM_CHAT_ID');
 const CRON_SECRET = Deno.env.get('CRON_SECRET');
-const URL_SUST = 'https://terr-cpu.github.io/puertos/sustituciones.html';
+const URL_SUST = 'https://asispuerto.org/sustituciones.html';
 
 const CFG: Cfg = {
   minEq: Number(Deno.env.get('MIN_EQ') || 3),
