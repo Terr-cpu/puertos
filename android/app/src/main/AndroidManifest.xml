@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@style/Tema"
+        android:supportsRtl="false"
+        android:allowBackup="false">
+
+        <!-- El planificador de siempre (asispuerto.org) dentro de la app -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Conectar los widgets con la cuenta de administrador -->
+        <activity
+            android:name=".ConectarActivity"
+            android:exported="false"
+            android:label="@string/conectar_titulo"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- Widget "Hoy y mañana" -->
+        <receiver
+            android:name=".WidgetTurnos"
+            android:exported="true"
+            android:label="@string/widget_turnos">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_turnos_info" />
+        </receiver>
+
+        <!-- Widget "Por resolver" -->
+        <receiver
+            android:name=".WidgetResolver"
+            android:exported="true"
+            android:label="@string/widget_resolver">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_resolver_info" />
+        </receiver>
+    </application>
+</manifest>

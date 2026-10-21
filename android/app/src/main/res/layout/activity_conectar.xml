@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/fondo"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/marino"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="28dp"
+            android:paddingTop="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="⚓"
+                android:textSize="30sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Conectar los widgets"
+                android:textColor="@color/texto_claro"
+                android:textSize="21sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="PUERTO DE SEVILLA · TURNOS"
+                android:letterSpacing="0.1"
+                android:textColor="@color/texto_suave"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView
+                android:id="@+id/estado"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lineSpacingExtra="3dp"
+                android:textColor="#48484A"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:id="@+id/formulario"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical">
+
+                <EditText
+                    android:id="@+id/email"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:autofillHints="emailAddress"
+                    android:background="@drawable/campo_fondo"
+                    android:hint="Correo"
+                    android:inputType="textEmailAddress"
+                    android:paddingEnd="14dp"
+                    android:paddingStart="14dp" />
+
+                <EditText
+                    android:id="@+id/clave"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="10dp"
+                    android:autofillHints="password"
+                    android:background="@drawable/campo_fondo"
+                    android:hint="Contraseña"
+                    android:inputType="textPassword"
+                    android:paddingEnd="14dp"
+                    android:paddingStart="14dp" />
+
+                <Button
+                    android:id="@+id/entrar"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="16dp"
+                    android:background="@drawable/boton_fondo"
+                    android:text="Conectar"
+                    android:textAllCaps="false"
+                    android:textColor="@color/texto_claro"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/desconectar"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="16dp"
+                android:background="@drawable/campo_fondo"
+                android:text="Desconectar los widgets"
+                android:textAllCaps="false"
+                android:textColor="#C0392B"
+                android:visibility="gone" />
+
+            <Button
+                android:id="@+id/cerrar"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:background="@android:color/transparent"
+                android:text="Volver"
+                android:textAllCaps="false"
+                android:textColor="#8E8E93" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

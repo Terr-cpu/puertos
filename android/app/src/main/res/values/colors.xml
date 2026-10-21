@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fondo">#EEF1F6</color>
+    <color name="marino">#0A1628</color>
+    <color name="dorado">#C9A84C</color>
+    <color name="texto_claro">#FFFFFF</color>
+    <color name="texto_suave">#A9B4C7</color>
+</resources>

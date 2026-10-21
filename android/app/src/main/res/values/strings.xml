@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Puerto Admin</string>
+    <string name="conectar_titulo">Conectar widgets</string>
+    <string name="widget_turnos">Turnos de hoy y mañana</string>
+    <string name="widget_resolver">Por resolver</string>
+    <string name="widget_turnos_desc">Los turnos de hoy y mañana con su estado</string>
+    <string name="widget_resolver_desc">Turnos que necesitan voluntarios, apuntes, bajas y llave</string>
+</resources>
