@@ -143,6 +143,21 @@ public class DatosTest {
         assertEquals(1, x.getInt("correosFallos"));
     }
 
+    @Test
+    public void diasEnPreparacionFueraDeLaCobertura() throws Exception {
+        JSONArray hist = a(f("fecha", "2026-10-24", "rango", "10:00 a 12:00", "voluntario_id", "A", "tiene_llave", true),
+                f("fecha", "2026-10-24", "rango", "10:00 a 12:00", "voluntario_id", "B", "tiene_llave", false),
+                f("fecha", "2026-10-24", "rango", "10:00 a 12:00", "voluntario_id", "C", "tiene_llave", false));
+        JSONArray cal = a(f("fecha", "2026-11-05", "navieras", new JSONArray().put("ocultoVol").put("turno:10:00 a 12:00").put("turno:16:00 a 18:00")));
+        JSONObject p = Datos.calcular(HOY, hist, new JSONArray(), new JSONArray(), new JSONArray(), cal).getJSONObject("panel");
+        assertEquals("solo el turno visible", 1, p.getInt("total"));
+        assertEquals(1, p.getInt("cubiertos"));
+        assertEquals(0, p.getInt("sinNadie"));
+        assertEquals(1, p.getInt("diasPreparando"));
+        assertEquals("los 2 turnos del día en preparación, aparte", 2, p.getInt("sinNadiePrep"));
+        assertEquals("1/1 0/0 0/0 0/0 ", semanas(p));
+    }
+
     private static String semanas(JSONObject p) {
         JSONArray s = p.optJSONArray("semanas");
         StringBuilder b = new StringBuilder();

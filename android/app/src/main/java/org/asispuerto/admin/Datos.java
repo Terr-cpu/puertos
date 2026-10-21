@@ -221,11 +221,17 @@ final class Datos {
         Map<String, int[]> porDia = new HashMap<>();   // fecha → {turnos, cubiertos, peor (0 ok,1 faltan,2 nadie)}
         for (T t : orden) {
             if (t.anulado || t.solapa) continue;
+            // Días en preparación (ocultos a los voluntarios): fuera de la cobertura; se cuentan aparte en su bloque 🛠
+            if (preparando.contains(t.fecha)) {
+                if (t.n == 0) sinNadiePrep++;
+                for (String id : t.van) carga.merge(id, 1, Integer::sum);
+                continue;
+            }
             total++;
             int dias = (int) java.time.temporal.ChronoUnit.DAYS.between(hoy, LocalDate.parse(t.fecha));
             int s = Math.min(3, Math.max(0, dias / 7));
             semT[s]++;
-            if (t.n >= MIN) { cubiertos++; semC[s]++; } else if (t.n == 0) { sinNadie++; if (preparando.contains(t.fecha)) sinNadiePrep++; } else faltanT++;
+            if (t.n >= MIN) { cubiertos++; semC[s]++; } else if (t.n == 0) sinNadie++; else faltanT++;
             if (t.sinLlave) llaveT++;
             for (String id : t.van) carga.merge(id, 1, Integer::sum);
             int[] d = porDia.computeIfAbsent(t.fecha, k -> new int[3]);

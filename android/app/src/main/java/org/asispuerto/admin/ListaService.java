@@ -90,9 +90,9 @@ public class ListaService extends RemoteViewsService {
             JSONObject p = r.optJSONObject("panel");
             if (p == null) return;
             int total = p.optInt("total"), cub = p.optInt("cubiertos");
-            sec("PRÓXIMOS 30 DÍAS");
+            sec("PRÓXIMOS 30 DÍAS · DÍAS VISIBLES");
             dato("📊  " + total + " turnos · " + cub + " cubiertos" + (total > 0 ? " (" + Math.round(100f * cub / total) + " %)" : ""),
-                    "🔴 " + (p.optInt("sinNadie") - p.optInt("sinNadiePrep")) + " sin nadie · 🟠 " + p.optInt("faltan") + " con faltas · 🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
+                    "🔴 " + p.optInt("sinNadie") + " sin nadie · 🟠 " + p.optInt("faltan") + " con faltas · 🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
             int prep = p.optInt("diasPreparando");
             if (prep > 0) {
                 int vacios = p.optInt("sinNadiePrep");
