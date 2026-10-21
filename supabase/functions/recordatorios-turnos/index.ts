@@ -42,6 +42,10 @@ const RESEND_FROM   = Deno.env.get('RESEND_FROM');
 const CRON_SECRET   = Deno.env.get('CRON_SECRET_RECORDATORIOS');
 /** Con cuántos días de antelación sale el recordatorio automático (2 = pasado mañana). */
 const DIAS_ANTES    = 2;
+/** Hora de Madrid a partir de la que sale el automático. La tarea de Supabase va en UTC y se lanza a las
+ *  16:00 y a las 17:00 UTC: así, con horario de verano o de invierno, una de las dos cae a las 18:00 en Madrid
+ *  (la que llega antes no hace nada y la segunda no repite a nadie, por recordatorios_enviados). */
+const HORA_ENVIO    = 18;
 
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
@@ -309,6 +313,10 @@ Deno.serve(async (req) => {
       await enviarCorreo(v.email, `[PRUEBA] Recordatorio: turno el ${isoADMY(fecha)}`, html, { tipo: 'prueba', voluntario_id: v.id, nombre: v.nombre });
       return json({ ok: true, prueba: true, fecha, rangos });
     }
+
+    // Automático: no antes de la hora de envío en Madrid ({"forzar": true} se la salta)
+    const horaMadrid = new Date(ahoraMs).getUTCHours();
+    if (horaMadrid < HORA_ENVIO && !payload?.forzar) return json({ ok: true, fecha: objetivo, enviados: 0, omitido: `antes de las ${HORA_ENVIO}:00 en Madrid` });
 
     const pres = await presentesDe(objetivo);
     const porVol = agruparPorVoluntario(pres);

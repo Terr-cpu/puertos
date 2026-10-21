@@ -31,9 +31,9 @@ create extension if not exists pg_net;
 
 select cron.unschedule(jobid) from cron.job where jobname = 'recordatorios-turnos';
 
--- Una vez al día. 19:00 UTC ≈ 20:00/21:00 en Madrid según horario de verano —
--- ajusta la hora si quieres que llegue más temprano o más tarde.
-select cron.schedule('recordatorios-turnos', '0 19 * * *', $job$
+-- A las 16:00 y 17:00 UTC: la función solo envía desde las 18:00 de Madrid (HORA_ENVIO), así que
+-- sale a las 18:00 todo el año (verano: la de las 16:00 UTC; invierno: la de las 17:00 UTC).
+select cron.schedule('recordatorios-turnos', '0 16,17 * * *', $job$
   select net.http_post(
     url     := 'https://inifdflvblnonzowbxie.supabase.co/functions/v1/recordatorios-turnos',
     headers := jsonb_build_object('Content-Type', 'application/json', 'x-cron-secret', 'CAMBIA_ESTE_SECRETO'),

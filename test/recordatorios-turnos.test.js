@@ -70,7 +70,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
 (async () => {
   console.log('\n═══ recordatorios-turnos — recordatorio diario por correo ═══');
 
-  let r = cargar({ ahoraUTC: '2026-09-24T12:00:00Z' });
+  let r = cargar({ ahoraUTC: '2026-09-24T16:30:00Z' });
   const sinSecreto = await llamar(r.handler, null);
   check('sin x-cron-secret → 401', sinSecreto.status === 401);
   const malSecreto = await llamar(r.handler, 'otro');
@@ -82,15 +82,28 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
       return m.get('a').length === 2 && m.get('b').length === 1;
     })());
 
-  // 24/09/2026 a mediodía UTC → el automático avisa con 2 días: turnos del 26/09 (pasado mañana)
+  // 24/09/2026 a las 16:30 UTC (18:30 en Madrid) → el automático avisa con 2 días: turnos del 26/09 (pasado mañana)
   r = cargar({
-    ahoraUTC: '2026-09-24T12:00:00Z',
+    ahoraUTC: '2026-09-24T16:30:00Z',
     hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }, { voluntario_id: 'a', fecha: '2026-09-27', rango: '08:00 a 10:00' }],
     vols: [{ id: 'a', nombre: 'ANA PRUEBA', email: 'ana@x.com', tiene_llave: true }],
   });
   await llamar(r.handler, 'sec');
   check('solo entra el turno de dentro de 2 días (26/09), no el del 27/09',
     r.correos.length === 1 && /10:00 a 12:00/.test(r.correos[0].html) && !/08:00 a 10:00/.test(r.correos[0].html));
+  {
+    // Antes de las 18:00 en Madrid (16:00 UTC en invierno = 17:00 Madrid) no sale nada
+    const temprano = cargar({ ahoraUTC: '2026-11-24T16:00:00Z',
+      hist: [{ voluntario_id: 'a', fecha: '2026-11-26', rango: '10:00 a 12:00' }],
+      vols: [{ id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false }] });
+    await llamar(temprano.handler, 'sec');
+    check('automático antes de las 18:00 de Madrid → no envía (espera a la siguiente)', temprano.correos.length === 0);
+    const enHora = cargar({ ahoraUTC: '2026-11-24T17:00:00Z',
+      hist: [{ voluntario_id: 'a', fecha: '2026-11-26', rango: '10:00 a 12:00' }],
+      vols: [{ id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false }] });
+    await llamar(enHora.handler, 'sec');
+    check('en invierno, a las 17:00 UTC (18:00 Madrid) → envía', enHora.correos.length === 1);
+  }
   check('el asunto dice "pasado mañana" con la fecha', /Recordatorio: turno pasado mañana 26\/09\/2026/.test(r.correos[0].subject));
   check('portador de llave → el correo lo recuerda', /Eres portador de llave/.test(r.correos[0].html));
   check('lleva el contacto de Manuel Fernández (sin teléfono)', /ponerte en contacto con el hermano Manuel Fernández\./.test(r.correos[0].text) && !/622|wa\.me/.test(r.correos[0].html));
@@ -100,7 +113,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   check('se anota en recordatorios_enviados para no duplicar', r.insertados.some(i => i.t === 'recordatorios_enviados' && i.fila.clave === 'a|2026-09-26'));
 
   r = cargar({
-    ahoraUTC: '2026-09-24T12:00:00Z',
+    ahoraUTC: '2026-09-24T16:30:00Z',
     hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }],
     vols: [{ id: 'a', nombre: 'ANA', email: 'ana@x.com', tiene_llave: false }],
     yaEnviados: ['a|2026-09-26'],
@@ -109,7 +122,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   check('si ya se avisó hoy, no se repite', r.correos.length === 0);
 
   r = cargar({
-    ahoraUTC: '2026-09-24T12:00:00Z',
+    ahoraUTC: '2026-09-24T16:30:00Z',
     hist: [{ voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' }],
     vols: [{ id: 'a', nombre: 'ANA', email: null, tiene_llave: false }],
   });
@@ -118,7 +131,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
 
   // Compañeros del turno: misma franja, sin uno mismo; otra franja no cuenta
   const equipo = {
-    ahoraUTC: '2026-09-24T12:00:00Z',
+    ahoraUTC: '2026-09-24T16:30:00Z',
     hist: [
       { voluntario_id: 'a', fecha: '2026-09-26', rango: '10:00 a 12:00' },
       { voluntario_id: 'b', fecha: '2026-09-26', rango: '10:00 a 12:00' },

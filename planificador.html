@@ -10426,11 +10426,8 @@ function _stDispoHTML() {
     pintar();
   }
 
-  /** Hora local de los recordatorios automáticos (la tarea va a las 19:00 UTC). */
-  function horaRecordatorios() {
-    const d = new Date(); d.setUTCHours(19, 0, 0, 0);
-    return d.toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' });
-  }
+  /** Hora (Madrid) de los recordatorios automáticos: HORA_ENVIO de la función recordatorios-turnos. */
+  function horaRecordatorios() { return '18:00'; }
 
   window.paFiltroAvisos = 'todos';
   // Volver a leer el registro de avisos y repintar el Inicio si está abierto
