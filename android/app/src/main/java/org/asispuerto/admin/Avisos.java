@@ -30,13 +30,18 @@ public class Avisos extends JobService {
 
     /** Programa la comprobación periódica (al abrir la app y al reiniciar el móvil). */
     static void programar(Context c) {
-        JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
-        if (js.getPendingJob(TRABAJO) != null) return;
-        js.schedule(new JobInfo.Builder(TRABAJO, new ComponentName(c, Avisos.class))
-                .setPeriodic(15 * 60 * 1000L)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPersisted(true)
-                .build());
+        try {
+            JobScheduler js = (JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE);
+            if (js.getPendingJob(TRABAJO) != null) return;
+            js.schedule(new JobInfo.Builder(TRABAJO, new ComponentName(c, Avisos.class))
+                    .setPeriodic(15 * 60 * 1000L)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                    .setPersisted(true)
+                    .build());
+        } catch (RuntimeException e) {
+            // Si el sistema no deja programarla, la app sigue funcionando (sin notificaciones)
+            android.util.Log.e("PuertoAdmin", "No se pudo programar la comprobación", e);
+        }
     }
 
     static void crearCanales(Context c) {
