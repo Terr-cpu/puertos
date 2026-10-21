@@ -39,7 +39,7 @@ public class DatosTest {
                 // Hoy 10-12: A (llave), B, C → C de baja → van 2 (faltan)
                 f("fecha", h, "rango", "10:00 a 12:00", "voluntario_id", "A", "tiene_llave", true),
                 f("fecha", h, "rango", "10:00 a 12:00", "voluntario_id", "B", "tiene_llave", false),
-                f("fecha", h, "rango", "10:00 a 12:00", "voluntario_id", "C", "tiene_llave", false),
+                f("fecha", h, "rango", "10:00 a 12:00", "voluntario_id", "C", "nombre", "CARLOS PEREZ", "tiene_llave", false),
                 // Hoy 16-18: D, E, F sin llave → sale, pero sin llave
                 f("fecha", h, "rango", "16:00 a 18:00", "voluntario_id", "D", "tiene_llave", false),
                 f("fecha", h, "rango", "16:00 a 18:00", "voluntario_id", "E", "tiene_llave", false),
@@ -86,6 +86,42 @@ public class DatosTest {
         assertEquals(1, r.getInt("porAceptar"));
         assertEquals("solo hoy 10-12 tiene baja y faltan", 1, r.getInt("bajasSin"));
         assertEquals(1, r.getInt("sinLlave"));
+
+        // Bandeja: por fecha; apunte de I (con su id para aceptar), baja de C, franjas sin gente y sin llave
+        JSONArray b = r.getJSONArray("bandeja");
+        String tipos = "";
+        for (int i = 0; i < b.length(); i++) tipos += b.getJSONObject(i).getString("tipo") + "@" + b.getJSONObject(i).getString("fecha").substring(8) + " ";
+        assertEquals("baja@23 llave@23 apunte@24 faltan@24 faltan@26 ", tipos);
+        JSONObject ap = b.getJSONObject(2);
+        assertEquals("I", ap.getString("vid"));
+        assertEquals("Carlos P.", b.getJSONObject(0).getString("nombre"));
+        assertEquals(1, b.getJSONObject(0).getInt("faltan"));
+
+        // Semana: el día 24 con G (vuelve, llave) y H; I aparece como pendiente
+        JSONArray sem = r.getJSONArray("semana");
+        JSONObject d24 = sem.getJSONObject(1);
+        assertEquals(m, d24.getString("fecha"));
+        JSONArray van = d24.getJSONArray("turnos").getJSONObject(0).getJSONArray("van");
+        assertEquals(3, van.length());
+        assertTrue(van.getJSONObject(0).getBoolean("llave"));
+        assertTrue(van.getJSONObject(2).getBoolean("pendiente"));
+    }
+
+    @Test
+    public void nombresCortos() {
+        assertEquals("Pedro R.", Datos.corto("PEDRO RUIZ GARCIA"));
+        assertEquals("Ana", Datos.corto("ANA"));
+        assertEquals("(voluntario)", Datos.corto(null));
+    }
+
+    @Test
+    public void semanaYDiaComoElPlanificador() {
+        assertEquals(4, Acciones.semana("2026-10-23"));
+        assertEquals(5, Acciones.semana("2026-10-29"));
+        assertEquals("Viernes", Acciones.dia("2026-10-23"));
+        assertEquals("Miercoles", Acciones.dia("2026-10-21"));
+        assertEquals("Domingo", Acciones.dia("2026-10-25"));
+        assertTrue(Acciones.aviso("2026-10-23", "10:00 a 12:00", 2).startsWith("🚨 Faltan 1 voluntario el viernes 23/10 de 10:00 a 12:00"));
     }
 
     @Test

@@ -65,6 +65,7 @@ public class ConectarActivity extends Activity {
                     pintar(null);
                     Widgets.pintarTodos(this, true);
                     Widgets.actualizar(this, null);
+                    Avisos.programar(this);   // notificaciones de bajas y apuntes
                 } else pintar("⚠ " + err);
             });
         }).start();

@@ -6,6 +6,8 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.print.PrintAttributes;
 import android.print.PrintManager;
@@ -31,7 +33,7 @@ public class MainActivity extends Activity {
 
     private WebView web;
     private ValueCallback<Uri[]> archivoCallback;
-    private String tabPendiente;
+    private String tabPendiente, turnoPendiente;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -63,6 +65,14 @@ public class MainActivity extends Activity {
         });
 
         tabPendiente = getIntent().getStringExtra("tab");
+        turnoPendiente = getIntent().getStringExtra("k");
+
+        // Notificaciones de bajas y apuntes: canales, permiso (Android 13+) y comprobación periódica
+        Avisos.crearCanales(this);
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+        }
+        if (Sesion.conectada(this)) Avisos.programar(this);
         if (b != null) web.restoreState(b);
         else web.loadUrl(INICIO);
     }
@@ -71,7 +81,7 @@ public class MainActivity extends Activity {
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         String tab = i.getStringExtra("tab");
-        if (tab != null) { tabPendiente = tab; irATab(); }
+        if (tab != null) { tabPendiente = tab; turnoPendiente = i.getStringExtra("k"); irATab(); }
     }
 
     @Override
@@ -97,8 +107,12 @@ public class MainActivity extends Activity {
     private void irATab() {
         if (tabPendiente == null) return;
         String tab = tabPendiente.replaceAll("[^a-z]", "");
+        // Turno concreto (fecha|rango): en "Hoy" se resalta con evFoco; en las demás pestañas basta la pestaña
+        String k = turnoPendiente == null ? "" : turnoPendiente.replaceAll("[^0-9:| a-]", "");
         tabPendiente = null;
-        web.evaluateJavascript("(function ir(n){if(window.setTab&&window.EV&&EV.data){setTab('" + tab + "')}"
+        turnoPendiente = null;
+        String foco = k.isEmpty() || !"envivo".equals(tab) ? "" : "setTimeout(function(){try{evFoco('" + k + "')}catch(e){}},700);";
+        web.evaluateJavascript("(function ir(n){if(window.setTab&&window.EV&&EV.data){setTab('" + tab + "');" + foco + "}"
                 + "else if(n<80){setTimeout(function(){ir(n+1)},250)}})(0)", null);
     }
 

@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Para que la comprobación de bajas y apuntes siga tras reiniciar el móvil -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="@string/app_name"
@@ -54,5 +57,50 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_resolver_info" />
         </receiver>
+        <!-- Widget "Próximos 7 días" -->
+        <receiver
+            android:name=".WidgetSemana"
+            android:exported="true"
+            android:label="@string/widget_semana">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_semana_info" />
+        </receiver>
+
+        <!-- Widget "Bandeja de pendientes" -->
+        <receiver
+            android:name=".WidgetBandeja"
+            android:exported="true"
+            android:label="@string/widget_bandeja">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_bandeja_info" />
+        </receiver>
+
+        <!-- Filas de las listas de los widgets -->
+        <service
+            android:name=".ListaService"
+            android:exported="false"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
+        <!-- Comprobación periódica de bajas y apuntes (notificaciones) -->
+        <service
+            android:name=".Avisos"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <!-- Acciones de widgets y notificaciones (aceptar, descartar, aviso, abrir) -->
+        <activity
+            android:name=".AccionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     </application>
 </manifest>

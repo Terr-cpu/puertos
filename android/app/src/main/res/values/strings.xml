@@ -6,4 +6,8 @@
     <string name="widget_resolver">Por resolver</string>
     <string name="widget_turnos_desc">Los turnos de hoy y mañana con su estado</string>
     <string name="widget_resolver_desc">Turnos que necesitan voluntarios, apuntes, bajas y llave</string>
+    <string name="widget_semana">Próximos 7 días</string>
+    <string name="widget_bandeja">Bandeja de pendientes</string>
+    <string name="widget_semana_desc">Cada turno de la semana con quién va, la llave y los barcos</string>
+    <string name="widget_bandeja_desc">Lo pendiente, con botones para aceptar, descartar o mandar el aviso</string>
 </resources>

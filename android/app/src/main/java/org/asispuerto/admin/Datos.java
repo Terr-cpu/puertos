@@ -7,11 +7,14 @@ import org.json.JSONObject;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -25,8 +28,10 @@ import java.util.regex.Pattern;
  */
 final class Datos {
     static final int MIN = 3;
-    static final int DIAS = 14;   // "Por resolver": próximas dos semanas
+    static final int DIAS = 14;          // "Por resolver" y la bandeja: próximas dos semanas
+    static final int DIAS_SEMANA = 7;    // widget "Próximos 7 días"
     static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
+    static final Locale ES = new Locale("es", "ES");
 
     private Datos() {}
 
@@ -34,9 +39,9 @@ final class Datos {
     static JSONObject cargar(Context c) throws Exception {
         LocalDate hoy = LocalDate.now(MADRID), fin = hoy.plusDays(DIAS - 1);
         String q = "fecha=gte." + hoy + "&fecha=lte." + fin;
-        JSONArray hist = new JSONArray(Sesion.get(c, "v_historial?" + q + "&select=fecha,rango,voluntario_id,tiene_llave"));
+        JSONArray hist = new JSONArray(Sesion.get(c, "v_historial?" + q + "&select=fecha,rango,voluntario_id,nombre,tiene_llave"));
         JSONArray bajas = new JSONArray(Sesion.get(c, "v_bajas_activas?" + q + "&select=fecha,rango,voluntario_id"));
-        JSONArray refs = new JSONArray(Sesion.get(c, "v_refuerzos?" + q + "&select=fecha,rango,voluntario_id,es_dia_completo,tiene_llave"));
+        JSONArray refs = new JSONArray(Sesion.get(c, "v_refuerzos?" + q + "&select=fecha,rango,voluntario_id,nombre,es_dia_completo,tiene_llave"));
         JSONArray anul = new JSONArray(Sesion.get(c, "turnos_no_realizados?" + q + "&select=fecha,rango"));
         JSONArray cal = new JSONArray(Sesion.get(c, "v_calendario?" + q + "&activo=eq.true&select=fecha,navieras"));
         JSONObject out = calcular(hoy, hist, bajas, refs, anul, cal);
@@ -46,14 +51,15 @@ final class Datos {
 
     /** El cálculo, sin red (se prueba en src/test). */
     static JSONObject calcular(LocalDate hoy, JSONArray hist, JSONArray bajas, JSONArray refs, JSONArray anul, JSONArray cal) throws Exception {
-
         Map<String, T> turnos = new LinkedHashMap<>();
         Map<String, Boolean> llave = new HashMap<>();
+        Map<String, String> nombre = new HashMap<>();
         for (int i = 0; i < hist.length(); i++) {
             JSONObject h = hist.getJSONObject(i);
-            T t = turno(turnos, h.getString("fecha"), h.optString("rango"));
-            t.equipo.add(h.optString("voluntario_id"));
-            llave.put(h.optString("voluntario_id"), h.optBoolean("tiene_llave"));
+            String id = h.optString("voluntario_id");
+            turno(turnos, h.getString("fecha"), h.optString("rango")).equipo.add(id);
+            llave.put(id, h.optBoolean("tiene_llave"));
+            if (!h.isNull("nombre")) nombre.put(id, h.optString("nombre"));
         }
         for (int i = 0; i < bajas.length(); i++) {
             JSONObject b = bajas.getJSONObject(i);
@@ -62,9 +68,11 @@ final class Datos {
         }
         for (int i = 0; i < refs.length(); i++) {
             JSONObject r = refs.getJSONObject(i);
+            String id = r.optString("voluntario_id");
+            if (!r.isNull("nombre")) nombre.put(id, r.optString("nombre"));
+            llave.put(id, r.optBoolean("tiene_llave"));
             if (r.optBoolean("es_dia_completo") || r.isNull("rango") || r.optString("rango").isEmpty()) continue;
-            turno(turnos, r.getString("fecha"), r.getString("rango")).apuntes.add(r.optString("voluntario_id"));
-            llave.put(r.optString("voluntario_id"), r.optBoolean("tiene_llave"));
+            turno(turnos, r.getString("fecha"), r.getString("rango")).apuntes.add(id);
         }
         Map<String, String> barcos = new HashMap<>();
         for (int i = 0; i < cal.length(); i++) {
@@ -84,16 +92,15 @@ final class Datos {
             anulados.add(a.getString("fecha") + "|" + a.optString("rango"));
         }
 
-        // Quién va a cada turno
+        // Quién va a cada turno (en orden: confirmados, los que vuelven y los apuntados)
         for (T t : turnos.values()) {
-            Set<String> van = new HashSet<>();
-            for (String id : t.equipo) if (!t.bajas.contains(id) || t.apuntes.contains(id)) van.add(id);
-            for (String id : t.apuntes) { van.add(id); if (!t.equipo.contains(id)) t.porAceptar++; }
-            t.n = van.size();
+            for (String id : t.equipo) if (!t.bajas.contains(id) || t.apuntes.contains(id)) t.van.add(id);
+            for (String id : t.apuntes) { t.van.add(id); if (!t.equipo.contains(id)) t.pendientes.add(id); }
+            t.n = t.van.size();
             boolean alguien = false;
-            for (String id : van) if (Boolean.TRUE.equals(llave.get(id))) alguien = true;
+            for (String id : t.van) if (Boolean.TRUE.equals(llave.get(id))) alguien = true;
             t.sinLlave = t.n > 0 && !alguien;
-            for (String id : t.bajas) if (t.equipo.contains(id) && !t.apuntes.contains(id)) t.conBaja = true;
+            for (String id : t.bajas) if (t.equipo.contains(id) && !t.apuntes.contains(id)) t.deBaja.add(id);
             t.anulado = anulados.contains(t.fecha + "|" + t.rango);
         }
         // Franja habilitada y vacía que se pisa con otra ya cubierta ese día: no pide gente (como el planificador)
@@ -107,37 +114,94 @@ final class Datos {
             }
         }
 
+        List<T> orden = new ArrayList<>(turnos.values());
+        orden.sort((x, y) -> (x.fecha + x.rango).compareTo(y.fecha + y.rango));
+
         int necesitan = 0, porAceptar = 0, bajasSin = 0, sinLlave = 0;
-        for (T t : turnos.values()) {
+        JSONArray bandeja = new JSONArray();
+        for (T t : orden) {
             if (t.anulado || t.solapa) continue;
-            if (t.n < MIN) necesitan++;
-            porAceptar += t.porAceptar;
-            if (t.conBaja && t.n < MIN) bajasSin++;
+            int faltan = Math.max(0, MIN - t.n);
+            if (faltan > 0) necesitan++;
+            porAceptar += t.pendientes.size();
+            if (!t.deBaja.isEmpty() && faltan > 0) bajasSin++;
             if (t.sinLlave) sinLlave++;
+            // Bandeja: lo que pide una acción, de lo más urgente (antes) a lo más lejano
+            JSONObject base = new JSONObject().put("fecha", t.fecha).put("rango", t.rango).put("n", t.n).put("faltan", faltan);
+            for (String id : t.pendientes) bandeja.put(new JSONObject(base.toString())
+                    .put("tipo", "apunte").put("vid", id).put("nombre", corto(nombre.get(id))).put("nombreCompleto", nombre.getOrDefault(id, "")));
+            if (faltan > 0 && !t.deBaja.isEmpty()) {
+                List<String> quien = new ArrayList<>();
+                for (String id : t.deBaja) quien.add(corto(nombre.get(id)));
+                bandeja.put(new JSONObject(base.toString()).put("tipo", "baja").put("nombre", String.join(", ", quien)));
+            } else if (faltan > 0) {
+                bandeja.put(new JSONObject(base.toString()).put("tipo", "faltan"));
+            }
+            if (t.sinLlave) bandeja.put(new JSONObject(base.toString()).put("tipo", "llave"));
         }
+
+        // Próximos 7 días: cada turno con quién va
+        JSONArray semana = new JSONArray();
+        for (int d = 0; d < DIAS_SEMANA; d++) {
+            String f = hoy.plusDays(d).toString();
+            JSONArray ts = new JSONArray();
+            for (T t : orden) {
+                if (!t.fecha.equals(f) || t.solapa) continue;
+                JSONArray van = new JSONArray();
+                for (String id : t.van) van.put(new JSONObject().put("n", corto(nombre.get(id)))
+                        .put("llave", Boolean.TRUE.equals(llave.get(id))).put("pendiente", t.pendientes.contains(id)));
+                ts.put(new JSONObject().put("rango", t.rango).put("n", t.n).put("anulado", t.anulado)
+                        .put("sinLlave", t.sinLlave).put("porAceptar", t.pendientes.size()).put("van", van));
+            }
+            if (ts.length() > 0 || barcos.containsKey(f))
+                semana.put(new JSONObject().put("fecha", f).put("barcos", barcos.getOrDefault(f, "")).put("turnos", ts));
+        }
+
         JSONObject out = new JSONObject();
         out.put("hoy", hoy.toString());
         out.put("manana", hoy.plusDays(1).toString());
-        out.put("tHoy", lista(turnos, hoy.toString()));
-        out.put("tManana", lista(turnos, hoy.plusDays(1).toString()));
+        out.put("tHoy", lista(orden, hoy.toString()));
+        out.put("tManana", lista(orden, hoy.plusDays(1).toString()));
         out.put("barcosHoy", barcos.getOrDefault(hoy.toString(), ""));
         out.put("barcosManana", barcos.getOrDefault(hoy.plusDays(1).toString(), ""));
         out.put("necesitan", necesitan);
         out.put("porAceptar", porAceptar);
         out.put("bajasSin", bajasSin);
         out.put("sinLlave", sinLlave);
+        out.put("semana", semana);
+        out.put("bandeja", bandeja);
         return out;
     }
 
-    private static JSONArray lista(Map<String, T> turnos, String fecha) throws Exception {
-        List<T> del = new ArrayList<>();
-        for (T t : turnos.values()) if (t.fecha.equals(fecha) && !t.solapa) del.add(t);
-        del.sort((x, y) -> x.rango.compareTo(y.rango));
+    private static JSONArray lista(List<T> orden, String fecha) throws Exception {
         JSONArray a = new JSONArray();
-        for (T t : del) a.put(new JSONObject()
+        for (T t : orden) if (t.fecha.equals(fecha) && !t.solapa) a.put(new JSONObject()
                 .put("rango", t.rango).put("n", t.n).put("anulado", t.anulado)
-                .put("sinLlave", t.sinLlave).put("porAceptar", t.porAceptar));
+                .put("sinLlave", t.sinLlave).put("porAceptar", t.pendientes.size()));
         return a;
+    }
+
+    /** "PEDRO RUIZ GARCIA" → "Pedro R." (nombre de pila e inicial, para que quepa en el widget). */
+    static String corto(String n) {
+        if (n == null || n.trim().isEmpty()) return "(voluntario)";
+        String[] p = n.trim().toLowerCase(ES).split("\\s+");
+        String s = p[0].substring(0, 1).toUpperCase(ES) + p[0].substring(1);
+        return p.length > 1 ? s + " " + p[1].substring(0, 1).toUpperCase(ES) + "." : s;
+    }
+
+    /** "2026-10-23" → "Vie 23 oct". */
+    static String diaCorto(String iso) {
+        try {
+            String s = LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEE d MMM", ES)).replace(".", "");
+            return s.substring(0, 1).toUpperCase(ES) + s.substring(1);
+        } catch (Exception e) { return iso; }
+    }
+
+    /** "2026-10-23" → "viernes 23/10" (para los mensajes de WhatsApp, como el planificador). */
+    static String diaAviso(String iso) {
+        try {
+            return LocalDate.parse(iso).format(DateTimeFormatter.ofPattern("EEEE d/MM", ES));
+        } catch (Exception e) { return iso; }
     }
 
     private static final Pattern HORAS = Pattern.compile("(\\d{1,2}):\\d{2}\\s*a\\s*(\\d{1,2}):\\d{2}");
@@ -156,9 +220,10 @@ final class Datos {
 
     private static final class T {
         final String fecha, rango;
-        final Set<String> equipo = new HashSet<>(), bajas = new HashSet<>(), apuntes = new HashSet<>();
-        int n, porAceptar;
-        boolean abierto, anulado, sinLlave, conBaja, solapa;
+        final Set<String> equipo = new LinkedHashSet<>(), bajas = new HashSet<>(), apuntes = new LinkedHashSet<>();
+        final Set<String> van = new LinkedHashSet<>(), pendientes = new LinkedHashSet<>(), deBaja = new LinkedHashSet<>();
+        int n;
+        boolean abierto, anulado, sinLlave, solapa;
         T(String fecha, String rango) { this.fecha = fecha; this.rango = rango; }
     }
 

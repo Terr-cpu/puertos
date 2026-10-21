@@ -6,6 +6,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.view.View;
 import android.widget.RemoteViews;
 
@@ -49,14 +50,49 @@ final class Widgets {
     /** ¿Hay algún widget en la pantalla de inicio? (para no descargar en vano al abrir la app) */
     static boolean hayWidgets(Context c) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
-        return m.getAppWidgetIds(new ComponentName(c, WidgetTurnos.class)).length > 0
-                || m.getAppWidgetIds(new ComponentName(c, WidgetResolver.class)).length > 0;
+        for (Class<?> k : TODOS) if (m.getAppWidgetIds(new ComponentName(c, k)).length > 0) return true;
+        return false;
     }
+
+    static final Class<?>[] TODOS = {WidgetTurnos.class, WidgetResolver.class, WidgetSemana.class, WidgetBandeja.class};
 
     static void pintarTodos(Context c, boolean actualizando) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
         for (int id : m.getAppWidgetIds(new ComponentName(c, WidgetTurnos.class))) m.updateAppWidget(id, vistaTurnos(c, actualizando));
         for (int id : m.getAppWidgetIds(new ComponentName(c, WidgetResolver.class))) m.updateAppWidget(id, vistaResolver(c, actualizando));
+        int[] sem = m.getAppWidgetIds(new ComponentName(c, WidgetSemana.class));
+        for (int id : sem) m.updateAppWidget(id, vistaLista(c, id, ListaService.SEMANA, actualizando));
+        int[] ban = m.getAppWidgetIds(new ComponentName(c, WidgetBandeja.class));
+        for (int id : ban) m.updateAppWidget(id, vistaLista(c, id, ListaService.BANDEJA, actualizando));
+        if (sem.length > 0) m.notifyAppWidgetViewDataChanged(sem, R.id.lista);
+        if (ban.length > 0) m.notifyAppWidgetViewDataChanged(ban, R.id.lista);
+    }
+
+    // ── Widgets con lista desplazable ("Próximos 7 días" y "Bandeja") ──
+    static RemoteViews vistaLista(Context c, int idWidget, String tipo, boolean actualizando) {
+        boolean semana = ListaService.SEMANA.equals(tipo);
+        Class<?> clase = semana ? WidgetSemana.class : WidgetBandeja.class;
+        RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_lista);
+        JSONObject r = Datos.leer(c);
+        boolean sinSesion = !Sesion.conectada(c);
+        v.setTextViewText(R.id.titulo, semana ? "📅  Próximos 7 días" : "⚡  Bandeja · 2 semanas");
+        v.setViewVisibility(R.id.conectar, sinSesion ? View.VISIBLE : View.GONE);
+        v.setViewVisibility(R.id.lista, sinSesion ? View.GONE : View.VISIBLE);
+        v.setOnClickPendingIntent(R.id.conectar, conectar(c));
+        v.setOnClickPendingIntent(R.id.actualizar, refrescar(c, clase));
+        v.setOnClickPendingIntent(R.id.titulo, abrir(c, semana ? "envivo" : "cambios", semana ? 30 : 40));
+        v.setTextViewText(R.id.pie, sinSesion ? "" : pie(c, r, actualizando));
+        v.setTextViewText(R.id.vacio, semana ? "Sin turnos en los próximos 7 días" : "🎉 Nada pendiente en las próximas dos semanas");
+        Intent servicio = new Intent(c, ListaService.class).putExtra("tipo", tipo)
+                .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);
+        servicio.setData(Uri.parse(servicio.toUri(Intent.URI_INTENT_SCHEME)));
+        v.setRemoteAdapter(R.id.lista, servicio);
+        v.setEmptyView(R.id.lista, R.id.vacio);
+        // Plantilla para las pulsaciones de cada fila / botón (se completa en ListaService)
+        Intent plantilla = new Intent(c, AccionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        v.setPendingIntentTemplate(R.id.lista, PendingIntent.getActivity(c, semana ? 31 : 41, plantilla,
+                PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
+        return v;
     }
 
     // ── Pulsaciones ──
@@ -73,7 +109,8 @@ final class Widgets {
 
     static PendingIntent refrescar(Context c, Class<?> clase) {
         Intent i = new Intent(c, clase).setAction(ACCION_ACTUALIZAR);
-        return PendingIntent.getBroadcast(c, clase == WidgetTurnos.class ? 1 : 2, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
+        int codigo = clase == WidgetTurnos.class ? 1 : clase == WidgetResolver.class ? 2 : clase == WidgetSemana.class ? 3 : 4;
+        return PendingIntent.getBroadcast(c, codigo, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     // ── Textos comunes ──

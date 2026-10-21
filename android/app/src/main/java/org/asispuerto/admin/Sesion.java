@@ -107,8 +107,19 @@ final class Sesion {
         Respuesta(int codigo, String cuerpo) { this.codigo = codigo; this.cuerpo = cuerpo; }
     }
 
+    /** POST/PATCH/DELETE a la API REST con el token de la sesión (Prefer opcional). */
+    static void escribir(Context c, String metodo, String ruta, String cuerpo, String prefer) throws Exception {
+        Respuesta r = peticion(metodo, "/rest/v1/" + ruta, token(c), cuerpo, prefer);
+        if (r.codigo >= 300) throw new Exception("Error " + r.codigo + ": " + (r.cuerpo.length() > 120 ? r.cuerpo.substring(0, 120) : r.cuerpo));
+    }
+
     static Respuesta peticion(String metodo, String ruta, String token, String cuerpo) throws Exception {
+        return peticion(metodo, ruta, token, cuerpo, null);
+    }
+
+    static Respuesta peticion(String metodo, String ruta, String token, String cuerpo, String prefer) throws Exception {
         HttpURLConnection con = (HttpURLConnection) new URL(URL_SB + ruta).openConnection();
+        if (prefer != null) con.setRequestProperty("Prefer", prefer);
         con.setRequestMethod(metodo);
         con.setConnectTimeout(8000);
         con.setReadTimeout(8000);
