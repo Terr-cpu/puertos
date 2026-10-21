@@ -16,8 +16,9 @@
 //  Envío manual desde el planificador (En vivo → 📧 Enviar recordatorio), mismo
 //  x-cron-secret (el coordinador lo guarda en 🔔 → Correo): body
 //  { "turno": { "fecha": "2026-10-23", "rango": "16:00 a 18:00" } } → manda el
-//  recordatorio a todos los que van a ese turno. Si el turno es mañana, lo anota
-//  en recordatorios_enviados para que el automático de la noche no lo repita.
+//  recordatorio a todos los que van a ese turno. Si el turno es el que toca esa
+//  noche (dentro de DIAS_ANTES días), lo anota en recordatorios_enviados para que
+//  el automático de la noche no lo repita.
 //
 //  Modo prueba (mismo x-cron-secret): body { "prueba_voluntario_id": "<id>" }
 //  → manda a ese voluntario el recordatorio de su PRÓXIMO turno (desde mañana),
@@ -39,6 +40,8 @@ const SERVICE_ROLE  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const RESEND_KEY    = Deno.env.get('RESEND_API_KEY');
 const RESEND_FROM   = Deno.env.get('RESEND_FROM');
 const CRON_SECRET   = Deno.env.get('CRON_SECRET_RECORDATORIOS');
+/** Con cuántos días de antelación sale el recordatorio automático (2 = pasado mañana). */
+const DIAS_ANTES    = 2;
 
 const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
@@ -247,6 +250,10 @@ Deno.serve(async (req) => {
 
   const ahoraMs = paredMadrid();
   const manana = isoDeMs(ahoraMs + 24 * 60 * 60 * 1000);
+  // El automático avisa de los turnos de dentro de DIAS_ANTES días
+  const objetivo = isoDeMs(ahoraMs + DIAS_ANTES * 24 * 60 * 60 * 1000);
+  const pasado = isoDeMs(ahoraMs + 2 * 24 * 60 * 60 * 1000);
+  const cuandoTxt = (f: string) => f === manana ? 'mañana' : f === pasado ? 'pasado mañana' : 'el';
 
   let payload: any = {};
   try { payload = await req.json(); } catch { /* el cron manda body vacío o "{}" */ }
@@ -268,7 +275,7 @@ Deno.serve(async (req) => {
     if (payload?.turno?.fecha && payload?.turno?.rango) {
       const { fecha, rango } = payload.turno;
       const hoy = isoDeMs(ahoraMs);
-      const cuandoCorto = fecha === hoy ? 'hoy' : fecha === manana ? 'mañana' : 'el';
+      const cuandoCorto = fecha === hoy ? 'hoy' : cuandoTxt(fecha);
       const cuando = cuandoCorto === 'el' ? `el ${isoADMY(fecha)}` : `${cuandoCorto} (${isoADMY(fecha)})`;
       const pres = await presentesDe(fecha);
       const enviados: string[] = [], sinEmail: string[] = [], fallidos: string[] = [];
@@ -279,7 +286,7 @@ Deno.serve(async (req) => {
         const html = construirRecordatorio(v, cuando, fecha, [rango], pres, volPorId);
         if (await enviarCorreo(v.email, `Recordatorio: turno ${cuandoCorto} ${isoADMY(fecha)} · ${rango}`, html, { tipo: 'recordatorio', voluntario_id: v.id, nombre: v.nombre })) {
           enviados.push(v.nombre);
-          if (fecha === manana) await sb.from('recordatorios_enviados').insert({ clave: `${v.id}|${manana}` });
+          if (fecha === objetivo) await sb.from('recordatorios_enviados').insert({ clave: `${v.id}|${objetivo}` });
         } else fallidos.push(v.nombre);
       }
       return json({ ok: true, fecha, rango, enviados, sinEmail, fallidos, registro: errorRegistro || 'ok' });
@@ -301,23 +308,23 @@ Deno.serve(async (req) => {
       return json({ ok: true, prueba: true, fecha, rangos });
     }
 
-    const pres = await presentesDe(manana);
+    const pres = await presentesDe(objetivo);
     const porVol = agruparPorVoluntario(pres);
 
     let enviados = 0;
     for (const [volId, rangos] of porVol) {
       const v = volPorId.get(volId);
       if (!v?.email) continue;
-      const clave = `${volId}|${manana}`;
+      const clave = `${volId}|${objetivo}`;
       const { data: ya } = await sb.from('recordatorios_enviados').select('clave').eq('clave', clave).limit(1);
       if (ya?.length) continue;
 
-      const html = construirRecordatorio(v, `mañana (${isoADMY(manana)})`, manana, rangos, pres, volPorId);
-      await enviarCorreo(v.email, `Recordatorio: turno mañana ${isoADMY(manana)}`, html, { tipo: 'recordatorio', voluntario_id: v.id, nombre: v.nombre });
+      const html = construirRecordatorio(v, `${cuandoTxt(objetivo)} (${isoADMY(objetivo)})`, objetivo, rangos, pres, volPorId);
+      await enviarCorreo(v.email, `Recordatorio: turno ${cuandoTxt(objetivo)} ${isoADMY(objetivo)}`, html, { tipo: 'recordatorio', voluntario_id: v.id, nombre: v.nombre });
       await sb.from('recordatorios_enviados').insert({ clave });
       enviados++;
     }
-    return json({ ok: true, manana, enviados });
+    return json({ ok: true, fecha: objetivo, enviados });
   } catch (e) {
     console.error(e);
     return resp('error: ' + (e as Error).message, { status: 500 });

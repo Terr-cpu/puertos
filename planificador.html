@@ -10493,7 +10493,8 @@ function _stDispoHTML() {
       <small>${_evRel(a.ts)}</small></div>`).join('') || '<div class="pa-vacio">Nada con ese filtro</div>');
   }
 
-  window.paEnviarRecordatoriosManana = function (btn) { pbRecordatorioDia(_evSumaDias(EV.data.hoy, 1), btn); };
+  // El automático de esta noche avisa de los turnos de pasado mañana (2 días de antelación)
+  window.paEnviarRecordatoriosManana = function (btn) { pbRecordatorioDia(_evSumaDias(EV.data.hoy, 2), btn); };
 
   function miniCalendario(M) {
     const mes = M.hoy.slice(0, 7), [y, m] = mes.split('-').map(Number);
@@ -10552,11 +10553,12 @@ function _stDispoHTML() {
     })() : `<section class="pa-card"><div class="pa-ch"><h3>🚢 Próximo barco</h3></div><div class="pa-vacio">No hay barcos previstos</div></section>`;
 
     // Recordatorios de mañana
-    const conGente = deMan.filter(t => t.n > 0), personas = conGente.reduce((a, t) => a + t.n, 0);
+    const pas = _evSumaDias(hoy, 2), dePas = fut.filter(t => T(t) === pas);
+    const conGente = dePas.filter(t => t.n > 0), personas = conGente.reduce((a, t) => a + t.n, 0);
     const recordatorio = `<section class="pa-card pa-recor">
-      <div class="pa-ch"><h3>⏰ Recordatorios de mañana</h3></div>
-      ${conGente.length ? `<p>Mañana hay <b>${conGente.length} turno${conGente.length === 1 ? '' : 's'}</b> con <b>${personas} voluntario${personas === 1 ? '' : 's'}</b>. Los recordatorios por correo salen solos esta noche a las <b>${horaRecordatorios()}</b>.</p>
-        <button class="btn btn-ghost btn-sm" onclick="paEnviarRecordatoriosManana(this)">📧 Enviarlos ahora</button>` : '<div class="pa-vacio">Mañana no hay turnos con voluntarios</div>'}
+      <div class="pa-ch"><h3>⏰ Recordatorios de esta noche</h3><span>${protoFecha(pas, { weekday: 'short', day: 'numeric', month: 'short' })}</span></div>
+      ${conGente.length ? `<p>Pasado mañana hay <b>${conGente.length} turno${conGente.length === 1 ? '' : 's'}</b> con <b>${personas} voluntario${personas === 1 ? '' : 's'}</b>. Los recordatorios por correo salen solos esta noche a las <b>${horaRecordatorios()}</b>.</p>
+        <button class="btn btn-ghost btn-sm" onclick="paEnviarRecordatoriosManana(this)">📧 Enviarlos ahora</button>` : '<div class="pa-vacio">Pasado mañana no hay turnos con voluntarios</div>'}
     </section>`;
 
     c.innerHTML = `
