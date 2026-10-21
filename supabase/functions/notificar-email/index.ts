@@ -113,6 +113,12 @@ function envoltorio(icono: string, titulo: string, cuerpoHTML: string): string {
 </table></div>`;
 }
 
+/** "PEDRO RUIZ" → "Hola, <b>Pedro</b>." (como en la web: solo el nombre de pila). */
+function saludo(nombre: string | null | undefined): string {
+  const pila = String(nombre || '').trim().split(/\s+/)[0] || '';
+  return pila ? `Hola, <b>${pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase()}</b>.` : 'Hola.';
+}
+
 /** Tarjeta de turno: día en pequeño, franja horaria grande y borde de color a la izquierda. */
 function tarjetaTurno(fecha: string, rango: string, color = '#0071e3', fondo = '#ddeeff', extra = ''): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0;border-collapse:separate"><tr>
@@ -192,7 +198,7 @@ Deno.serve(async (req) => {
       // pública podría mandar recibos a cualquier voluntario.
       if (!(await puedePedirRecibo(req, v.email))) return resp('no autorizado', { status: 403 });
       const html = envoltorio('📅', 'Disponibilidad guardada', `
-        <p style="margin:0">Hola <b>${nombre || ''}</b>, hemos guardado tu disponibilidad:</p>
+        <p style="margin:0">${saludo(nombre)} Hemos guardado tu disponibilidad:</p>
         <pre style="margin:14px 0;background:#f5f7fa;border:1px solid #e5e5ea;padding:12px 16px;border-radius:14px;white-space:pre-wrap;font-family:inherit;font-size:14px;line-height:1.6;color:#1c1c1e">${resumenTexto || ''}</pre>
         <p style="margin:0 0 14px;color:#48484a">Si cambia tu horario habitual, puedes volver a enviarlo cuando quieras.</p>`);
       await enviarCorreo(v.email, 'Disponibilidad guardada — Turnos Puerto', html, { tipo: 'disponibilidad', voluntario_id, nombre });
@@ -217,14 +223,14 @@ Deno.serve(async (req) => {
 
     if (tipo === 'baja') {
       const html = envoltorio('📝', 'Baja registrada', `
-        <p style="margin:0">Hola <b>${nombre}</b>, hemos registrado tu baja para este turno:</p>
+        <p style="margin:0">${saludo(record.nombre)} Hemos registrado tu baja para este turno:</p>
         ${tarjetaTurno(dia, rango, '#c0392b', '#fff0ef')}
         <p style="margin:0 0 14px;color:#48484a">Gracias por avisar.</p>`);
       await enviarCorreo(v.email, `Baja registrada — ${rango} del ${fecha}`, html, { tipo: 'baja', voluntario_id: record.voluntario_id, nombre });
     } else if (tipo === 'equipo_anadido') {
       const llaveTxt = v.tieneLlave ? aviso('🔑', 'Eres portador de llave — no olvides llevarla.') : '';
       const html = envoltorio('✅', 'Turno confirmado', `
-        <p style="margin:0">Hola <b>${nombre}</b>, tu turno ha quedado confirmado:</p>
+        <p style="margin:0">${saludo(record.nombre)} Tu turno ha quedado confirmado:</p>
         ${tarjetaTurno(dia, rango, '#1a9648', '#e6f7ed')}
         ${llaveTxt}
         <p style="margin:0 0 14px;color:#48484a">¡Te esperamos!</p>
@@ -232,7 +238,7 @@ Deno.serve(async (req) => {
       await enviarCorreo(v.email, `Turno confirmado — ${rango} del ${fecha}`, html, { tipo: 'turno_confirmado', voluntario_id: record.voluntario_id, nombre });
     } else if (tipo === 'equipo_quitado') {
       const html = envoltorio('⚠️', 'Cambios en tu turno', `
-        <p style="margin:0">Hola <b>${nombre}</b>, este turno para el que estabas confirmado ha cambiado y <b>ya no cuentas en el equipo</b>:</p>
+        <p style="margin:0">${saludo(record.nombre)} Este turno para el que estabas confirmado ha cambiado y <b>ya no cuentas en el equipo</b>:</p>
         ${tarjetaTurno(dia, rango, '#e07b00', '#fff3e0')}`);
       await enviarCorreo(v.email, `Cambios en tu turno — ${rango} del ${fecha}`, html, { tipo: 'turno_quitado', voluntario_id: record.voluntario_id, nombre });
     }

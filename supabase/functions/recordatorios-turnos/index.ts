@@ -104,31 +104,27 @@ function agruparPorVoluntario(hist: { voluntario_id: string; rango: string }[]):
 
 type Vol = { id: string; nombre: string; email?: string | null; tiene_llave?: boolean };
 
-/** Compañeros de una franja (todos los de ese rango menos el propio voluntario), 🔑 si tienen llave. Lógica pura. */
+/** Compañeros de una franja (todos los de ese rango menos el propio voluntario). Lógica pura. */
 function companeros(hist: { voluntario_id: string; rango: string }[], rango: string, yoId: string, volPorId: Map<string, Vol>): string[] {
   return hist
     .filter((h) => h.rango === rango && h.voluntario_id && h.voluntario_id !== yoId)
     .map((h) => volPorId.get(h.voluntario_id))
     .filter((v): v is Vol => !!v)
-    .map((v) => v.nombre + (v.tiene_llave ? ' 🔑' : ''));
+    .map((v) => v.nombre);
 }
 
 /** HTML del recordatorio: una tarjeta por franja con sus compañeros. "cuando" es "mañana (26/09/2026)" o "el 23/10/2026". */
 function construirRecordatorio(v: Vol, cuando: string, fechaIso: string, rangos: string[], hist: { voluntario_id: string; rango: string }[], volPorId: Map<string, Vol>): string {
-  let hayLlave = false;
   const tarjetas = rangos.map((r) => {
     const comp = companeros(hist, r, v.id, volPorId);
-    if (comp.some((c) => c.endsWith('🔑'))) hayLlave = true;
     const equipo = `<div style="margin-top:8px;font-size:13px;color:#48484a"><b>Compañeros:</b> ${comp.length ? comp.join(', ') : 'de momento, ninguno más'}</div>`;
     return tarjetaTurno(fechaLarga(fechaIso), r, '#0071e3', '#ddeeff', equipo);
   }).join('');
   const llaveTxt = v.tiene_llave ? aviso('🔑', 'Eres portador de llave — no olvides llevarla.') : '';
-  const leyenda = hayLlave ? '<p style="margin:0 0 14px;font-size:12px;color:#8e8e93">🔑 = tiene llave</p>' : '';
   return envoltorio('⏰', 'Recordatorio de turno', `
-        <p style="margin:0">Hola <b>${v.nombre}</b>, ${cuando} tienes turno:</p>
+        <p style="margin:0">${saludo(v.nombre)} ${cuando.charAt(0).toUpperCase() + cuando.slice(1)} tienes turno:</p>
         ${tarjetas}
         ${llaveTxt}
-        ${leyenda}
         ${bloqueCuestionario()}`);
 }
 
@@ -171,6 +167,12 @@ function envoltorio(icono: string, titulo: string, cuerpoHTML: string): string {
 </tr></table></td></tr>
 <tr><td style="padding:16px 24px 22px;border-top:1px solid #e5e5ea;font-size:12px;line-height:1.5;color:#8e8e93;text-align:center">Puerto de Sevilla — Turnos<br>Este es un correo automático, no es necesario responder.</td></tr>
 </table></div>`;
+}
+
+/** "PEDRO RUIZ" → "Hola, <b>Pedro</b>." (como en la web: solo el nombre de pila). */
+function saludo(nombre: string | null | undefined): string {
+  const pila = String(nombre || '').trim().split(/\s+/)[0] || '';
+  return pila ? `Hola, <b>${pila.charAt(0).toUpperCase() + pila.slice(1).toLowerCase()}</b>.` : 'Hola.';
 }
 
 /** Tarjeta de turno: día en pequeño, franja horaria grande y borde de color a la izquierda. */

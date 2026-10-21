@@ -116,7 +116,7 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   await llamar(r.handler, 'sec');
   check('sin email guardado → no se manda nada', r.correos.length === 0);
 
-  // Compañeros del turno: misma franja, sin uno mismo, 🔑 a quien tiene llave; otra franja no cuenta
+  // Compañeros del turno: misma franja, sin uno mismo; otra franja no cuenta
   const equipo = {
     ahoraUTC: '2026-09-24T12:00:00Z',
     hist: [
@@ -136,9 +136,9 @@ const llamar = (h, secret, body = {}) => h(new Request('http://x/', { method: 'P
   };
   r = cargar(equipo);
   await llamar(r.handler, 'sec');
-  check('lista los compañeros de la franja con 🔑 al que tiene llave (sin uno mismo ni otras franjas)',
-    r.correos.length === 1 && /BEA 🔑/.test(r.correos[0].html) && /CARLOS/.test(r.correos[0].html)
-    && !/DANI/.test(r.correos[0].html) && (r.correos[0].html.match(/ANA/g) || []).length === 1 && !/Eres portador/.test(r.correos[0].html));
+  check('lista los compañeros de la franja, sin 🔑 ni leyenda (sin uno mismo ni otras franjas)',
+    r.correos.length === 1 && /BEA/.test(r.correos[0].html) && !/BEA 🔑|= tiene llave/.test(r.correos[0].html) && /CARLOS/.test(r.correos[0].html)
+    && !/DANI/.test(r.correos[0].html) && !/ANA/.test(r.correos[0].html) && /Hola, <b>Ana<\/b>\./.test(r.correos[0].html) && !/Eres portador/.test(r.correos[0].html));
 
   r = cargar(equipo);
   const pr = await llamar(r.handler, 'sec', { prueba_voluntario_id: 'a' });
