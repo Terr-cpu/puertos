@@ -30,7 +30,7 @@ public class ListaService extends RemoteViewsService {
 
         @Override public void onCreate() {}
         @Override public void onDestroy() {}
-        @Override public int getViewTypeCount() { return 3; }
+        @Override public int getViewTypeCount() { return 4; }
         @Override public long getItemId(int p) { return p; }
         @Override public boolean hasStableIds() { return false; }
         @Override public RemoteViews getLoadingView() { return null; }
@@ -76,13 +76,6 @@ public class ListaService extends RemoteViewsService {
             filas.add(new JSONObject().put("fila", "dato").put("l1", l1).put("l2", l2 == null ? "" : l2).put("tab", tab));
         }
 
-        private static String barra(int hechos, int total) {
-            int llenos = total == 0 ? 0 : Math.round(10f * hechos / total);
-            StringBuilder s = new StringBuilder();
-            for (int i = 0; i < 10; i++) s.append(i < llenos ? "▰" : "▱");
-            return s.toString();
-        }
-
         private static String hace(String ts) {
             try {
                 long min = java.time.Duration.between(java.time.OffsetDateTime.parse(ts).toInstant(), java.time.Instant.now()).toMinutes();
@@ -99,17 +92,21 @@ public class ListaService extends RemoteViewsService {
             int total = p.optInt("total"), cub = p.optInt("cubiertos");
             sec("PRÓXIMOS 30 DÍAS");
             dato("📊  " + total + " turnos · " + cub + " cubiertos" + (total > 0 ? " (" + Math.round(100f * cub / total) + " %)" : ""),
-                    "🔴 " + p.optInt("sinNadie") + " sin nadie" + (p.optInt("sinNadiePrep") > 0 ? " (" + p.optInt("sinNadiePrep") + " en preparación)" : "") + "   🟠 " + p.optInt("faltan") + " con faltas   🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
+                    "🔴 " + (p.optInt("sinNadie") - p.optInt("sinNadiePrep")) + " sin nadie · 🟠 " + p.optInt("faltan") + " con faltas · 🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
             int prep = p.optInt("diasPreparando");
-            if (prep > 0) dato("🛠  " + prep + (prep == 1 ? " día en preparación" : " días en preparación"),
-                    "Ocultos a los voluntarios hasta que los muestres", "calendario");
+            if (prep > 0) {
+                int vacios = p.optInt("sinNadiePrep");
+                dato("🛠  " + prep + (prep == 1 ? " día en preparación" : " días en preparación"),
+                        "Ocultos a los voluntarios" + (vacios > 0 ? " · " + vacios + " turno" + (vacios == 1 ? "" : "s") + " aún sin nadie" : ""), "calendario");
+            }
             JSONArray sem = p.optJSONArray("semanas");
             String[] nombres = {"Esta semana", "La próxima", "Dentro de 2 semanas", "Dentro de 3 semanas"};
             if (sem != null) for (int i = 0; i < sem.length(); i++) {
                 JSONObject s = sem.getJSONObject(i);
                 int t = s.optInt("total"), c = s.optInt("cubiertos");
-                dato(nombres[i] + "   " + (t == 0 ? "sin turnos" : barra(c, t) + "  " + c + "/" + t),
-                        Datos.diaCorto(s.optString("ini")) + " – " + Datos.diaCorto(s.optString("fin")), "mes");
+                filas.add(new JSONObject().put("fila", "semana").put("l1", nombres[i]).put("cifra", t == 0 ? "sin turnos" : c + "/" + t)
+                        .put("pct", t == 0 ? 0 : Math.round(100f * c / t))
+                        .put("l2", Datos.diaCorto(s.optString("ini")) + " – " + Datos.diaCorto(s.optString("fin"))).put("tab", "mes"));
             }
             JSONArray bs = p.optJSONArray("barcos");
             if (bs != null && bs.length() > 0) {
@@ -159,6 +156,15 @@ public class ListaService extends RemoteViewsService {
         }
 
         private RemoteViews filaPanel(JSONObject f) {
+            if ("semana".equals(f.optString("fila"))) {
+                RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_semana);
+                v.setTextViewText(R.id.linea1, f.optString("l1"));
+                v.setTextViewText(R.id.cifra, f.optString("cifra"));
+                v.setProgressBar(R.id.barra, 100, f.optInt("pct"), false);
+                v.setTextViewText(R.id.linea2, f.optString("l2"));
+                v.setOnClickFillInIntent(R.id.fila, new Intent().putExtra("accion", "abrir").putExtra("tab", f.optString("tab")));
+                return v;
+            }
             if ("sec".equals(f.optString("fila"))) {
                 RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_dia);
                 v.setTextViewText(R.id.texto, f.optString("t"));
