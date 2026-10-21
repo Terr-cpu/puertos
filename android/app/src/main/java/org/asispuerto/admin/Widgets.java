@@ -54,7 +54,7 @@ final class Widgets {
         return false;
     }
 
-    static final Class<?>[] TODOS = {WidgetTurnos.class, WidgetResolver.class, WidgetSemana.class, WidgetBandeja.class};
+    static final Class<?>[] TODOS = {WidgetTurnos.class, WidgetResolver.class, WidgetSemana.class, WidgetBandeja.class, WidgetPanel.class};
 
     static void pintarTodos(Context c, boolean actualizando) {
         AppWidgetManager m = AppWidgetManager.getInstance(c);
@@ -64,25 +64,28 @@ final class Widgets {
         for (int id : sem) m.updateAppWidget(id, vistaLista(c, id, ListaService.SEMANA, actualizando));
         int[] ban = m.getAppWidgetIds(new ComponentName(c, WidgetBandeja.class));
         for (int id : ban) m.updateAppWidget(id, vistaLista(c, id, ListaService.BANDEJA, actualizando));
+        int[] pan = m.getAppWidgetIds(new ComponentName(c, WidgetPanel.class));
+        for (int id : pan) m.updateAppWidget(id, vistaLista(c, id, ListaService.PANEL, actualizando));
+        if (pan.length > 0) m.notifyAppWidgetViewDataChanged(pan, R.id.lista);
         if (sem.length > 0) m.notifyAppWidgetViewDataChanged(sem, R.id.lista);
         if (ban.length > 0) m.notifyAppWidgetViewDataChanged(ban, R.id.lista);
     }
 
     // ── Widgets con lista desplazable ("Próximos 7 días" y "Bandeja") ──
     static RemoteViews vistaLista(Context c, int idWidget, String tipo, boolean actualizando) {
-        boolean semana = ListaService.SEMANA.equals(tipo);
-        Class<?> clase = semana ? WidgetSemana.class : WidgetBandeja.class;
+        boolean semana = ListaService.SEMANA.equals(tipo), panel = ListaService.PANEL.equals(tipo);
+        Class<?> clase = semana ? WidgetSemana.class : panel ? WidgetPanel.class : WidgetBandeja.class;
         RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.widget_lista);
         JSONObject r = Datos.leer(c);
         boolean sinSesion = !Sesion.conectada(c);
-        v.setTextViewText(R.id.titulo, semana ? "📅  Próximos 7 días" : "⚡  Bandeja · 2 semanas");
+        v.setTextViewText(R.id.titulo, semana ? "📅  Próximos 7 días" : panel ? "⚓  Panel del mes" : "⚡  Bandeja · 2 semanas");
         v.setViewVisibility(R.id.conectar, sinSesion ? View.VISIBLE : View.GONE);
         v.setViewVisibility(R.id.lista, sinSesion ? View.GONE : View.VISIBLE);
         v.setOnClickPendingIntent(R.id.conectar, conectar(c));
         v.setOnClickPendingIntent(R.id.actualizar, refrescar(c, clase));
-        v.setOnClickPendingIntent(R.id.titulo, abrir(c, semana ? "envivo" : "cambios", semana ? 30 : 40));
+        v.setOnClickPendingIntent(R.id.titulo, abrir(c, semana ? "envivo" : panel ? "inicio" : "cambios", semana ? 30 : panel ? 50 : 40));
         v.setTextViewText(R.id.pie, sinSesion ? "" : pie(c, r, actualizando));
-        v.setTextViewText(R.id.vacio, semana ? "Sin turnos en los próximos 7 días" : "🎉 Nada pendiente en las próximas dos semanas");
+        v.setTextViewText(R.id.vacio, semana ? "Sin turnos en los próximos 7 días" : panel ? "Toca ↻ para cargar el panel" : "🎉 Nada pendiente en las próximas dos semanas");
         Intent servicio = new Intent(c, ListaService.class).putExtra("tipo", tipo)
                 .putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, idWidget);
         servicio.setData(Uri.parse(servicio.toUri(Intent.URI_INTENT_SCHEME)));
@@ -90,7 +93,7 @@ final class Widgets {
         v.setEmptyView(R.id.lista, R.id.vacio);
         // Plantilla para las pulsaciones de cada fila / botón (se completa en ListaService)
         Intent plantilla = new Intent(c, AccionActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        v.setPendingIntentTemplate(R.id.lista, PendingIntent.getActivity(c, semana ? 31 : 41, plantilla,
+        v.setPendingIntentTemplate(R.id.lista, PendingIntent.getActivity(c, semana ? 31 : panel ? 51 : 41, plantilla,
                 PendingIntent.FLAG_MUTABLE | PendingIntent.FLAG_UPDATE_CURRENT));
         return v;
     }
@@ -109,7 +112,7 @@ final class Widgets {
 
     static PendingIntent refrescar(Context c, Class<?> clase) {
         Intent i = new Intent(c, clase).setAction(ACCION_ACTUALIZAR);
-        int codigo = clase == WidgetTurnos.class ? 1 : clase == WidgetResolver.class ? 2 : clase == WidgetSemana.class ? 3 : 4;
+        int codigo = clase == WidgetTurnos.class ? 1 : clase == WidgetResolver.class ? 2 : clase == WidgetSemana.class ? 3 : clase == WidgetPanel.class ? 5 : 4;
         return PendingIntent.getBroadcast(c, codigo, i, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
     }
 

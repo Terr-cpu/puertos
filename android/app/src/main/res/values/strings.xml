@@ -10,4 +10,6 @@
     <string name="widget_bandeja">Bandeja de pendientes</string>
     <string name="widget_semana_desc">Cada turno de la semana con quién va, la llave y los barcos</string>
     <string name="widget_bandeja_desc">Lo pendiente, con botones para aceptar, descartar o mandar el aviso</string>
+    <string name="widget_panel">Panel del mes</string>
+    <string name="widget_panel_desc">Próximos 30 días: cobertura, semanas, barcos, voluntarios, últimos movimientos y correos</string>
 </resources>

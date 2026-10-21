@@ -108,6 +108,49 @@ public class DatosTest {
     }
 
     @Test
+    public void panelDelMes() throws Exception {
+        // Hoy (23) cubierto; día 30 (2.ª semana) con 1; día 10/11 (3.ª semana) sin nadie; día 25 fuera de las 2 semanas pero dentro del mes
+        JSONArray hist = a(
+                f("fecha", "2026-10-23", "rango", "10:00 a 12:00", "voluntario_id", "A", "nombre", "ANA LOPEZ", "tiene_llave", true),
+                f("fecha", "2026-10-23", "rango", "10:00 a 12:00", "voluntario_id", "B", "nombre", "BEA RUIZ", "tiene_llave", false),
+                f("fecha", "2026-10-23", "rango", "10:00 a 12:00", "voluntario_id", "C", "nombre", "CARLOS PEREZ", "tiene_llave", false),
+                f("fecha", "2026-10-30", "rango", "10:00 a 12:00", "voluntario_id", "A", "nombre", "ANA LOPEZ", "tiene_llave", true),
+                f("fecha", "2026-11-20", "rango", "10:00 a 12:00", "voluntario_id", "B", "nombre", "BEA RUIZ", "tiene_llave", false));
+        JSONArray cal = a(
+                f("fecha", "2026-10-23", "navieras", new JSONArray().put("Costa Luna")),
+                f("fecha", "2026-11-11", "navieras", new JSONArray().put("AIDA Nova").put("turno:10:00 a 12:00")));
+        JSONObject r = Datos.calcular(HOY, hist, new JSONArray(), new JSONArray(), new JSONArray(), cal);
+        JSONObject p = r.getJSONObject("panel");
+        assertEquals(4, p.getInt("total"));
+        assertEquals(1, p.getInt("cubiertos"));
+        assertEquals(1, p.getInt("sinNadie"));
+        assertEquals(2, p.getInt("faltan"));
+        assertEquals("semana 1 y 2: 1 turno cada una", "1/1 0/1 0/1 0/1 ", semanas(p));
+        JSONArray b = p.getJSONArray("barcos");
+        assertEquals("Costa Luna", b.getJSONObject(0).getString("barcos"));
+        assertEquals(0, b.getJSONObject(0).getInt("peor"));
+        assertEquals(2, b.getJSONObject(1).getInt("peor"));
+        // Fuera de las 2 semanas no cuenta para "Por resolver"
+        assertEquals("día 30 dentro; 11 y 20 de noviembre fuera", 1, r.getInt("necesitan"));
+        // Extras: voluntarios
+        JSONArray vols = a(f("id", "A", "nombre", "ANA LOPEZ", "tiene_llave", true), f("id", "B", "nombre", "BEA RUIZ", "tiene_llave", false),
+                f("id", "C", "nombre", "CARLOS PEREZ", "tiene_llave", false), f("id", "D", "nombre", "DANI GIL", "tiene_llave", false));
+        JSONObject x = Datos.extras(p, vols, null, a(f("ok", true), f("ok", false)));
+        assertEquals(4, x.getInt("activos"));
+        assertEquals(1, x.getInt("conLlave"));
+        assertEquals("Dani no tiene turnos", 1, x.getInt("sinTurnos"));
+        assertEquals("Ana L.", x.getJSONArray("top").getJSONObject(0).getString("n"));
+        assertEquals(1, x.getInt("correosFallos"));
+    }
+
+    private static String semanas(JSONObject p) {
+        JSONArray s = p.optJSONArray("semanas");
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) b.append(s.optJSONObject(i).optInt("cubiertos")).append("/").append(s.optJSONObject(i).optInt("total")).append(" ");
+        return b.toString();
+    }
+
+    @Test
     public void nombresCortos() {
         assertEquals("Pedro R.", Datos.corto("PEDRO RUIZ GARCIA"));
         assertEquals("Ana", Datos.corto("ANA"));

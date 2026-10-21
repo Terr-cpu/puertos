@@ -11,8 +11,8 @@ android {
         applicationId 'org.asispuerto.admin'
         minSdk 26
         targetSdk 34
-        versionCode 3
-        versionName '1.1.1'
+        versionCode 4
+        versionName '1.2'
     }
 
     buildTypes {
@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    // Solo para las pruebas en el ordenador (el org.json de Android no funciona fuera del móvil)
+    // Solo para las pruebas en el ordenador (el org.json de Android no funciona fuera del mÃ³vil)
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.json:json:20240303'
 }

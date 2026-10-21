@@ -14,7 +14,7 @@ import java.util.List;
 
 /** Filas desplazables de los widgets "Próximos 7 días" y "Bandeja". */
 public class ListaService extends RemoteViewsService {
-    static final String SEMANA = "semana", BANDEJA = "bandeja";
+    static final String SEMANA = "semana", BANDEJA = "bandeja", PANEL = "panel";
 
     @Override
     public RemoteViewsFactory onGetViewFactory(Intent intent) {
@@ -52,6 +52,8 @@ public class ListaService extends RemoteViewsService {
                         if (ts == null || ts.length() == 0) filas.add(new JSONObject().put("fila", "nada"));
                         else for (int k = 0; k < ts.length(); k++) filas.add(ts.getJSONObject(k).put("fila", "turno").put("fecha", d.getString("fecha")));
                     }
+                } else if (PANEL.equals(tipo)) {
+                    filasPanel(r);
                 } else {
                     JSONArray b = r.optJSONArray("bandeja");
                     if (b != null) for (int i = 0; i < b.length(); i++) filas.add(b.getJSONObject(i));
@@ -63,7 +65,106 @@ public class ListaService extends RemoteViewsService {
         public RemoteViews getViewAt(int p) {
             if (p >= filas.size()) return null;
             JSONObject f = filas.get(p);
-            return SEMANA.equals(tipo) ? filaSemana(f) : filaBandeja(f);
+            return SEMANA.equals(tipo) ? filaSemana(f) : PANEL.equals(tipo) ? filaPanel(f) : filaBandeja(f);
+        }
+
+        // ── Panel: el próximo mes y el estado general ──
+        private void sec(String t) throws Exception { filas.add(new JSONObject().put("fila", "sec").put("t", t)); }
+
+        private void dato(String l1, String l2, String tab) throws Exception {
+            filas.add(new JSONObject().put("fila", "dato").put("l1", l1).put("l2", l2 == null ? "" : l2).put("tab", tab));
+        }
+
+        private static String barra(int hechos, int total) {
+            int llenos = total == 0 ? 0 : Math.round(10f * hechos / total);
+            StringBuilder s = new StringBuilder();
+            for (int i = 0; i < 10; i++) s.append(i < llenos ? "▓" : "░");
+            return s.toString();
+        }
+
+        private static String hace(String ts) {
+            try {
+                long min = java.time.Duration.between(java.time.OffsetDateTime.parse(ts).toInstant(), java.time.Instant.now()).toMinutes();
+                if (min < 1) return "ahora";
+                if (min < 60) return "hace " + min + " min";
+                if (min < 48 * 60) return "hace " + (min / 60) + " h";
+                return "hace " + (min / 1440) + " días";
+            } catch (Exception e) { return ""; }
+        }
+
+        private void filasPanel(JSONObject r) throws Exception {
+            JSONObject p = r.optJSONObject("panel");
+            if (p == null) return;
+            int total = p.optInt("total"), cub = p.optInt("cubiertos");
+            sec("PRÓXIMOS 30 DÍAS");
+            dato("📊  " + total + " turnos · " + cub + " cubiertos" + (total > 0 ? " (" + Math.round(100f * cub / total) + " %)" : ""),
+                    "🔴 " + p.optInt("sinNadie") + " sin nadie   🟠 " + p.optInt("faltan") + " con faltas   🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
+            JSONArray sem = p.optJSONArray("semanas");
+            String[] nombres = {"Esta semana", "La próxima", "Dentro de 2 semanas", "Dentro de 3 semanas"};
+            if (sem != null) for (int i = 0; i < sem.length(); i++) {
+                JSONObject s = sem.getJSONObject(i);
+                int t = s.optInt("total"), c = s.optInt("cubiertos");
+                dato(nombres[i] + "   " + (t == 0 ? "sin turnos" : barra(c, t) + "  " + c + "/" + t),
+                        Datos.diaCorto(s.optString("ini")) + " – " + Datos.diaCorto(s.optString("fin")), "mes");
+            }
+            JSONArray bs = p.optJSONArray("barcos");
+            if (bs != null && bs.length() > 0) {
+                sec("PRÓXIMOS BARCOS");
+                for (int i = 0; i < bs.length(); i++) {
+                    JSONObject b = bs.getJSONObject(i);
+                    int peor = b.optInt("peor"), t = b.optInt("turnos");
+                    String estado = peor < 0 ? "sin turnos todavía" : (peor == 0 ? "🟢 " : peor == 1 ? "🟠 " : "🔴 ")
+                            + b.optInt("cubiertos") + " de " + t + " turno" + (t == 1 ? "" : "s") + " cubierto" + (t == 1 ? "" : "s");
+                    dato("🚢  " + b.optString("barcos"), Datos.diaCorto(b.optString("fecha")) + "  ·  " + estado, "mes");
+                }
+            }
+            JSONObject x = p.optJSONObject("extra");
+            if (x != null && x.has("activos")) {
+                sec("VOLUNTARIOS");
+                dato("👥  " + x.optInt("activos") + " activos · 🔑 " + x.optInt("conLlave") + " con llave",
+                        x.optInt("sinTurnos") + " sin ningún turno en los próximos 30 días", "voluntarios");
+                JSONArray top = x.optJSONArray("top");
+                if (top != null && top.length() > 0) {
+                    StringBuilder t = new StringBuilder();
+                    for (int i = 0; i < top.length(); i++) {
+                        if (t.length() > 0) t.append("  ·  ");
+                        t.append(top.getJSONObject(i).optString("n")).append(" ").append(top.getJSONObject(i).optInt("turnos"));
+                    }
+                    dato("Más turnos este mes", t.toString(), "estadisticas");
+                }
+            }
+            JSONArray act = x == null ? null : x.optJSONArray("actividad");
+            if (act != null && act.length() > 0) {
+                sec("ÚLTIMOS MOVIMIENTOS");
+                for (int i = 0; i < act.length(); i++) {
+                    JSONObject e = act.getJSONObject(i);
+                    boolean baja = "baja".equals(e.optString("tipo"));
+                    boolean diaEntero = e.optBoolean("es_dia_completo") || e.isNull("rango");
+                    dato((baja ? "✕  " : "✋  ") + Datos.corto(e.optString("nombre")) + (baja ? " se dio de baja" : diaEntero ? " se ofrece todo el día" : " se apuntó")
+                                    + "  ·  " + hace(e.optString("ts")),
+                            Datos.diaCorto(e.optString("fecha")) + (diaEntero ? "" : " · " + e.optString("rango")), "cambios");
+                }
+            }
+            if (x != null && x.has("correos")) {
+                sec("CORREOS · ÚLTIMAS 24 H");
+                int n = x.optInt("correos"), mal = x.optInt("correosFallos");
+                dato("📧  " + n + " enviado" + (n == 1 ? "" : "s") + (mal == 0 ? (n > 0 ? " · ✓ todos bien" : "") : " · ⚠ " + mal + " fallaron"),
+                        mal > 0 ? "Míralos en Inicio → Avisos enviados" : null, "inicio");
+            }
+        }
+
+        private RemoteViews filaPanel(JSONObject f) {
+            if ("sec".equals(f.optString("fila"))) {
+                RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_dia);
+                v.setTextViewText(R.id.texto, f.optString("t"));
+                return v;
+            }
+            RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_turno);
+            v.setTextViewText(R.id.linea1, f.optString("l1"));
+            v.setTextViewText(R.id.linea2, f.optString("l2"));
+            v.setViewVisibility(R.id.linea2, f.optString("l2").isEmpty() ? View.GONE : View.VISIBLE);
+            v.setOnClickFillInIntent(R.id.fila, new Intent().putExtra("accion", "abrir").putExtra("tab", f.optString("tab")));
+            return v;
         }
 
         // ── Próximos 7 días ──

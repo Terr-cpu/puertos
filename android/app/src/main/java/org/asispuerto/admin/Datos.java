@@ -30,6 +30,7 @@ final class Datos {
     static final int MIN = 3;
     static final int DIAS = 14;          // "Por resolver" y la bandeja: próximas dos semanas
     static final int DIAS_SEMANA = 7;    // widget "Próximos 7 días"
+    static final int DIAS_PANEL = 30;    // widget "Panel": el próximo mes
     static final ZoneId MADRID = ZoneId.of("Europe/Madrid");
     static final Locale ES = new Locale("es", "ES");
 
@@ -37,7 +38,7 @@ final class Datos {
 
     /** Descarga y calcula; devuelve el resumen en JSON (lo que se guarda en caché). */
     static JSONObject cargar(Context c) throws Exception {
-        LocalDate hoy = LocalDate.now(MADRID), fin = hoy.plusDays(DIAS - 1);
+        LocalDate hoy = LocalDate.now(MADRID), fin = hoy.plusDays(DIAS_PANEL - 1);
         String q = "fecha=gte." + hoy + "&fecha=lte." + fin;
         JSONArray hist = new JSONArray(Sesion.get(c, "v_historial?" + q + "&select=fecha,rango,voluntario_id,nombre,tiene_llave"));
         JSONArray bajas = new JSONArray(Sesion.get(c, "v_bajas_activas?" + q + "&select=fecha,rango,voluntario_id"));
@@ -45,8 +46,44 @@ final class Datos {
         JSONArray anul = new JSONArray(Sesion.get(c, "turnos_no_realizados?" + q + "&select=fecha,rango"));
         JSONArray cal = new JSONArray(Sesion.get(c, "v_calendario?" + q + "&activo=eq.true&select=fecha,navieras"));
         JSONObject out = calcular(hoy, hist, bajas, refs, anul, cal);
+        JSONArray vols = null, act = null, correos = null;
+        try { vols = new JSONArray(Sesion.get(c, "voluntarios?activo=eq.true&select=id,nombre,tiene_llave")); } catch (Exception e) { /* sin ese bloque */ }
+        try { act = new JSONArray(Sesion.get(c, "actividad?tipo=in.(baja,apunte)&order=id.desc&limit=6&select=ts,tipo,nombre,fecha,rango,es_dia_completo")); } catch (Exception e) { /* idem */ }
+        try {
+            String desde = java.time.Instant.now().minusSeconds(24 * 3600).toString();
+            correos = new JSONArray(Sesion.get(c, "registro_avisos?ts=gte." + desde + "&select=ok&limit=1000"));
+        } catch (Exception e) { /* idem */ }
+        out.getJSONObject("panel").put("extra", extras(out.getJSONObject("panel"), vols, act, correos));
         out.put("ts", System.currentTimeMillis());
         return out;
+    }
+
+    /** Voluntarios (activos, con llave, sin turnos y los que más tienen), últimos movimientos y correos de las últimas 24 h. */
+    static JSONObject extras(JSONObject panel, JSONArray vols, JSONArray act, JSONArray correos) throws Exception {
+        JSONObject x = new JSONObject();
+        JSONObject carga = panel.optJSONObject("carga");
+        if (vols != null) {
+            int conLlave = 0, sinTurnos = 0;
+            List<JSONObject> lista = new ArrayList<>();
+            for (int i = 0; i < vols.length(); i++) {
+                JSONObject v = vols.getJSONObject(i);
+                if (v.optBoolean("tiene_llave")) conLlave++;
+                int n = carga == null ? 0 : carga.optInt(v.optString("id"), 0);
+                if (n == 0) sinTurnos++;
+                else lista.add(new JSONObject().put("n", corto(v.optString("nombre"))).put("turnos", n));
+            }
+            lista.sort((a, b) -> b.optInt("turnos") - a.optInt("turnos"));
+            JSONArray top = new JSONArray();
+            for (int i = 0; i < Math.min(3, lista.size()); i++) top.put(lista.get(i));
+            x.put("activos", vols.length()).put("conLlave", conLlave).put("sinTurnos", sinTurnos).put("top", top);
+        }
+        if (act != null) x.put("actividad", act);
+        if (correos != null) {
+            int fallos = 0;
+            for (int i = 0; i < correos.length(); i++) if (!correos.getJSONObject(i).optBoolean("ok", true)) fallos++;
+            x.put("correos", correos.length()).put("correosFallos", fallos);
+        }
+        return x;
     }
 
     /** El cálculo, sin red (se prueba en src/test). */
@@ -119,8 +156,9 @@ final class Datos {
 
         int necesitan = 0, porAceptar = 0, bajasSin = 0, sinLlave = 0;
         JSONArray bandeja = new JSONArray();
+        String lim = hoy.plusDays(DIAS - 1).toString();
         for (T t : orden) {
-            if (t.anulado || t.solapa) continue;
+            if (t.anulado || t.solapa || t.fecha.compareTo(lim) > 0) continue;
             int faltan = Math.max(0, MIN - t.n);
             if (faltan > 0) necesitan++;
             porAceptar += t.pendientes.size();
@@ -157,7 +195,48 @@ final class Datos {
                 semana.put(new JSONObject().put("fecha", f).put("barcos", barcos.getOrDefault(f, "")).put("turnos", ts));
         }
 
+        JSONObject panel = new JSONObject();
+        int total = 0, cubiertos = 0, faltanT = 0, sinNadie = 0, llaveT = 0;
+        int[] semT = new int[4], semC = new int[4];
+        Map<String, Integer> carga = new HashMap<>();
+        Map<String, int[]> porDia = new HashMap<>();   // fecha → {turnos, cubiertos, peor (0 ok,1 faltan,2 nadie)}
+        for (T t : orden) {
+            if (t.anulado || t.solapa) continue;
+            total++;
+            int dias = (int) java.time.temporal.ChronoUnit.DAYS.between(hoy, LocalDate.parse(t.fecha));
+            int s = Math.min(3, Math.max(0, dias / 7));
+            semT[s]++;
+            if (t.n >= MIN) { cubiertos++; semC[s]++; } else if (t.n == 0) sinNadie++; else faltanT++;
+            if (t.sinLlave) llaveT++;
+            for (String id : t.van) carga.merge(id, 1, Integer::sum);
+            int[] d = porDia.computeIfAbsent(t.fecha, k -> new int[3]);
+            d[0]++;
+            if (t.n >= MIN) d[1]++;
+            d[2] = Math.max(d[2], t.n == 0 ? 2 : t.n < MIN ? 1 : 0);
+        }
+        panel.put("total", total).put("cubiertos", cubiertos).put("faltan", faltanT).put("sinNadie", sinNadie).put("sinLlave", llaveT);
+        JSONArray semanas = new JSONArray();
+        for (int s = 0; s < 4; s++) {
+            LocalDate ini = hoy.plusDays(s * 7L), finS = s == 3 ? hoy.plusDays(DIAS_PANEL - 1) : ini.plusDays(6);
+            semanas.put(new JSONObject().put("ini", ini.toString()).put("fin", finS.toString()).put("total", semT[s]).put("cubiertos", semC[s]));
+        }
+        panel.put("semanas", semanas);
+        List<String> diasBarco = new ArrayList<>(barcos.keySet());
+        diasBarco.sort(String::compareTo);
+        JSONArray proxBarcos = new JSONArray();
+        for (String f : diasBarco) {
+            if (proxBarcos.length() >= 5) break;
+            int[] d = porDia.getOrDefault(f, new int[3]);
+            proxBarcos.put(new JSONObject().put("fecha", f).put("barcos", barcos.get(f))
+                    .put("turnos", d[0]).put("cubiertos", d[1]).put("peor", d[0] == 0 ? -1 : d[2]));
+        }
+        panel.put("barcos", proxBarcos);
+        JSONObject cargaJ = new JSONObject();
+        for (Map.Entry<String, Integer> e : carga.entrySet()) cargaJ.put(e.getKey(), e.getValue());
+        panel.put("carga", cargaJ);
+
         JSONObject out = new JSONObject();
+        out.put("panel", panel);
         out.put("hoy", hoy.toString());
         out.put("manana", hoy.plusDays(1).toString());
         out.put("tHoy", lista(orden, hoy.toString()));
