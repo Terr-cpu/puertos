@@ -25,7 +25,22 @@ import java.time.LocalDate;
  * Lee la tabla "actividad" (la rellenan los triggers de la base de datos) y "registro_avisos".
  */
 public class Avisos extends JobService {
-    private static final int TRABAJO = 1;
+    private static final int TRABAJO = 1, AHORA = 2;
+
+    /** Actualización de los widgets cuanto antes (al pulsar ↻, al abrir la app, tras una acción). */
+    static void actualizarYa(Context c) {
+        try {
+            android.os.PersistableBundle extra = new android.os.PersistableBundle();
+            extra.putBoolean("soloWidgets", true);
+            ((JobScheduler) c.getSystemService(JOB_SCHEDULER_SERVICE)).schedule(
+                    new JobInfo.Builder(AHORA, new ComponentName(c, Avisos.class))
+                            .setOverrideDeadline(0)
+                            .setExtras(extra)
+                            .build());
+        } catch (RuntimeException e) {
+            new Thread(() -> Widgets.refrescarAhora(c)).start();   // por si el sistema no la admite
+        }
+    }
     static final String CANAL_CAMBIOS = "cambios", CANAL_CORREOS = "correos";
 
     /** Programa la comprobación periódica (al abrir la app y al reiniciar el móvil). */
@@ -55,11 +70,8 @@ public class Avisos extends JobService {
         Context c = getApplicationContext();
         new Thread(() -> {
             try {
-                if (Sesion.conectada(c)) {
-                    try { Datos.guardar(c, Datos.cargar(c), null); } catch (Exception e) { Datos.guardar(c, null, e.getMessage()); }
-                    Widgets.pintarTodos(c, false);
-                    comprobar(c);
-                }
+                Widgets.refrescarAhora(c);
+                if (Sesion.conectada(c) && !p.getExtras().getBoolean("soloWidgets", false)) comprobar(c);
             } catch (Exception ignorado) {
                 // Sin red o sesión caducada: se reintenta en la próxima vuelta
             } finally {

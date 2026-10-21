@@ -91,7 +91,9 @@ final class Sesion {
 
     /** GET a la API REST de Supabase con el token de la sesión. */
     static String get(Context c, String ruta) throws Exception {
+        long t0 = System.currentTimeMillis();
         Respuesta r = peticion("GET", "/rest/v1/" + ruta, token(c), null);
+        android.util.Log.i("PuertoAdmin", ruta.split("[?]")[0] + " " + r.codigo + " " + (System.currentTimeMillis() - t0) + " ms " + r.cuerpo.length() + " B");
         if (r.codigo == 401) {
             // Token rechazado: forzar renovación una vez
             prefs(c).edit().putLong("caduca", 0).apply();
@@ -121,8 +123,8 @@ final class Sesion {
         HttpURLConnection con = (HttpURLConnection) new URL(URL_SB + ruta).openConnection();
         if (prefer != null) con.setRequestProperty("Prefer", prefer);
         con.setRequestMethod(metodo);
-        con.setConnectTimeout(8000);
-        con.setReadTimeout(8000);
+        con.setConnectTimeout(15000);
+        con.setReadTimeout(20000);
         con.setRequestProperty("apikey", CLAVE);
         con.setRequestProperty("Authorization", "Bearer " + (token != null ? token : CLAVE));
         con.setRequestProperty("Accept", "application/json");

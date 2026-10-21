@@ -47,7 +47,8 @@ public class ListaService extends RemoteViewsService {
                     if (dias == null) return;
                     for (int i = 0; i < dias.length(); i++) {
                         JSONObject d = dias.getJSONObject(i);
-                        filas.add(new JSONObject().put("fila", "dia").put("fecha", d.getString("fecha")).put("barcos", d.optString("barcos")));
+                        filas.add(new JSONObject().put("fila", "dia").put("fecha", d.getString("fecha")).put("barcos", d.optString("barcos"))
+                                .put("preparando", d.optBoolean("preparando")));
                         JSONArray ts = d.optJSONArray("turnos");
                         if (ts == null || ts.length() == 0) filas.add(new JSONObject().put("fila", "nada"));
                         else for (int k = 0; k < ts.length(); k++) filas.add(ts.getJSONObject(k).put("fila", "turno").put("fecha", d.getString("fecha")));
@@ -78,7 +79,7 @@ public class ListaService extends RemoteViewsService {
         private static String barra(int hechos, int total) {
             int llenos = total == 0 ? 0 : Math.round(10f * hechos / total);
             StringBuilder s = new StringBuilder();
-            for (int i = 0; i < 10; i++) s.append(i < llenos ? "▓" : "░");
+            for (int i = 0; i < 10; i++) s.append(i < llenos ? "▰" : "▱");
             return s.toString();
         }
 
@@ -98,7 +99,10 @@ public class ListaService extends RemoteViewsService {
             int total = p.optInt("total"), cub = p.optInt("cubiertos");
             sec("PRÓXIMOS 30 DÍAS");
             dato("📊  " + total + " turnos · " + cub + " cubiertos" + (total > 0 ? " (" + Math.round(100f * cub / total) + " %)" : ""),
-                    "🔴 " + p.optInt("sinNadie") + " sin nadie   🟠 " + p.optInt("faltan") + " con faltas   🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
+                    "🔴 " + p.optInt("sinNadie") + " sin nadie" + (p.optInt("sinNadiePrep") > 0 ? " (" + p.optInt("sinNadiePrep") + " en preparación)" : "") + "   🟠 " + p.optInt("faltan") + " con faltas   🔑 " + p.optInt("sinLlave") + " sin llave", "mes");
+            int prep = p.optInt("diasPreparando");
+            if (prep > 0) dato("🛠  " + prep + (prep == 1 ? " día en preparación" : " días en preparación"),
+                    "Ocultos a los voluntarios hasta que los muestres", "calendario");
             JSONArray sem = p.optJSONArray("semanas");
             String[] nombres = {"Esta semana", "La próxima", "Dentro de 2 semanas", "Dentro de 3 semanas"};
             if (sem != null) for (int i = 0; i < sem.length(); i++) {
@@ -115,7 +119,8 @@ public class ListaService extends RemoteViewsService {
                     int peor = b.optInt("peor"), t = b.optInt("turnos");
                     String estado = peor < 0 ? "sin turnos todavía" : (peor == 0 ? "🟢 " : peor == 1 ? "🟠 " : "🔴 ")
                             + b.optInt("cubiertos") + " de " + t + " turno" + (t == 1 ? "" : "s") + " cubierto" + (t == 1 ? "" : "s");
-                    dato("🚢  " + b.optString("barcos"), Datos.diaCorto(b.optString("fecha")) + "  ·  " + estado, "mes");
+                    dato("🚢  " + b.optString("barcos"), Datos.diaCorto(b.optString("fecha")) + "  ·  " + estado
+                            + (b.optBoolean("preparando") ? "  ·  🛠 en preparación" : ""), "mes");
                 }
             }
             JSONObject x = p.optJSONObject("extra");
@@ -173,7 +178,8 @@ public class ListaService extends RemoteViewsService {
             if ("dia".equals(clase)) {
                 RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_dia);
                 String b = f.optString("barcos");
-                v.setTextViewText(R.id.texto, Datos.diaCorto(f.optString("fecha")).toUpperCase(Datos.ES) + (b.isEmpty() ? "" : "   🚢 " + b));
+                v.setTextViewText(R.id.texto, Datos.diaCorto(f.optString("fecha")).toUpperCase(Datos.ES)
+                        + (f.optBoolean("preparando") ? "  · 🛠 EN PREPARACIÓN" : "") + (b.isEmpty() ? "" : "   🚢 " + b));
                 return v;
             }
             if ("nada".equals(clase)) {
@@ -207,7 +213,7 @@ public class ListaService extends RemoteViewsService {
             RemoteViews v = new RemoteViews(c.getPackageName(), R.layout.item_bandeja);
             String fecha = f.optString("fecha"), rango = f.optString("rango"), nombre = f.optString("nombre");
             int n = f.optInt("n"), faltan = f.optInt("faltan");
-            String cuando = Datos.diaCorto(fecha) + " · " + rango;
+            String cuando = Datos.diaCorto(fecha) + " · " + rango + (f.optBoolean("preparando") ? " · 🛠" : "");
             String titulo, detalle;
             Intent b1 = null, b2 = null;
             String t1 = null, t2 = null;

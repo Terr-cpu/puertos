@@ -26,25 +26,28 @@ final class Widgets {
 
     private Widgets() {}
 
-    /** Descarga en segundo plano, guarda y repinta todos los widgets. `fin` (opcional) al terminar. */
+    /**
+     * Pide una actualización. Se hace como tarea de Android (Avisos, modo "solo widgets"):
+     * un widget solo tiene ~10 s para trabajar y, si la red va lenta, se quedaba en "Actualizando…".
+     */
     static void actualizar(Context ctx, BroadcastReceiver.PendingResult fin) {
-        Context c = ctx.getApplicationContext();
-        new Thread(() -> {
-            try {
-                if (!Sesion.conectada(c)) {
-                    Datos.guardar(c, null, "sin_sesion");
-                } else {
-                    Datos.guardar(c, Datos.cargar(c), null);
-                }
-            } catch (Sesion.SinSesion e) {
-                Datos.guardar(c, null, "sin_sesion");
-            } catch (Exception e) {
-                Datos.guardar(c, null, e.getMessage() != null ? e.getMessage() : "Sin conexión");
-            } finally {
-                pintarTodos(c, false);
-                if (fin != null) fin.finish();
-            }
-        }).start();
+        Avisos.actualizarYa(ctx.getApplicationContext());
+        if (fin != null) fin.finish();
+    }
+
+    /** Descarga, guarda y repinta (dentro de la tarea; puede tardar lo que haga falta). */
+    static void refrescarAhora(Context c) {
+        try {
+            if (!Sesion.conectada(c)) Datos.guardar(c, null, "sin_sesion");
+            else Datos.guardar(c, Datos.cargar(c), null);
+        } catch (Sesion.SinSesion e) {
+            Datos.guardar(c, null, "sin_sesion");
+        } catch (Exception e) {
+            String m = e.getMessage() != null ? e.getMessage() : "Sin conexión";
+            Datos.guardar(c, null, m.contains("timeout") || m.contains("timed out") ? "La conexión tardó demasiado" : m);
+        } finally {
+            pintarTodos(c, false);
+        }
     }
 
     /** ¿Hay algún widget en la pantalla de inicio? (para no descargar en vano al abrir la app) */
@@ -121,7 +124,7 @@ final class Widgets {
         if (actualizando) return "Actualizando…";
         String err = Datos.error(c);
         String hora = r != null ? new SimpleDateFormat("HH:mm", ES).format(new Date(r.optLong("ts"))) : "";
-        if (err != null && !"sin_sesion".equals(err)) return "⚠ Sin conexión" + (hora.isEmpty() ? "" : " · datos de las " + hora);
+        if (err != null && !"sin_sesion".equals(err)) return "⚠ " + err + (hora.isEmpty() ? "" : " · datos de las " + hora);
         return hora.isEmpty() ? "" : "Actualizado a las " + hora;
     }
 

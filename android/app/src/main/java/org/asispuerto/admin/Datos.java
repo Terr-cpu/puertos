@@ -40,22 +40,37 @@ final class Datos {
     static JSONObject cargar(Context c) throws Exception {
         LocalDate hoy = LocalDate.now(MADRID), fin = hoy.plusDays(DIAS_PANEL - 1);
         String q = "fecha=gte." + hoy + "&fecha=lte." + fin;
-        JSONArray hist = new JSONArray(Sesion.get(c, "v_historial?" + q + "&select=fecha,rango,voluntario_id,nombre,tiene_llave"));
-        JSONArray bajas = new JSONArray(Sesion.get(c, "v_bajas_activas?" + q + "&select=fecha,rango,voluntario_id"));
-        JSONArray refs = new JSONArray(Sesion.get(c, "v_refuerzos?" + q + "&select=fecha,rango,voluntario_id,nombre,es_dia_completo,tiene_llave"));
-        JSONArray anul = new JSONArray(Sesion.get(c, "turnos_no_realizados?" + q + "&select=fecha,rango"));
-        JSONArray cal = new JSONArray(Sesion.get(c, "v_calendario?" + q + "&activo=eq.true&select=fecha,navieras"));
-        JSONObject out = calcular(hoy, hist, bajas, refs, anul, cal);
-        JSONArray vols = null, act = null, correos = null;
-        try { vols = new JSONArray(Sesion.get(c, "voluntarios?activo=eq.true&select=id,nombre,tiene_llave")); } catch (Exception e) { /* sin ese bloque */ }
-        try { act = new JSONArray(Sesion.get(c, "actividad?tipo=in.(baja,apunte)&order=id.desc&limit=6&select=ts,tipo,nombre,fecha,rango,es_dia_completo")); } catch (Exception e) { /* idem */ }
+        Sesion.token(c);   // renovar la sesión una vez, antes de lanzar las descargas a la vez
+        String desde = java.time.Instant.now().minusSeconds(24 * 3600).toString();
+        java.util.concurrent.ExecutorService ex = java.util.concurrent.Executors.newFixedThreadPool(8);
         try {
-            String desde = java.time.Instant.now().minusSeconds(24 * 3600).toString();
-            correos = new JSONArray(Sesion.get(c, "registro_avisos?ts=gte." + desde + "&select=ok&limit=1000"));
-        } catch (Exception e) { /* idem */ }
-        out.getJSONObject("panel").put("extra", extras(out.getJSONObject("panel"), vols, act, correos));
-        out.put("ts", System.currentTimeMillis());
-        return out;
+            java.util.concurrent.Future<String> fHist = ex.submit(() -> Sesion.get(c, "v_historial?" + q + "&select=fecha,rango,voluntario_id,nombre,tiene_llave"));
+            java.util.concurrent.Future<String> fBajas = ex.submit(() -> Sesion.get(c, "v_bajas_activas?" + q + "&select=fecha,rango,voluntario_id"));
+            java.util.concurrent.Future<String> fRefs = ex.submit(() -> Sesion.get(c, "v_refuerzos?" + q + "&select=fecha,rango,voluntario_id,nombre,es_dia_completo,tiene_llave"));
+            java.util.concurrent.Future<String> fAnul = ex.submit(() -> Sesion.get(c, "turnos_no_realizados?" + q + "&select=fecha,rango"));
+            java.util.concurrent.Future<String> fCal = ex.submit(() -> Sesion.get(c, "v_calendario?" + q + "&activo=eq.true&select=fecha,navieras"));
+            java.util.concurrent.Future<String> fVols = ex.submit(() -> Sesion.get(c, "voluntarios?activo=eq.true&select=id,nombre,tiene_llave"));
+            java.util.concurrent.Future<String> fAct = ex.submit(() -> Sesion.get(c, "actividad?tipo=in.(baja,apunte)&order=id.desc&limit=6&select=ts,tipo,nombre,fecha,rango,es_dia_completo"));
+            java.util.concurrent.Future<String> fCorreos = ex.submit(() -> Sesion.get(c, "registro_avisos?ts=gte." + desde + "&select=ok&limit=1000"));
+            JSONObject out = calcular(hoy, new JSONArray(espera(fHist)), new JSONArray(espera(fBajas)), new JSONArray(espera(fRefs)),
+                    new JSONArray(espera(fAnul)), new JSONArray(espera(fCal)));
+            // Lo de abajo es secundario: si falla, el panel sale sin ese bloque
+            JSONArray vols = opcional(fVols), act = opcional(fAct), correos = opcional(fCorreos);
+            out.getJSONObject("panel").put("extra", extras(out.getJSONObject("panel"), vols, act, correos));
+            out.put("ts", System.currentTimeMillis());
+            return out;
+        } finally {
+            ex.shutdownNow();
+        }
+    }
+
+    private static String espera(java.util.concurrent.Future<String> f) throws Exception {
+        try { return f.get(30, java.util.concurrent.TimeUnit.SECONDS); }
+        catch (java.util.concurrent.ExecutionException e) { throw e.getCause() instanceof Exception ? (Exception) e.getCause() : e; }
+    }
+
+    private static JSONArray opcional(java.util.concurrent.Future<String> f) {
+        try { return new JSONArray(espera(f)); } catch (Exception e) { return null; }
     }
 
     /** Voluntarios (activos, con llave, sin turnos y los que más tienen), últimos movimientos y correos de las últimas 24 h. */
@@ -112,12 +127,14 @@ final class Datos {
             turno(turnos, r.getString("fecha"), r.getString("rango")).apuntes.add(id);
         }
         Map<String, String> barcos = new HashMap<>();
+        Set<String> preparando = new HashSet<>();   // días ocultos a los voluntarios mientras se preparan
         for (int i = 0; i < cal.length(); i++) {
             JSONObject d = cal.getJSONObject(i);
             JSONArray navs = d.optJSONArray("navieras");
             List<String> reales = new ArrayList<>();
             if (navs != null) for (int k = 0; k < navs.length(); k++) {
                 String n = navs.optString(k);
+                if (n.equals("ocultoVol")) preparando.add(d.getString("fecha"));
                 if (n.startsWith("turno:")) turno(turnos, d.getString("fecha"), n.substring(6)).abierto = true;
                 else if (!n.matches("^(opt:|info:|muelle:).*") && !n.equals("ocultoVol")) reales.add(n);
             }
@@ -165,7 +182,8 @@ final class Datos {
             if (!t.deBaja.isEmpty() && faltan > 0) bajasSin++;
             if (t.sinLlave) sinLlave++;
             // Bandeja: lo que pide una acción, de lo más urgente (antes) a lo más lejano
-            JSONObject base = new JSONObject().put("fecha", t.fecha).put("rango", t.rango).put("n", t.n).put("faltan", faltan);
+            JSONObject base = new JSONObject().put("fecha", t.fecha).put("rango", t.rango).put("n", t.n).put("faltan", faltan)
+                    .put("preparando", preparando.contains(t.fecha));
             for (String id : t.pendientes) bandeja.put(new JSONObject(base.toString())
                     .put("tipo", "apunte").put("vid", id).put("nombre", corto(nombre.get(id))).put("nombreCompleto", nombre.getOrDefault(id, "")));
             if (faltan > 0 && !t.deBaja.isEmpty()) {
@@ -192,11 +210,12 @@ final class Datos {
                         .put("sinLlave", t.sinLlave).put("porAceptar", t.pendientes.size()).put("van", van));
             }
             if (ts.length() > 0 || barcos.containsKey(f))
-                semana.put(new JSONObject().put("fecha", f).put("barcos", barcos.getOrDefault(f, "")).put("turnos", ts));
+                semana.put(new JSONObject().put("fecha", f).put("barcos", barcos.getOrDefault(f, "")).put("turnos", ts)
+                        .put("preparando", preparando.contains(f)));
         }
 
         JSONObject panel = new JSONObject();
-        int total = 0, cubiertos = 0, faltanT = 0, sinNadie = 0, llaveT = 0;
+        int total = 0, cubiertos = 0, faltanT = 0, sinNadie = 0, sinNadiePrep = 0, llaveT = 0;
         int[] semT = new int[4], semC = new int[4];
         Map<String, Integer> carga = new HashMap<>();
         Map<String, int[]> porDia = new HashMap<>();   // fecha → {turnos, cubiertos, peor (0 ok,1 faltan,2 nadie)}
@@ -206,7 +225,7 @@ final class Datos {
             int dias = (int) java.time.temporal.ChronoUnit.DAYS.between(hoy, LocalDate.parse(t.fecha));
             int s = Math.min(3, Math.max(0, dias / 7));
             semT[s]++;
-            if (t.n >= MIN) { cubiertos++; semC[s]++; } else if (t.n == 0) sinNadie++; else faltanT++;
+            if (t.n >= MIN) { cubiertos++; semC[s]++; } else if (t.n == 0) { sinNadie++; if (preparando.contains(t.fecha)) sinNadiePrep++; } else faltanT++;
             if (t.sinLlave) llaveT++;
             for (String id : t.van) carga.merge(id, 1, Integer::sum);
             int[] d = porDia.computeIfAbsent(t.fecha, k -> new int[3]);
@@ -214,6 +233,9 @@ final class Datos {
             if (t.n >= MIN) d[1]++;
             d[2] = Math.max(d[2], t.n == 0 ? 2 : t.n < MIN ? 1 : 0);
         }
+        int prep = 0;
+        for (String f : preparando) if (f.compareTo(hoy.toString()) >= 0) prep++;
+        panel.put("diasPreparando", prep).put("sinNadiePrep", sinNadiePrep);
         panel.put("total", total).put("cubiertos", cubiertos).put("faltan", faltanT).put("sinNadie", sinNadie).put("sinLlave", llaveT);
         JSONArray semanas = new JSONArray();
         for (int s = 0; s < 4; s++) {
@@ -227,7 +249,7 @@ final class Datos {
         for (String f : diasBarco) {
             if (proxBarcos.length() >= 5) break;
             int[] d = porDia.getOrDefault(f, new int[3]);
-            proxBarcos.put(new JSONObject().put("fecha", f).put("barcos", barcos.get(f))
+            proxBarcos.put(new JSONObject().put("fecha", f).put("barcos", barcos.get(f)).put("preparando", preparando.contains(f))
                     .put("turnos", d[0]).put("cubiertos", d[1]).put("peor", d[0] == 0 ? -1 : d[2]));
         }
         panel.put("barcos", proxBarcos);
