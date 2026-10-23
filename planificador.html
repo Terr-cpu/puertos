@@ -1116,6 +1116,81 @@ html[data-tema="oscuro"] .pb-resumen .verde{color:#7dffb5}
 html[data-tema="oscuro"] .dispo-grid .d-ok{background:rgba(47,210,122,.16);color:#7dffb5}
 html[data-tema="oscuro"] [style*="background:#dfe3ea"]{background:rgba(255,255,255,.14)!important}
 
+
+/* ══ 🚢 Barcos en vivo (AIS) ══ */
+.ais-top{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1rem}
+.ais-senal{display:flex;align-items:center;gap:.65rem;padding:.7rem 1rem;border-radius:16px;background:var(--surface);border:1px solid var(--sep);box-shadow:var(--shadow-sm);flex:1;min-width:240px}
+.ais-senal i{width:11px;height:11px;border-radius:50%;background:var(--label4);flex-shrink:0}
+.ais-senal.ok i{background:#1a9648;box-shadow:0 0 0 4px rgba(26,150,72,.18);animation:ais-pulso 2s infinite}
+.ais-senal.mal i{background:var(--amber)}
+@keyframes ais-pulso{50%{box-shadow:0 0 0 8px rgba(26,150,72,0)}}
+.ais-senal b{display:block;font-size:.86rem}
+.ais-senal small{display:block;font-size:.7rem;color:var(--label3)}
+.ais-kpis{display:flex;gap:.4rem;flex-wrap:wrap}
+.ais-kpis span{font-size:.74rem;color:var(--label2);background:var(--surface);border:1px solid var(--sep);border-radius:999px;padding:.35rem .75rem}
+.ais-kpis b{color:var(--label1);font-weight:800}
+.ais-sec{margin-bottom:1.3rem}
+.ais-sec h3{font-size:1rem;font-weight:800;margin:0 0 .6rem .2rem;letter-spacing:-.01em}
+.ais-sec h3 small{font-size:.72rem;font-weight:500;color:var(--label3);margin-left:.35rem}
+.ais-cals{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:.75rem}
+.ais-cal{background:var(--surface);border:1px solid var(--sep);border-left:5px solid #2f7de1;border-radius:20px;box-shadow:var(--shadow-sm);padding:.95rem 1.05rem;display:flex;flex-direction:column;gap:.6rem}
+.ais-cal.puerto{border-left-color:#1a9648}.ais-cal.subiendo,.ais-cal.viene{border-left-color:#c9a84c}
+.ais-cal.bajando{border-left-color:var(--label4)}.ais-cal.parado{border-left-color:var(--amber)}
+.ais-cal.sin{border-left-color:var(--label4);border-style:dashed;border-left-style:solid}
+.ais-cal-h{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.ais-cal-h b{font-size:1rem;font-weight:800;letter-spacing:-.01em}
+.ais-cuando{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;padding:.2rem .55rem;border-radius:999px;background:var(--surface2);color:var(--label2)}
+.ais-cuando.ya{background:var(--navy);color:#fff}
+.ais-x{margin-left:auto;font:600 .64rem 'Sora',sans-serif;border:1px solid var(--sep);background:none;color:var(--label3);border-radius:999px;padding:.15rem .5rem;cursor:pointer}
+.ais-est{display:flex;gap:.6rem;align-items:flex-start}
+.ais-ico{font-size:1.25rem;line-height:1.2}
+.ais-est b{display:block;font-size:.86rem;line-height:1.35}
+.ais-est small{display:block;font-size:.7rem;color:var(--label3);margin-top:.15rem;line-height:1.4}
+.ais-rio{display:flex;align-items:center;gap:.5rem;font-size:.62rem;font-weight:700;color:var(--label3);text-transform:uppercase;letter-spacing:.05em}
+.ais-rio-l{flex:1;height:6px;border-radius:999px;background:linear-gradient(90deg,rgba(47,125,225,.25),rgba(201,168,76,.35));position:relative}
+.ais-rio-l i{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--navy);border:3px solid #c9a84c;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.ais-datos{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.ais-dato{background:var(--surface2);border-radius:12px;padding:.45rem .6rem}
+.ais-dato span{display:block;font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--label3)}
+.ais-dato b{font-size:.84rem}
+.ais-dato small{font-weight:500;color:var(--label3)}
+.ais-ver{align-self:flex-start;font:700 .74rem 'Sora',sans-serif;border:1px solid var(--sep);background:var(--surface2);color:var(--label1);border-radius:10px;padding:.4rem .75rem;cursor:pointer}
+#ais-mapa{height:460px;border-radius:20px;overflow:hidden;border:1px solid var(--sep);box-shadow:var(--shadow-sm);background:var(--surface2);z-index:0}
+@media(max-width:700px){#ais-mapa{height:360px}}
+.ais-leyenda{display:flex;flex-wrap:wrap;gap:.4rem .9rem;font-size:.7rem;color:var(--label3);margin:.55rem .3rem 0}
+.ais-leyenda i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:.3rem;vertical-align:-1px;border:1.5px solid #0a1628}
+.ais-leyenda i.cal{background:#c9a84c}.ais-leyenda i.pas{background:#2f7de1}.ais-leyenda i.otro{background:#8a94a6}
+.ais-mk{background:none;border:none}
+.ais-puerto{background:none;border:none;font-size:20px;line-height:26px;text-align:center;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4))}
+.ais-etq{font:800 11px 'Sora',sans-serif;background:#0a1628;color:#fff;border:none;border-radius:8px;padding:2px 7px;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.ais-etq::before{display:none}
+.ais-pop{display:flex;flex-direction:column;gap:.2rem;font:500 12px 'Sora',sans-serif;min-width:210px}
+.ais-pop b{font-size:13px}
+.ais-pop .vieja{color:#c0392b}
+.ais-tabla-w{overflow-x:auto;background:var(--surface);border:1px solid var(--sep);border-radius:18px;box-shadow:var(--shadow-sm);margin-top:.6rem}
+.ais-tabla{width:100%;border-collapse:collapse;font-size:.78rem}
+.ais-tabla th{text-align:left;font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--label3);padding:.65rem .75rem;border-bottom:1px solid var(--sep);white-space:nowrap}
+.ais-tabla td{padding:.6rem .75rem;border-bottom:1px solid var(--sep);vertical-align:top}
+.ais-tabla tr:last-child td{border-bottom:none}
+.ais-tabla tr.cal{background:rgba(201,168,76,.08)}
+.ais-tabla td small{display:block;font-size:.66rem;color:var(--label3);margin-top:.1rem}
+.ais-tabla td.vieja{color:var(--amber);font-weight:700}
+.ais-tag{font-size:.6rem;font-weight:800;background:#c9a84c;color:#0a1628;border-radius:999px;padding:.08rem .45rem;margin-left:.25rem;white-space:nowrap}
+.ais-acc{white-space:nowrap;text-align:right}
+.ais-acc button{border:1px solid var(--sep);background:var(--surface2);border-radius:8px;padding:.25rem .45rem;cursor:pointer;font-size:.8rem;margin-left:.2rem}
+.ais-como{background:var(--surface);border:1px solid var(--sep);border-radius:18px;padding:.85rem 1.1rem;box-shadow:var(--shadow-sm)}
+.ais-como summary{cursor:pointer;font-weight:800;font-size:.9rem}
+.ais-como div{margin-top:.6rem;font-size:.82rem;line-height:1.6;color:var(--label2)}
+.ais-como p{margin:.45rem 0}
+.ais-como a{color:var(--blue)}
+.ais-falta ol{margin:.6rem 0 .6rem 1.2rem;font-size:.86rem;line-height:1.8}
+.ais-falta code{background:var(--surface2);padding:.1rem .35rem;border-radius:6px}
+.ais-mini{font-size:.74rem;color:var(--label2);background:var(--surface2);border-radius:10px;padding:.4rem .6rem;margin:.4rem 0;cursor:pointer}
+html[data-tema="oscuro"] .ais-etq{background:#c9a84c;color:#0a1628}
+html[data-tema="oscuro"] .ais-tabla tr.cal{background:rgba(201,168,76,.12)}
+html[data-tema="oscuro"] .ais-cuando.ya{background:linear-gradient(145deg,#2f6fe0,#1b4fb0)}
+html[data-tema="oscuro"] .ais-rio-l i{background:#0f1a30}
+html[data-tema="oscuro"] #ais-mapa .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.9) contrast(.9) saturate(.6)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="auth.js"></script>
@@ -10687,6 +10762,401 @@ function _stDispoHTML() {
   pintarBtn();
 })();
 
+
+// ══════════════════════════════════════════════════════════════
+//  🚢 BARCOS EN VIVO (AIS)
+//  Lo que guarda la función barcos-ais (Supabase) cada 5 minutos: dónde está cada
+//  barco del Golfo de Cádiz y del Guadalquivir. Aquí se cruza con los barcos del
+//  calendario para decir, en claro, si ya ha atracado, por dónde va y cuándo llega.
+// ══════════════════════════════════════════════════════════════
+(function () {
+  // Muelle de las Delicias (terminal de cruceros) y entrada del río (Bonanza, Sanlúcar)
+  const DELICIAS = [37.374, -5.990], BOCA = [36.800, -6.350];
+  // Cauce navegable aproximado, de la barra de Sanlúcar a Sevilla: solo para calcular los km
+  // que le quedan a un barco por el río (no se dibuja: es una aproximación).
+  const RIO = [[36.770, -6.420], [36.800, -6.350], [36.845, -6.300], [36.870, -6.240], [36.905, -6.195], [36.950, -6.165],
+    [37.010, -6.150], [37.065, -6.120], [37.120, -6.105], [37.175, -6.090], [37.230, -6.075], [37.270, -6.060],
+    [37.290, -6.050], [37.320, -6.010], [37.345, -5.995], [37.374, -5.990]];
+  const KMN = 1.852;            // 1 nudo = 1,852 km/h
+  const VIEJA_MIN = 45;         // señal con más de 45 min: se avisa
+  const A = { barcos: [], rastro: [], alias: {}, ts: 0, cargando: false, error: '', filtro: 'pasaje', escuchando: false, sel: null };
+  let mapa = null, capa = null, intervalo = null;
+
+  // ── Geometría sencilla (suficiente a esta escala) ──
+  const R = 6371;
+  const rad = x => x * Math.PI / 180;
+  function km(a, b) {
+    const dLat = rad(b[0] - a[0]), dLon = rad(b[1] - a[1]);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a[0])) * Math.cos(rad(b[0])) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  const ACUM = RIO.reduce((acc, p, i) => { acc.push(i ? acc[i - 1] + km(RIO[i - 1], p) : 0); return acc; }, []);
+  const KM_RIO = ACUM[ACUM.length - 1];
+  /** Punto del cauce más cercano: { lejos (km al cauce), km (que faltan hasta Sevilla por el río) }. */
+  function enRio(p) {
+    let mejor = { lejos: Infinity, km: KM_RIO };
+    const cx = Math.cos(rad(p[0]));
+    for (let i = 1; i < RIO.length; i++) {
+      const a = RIO[i - 1], b = RIO[i];
+      const ax = (a[1]) * cx, ay = a[0], bx = b[1] * cx, by = b[0], px = p[1] * cx, py = p[0];
+      const dx = bx - ax, dy = by - ay;
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+      const q = [ay + t * dy, (ax + t * dx) / cx];
+      const d = km(p, q);
+      if (d < mejor.lejos) mejor = { lejos: d, km: KM_RIO - (ACUM[i - 1] + t * (ACUM[i] - ACUM[i - 1])) };
+    }
+    return mejor;
+  }
+
+  // ── Datos del barco en claro ──
+  const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  function tipoTxt(t) {
+    if (t >= 60 && t <= 69) return 'Pasaje / crucero';
+    if (t >= 70 && t <= 79) return 'Carga';
+    if (t >= 80 && t <= 89) return 'Petrolero / tanque';
+    if (t === 30) return 'Pesca';
+    if (t === 31 || t === 32 || t === 52) return 'Remolcador';
+    if (t === 50) return 'Práctico';
+    if (t === 36) return 'Velero';
+    if (t === 37) return 'Recreo';
+    if (t === 35) return 'Militar';
+    return t ? 'Otro' : '—';
+  }
+  const esPasaje = b => b.tipo >= 60 && b.tipo <= 69;
+  const haceTxt = ms => { const m = Math.round(ms / 60000); return m < 1 ? 'ahora' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  const hora = d => d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' });
+  const fechaHora = iso => { const d = new Date(iso); return d.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'Europe/Madrid' }).replace('.', '') + ' ' + hora(d); };
+
+  /** Situación de un barco: dónde está, si sube o baja, km que le quedan y llegada aproximada. */
+  function situacion(b) {
+    const ahora = Date.now();
+    const p = [b.lat, b.lon];
+    const r = enRio(p);
+    const enCauce = r.lejos < 6 && b.lat > 36.76;
+    const kmSev = enCauce ? r.km : km(p, BOCA) + (KM_RIO - (ACUM[1] || 0));
+    const sog = Number(b.sog) || 0;
+    // ¿Sube o baja? Con el rastro de la última hora (km a Sevilla antes y ahora); si no, por el destino
+    const ras = A.rastro.filter(x => x.mmsi === b.mmsi && ahora - new Date(x.ts) < 3600000).sort((x, y) => new Date(x.ts) - new Date(y.ts));
+    let sentido = 0;
+    if (ras.length >= 2) {
+      const k0 = enRio([ras[0].lat, ras[0].lon]).km, k1 = enRio([ras[ras.length - 1].lat, ras[ras.length - 1].lon]).km;
+      if (k1 < k0 - 0.3) sentido = 1; else if (k1 > k0 + 0.3) sentido = -1;
+    }
+    if (!sentido && /SEVIL|SVQ|SEVILL/i.test(b.destino || '') && sog > 1) sentido = 1;
+    const edad = ahora - new Date(b.pos_ts);
+    let estado, icono, texto, llegada = null;
+    if (kmSev < 1.5 && sog < 1) { estado = 'puerto'; icono = '⚓'; texto = 'Atracado en Sevilla (Muelle de las Delicias)'; }
+    else if (enCauce && sog < 0.5) { estado = 'parado'; icono = '⏸'; texto = kmSev < 8 ? `Parado cerca de Sevilla, a ${Math.round(kmSev)} km (puede estar en la esclusa)` : `Parado en el río, a ${Math.round(kmSev)} km de Sevilla`; }
+    else if (enCauce && sentido >= 0) { estado = 'subiendo'; icono = '⬆'; texto = `Subiendo por el Guadalquivir · a ${Math.round(kmSev)} km de Sevilla`; }
+    else if (enCauce) { estado = 'bajando'; icono = '⬇'; texto = `Bajando hacia el mar · a ${Math.round(kmSev)} km de Sevilla`; }
+    else if (sentido > 0) { estado = 'viene'; icono = '🌊'; texto = `En el Golfo de Cádiz, rumbo a Sevilla · a ${Math.round(kmSev)} km`; }
+    else { estado = 'golfo'; icono = '🌊'; texto = sog < 0.5 ? 'Parado o fondeado en el Golfo de Cádiz' : 'Navegando por el Golfo de Cádiz'; }
+    if ((estado === 'subiendo' || estado === 'viene') && sog >= 2) llegada = new Date(new Date(b.pos_ts).getTime() + kmSev / (sog * KMN) * 3600000);
+    return { estado, icono, texto, kmSev, sog, llegada, edad, vieja: edad > VIEJA_MIN * 60000, progreso: Math.max(0, Math.min(100, Math.round(100 * (1 - kmSev / KM_RIO)))) };
+  }
+
+  // ── Barcos del calendario (hoy y los 7 próximos días) y su barco AIS ──
+  function delCalendario() {
+    const out = [];
+    const dias = EV.data?.dias;
+    if (!dias) return out;
+    for (let i = 0; i < 8; i++) {
+      const f = _evSumaDias(EV.data.hoy, i);
+      (dias.get(f)?.navieras || []).forEach(n => out.push({ fecha: f, nombre: n, dia: i }));
+    }
+    return out;
+  }
+  function buscar(nombreCal) {
+    const n = norm(nombreCal);
+    if (!n) return null;
+    if (A.alias[n]) return A.barcos.find(b => b.mmsi === A.alias[n]) || null;
+    const iguales = A.barcos.filter(b => norm(b.nombre) === n);
+    if (iguales.length) return iguales.sort((a, b) => (esPasaje(b) - esPasaje(a)))[0];
+    if (n.length < 5) return null;
+    const parecidos = A.barcos.filter(b => { const m = norm(b.nombre); return m.length >= 5 && (m.includes(n) || n.includes(m)); });
+    return parecidos.sort((a, b) => (esPasaje(b) - esPasaje(a)))[0] || null;
+  }
+  function mmsiDelCalendario() {
+    const s = new Map();
+    delCalendario().forEach(c => { const b = buscar(c.nombre); if (b && !s.has(b.mmsi)) s.set(b.mmsi, c); });
+    return s;
+  }
+
+  // ── Carga ──
+  async function cargar() {
+    if (A.cargando) return;
+    A.cargando = true;
+    try {
+      const desde = new Date(Date.now() - 24 * 3600000).toISOString();
+      const desdeR = new Date(Date.now() - 12 * 3600000).toISOString();
+      const [barcos, rastro, alias] = await Promise.all([
+        sbGet('barcos_ais', 'select=*&pos_ts=gte.' + desde + '&order=pos_ts.desc&limit=1000'),
+        sbGet('barcos_ais_rastro', 'select=mmsi,ts,lat,lon,sog&ts=gte.' + desdeR + '&order=ts.asc&limit=10000'),
+        sbGet('barcos_alias', 'select=nombre,mmsi').catch(() => []),
+      ]);
+      A.barcos = barcos.filter(b => b.lat != null && b.lon != null);
+      A.rastro = rastro;
+      A.alias = Object.fromEntries(alias.map(a => [a.nombre, a.mmsi]));
+      A.ts = Date.now();
+      A.error = '';
+    } catch (e) {
+      A.error = /404|42P01|relation/.test(e.message) ? 'falta-sql' : e.message;
+    } finally {
+      A.cargando = false;
+    }
+  }
+
+  /** "↻ Actualizar ahora": la función escucha 25 s y guarda; luego se recarga. */
+  window.aisEscuchar = async function (btn) {
+    const sec = cargarNotifCfg().recordatoriosSecreto;
+    if (!sec) { toast('Primero guarda el secreto de recordatorios en 🔔 → Correo a voluntarios', 'err'); abrirCfgNotif(); return; }
+    A.escuchando = true; pintar();
+    try {
+      const r = await fetch(SUPA_URL + '/functions/v1/barcos-ais', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-secret': sec }, body: JSON.stringify({ segundos: 25 }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (r.status === 401) throw new Error('el secreto no coincide');
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('error ' + r.status));
+      toast(`📡 Señal recibida: ${j.barcos} barco${j.barcos === 1 ? '' : 's'} en la zona`, 'ok');
+    } catch (e) {
+      toast('No se pudo actualizar: ' + e.message, 'err');
+    } finally {
+      A.escuchando = false;
+      await cargar();
+      pintar();
+    }
+  };
+
+  window.aisFiltro = function (f) { A.filtro = f; pintar(); };
+  window.aisVer = function (mmsi) {
+    const b = A.barcos.find(x => x.mmsi === mmsi); if (!b || !mapa) return;
+    A.sel = mmsi;
+    document.getElementById('ais-mapa')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    mapa.flyTo([b.lat, b.lon], 12, { duration: 0.8 });
+    setTimeout(() => capa?.eachLayer(l => { if (l.options && l.options.mmsi === mmsi && l.openPopup) l.openPopup(); }), 900);
+  };
+  /** Vincular a mano un nombre del calendario con un barco (cuando el nombre AIS no coincide). */
+  window.aisVincular = async function (mmsi) {
+    const b = A.barcos.find(x => x.mmsi === mmsi); if (!b) return;
+    const nombres = [...new Set(delCalendario().map(c => c.nombre))];
+    if (!nombres.length) { toast('No hay barcos en el calendario de los próximos días', 'err'); return; }
+    const lista = nombres.map((n, i) => `${i + 1}. ${n}`).join('\n');
+    const r = prompt(`¿Qué barco del calendario es ${b.nombre || 'MMSI ' + mmsi}?\nEscribe el número:\n\n${lista}`);
+    const i = parseInt(r, 10) - 1;
+    if (!(i >= 0 && i < nombres.length)) return;
+    try {
+      await sbPost('barcos_alias?on_conflict=nombre', [{ nombre: norm(nombres[i]), mmsi }], 'resolution=merge-duplicates,return=minimal');
+      A.alias[norm(nombres[i])] = mmsi;
+      toast(`🔗 ${nombres[i]} vinculado con ${b.nombre || mmsi}`, 'ok');
+      pintar();
+    } catch (e) { toast('No se pudo vincular: ' + e.message, 'err'); }
+  };
+  window.aisDesvincular = async function (nombreCal) {
+    if (!confirm(`¿Quitar el vínculo de ${nombreCal}?`)) return;
+    try { await sbDelete('barcos_alias', 'nombre=eq.' + encodeURIComponent(norm(nombreCal))); delete A.alias[norm(nombreCal)]; pintar(); }
+    catch (e) { toast('Error: ' + e.message, 'err'); }
+  };
+
+  // ── Pintado ──
+  const DIA_TXT = i => i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : null;
+  function tarjetaCal(c) {
+    const b = buscar(c.nombre), vinculado = !!A.alias[norm(c.nombre)];
+    const cuando = DIA_TXT(c.dia) || protoFecha(c.fecha, { weekday: 'short', day: 'numeric', month: 'short' });
+    if (!b) return `<article class="ais-cal sin">
+        <div class="ais-cal-h"><span class="ais-cuando ${c.dia <= 1 ? 'ya' : ''}">${cuando}</span><b>🚢 ${escH(c.nombre)}</b></div>
+        <div class="ais-est"><span class="ais-ico">📡</span><div><b>Sin señal AIS todavía</b>
+        <small>Aparece cuando entra en la zona (Golfo de Cádiz). Si ya debería verse, puede que su nombre AIS sea distinto: búscalo abajo en «Todos los barcos» y pulsa 🔗.</small></div></div>
+      </article>`;
+    const s = situacion(b);
+    const llega = s.llegada ? `<div class="ais-dato"><span>Llegada aprox.</span><b>≈ ${hora(s.llegada)}</b></div>` : '';
+    const decl = b.eta_ais ? `<div class="ais-dato"><span>Llegada declarada</span><b>${fechaHora(b.eta_ais)}</b></div>` : '';
+    return `<article class="ais-cal ${s.estado}">
+      <div class="ais-cal-h"><span class="ais-cuando ${c.dia <= 1 ? 'ya' : ''}">${cuando}</span><b>🚢 ${escH(c.nombre)}</b>
+        ${vinculado ? `<button class="ais-x" onclick="aisDesvincular('${escH(c.nombre).replace(/'/g, "\\'")}')" title="Quitar el vínculo">🔗 vinculado ✕</button>` : ''}</div>
+      <div class="ais-est"><span class="ais-ico">${s.icono}</span><div><b>${s.texto}</b>
+        <small>${b.nombre && norm(b.nombre) !== norm(c.nombre) ? `AIS: ${escH(b.nombre)} · ` : ''}última señal ${haceTxt(s.edad)}${s.vieja ? ' ⚠' : ''}</small></div></div>
+      <div class="ais-rio" title="Recorrido por el Guadalquivir: de la desembocadura (izquierda) a Sevilla (derecha)">
+        <span>Mar</span><div class="ais-rio-l"><i style="left:${s.estado === 'golfo' || s.estado === 'viene' ? 0 : s.progreso}%"></i></div><span>Sevilla</span></div>
+      <div class="ais-datos">
+        <div class="ais-dato"><span>Velocidad</span><b>${s.sog.toFixed(1)} nudos <small>(${Math.round(s.sog * KMN)} km/h)</small></b></div>
+        <div class="ais-dato"><span>Distancia a Sevilla</span><b>${s.estado === 'puerto' ? 'en el muelle' : '≈ ' + Math.round(s.kmSev) + ' km'}</b></div>
+        ${llega}${decl}
+      </div>
+      <button class="ais-ver" onclick="aisVer(${b.mmsi})">📍 Ver en el mapa</button>
+    </article>`;
+  }
+
+  function filaTabla(b, delCal) {
+    const s = situacion(b);
+    const cal = delCal.get(b.mmsi);
+    return `<tr class="${cal ? 'cal' : ''}">
+      <td><b>${escH(b.nombre || 'MMSI ' + b.mmsi)}</b>${cal ? ` <span class="ais-tag">📅 ${escH(cal.nombre)}</span>` : ''}<small>${tipoTxt(b.tipo)}${b.eslora ? ' · ' + b.eslora + ' m' : ''}</small></td>
+      <td>${s.icono} ${s.texto}</td>
+      <td>${s.sog.toFixed(1)} kn</td>
+      <td>${escH(b.destino || '—')}${b.eta_ais ? `<small>${fechaHora(b.eta_ais)}</small>` : ''}</td>
+      <td class="${s.vieja ? 'vieja' : ''}">${haceTxt(s.edad)}</td>
+      <td class="ais-acc"><button onclick="aisVer(${b.mmsi})" title="Ver en el mapa">📍</button>${cal ? '' : `<button onclick="aisVincular(${b.mmsi})" title="Es un barco del calendario">🔗</button>`}</td>
+    </tr>`;
+  }
+
+  function pintar() {
+    const c = document.getElementById('tab-ais'); if (!c) return;
+    if (A.error === 'falta-sql') {
+      c.innerHTML = `<section class="pa-card ais-falta"><h3>🚢 Barcos en vivo — falta activarlo</h3>
+        <ol><li>Crea la clave gratuita en <a href="https://aisstream.io" target="_blank" rel="noopener">aisstream.io</a> (entra con GitHub → <b>API Keys</b>).</li>
+        <li>Supabase → Edge Functions → <b>Secrets</b> → añade <code>AISSTREAM_API_KEY</code> con esa clave.</li>
+        <li>Despliega la función <b>barcos-ais</b>.</li>
+        <li>Ejecuta <b>17_barcos_ais.sql</b> en el SQL Editor.</li></ol>
+        <p>A los 5-10 minutos empezarán a verse los barcos.</p></section>`;
+      return;
+    }
+    const delCal = mmsiDelCalendario();
+    const cal = delCalendario();
+    const vistos = A.barcos.map(b => ({ b, s: situacion(b) }));
+    const lista = vistos.filter(({ b, s }) => A.filtro === 'todos' || (A.filtro === 'rio' ? ['puerto', 'parado', 'subiendo', 'bajando'].includes(s.estado) : (esPasaje(b) || delCal.has(b.mmsi))))
+      .sort((x, y) => (delCal.has(y.b.mmsi) - delCal.has(x.b.mmsi)) || (esPasaje(y.b) - esPasaje(x.b)) || (x.s.kmSev - y.s.kmSev));
+    const ultima = A.barcos.reduce((m, b) => Math.max(m, new Date(b.actualizado || b.pos_ts).getTime()), 0);
+    const nRio = vistos.filter(v => ['puerto', 'parado', 'subiendo', 'bajando'].includes(v.s.estado)).length;
+    const nPasaje = vistos.filter(v => esPasaje(v.b)).length;
+    c.innerHTML = `
+      <div class="ais-top">
+        <div class="ais-senal ${ultima && Date.now() - ultima < 15 * 60000 ? 'ok' : 'mal'}">
+          <i></i><div><b>${ultima ? (Date.now() - ultima < 15 * 60000 ? 'Señal AIS en directo' : 'Señal AIS sin actualizar') : 'Esperando la primera señal'}</b>
+          <small>${ultima ? 'Último dato ' + haceTxt(Date.now() - ultima) + ' · se actualiza solo cada 5 minutos' : 'La función guarda los datos cada 5 minutos'}</small></div>
+        </div>
+        <div class="ais-kpis"><span><b>${A.barcos.length}</b> barcos en la zona</span><span><b>${nRio}</b> en el río</span><span><b>${nPasaje}</b> de pasaje</span></div>
+        <button class="btn btn-navy btn-sm" ${A.escuchando ? 'disabled' : ''} onclick="aisEscuchar(this)">${A.escuchando ? '📡 Escuchando 25 s…' : '↻ Actualizar ahora'}</button>
+      </div>
+
+      <section class="ais-sec">
+        <h3>📅 Barcos del calendario <small>hoy y los próximos 7 días</small></h3>
+        ${cal.length ? `<div class="ais-cals">${cal.map(tarjetaCal).join('')}</div>`
+          : '<div class="pa-vacio">No hay barcos en el calendario para los próximos 7 días.</div>'}
+      </section>
+
+      <section class="ais-sec">
+        <h3>🗺️ Mapa <small>Golfo de Cádiz y Guadalquivir</small></h3>
+        <div id="ais-mapa"></div>
+        <div class="ais-leyenda"><span><i class="cal"></i> Barco del calendario</span><span><i class="pas"></i> Pasaje / crucero</span><span><i class="otro"></i> Otros</span><span>➤ en marcha · ● parado</span><span>— recorrido de las últimas horas</span></div>
+      </section>
+
+      <section class="ais-sec">
+        <h3>📋 Todos los barcos en la zona</h3>
+        <div class="ev-filtros">${[['pasaje', '🛳️ Cruceros y pasaje'], ['rio', '🏞️ En el río'], ['todos', 'Todos']].map(([k, l]) => `<button class="ev-pill ${A.filtro === k ? 'on' : ''}" onclick="aisFiltro('${k}')">${l}</button>`).join('')}</div>
+        <div class="ais-tabla-w"><table class="ais-tabla">
+          <thead><tr><th>Barco</th><th>Dónde está</th><th>Velocidad</th><th>Destino que declara</th><th>Última señal</th><th></th></tr></thead>
+          <tbody>${lista.length ? lista.map(v => filaTabla(v.b, delCal)).join('') : `<tr><td colspan="6" class="pa-vacio">${A.barcos.length ? 'Ninguno con este filtro' : 'Todavía no hay datos'}</td></tr>`}</tbody>
+        </table></div>
+      </section>
+
+      <details class="ais-como">
+        <summary>❓ ¿Cómo funciona esto?</summary>
+        <div>
+          <p><b>Qué es el AIS.</b> Todos los barcos grandes emiten por radio, cada pocos segundos, quiénes son, dónde están, a qué velocidad van y hacia dónde. Unas antenas en tierra recogen esa señal.</p>
+          <p><b>De dónde salen los datos.</b> De <a href="https://aisstream.io" target="_blank" rel="noopener">aisstream.io</a>, un servicio gratuito que junta la señal de antenas de voluntarios. Cada 5 minutos se guarda la última posición de los barcos del Golfo de Cádiz y del Guadalquivir. Con «↻ Actualizar ahora» se escucha al momento durante 25 segundos.</p>
+          <p><b>Las horas de llegada son aproximadas.</b> «Llegada aprox.» se calcula con los kilómetros que le quedan por el río y la velocidad que lleva en ese momento; antes de atracar el barco pasa por la esclusa y frena, así que suele llegar algo más tarde. «Llegada declarada» es la hora que ha escrito la tripulación en su equipo AIS (a veces no la actualizan).</p>
+          <p><b>Si un barco del calendario no aparece:</b> puede que aún esté en alta mar (fuera de la zona), que ninguna antena cercana lo esté recibiendo, o que su nombre en el AIS sea distinto al del calendario. En ese caso búscalo en «Todos los barcos» y pulsa 🔗 para vincularlo: se recuerda para siempre.</p>
+          <p><b>Los barcos amarrados</b> mandan su posición con menos frecuencia (cada pocos minutos), por eso su «última señal» puede ser de hace un rato.</p>
+        </div>
+      </details>`;
+    pintarMapa(delCal);
+  }
+
+  // ── Mapa (Leaflet + OpenStreetMap/CARTO) ──
+  function cargarLeaflet() {
+    if (window.L) return Promise.resolve();
+    return new Promise((ok, ko) => {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+      const s = document.createElement('script');
+      s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      s.onload = ok; s.onerror = () => ko(new Error('No se pudo cargar el mapa'));
+      document.head.appendChild(s);
+    });
+  }
+  function icono(b, s, cal) {
+    const color = cal ? '#c9a84c' : esPasaje(b) ? '#2f7de1' : '#8a94a6';
+    const tam = cal ? 30 : esPasaje(b) ? 24 : 16;
+    const enMarcha = s.sog >= 0.5 && b.cog != null;
+    const svg = enMarcha
+      ? `<svg width="${tam}" height="${tam}" viewBox="0 0 24 24" style="transform:rotate(${b.cog}deg)"><path d="M12 2 L19 21 L12 17 L5 21 Z" fill="${color}" stroke="#0a1628" stroke-width="1.4" stroke-linejoin="round"/></svg>`
+      : `<svg width="${tam * .7}" height="${tam * .7}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${color}" stroke="#0a1628" stroke-width="2"/></svg>`;
+    return L.divIcon({ html: svg, className: 'ais-mk', iconSize: [tam, tam], iconAnchor: [tam / 2, tam / 2] });
+  }
+  async function pintarMapa(delCal) {
+    const el = document.getElementById('ais-mapa'); if (!el) return;
+    try { await cargarLeaflet(); } catch (e) { el.innerHTML = `<div class="pa-vacio">${e.message}</div>`; return; }
+    const vista = mapa ? { c: mapa.getCenter(), z: mapa.getZoom() } : null;
+    if (mapa) { mapa.remove(); mapa = null; }
+    mapa = L.map(el, { scrollWheelZoom: false, zoomControl: true });
+    // Mapa de OpenStreetMap (sin clave). En modo oscuro se oscurece con un filtro (ver ais.css)
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> · AIS: aisstream.io',
+    }).addTo(mapa);
+    capa = L.layerGroup().addTo(mapa);
+    L.marker(DELICIAS, { icon: L.divIcon({ html: '⚓', className: 'ais-puerto', iconSize: [26, 26], iconAnchor: [13, 13] }) })
+      .bindTooltip('Muelle de las Delicias · terminal de cruceros', { direction: 'top' }).addTo(capa);
+    L.marker(BOCA, { icon: L.divIcon({ html: '🌊', className: 'ais-puerto', iconSize: [22, 22], iconAnchor: [11, 11] }) })
+      .bindTooltip('Entrada al Guadalquivir (Sanlúcar / Bonanza)', { direction: 'top' }).addTo(capa);
+    const puntos = [DELICIAS, BOCA];
+    A.barcos.forEach(b => {
+      const s = situacion(b), cal = delCal.get(b.mmsi);
+      if (cal || esPasaje(b)) {
+        const ras = A.rastro.filter(x => x.mmsi === b.mmsi).map(x => [x.lat, x.lon]);
+        if (ras.length > 1) L.polyline(ras, { color: cal ? '#c9a84c' : '#2f7de1', weight: cal ? 3 : 2, opacity: .7, dashArray: cal ? null : '4 6' }).addTo(capa);
+      }
+      const m = L.marker([b.lat, b.lon], { icon: icono(b, s, cal), mmsi: b.mmsi, zIndexOffset: cal ? 1000 : esPasaje(b) ? 500 : 0 }).addTo(capa);
+      m.bindPopup(`<div class="ais-pop"><b>${escH(b.nombre || 'MMSI ' + b.mmsi)}</b>${cal ? `<span>📅 ${escH(cal.nombre)} · ${DIA_TXT(cal.dia) || protoFecha(cal.fecha, { weekday: 'short', day: 'numeric', month: 'short' })}</span>` : ''}
+        <span>${tipoTxt(b.tipo)}${b.eslora ? ' · ' + b.eslora + ' m de eslora' : ''}</span>
+        <span>${s.icono} ${s.texto}</span>
+        <span>Velocidad: <b>${s.sog.toFixed(1)} nudos</b> (${Math.round(s.sog * KMN)} km/h)</span>
+        ${s.llegada ? `<span>Llegada aprox. a Sevilla: <b>≈ ${hora(s.llegada)}</b></span>` : ''}
+        ${b.destino ? `<span>Destino declarado: ${escH(b.destino)}${b.eta_ais ? ' · ' + fechaHora(b.eta_ais) : ''}</span>` : ''}
+        <span class="${s.vieja ? 'vieja' : ''}">Última señal: ${haceTxt(s.edad)}</span></div>`);
+      if (cal) { m.bindTooltip(escH(b.nombre || cal.nombre), { permanent: true, direction: 'right', className: 'ais-etq', offset: [12, 0] }); puntos.push([b.lat, b.lon]); }
+    });
+    if (vista) mapa.setView(vista.c, vista.z);
+    else if (puntos.length > 2) mapa.fitBounds(puntos, { padding: [30, 30], maxZoom: 11 });
+    else mapa.fitBounds([[36.70, -6.55], [37.42, -5.92]]);
+  }
+
+  async function alEntrar() {
+    const c = document.getElementById('tab-ais');
+    if (!A.ts) c.innerHTML = `<div class="loading"><div class="spinner"></div><p>Buscando los barcos…</p></div>`;
+    await Promise.all([protoDatos(), cargar()]);
+    pintar();
+    clearInterval(intervalo);
+    intervalo = setInterval(async () => {
+      if (tabActual !== 'ais' || document.hidden || A.escuchando) return;
+      await cargar();
+      const v = mapa ? { c: mapa.getCenter(), z: mapa.getZoom() } : null;
+      pintar();
+      if (v && mapa) mapa.setView(v.c, v.z);
+    }, 60000);
+  }
+
+  protoTab({ id: 'ais', titulo: '🚢 Barcos en vivo', grupo: 'Planificar', ico: '🚢', txt: 'Barcos en vivo', sec: 0, alEntrar, pintar: () => {} });
+  // En el menú, junto a "Días y barcos"
+  const boton = document.getElementById('nav-ais'), ref = document.getElementById('nav-calendario');
+  if (boton && ref) ref.after(boton);
+
+  // ── En el Inicio: estado en directo del "Próximo barco" ──
+  let ultimaCargaInicio = 0;
+  async function inicioEnVivo() {
+    const card = document.querySelector('#tab-inicio .pa-barco');
+    if (!card || card.querySelector('.ais-mini')) return;
+    if (Date.now() - ultimaCargaInicio > 120000) { ultimaCargaInicio = Date.now(); await cargar(); }
+    if (A.error || !A.barcos.length) return;
+    const nombres = (card.querySelector('.pa-bnom')?.textContent || '').split('·').map(s => s.trim()).filter(Boolean);
+    const lineas = nombres.map(n => { const b = buscar(n); if (!b) return ''; const s = situacion(b); return `<div class="ais-mini" onclick="setTab('ais')">${s.icono} <b>${escH(n)}</b>: ${s.texto}${s.llegada ? ' · llega ≈ ' + hora(s.llegada) : ''}</div>`; }).join('');
+    if (lineas && !card.querySelector('.ais-mini')) card.querySelector('.pa-bfecha')?.insertAdjacentHTML('afterend', lineas);
+  }
+  const obs = new MutationObserver(() => { if (tabActual === 'inicio') inicioEnVivo(); });
+  const ti = document.getElementById('tab-inicio');
+  if (ti) obs.observe(ti, { childList: true });
+})();
 
 Auth.requerir('admin').then(yo => {
   document.getElementById('sidebar-usuario').textContent = yo.email;
