@@ -2065,6 +2065,38 @@ function _horaCanon(s) {
 
 function HP(h) { return String(h).padStart(2,'0'); }
 
+// Un voluntario puede tener varias franjas el mismo día (los bloques Mañana 8-14 y Tarde 16-22,
+// o varias filas de la disponibilidad antigua). Se juntan en "tramos" sin rellenar los huecos
+// entre ellas: antes solo contaba la primera fila y el segundo bloque se perdía.
+function _unirTramos(lista) {
+  const out = [];
+  lista.slice().sort((x, y) => x[0] - y[0]).forEach(t => {
+    const u = out[out.length - 1];
+    if (u && t[0] <= u[1]) u[1] = Math.max(u[1], t[1]); else out.push([t[0], t[1]]);
+  });
+  return out;
+}
+function _tramos(c) { return c.tramos || [[c.hIn, c.hOut]]; }
+function _cubre(c, h0, h1) { return _tramos(c).some(([a, b]) => a <= h0 && b >= h1); }
+function _horarioTxt(c) { return _tramos(c).map(([a, b]) => HP(a) + ':00 a ' + HP(b) + ':00').join(' y '); }
+/** Filas de disponibilidad → un candidato por voluntario, con todos sus tramos del día. */
+function _candidatosPorVoluntario(filas, extra) {
+  const porKey = new Map();
+  filas.forEach(v => {
+    const p = PH(v.horario); if (!p) return;
+    const key = v.nombre.toUpperCase().trim();
+    let c = porKey.get(key);
+    if (!c) { c = { ...extra(v, key), nombre: v.nombre, key, tramos: [] }; porKey.set(key, c); }
+    c.tramos.push([p.a, p.b]);
+  });
+  return [...porKey.values()].map(c => {
+    c.tramos = _unirTramos(c.tramos);
+    c.hIn = c.tramos[0][0];
+    c.hOut = c.tramos[c.tramos.length - 1][1];
+    return c;
+  });
+}
+
 function franjas2h(candidatos, dur, minEq) {
   dur   = dur   ?? DUR;
   minEq = minEq ?? MIN_EQ;
@@ -2073,7 +2105,7 @@ function franjas2h(candidatos, dur, minEq) {
   const hMax = candidatos.reduce((m,c) => Math.max(m,c.hOut), 0);
   const res = [];
   for (let h = hMin; h <= hMax - dur; h++) {
-    const pool = candidatos.filter(c => c.hIn <= h && c.hOut >= h + dur);
+    const pool = candidatos.filter(c => _cubre(c, h, h + dur));
     if (pool.length >= minEq) res.push({ h, pool });
   }
   return res;
@@ -2209,10 +2241,7 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
   const asigCount = {};
   historialFlat.forEach(h => { asigCount[h.key] = (asigCount[h.key]||0)+1; });
 
-  disponibilidad.forEach(v => {
-    const p = PH(v.horario);
-    if (!p) return;
-    const key  = v.nombre.toUpperCase().trim();
+  _candidatosPorVoluntario(disponibilidad, (v, key) => {
     const regs = historialFlat.filter(h => h.key === key);
     let desc = 99;
     if (regs.length) {
@@ -2220,14 +2249,12 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
       ult.setHours(0,0,0,0);
       desc = Math.round((ref - ult) / 86400000);
     }
-    todos.push({
-      nombre: v.nombre, key,
-      hIn: p.a, hOut: p.b,
+    return {
       llave: llaves.has(key),
       desc: ignDescanso ? 99 : desc,
       dispo: asigCount[key] || 0   // turnos ya asignados → menor = más prioritario
-    });
-  });
+    };
+  }).forEach(c => todos.push(c));
 
   let pool = todos.filter(c => c.desc >= dOK);
   let aviso = '';
@@ -2255,7 +2282,7 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
       fran = turnosHabilitados.map(rango => {
         const p2 = PH(rango);
         if (!p2) return null;
-        const poolFranja = pool.filter(c => c.hIn <= p2.a && c.hOut >= p2.b);
+        const poolFranja = pool.filter(c => _cubre(c, p2.a, p2.b));
         return poolFranja.length >= minEq ? { h: p2.a, pool: poolFranja } : null;
       }).filter(Boolean);
     }
@@ -2269,25 +2296,25 @@ function calcularDiaJS(semana, diaNorm, fechaRef, disponibilidad, historialFlat,
     if (t.alertaLlave && t.equipo.length === 0) {
       return { rango, equipo: [], sustitutos: (t.pool||[]).map(s => ({
         nombre:s.nombre, dias:s.desc, dispo:s.dispo, llave:s.llave,
-        horario:HP(s.hIn)+':00 a '+HP(s.hOut)+':00', estado:'disponible'
+        horario:_horarioTxt(s), estado:'disponible'
       })), necesitaLlave:true, sinLlave:true, alertaLlave:false };
     }
     const fOrig = fran.find(f => f.h === t.h);
     const sust  = fOrig ? fOrig.pool
       .filter(s => !t.equipo.some(e => e.key===s.key))
       .map(s => ({ nombre:s.nombre, dias:s.desc, dispo:s.dispo, llave:s.llave,
-                   horario:HP(s.hIn)+':00 a '+HP(s.hOut)+':00', estado:s.desc>=dOK?'disponible':s.desc>=dMIN?'reducido':'bloqueado' }))
+                   horario:_horarioTxt(s), estado:s.desc>=dOK?'disponible':s.desc>=dMIN?'reducido':'bloqueado' }))
       : [];
     return {
       rango,
       equipo: t.equipo.map(e => ({ nombre:e.nombre, llave:e.llave, dias:e.desc, dispo:e.dispo,
-                                    horario:HP(e.hIn)+':00 a '+HP(e.hOut)+':00' })),
+                                    horario:_horarioTxt(e) })),
       sustitutos: sust, necesitaLlave:t.necesitaLlave, sinLlave:false, alertaLlave:t.alertaLlave||false
     };
   });
 
   const todosInfo = todos.map(c => ({
-    nombre:c.nombre, horario:HP(c.hIn)+':00 a '+HP(c.hOut)+':00',
+    nombre:c.nombre, horario:_horarioTxt(c),
     llave:c.llave, dias:c.desc,
     estado: c.desc<dMIN?'bloqueado': c.desc<dOK?'reducido':'ok'
   }));
@@ -2363,13 +2390,9 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
 
   // ── Preparar días pendientes con su pool crudo ──
   const dias = diasPendientes.map(di => {
-    const seen = new Set();
-    const raw = (dispoIdx[di.semana + '|' + di.diaNorm] || []).map(v => {
-      const p = PH(v.horario); if (!p) return null;
-      const key = v.nombre.toUpperCase().trim();
-      if (seen.has(key)) return null; seen.add(key);
-      return { nombre: v.nombre, key, hIn: p.a, hOut: p.b, llave: llaves.has(key), maxSabados: v.maxSabados ?? null, maxDomingos: v.maxDomingos ?? null };
-    }).filter(Boolean);
+    // Un candidato por voluntario con TODOS sus tramos de ese día (antes solo contaba la primera fila)
+    const raw = _candidatosPorVoluntario(dispoIdx[di.semana + '|' + di.diaNorm] || [],
+      (v, key) => ({ llave: llaves.has(key), maxSabados: v.maxSabados ?? null, maxDomingos: v.maxDomingos ?? null }));
     const horasHab = new Set();
     (di.turnosHabilitados || []).forEach(rg => {
       const p = PH(rg); if (p) for (let h = p.a; h <= p.b - DUR_; h++) horasHab.add(h);
@@ -2408,7 +2431,7 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
 
   // Forma un equipo para la franja h del día d. Devuelve [cand enriquecidos] o null.
   function formarEquipoOp(d, pool, h, ideal, minEq) {
-    const cubren = pool.filter(c => c.hIn <= h && c.hOut >= h + DUR_).map(c => {
+    const cubren = pool.filter(c => _cubre(c, h, h + DUR_)).map(c => {
       const e = enriquecer(c, d); e._fut = necesidadFutura(c.key, d.ts); return e;
     });
     if (cubren.length < 2) return null;
@@ -2446,7 +2469,7 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
         })();
         for (const x of horas.sort((a, b) => a - b)) {
           if (d.turnos.some(t => x < t.h + DUR_ && x + DUR_ > t.h)) continue;
-          if (pool.filter(c => c.hIn <= x && c.hOut >= x + DUR_).length >= 2) { h = x; break; }
+          if (pool.filter(c => _cubre(c, x, x + DUR_)).length >= 2) { h = x; break; }
         }
       }
       if (h == null) continue;
@@ -2533,19 +2556,19 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
       if (t.alertaLlave && t.equipo.length === 0) {
         return { rango, equipo: [], sustitutos: (t.pool || []).map(s => ({
           nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
-          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00', estado: 'disponible' })),
+          horario: _horarioTxt(s), estado: 'disponible' })),
           necesitaLlave: true, sinLlave: true, alertaLlave: false };
       }
       const fOrig = franRef.find(f => f.h === t.h);
       const sust = fOrig ? fOrig.pool
         .filter(s => !t.equipo.some(e => e.key === s.key))
         .map(s => ({ nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
-          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00',
+          horario: _horarioTxt(s),
           estado: s.desc >= DOK ? 'disponible' : s.desc >= DFLOOR ? 'reducido' : 'bloqueado' })) : [];
       return {
         rango,
         equipo: t.equipo.map(e => ({ nombre: e.nombre, llave: e.llave, dias: e.desc, dispo: e.dispo,
-          horario: HP(e.hIn) + ':00 a ' + HP(e.hOut) + ':00' })),
+          horario: _horarioTxt(e) })),
         sustitutos: sust, necesitaLlave: t.necesitaLlave, sinLlave: false, alertaLlave: t.alertaLlave || false,
       };
     });
@@ -2560,9 +2583,9 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
         let libre = true;
         for (let x = h; x < h + DUR_; x++) if (cubiertas.has(x)) { libre = false; break; }
         if (!libre) return;
-        const sust = poolRef.filter(c => c.hIn <= h && c.hOut >= h + DUR_).map(s => ({
+        const sust = poolRef.filter(c => _cubre(c, h, h + DUR_)).map(s => ({
           nombre: s.nombre, dias: s.desc, dispo: s.dispo, llave: s.llave,
-          horario: HP(s.hIn) + ':00 a ' + HP(s.hOut) + ':00',
+          horario: _horarioTxt(s),
           estado: s.desc >= DOK ? 'disponible' : s.desc >= DFLOOR ? 'reducido' : 'bloqueado' }));
         turnosOut.push({ rango: HP(h) + ':00 a ' + HP(h + DUR_) + ':00', equipo: [], sustitutos: sust,
           necesitaLlave: true, sinLlave: false, alertaLlave: false });
@@ -2572,7 +2595,7 @@ function planificarMesGlobal({ diasPendientes, histFlat, dispoIdx, llaves, R }) 
     }
 
     const todosInfo = poolRef.map(c => ({
-      nombre: c.nombre, horario: HP(c.hIn) + ':00 a ' + HP(c.hOut) + ':00',
+      nombre: c.nombre, horario: _horarioTxt(c),
       llave: c.llave, dias: c.desc,
       estado: c.desc < DFLOOR ? 'bloqueado' : c.desc < DOK ? 'reducido' : 'ok',
     }));

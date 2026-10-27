@@ -1417,5 +1417,40 @@ Si por algún motivo no podéis atender vuestro turno, contactar con ALGUIEN.`;
   check('aun así, cada sábado queda cubierto con los demás voluntarios', sabados.every(f => res.get(f).turnos.length >= 1 && res.get(f).turnos[0].equipo.length >= 3));
 })();
 
+// ── E36: dos bloques el mismo día (Mañana 8-14 y Tarde 16-22) — antes solo contaba la primera
+// fila de cada voluntario y el bloque de la tarde se perdía ──
+(function E36() {
+  console.log('\n═══ E36 · Voluntarios con los dos bloques el mismo día ═══');
+  const V = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((n, i) => ({ nombre: n, llave: i === 0 || i === 5 }));
+  const dos = n => [`${n} 8 a 14`, `${n} 16 a 22`];   // la mañana va primero, como en la base de datos
+
+  // Día con solo un turno de tarde: con el fallo no había nadie para la tarde
+  const tarde = '2026-11-04';
+  let cfg = construir({ dias: [tarde], vols: V.slice(0, 4), dispPorDia: { [tarde]: V.slice(0, 4).flatMap(v => dos(v.nombre)) },
+    turnosHab: { [tarde]: ['18:00 a 20:00'] } });
+  let res = E.planificarMesGlobal({ diasPendientes: cfg.diasPendientes, histFlat: cfg.histFlat, dispoIdx: cfg.dispoIdx, llaves: cfg.llaves, R: cfg.R });
+  console.log(resumen(res, cfg.diasPendientes));
+  const t = res.get(tarde).turnos.find(x => x.rango === '18:00 a 20:00');
+  check('E36: el turno de tarde se cubre con quien marcó Mañana y Tarde', !!t && t.equipo.length >= 3, t ? t.equipo.length + ' en el equipo' : 'sin turno');
+  check('E36: su horario se muestra con los dos bloques', !!t && /08:00 a 14:00 y 16:00 a 22:00/.test((t.equipo[0] || {}).horario || ''), t && t.equipo[0] ? t.equipo[0].horario : '');
+
+  // Día con turno de mañana y de tarde: nadie va a los dos
+  const ambos = '2026-11-05';
+  cfg = construir({ dias: [ambos], vols: V, dispPorDia: { [ambos]: V.flatMap(v => dos(v.nombre)) },
+    turnosHab: { [ambos]: ['10:00 a 12:00', '18:00 a 20:00'] } });
+  res = E.planificarMesGlobal({ diasPendientes: cfg.diasPendientes, histFlat: cfg.histFlat, dispoIdx: cfg.dispoIdx, llaves: cfg.llaves, R: cfg.R });
+  console.log(resumen(res, cfg.diasPendientes));
+  const nombres = res.get(ambos).turnos.flatMap(x => x.equipo.map(e => e.nombre));
+  check('E36: cada voluntario va como mucho a un turno al día', new Set(nombres).size === nombres.length, nombres.join(', '));
+  check('E36: salen los dos turnos (mañana y tarde)', res.get(ambos).turnos.filter(x => x.equipo.length >= 3).length === 2);
+
+  // El hueco entre bloques (14-16) no cuenta: un turno de 13 a 15 no lo cubre nadie con esos dos bloques
+  const hueco = '2026-11-06';
+  cfg = construir({ dias: [hueco], vols: V.slice(0, 4), dispPorDia: { [hueco]: V.slice(0, 4).flatMap(v => dos(v.nombre)) },
+    turnosHab: { [hueco]: ['13:00 a 15:00'] } });
+  res = E.planificarMesGlobal({ diasPendientes: cfg.diasPendientes, histFlat: cfg.histFlat, dispoIdx: cfg.dispoIdx, llaves: cfg.llaves, R: cfg.R });
+  check('E36: el hueco entre Mañana y Tarde no se rellena (13-15 sin equipo)', res.get(hueco).turnos.every(x => x.equipo.length === 0));
+})();
+
 console.log('\n' + (fallos ? `❌ ${fallos} comprobación(es) fallida(s)` : '✅ Todas las comprobaciones OK'));
 process.exit(fallos ? 1 : 0);
