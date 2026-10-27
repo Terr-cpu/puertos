@@ -2719,7 +2719,19 @@ async function getCuadranteMensual() {
   let excepciones = {};
   try { excepciones = JSON.parse(localStorage.getItem('excepcion_dia')||'{}'); } catch(e) {}
 
-  const activos = (calData.dias||[]).filter(d=>d.activo);
+  // Días del cuadrante: los activos del calendario, quitando
+  //  · los de meses ya ARCHIVADOS (sus turnos se pasaron a historial_archivo; si no se quitan,
+  //    al quedarse sin equipo parecen pendientes y el motor los vuelve a repartir);
+  //  · los días ya PASADOS sin ningún turno confirmado (no tiene sentido planificar el pasado).
+  //  Los días pasados con turnos confirmados se siguen viendo hasta que se archive su mes.
+  const hoyCuad = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date());
+  const mesesCal = [...new Set((calData.dias || []).filter(d => d.activo && d.fechaISO).map(d => d.fechaISO.slice(0, 7)))];
+  const archivados = new Set((await Promise.all(mesesCal.map(m =>
+    sbGet('historial_archivo', 'mes_archivo=eq.' + m + '&select=id&limit=1').then(r => r.length ? m : null).catch(() => null)
+  ))).filter(Boolean));
+  const activos = (calData.dias||[]).filter(d => d.activo
+    && !archivados.has((d.fechaISO || '').slice(0, 7))
+    && (d.fechaISO >= hoyCuad || (histPorFecha[d.fechaISO] && Object.keys(histPorFecha[d.fechaISO]).length > 0)));
   const esConfirmado = fiso => histPorFecha[fiso] && Object.keys(histPorFecha[fiso]).length > 0;
 
   // ── MOTOR GLOBAL: resuelve todos los días pendientes de una pasada ──
