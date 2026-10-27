@@ -3238,6 +3238,20 @@ function _descansoVivo(ocupacion, nombreUpper, tsRef) {
   set.forEach(ts => { const dd = Math.round(Math.abs(ts - tsRef) / 86400000); if (dd < best) best = dd; });
   return best;
 }
+/**
+ * Por qué alguien tiene poco descanso un día: el turno suyo más cercano, ANTES o DESPUÉS
+ * (el descanso cuenta en los dos sentidos). P. ej. "tiene turno el vie 14 nov (dentro de 2 días)".
+ */
+function _motivoDescanso(ocupacion, nombreUpper, tsRef) {
+  const set = ocupacion.get(nombreUpper);
+  if (!set || !set.size) return 'sin turnos cerca';
+  let mejor = null;
+  set.forEach(ts => { if (mejor == null || Math.abs(ts - tsRef) < Math.abs(mejor - tsRef)) mejor = ts; });
+  const dd = Math.round(Math.abs(mejor - tsRef) / 86400000);
+  if (dd === 0) return 'ya va a otro turno ese mismo día';
+  const f = new Date(mejor).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).replace(/[.,]/g, '');
+  return mejor > tsRef ? `tiene turno el ${f} (dentro de ${dd} día${dd === 1 ? '' : 's'})` : `tuvo turno el ${f} (hace ${dd} día${dd === 1 ? '' : 's'})`;
+}
 function _estadoVivo(dias) {
   const r = cargarReglas();
   return dias >= (r.DESC_OK ?? 5) ? 'ok' : dias >= (r.DESC_FLOOR ?? 3) ? 'reducido' : 'bloqueado';
@@ -3466,12 +3480,12 @@ async function abrirPickerVol(key, idx) {
   const rowDisp = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},${v.dias==null?99:+v.dias},${+v.dispo||0},${JSON.stringify(v.horario||'').replace(/"/g,'&quot;')})">
       <span class="pick-av">${v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}</span>
       <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
-        <span class="pick-sub">${v.dias>=99?'Nuevo':v.dias+'d descanso'}${v.horario?' · 🕐 '+v.horario:''} · <b style="color:${estClr(v.estado)}">${v.estado||'disp.'}</b></span></span>
+        <span class="pick-sub">${v.dias>=99?'Sin turnos cerca':_motivoDescanso(ocup, v.nombre.toUpperCase(), d.fechaRaw)}${v.horario?' · 🕐 '+v.horario:''} · <b style="color:${estClr(v.estado)}">${v.estado||'disp.'}</b></span></span>
       <span class="pick-add">＋</span></button>`;
   const rowAll = v => `<button class="pick-row" data-s="${(v.nombre).toLowerCase()}" onclick="elegirVolSlot('${key}',${idx},${JSON.stringify(v.nombre).replace(/"/g,'&quot;')},${!!v.llave},${v.dias},0,'')">
       <span class="pick-av">${v.nombre.split(' ').slice(0,2).map(p=>p[0]).join('').toUpperCase()}</span>
       <span class="pick-main"><span class="pick-nom">${v.nombre}${v.llave?' <span class="bllave sm">🔑</span>':''}</span>
-        <span class="pick-sub" style="color:${v.dias<99?'var(--red)':'var(--amber)'}">${v.dias<99?`⚠️ ya asignado hace ${v.dias}d — `:''}no disponible ese día por horario — se añade como excepción</span></span>
+        <span class="pick-sub" style="color:${v.dias<99?'var(--red)':'var(--amber)'}">${v.dias<99?`⚠️ ${_motivoDescanso(ocup, v.nombre.toUpperCase(), d.fechaRaw)} — `:''}no disponible ese día por horario — se añade como excepción</span></span>
       <span class="pick-add">＋</span></button>`;
 
   body.innerHTML = `
@@ -3724,7 +3738,8 @@ function buildDispoPanel(todosOrig, d) {
   const chipsHTML = todos.map(v => {
     const cls = {ok:'dc-ok',reducido:'dc-red',reservado:'dc-res',bloqueado:'dc-blq'}[v.estado]||'dc-blq';
     const drag = v.dias >= 2 ? `draggable="true" data-nombre="${v.nombre}" data-llave="${v.llave||false}" data-dias="${v.dias}" data-dispo="${0}" data-horario="${v.horario||''}" data-key="" data-source="panel"` : '';
-    return `<span class="dchip ${cls}" ${drag} title="🕐 ${v.horario}" ${v.dias>=2?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${v.llave?'🔑 ':''}${v.nombre}<span class="dh"> 🕐${v.horario}</span></span>`;
+    const motivo = v.dias < 99 ? _motivoDescanso(ocup, (v.nombre || '').toUpperCase(), d.fechaRaw) : '';
+    return `<span class="dchip ${cls}" ${drag} title="🕐 ${v.horario}${motivo ? ' · ' + motivo : ''}" ${v.dias>=2?`ondragstart="dStart(event)" ondragend="dEnd(event)"`:''}>${v.llave?'🔑 ':''}${v.nombre}<span class="dh"> 🕐${v.horario}${motivo && v.estado !== 'ok' ? ' · ' + motivo : ''}</span></span>`;
   }).join('');
 
   wrap.innerHTML = `
