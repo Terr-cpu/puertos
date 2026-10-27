@@ -3220,7 +3220,8 @@ function _ocupacionEfectiva() {
   (S.plan || []).forEach(d => {
     (d.turnos || []).forEach(t => {
       const key = `${d.semana}|${d.dia}|${t.rango}`;
-      const equipo = t.confirmado ? (t.equipo || []) : (S.edits[key] || t.equipo || []);
+      const abierto = t.confirmado && S.desbloq && S.desbloq[key];
+      const equipo = t.confirmado && !abierto ? (t.equipo || []) : (S.edits[key] || t.equipo || []);
       equipo.forEach(v => {
         const k = (v.nombre || '').toUpperCase().trim();
         if (!k) return;
@@ -3296,8 +3297,10 @@ function buildTurno(t, d) {
   const tarde = hIni >= 14;
   // Solo el propio turno bloquea su edición — un día con algún turno confirmado
   // puede tener otras franjas habilitadas todavía vacías y editables.
-  const conf  = !!t.confirmado;
+  // Un turno confirmado se puede abrir con "✏️ Modificar" (S.desbloq) y volver a guardar.
   const key   = `${d.semana}|${d.dia}|${t.rango}`;
+  const modificando = !!(t.confirmado && S.desbloq && S.desbloq[key]);
+  const conf  = !!t.confirmado && !modificando;
   const equipo = S.edits[key] || t.equipo || [];
   const editado = !!S.edits[key];
 
@@ -3312,7 +3315,7 @@ function buildTurno(t, d) {
 
   const btnId = `bc-${d.semana}-${d.dia}-${hIni}`;
   const tipCls = conf?'tt-conf':tarde?'tt-t':'tt-m';
-  const tipTxt = conf?'CONFIRMADO':tarde?'TARDE':'MAÑANA';
+  const tipTxt = modificando?'MODIFICANDO':conf?'CONFIRMADO':tarde?'TARDE':'MAÑANA';
   const n = _nSlots(equipo);
   // "Disponibles adicionales" en vivo: parte de los sustitutos calculados por el
   // motor y del panel de disponibles del día, recalculando descanso/estado con la
@@ -3358,11 +3361,16 @@ function buildTurno(t, d) {
     <div class="tc-top">
       <div><div class="tc-hora">🕒 ${t.rango}</div><span class="tc-tipo ${tipCls}">${tipTxt}</span>${editado&&!conf?' <span class="tc-edit-badge">✏️ Editado</span>':''}</div>
       <div class="tc-acts">
-        ${!conf?`
+        ${modificando?`
+          <button class="btn btn-ghost btn-sm" onclick="cancelarModificacion('${key}')" title="Dejar el turno como estaba">↩︎ Cancelar</button>
+          <button class="btn btn-ghost btn-sm" onclick="openCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir</button>
+          <button class="btn btn-green btn-sm" id="${btnId}" onclick="guardarModificacion('${key}','${btnId}')">💾 Guardar cambios</button>`
+        :!conf?`
           ${editado?`<button class="btn btn-ghost btn-sm" onclick="revertirTurno('${key}')" title="Volver al equipo calculado">↩︎ Revertir</button>`:''}
           <button class="btn btn-ghost btn-sm" onclick="openCubre('${d.semana}','${d.dia}','${t.rango}')">🔄 Cubrir</button>
           <button class="btn btn-green btn-sm" id="${btnId}" onclick="confirmarTurno('${d.semana}','${d.dia}','${key}','${t.rango}',${d.fechaRaw||'null'},'${btnId}')">✓ Confirmar</button>`
-          :'<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Guardado</span>'}
+          :`<span style="font-size:.73rem;color:var(--green);font-weight:700">✓ Guardado</span>
+            <button class="btn btn-ghost btn-sm" onclick="desbloquearTurno('${key}')" title="Cambiar el equipo de este turno ya confirmado">✏️ Modificar</button>`}
       </div>
     </div>
     <div class="tc-grid">
@@ -3423,6 +3431,54 @@ function quitarVolSlot(key, idx) {
 }
 
 // Vuelve al equipo calculado por el motor
+// ── Modificar un turno YA confirmado desde el cuadrante ──
+function desbloquearTurno(key) {
+  const ref = _turnoRef(key); if (!ref) { toast('Recarga el cuadrante', 'err'); return; }
+  S.desbloq = S.desbloq || {};
+  S.desbloq[key] = true;
+  _rerenderDia(ref.d);
+  toast('Cambia a quien haga falta y pulsa «💾 Guardar cambios»', 'ok');
+}
+function cancelarModificacion(key) {
+  const ref = _turnoRef(key);
+  if (S.desbloq) delete S.desbloq[key];
+  delete S.edits[key];
+  if (ref) _rerenderDia(ref.d);
+}
+/** Guarda la diferencia: quita del historial a quien ya no va y añade a los nuevos. No manda correos. */
+async function guardarModificacion(key, btnId) {
+  const ref = _turnoRef(key); if (!ref) { toast('Recarga el cuadrante', 'err'); return; }
+  const { d, t } = ref;
+  const up = x => String(x || '').toUpperCase().trim();
+  const antes = (t.equipo || []).map(v => v && v.nombre).filter(Boolean);
+  const ahora = (S.edits[key] || t.equipo || []).map(v => v && v.nombre).filter(Boolean);
+  const quitar = antes.filter(n => !ahora.some(x => up(x) === up(n)));
+  const poner = ahora.filter(n => !antes.some(x => up(x) === up(n)));
+  if (!quitar.length && !poner.length) { toast('No hay cambios', 'ok'); cancelarModificacion(key); return; }
+  if (!confirm(`¿Guardar los cambios del turno ${t.rango} (${d.dia} ${isoADMY(new Date(d.fechaRaw).toISOString().slice(0, 10))})?\n\n`
+    + (quitar.length ? `Se quita: ${quitar.join(', ')}\n` : '') + (poner.length ? `Se añade: ${poner.join(', ')}\n` : '')
+    + `\nNo se avisa por correo (díselo tú si hace falta). El recordatorio de 2 días antes ya les llegará solo a los que van.`)) return;
+  const btn = document.getElementById(btnId);
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+  try {
+    const fiso = new Date(d.fechaRaw).toISOString().slice(0, 10);
+    for (const n of quitar) {
+      await apiPost({ accion: 'eliminarTurnoHistorial', nombre: n, rango: t.rango, fecha: isoADMY(fiso), semana: d.semana, dia: d.dia });
+    }
+    if (poner.length) {
+      await apiPost({ accion: 'confirmarTurno', semana: d.semana, dia: d.dia, asignados: poner, rango: t.rango, fecha: new Date(d.fechaRaw).toISOString() });
+    }
+    if (S.desbloq) delete S.desbloq[key];
+    delete S.edits[key];
+    window._hOk = false;
+    toast('Turno modificado ✓', 'ok');
+    recargar();
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+    toast('Error: ' + e.message, 'err');
+  }
+}
+
 function revertirTurno(key) {
   const ref = _turnoRef(key); if (!ref) return;
   delete S.edits[key];
