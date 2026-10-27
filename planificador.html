@@ -2907,7 +2907,7 @@ function _buildPrintHTML(plan, calConfig, pdfCfg) {
     } else {
       filas = d.turnos.map(t => {
         // Portadores de llave primero, para que el orden sea el mismo en todos los turnos
-        const equipo = [...(t.equipo || [])].sort((a, b) => (b.llave ? 1 : 0) - (a.llave ? 1 : 0));
+        const equipo = [..._equipoEfectivo(d, t)].sort((a, b) => (b.llave ? 1 : 0) - (a.llave ? 1 : 0));
         const vacio = equipo.length === 0 || t.sinLlave;
         const volsHTML = vacio
           ? `<span class="pt-empty">Sin cubrir${t.sinLlave ? ' — falta portador de llave' : ''}</span>`
@@ -2951,6 +2951,18 @@ function _buildPrintHTML(plan, calConfig, pdfCfg) {
 // Fallback: impresión del navegador (Ctrl+P → Guardar como PDF).
 // Nota: Firefox NO conserva los enlaces al exportar a PDF; por eso el botón
 // principal usa jsPDF (_generarPDF), que sí crea anotaciones de enlace reales.
+/**
+ * Equipo que de verdad tiene un turno en pantalla: con los cambios hechos a mano en el cuadrante
+ * (quitar, cambiar, añadir), aunque el turno aún no esté confirmado. El PDF y el Sheet lo usan,
+ * para no enseñar a quien se ha quitado (antes salía el equipo calculado por el motor).
+ */
+function _equipoEfectivo(d, t) {
+  const key = `${d.semana}|${d.dia}|${t.rango}`;
+  const abierto = t.confirmado && S.desbloq && S.desbloq[key];
+  if (t.confirmado && !abierto) return t.equipo || [];
+  return (S.edits && S.edits[key]) ? S.edits[key].filter(Boolean) : (t.equipo || []);
+}
+
 function imprimirCuadranteNavegador() {
   if (!S.plan || !S.plan.length) { toast('Primero carga el cuadrante', 'err'); return; }
   const area = document.getElementById('print-area');
@@ -3115,8 +3127,8 @@ function exportarSheet() {
     const turnos = d.turnos.length ? d.turnos : [{ rango: '—', equipo: [] }];
     turnos.forEach(t => {
       filas.push([...meta, t.rango,
-        (t.equipo || []).map(e => e.nombre).join(', '),
-        (t.equipo || []).filter(e => e.llave).map(e => e.nombre).join(', ')]);
+        _equipoEfectivo(d, t).map(e => e.nombre).join(', '),
+        _equipoEfectivo(d, t).filter(e => e.llave).map(e => e.nombre).join(', ')]);
     });
   });
   const tsv = filas.map(r => r.map(c => String(c).replace(/[\t\n\r]/g, ' ')).join('\t')).join('\n');
