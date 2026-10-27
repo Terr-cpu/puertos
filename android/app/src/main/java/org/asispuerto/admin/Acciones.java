@@ -36,6 +36,14 @@ final class Acciones {
                 .put("semana", semana(fecha)).put("dia", dia(fecha)).put("rango", rango);
         Sesion.escribir(c, "POST", "historial?on_conflict=voluntario_id,fecha,rango",
                 new JSONArray().put(fila).toString(), "resolution=merge-duplicates,return=minimal");
+        // Correo de "Turno confirmado": ya no sale solo al guardar el turno, se pide aquí (aceptar un apunte)
+        try {
+            JSONObject aviso = new JSONObject().put("accion", "turno_confirmado").put("fecha", fecha).put("rango", rango)
+                    .put("voluntario_ids", new JSONArray().put(vid));
+            Sesion.peticion("POST", "/functions/v1/notificar-email", Sesion.token(c), aviso.toString());
+        } catch (Exception e) {
+            android.util.Log.e("PuertoAdmin", "No se pudo pedir el correo de confirmación", e);
+        }
     }
 
     /** Descartar un apunte (no entra en el turno). */

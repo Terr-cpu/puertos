@@ -3768,7 +3768,7 @@ async function confirmarTurno(sem, dia, key, rango, fechaRaw, btnId) {
     : (() => { const d=S.plan?.find(d=>d.semana==sem&&d.dia==dia); return d?.turnos?.find(t=>t.rango===rango)?.equipo?.map(v=>v.nombre)||[]; })()
   ).filter(Boolean);
   if (!equipo.length) { toast('Sin equipo','err'); return; }
-  if (!confirm(`¿Confirmar turno ${rango}?\n${equipo.join(', ')}`)) return;
+  if (!confirm(`¿Confirmar turno ${rango}?\n${equipo.join(', ')}\n\n(No se avisa por correo: el aviso les llega con el recordatorio, 2 días antes del turno.)`)) return;
   const btn = document.getElementById(btnId);
   if (btn) { btn.disabled=true; btn.textContent='Guardando…'; }
   try {
@@ -9512,6 +9512,25 @@ async function tgDeshacer() {
   } catch(e) { toast('No se pudo deshacer del todo: ' + e.message, 'err'); }
 }
 
+/**
+ * Correo de "Turno confirmado" a esas personas. Ya NO sale solo al guardar un turno (el cuadrante
+ * se prepara con calma y puede cambiar): solo al aceptar un apunte o poner un sustituto por una baja.
+ */
+async function avisarConfirmados(nombres, fecha, rango) {
+  try {
+    const r = await fetch(SUPA_URL + '/functions/v1/notificar-email', {
+      method: 'POST', headers: { ...SB_H, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'turno_confirmado', fecha, rango, nombres }),
+    });
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j) throw new Error(r.status === 403 ? 'sin permiso' : 'error ' + r.status);
+    if (j.enviados.length) toast(`📧 Correo de confirmación a ${j.enviados.join(', ')}`, 'ok');
+    if (j.sinEmail.length) toast(`Sin correo guardado: ${j.sinEmail.join(', ')}`, 'err');
+  } catch (e) {
+    toast('Turno confirmado, pero no se pudo mandar el correo (' + e.message + ')', 'err');
+  }
+}
+
 // ── Confirmar turnos desde Apuntes: el apunte pasa a ser un turno confirmado real
 async function apConfirmar(fecha, rango, dia) {
   const apuntes = (window._apuntesData || []).filter(r => r.fecha === fecha && r.rango === rango && !r.es_dia_completo);
@@ -9522,6 +9541,7 @@ async function apConfirmar(fecha, rango, dia) {
   try {
     const sd = _evSemanaDia(fecha);
     await apiPost({ accion: 'confirmarTurno', asignados: pend.map(r => r.nombre), fecha, semana: sd.semana, dia: sd.dia, rango });
+    avisarConfirmados(pend.map(r => r.nombre), fecha, rango);
     invalidar('historial', 'oferta', 'carga');
     ['_hOk', '_cOk', '_bOk', '_apOk', '_aOk'].forEach(k => { window[k] = false; });
     S.plan = null; ST.raw = null; ST.S = null; EV.data = null;
@@ -10289,6 +10309,7 @@ function _stDispoHTML() {
       if (!confirm(`¿Confirmar en el turno ${fechaCorta(t)}?\n\n• ${noms.join('\n• ')}\n\nLe${noms.length > 1 ? 's' : ''} llegará el correo de turno confirmado.`)) return;
       const sd = _evSemanaDia(t.fecha);
       await apiPost({ accion: 'confirmarTurno', asignados: noms, fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
+      avisarConfirmados(noms, t.fecha, t.rango);
       refrescar(noms.length > 1 ? `${noms.length} confirmados ✓` : `${noms[0]} confirmado ✓`);
     },
     // Descartar un apunte (no entra en el turno)
@@ -10316,6 +10337,7 @@ function _stDispoHTML() {
       const sd = _evSemanaDia(t.fecha);
       await apiPost({ accion: 'registrarRefuerzo', nombre: d.n, fecha: t.fecha, rango: t.rango, semana: sd.semana, dia: sd.dia });
       await apiPost({ accion: 'confirmarTurno', asignados: [d.n], fecha: t.fecha, semana: sd.semana, dia: sd.dia, rango: t.rango });
+      avisarConfirmados([d.n], t.fecha, t.rango);
       refrescar(`${d.n} añadido al turno ✓`);
     },
     wa(t, d) { evMsgSust(d.n, t.k, 'wa'); },

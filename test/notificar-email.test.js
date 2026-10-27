@@ -18,9 +18,9 @@ function cargar({ email = null, tieneLlave = false, usuario = { email: 'g@x.com'
   const correos = [];
   const sb = { from(t) {
     const q = { t };
-    const b = { select() { return b; }, eq() { return b; }, limit() { return b; },
+    const b = { select() { return b; }, eq() { return b; }, limit() { return b; }, in(c, v) { q.in = v; return b; },
       then(ok, ko) {
-        const data = t === 'voluntarios' ? [{ email, tiene_llave: tieneLlave }] : [];
+        const data = t === 'voluntarios' ? (q.in ? q.in.map((x, i) => ({ id: 'v' + i, nombre: String(x).startsWith('v') ? 'PEPE PEREZ' : x, email: i === 1 ? null : email, tiene_llave: tieneLlave })) : [{ email, tiene_llave: tieneLlave }]) : [];
         return Promise.resolve({ data, error: null }).then(ok, ko);
       } };
     return b;
@@ -53,17 +53,28 @@ const F = '2026-09-26', R = '10:00 a 12:00';
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'baja', voluntario_id: 'a', nombre: 'ANA', fecha: F, rango: R } });
   check('baja sin email guardado → no se manda nada', r.correos.length === 0);
 
+  // Confirmar o cambiar el cuadrante ya no avisa a nadie (se prepara con calma y puede cambiar)
   r = cargar({ email: 'c@x.com', tieneLlave: true });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_anadido', voluntario_id: 'a', nombre: 'CARLOS', fecha: F, rango: R } });
-  check('equipo_anadido (portador de llave) → correo con nota de llave y enlace al cuestionario', /forms\.gle/.test(r.correos[0].html) && r.correos.length === 1 && /Turno confirmado/.test(r.correos[0].subject) && /llave/i.test(r.correos[0].html));
-
-  r = cargar({ email: 'd@x.com', tieneLlave: false });
-  await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_anadido', voluntario_id: 'a', nombre: 'DANI', fecha: F, rango: R } });
-  check('equipo_anadido (sin llave) → correo sin nota de llave', r.correos.length === 1 && !/llave/i.test(r.correos[0].html));
-
-  r = cargar({ email: 'e@x.com' });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'equipo_quitado', voluntario_id: 'a', nombre: 'ELENA', fecha: F, rango: R } });
-  check('equipo_quitado → correo "Cambios en tu turno" con el contacto de Manuel Fernández', /hermano <b[^>]*>Manuel Fernández<\/b>/.test(r.correos[0].html) && !/coordinador/.test(r.correos[0].html) && r.correos.length === 1 && /Cambios en tu turno/.test(r.correos[0].subject));
+  check('equipo_anadido / equipo_quitado (cuadrante) → ningún correo', r.correos.length === 0);
+
+  // Aviso a mano del admin (aceptar apunte / añadir sustituto)
+  r = cargar({ email: 'c@x.com', tieneLlave: true, usuario: { email: 'admin@x.com', app_metadata: { rol: 'admin' } } });
+  let res = await post(r.handler, { accion: 'turno_confirmado', fecha: F, rango: R, nombres: ['CARLOS PEREZ', 'SIN CORREO'] });
+  let cuerpo = JSON.parse(await res.text());
+  check('turno_confirmado del admin → "Turno confirmado" a quien tiene correo (con llave, cuestionario y saludo)',
+    r.correos.length === 1 && /Turno confirmado/.test(r.correos[0].subject) && /portador de llave/.test(r.correos[0].html)
+    && /forms\.gle/.test(r.correos[0].html) && /Hola, <b>Carlos<\/b>\./.test(r.correos[0].html), r.correos[0] && r.correos[0].subject);
+  check('turno_confirmado devuelve a quién se envió y quién no tiene correo', cuerpo.enviados.length === 1 && cuerpo.sinEmail.length === 1, JSON.stringify(cuerpo));
+  r = cargar({ email: 'c@x.com', tieneLlave: false, usuario: { email: 'admin@x.com', app_metadata: { rol: 'admin' } } });
+  await post(r.handler, { accion: 'turno_confirmado', fecha: F, rango: R, voluntario_ids: ['v-uno'] });
+  check('turno_confirmado por id (app Android) → correo sin nota de llave', r.correos.length === 1 && !/portador/.test(r.correos[0].html));
+  r = cargar({ email: 'c@x.com', usuario: { email: 'g@x.com', app_metadata: {} } });
+  res = await post(r.handler, { accion: 'turno_confirmado', fecha: F, rango: R, nombres: ['CARLOS PEREZ'] });
+  check('turno_confirmado pedido por un voluntario → 403 y no se manda', res.status === 403 && r.correos.length === 0);
+  res = await post(r.handler, { accion: 'turno_confirmado', fecha: F, rango: R, nombres: ['CARLOS PEREZ'] }, null);
+  check('turno_confirmado sin sesión → 403', res.status === 403 && r.correos.length === 0);
 
   r = cargar({ email: 'f@x.com' });
   await post(r.handler, { type: 'INSERT', table: 'actividad', record: { tipo: 'apunte', voluntario_id: 'a', nombre: 'F', fecha: F, rango: R } });

@@ -6,10 +6,14 @@
 //
 //   1. Database Webhook sobre INSERT en "actividad" (supabase/01_actividad.sql):
 //      tipo 'baja'           → confirmación de que su baja quedó registrada
-//      tipo 'equipo_anadido' → su turno ha quedado confirmado
-//      tipo 'equipo_quitado' → le han quitado de un turno ya confirmado
-//      (el resto de tipos — apunte, apunte_cancelado, baja_anulada — no
-//      generan correo; ya tienen su aviso de Telegram al coordinador)
+//      (el resto de tipos no generan correo. En concreto 'equipo_anadido' y
+//      'equipo_quitado' YA NO mandan nada: confirmar o cambiar el cuadrante no
+//      avisa a nadie, porque el mes se prepara con calma y puede cambiar)
+//
+//   1b. Llamada directa del administrador: { accion: 'turno_confirmado', fecha, rango,
+//      voluntario_ids?: [...], nombres?: [...] } → "Turno confirmado" solo a esos.
+//      La usan el planificador al ACEPTAR un apunte o AÑADIR un sustituto (bajas y
+//      apuntes) y la app de Android. Solo el admin puede pedirla.
 //
 //   2. Llamada directa desde disponibilidad-bloques.html al guardar con
 //      éxito: { accion: 'disponibilidad_guardada', voluntario_id, resumenTexto }
@@ -63,6 +67,14 @@ async function puedePedirRecibo(req: Request, emailVoluntario: string): Promise<
   if (error || !u) return false;
   if (u.app_metadata?.rol === 'admin') return true;
   return !!u.email && u.email.toLowerCase() === emailVoluntario.trim().toLowerCase();
+}
+
+/** ¿Quien llama es el administrador? (token de su sesión) */
+async function esAdmin(req: Request): Promise<boolean> {
+  const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (!token) return false;
+  const { data, error } = await sb.auth.getUser(token);
+  return !error && data?.user?.app_metadata?.rol === 'admin';
 }
 
 async function voluntario(id: string | number | null): Promise<{ email: string | null; tieneLlave: boolean } | null> {
@@ -147,6 +159,17 @@ function bloqueCuestionario(): string {
 </td></tr></table>`;
 }
 
+/** Correo "Turno confirmado" (con la llave si la lleva y el cuestionario de fin de turno). */
+function correoConfirmado(nombre: string, fecha: string, rango: string, tieneLlave: boolean): string {
+  const llaveTxt = tieneLlave ? aviso('🔑', 'Eres portador de llave — no olvides llevarla.') : '';
+  return envoltorio('✅', 'Turno confirmado', `
+        <p style="margin:0">${saludo(nombre)} Tu turno ha quedado confirmado:</p>
+        ${tarjetaTurno(fechaLarga(fecha), rango, '#1a9648', '#e6f7ed')}
+        ${llaveTxt}
+        <p style="margin:0 0 14px;color:#48484a">¡Te esperamos!</p>
+        ${bloqueCuestionario()}`);
+}
+
 /** Último fallo al anotar en registro_avisos (se devuelve en la respuesta para poder verlo). */
 let errorRegistro = '';
 
@@ -205,14 +228,35 @@ Deno.serve(async (req) => {
       return resp('ok');
     }
 
+    // ── Modo directo del admin: confirmación de turno al aceptar un apunte o poner un sustituto ──
+    if (payload?.accion === 'turno_confirmado') {
+      if (!(await esAdmin(req))) return resp('no autorizado', { status: 403 });
+      const { fecha, rango } = payload;
+      const ids: string[] = Array.isArray(payload.voluntario_ids) ? payload.voluntario_ids.filter(Boolean) : [];
+      const nombres: string[] = Array.isArray(payload.nombres) ? payload.nombres.filter(Boolean) : [];
+      if (!fecha || !rango || (!ids.length && !nombres.length)) return resp('faltan datos', { status: 400 });
+      const filas: any[] = [];
+      if (ids.length) { const { data } = await sb.from('voluntarios').select('id,nombre,email,tiene_llave').in('id', ids); filas.push(...(data || [])); }
+      if (nombres.length) { const { data } = await sb.from('voluntarios').select('id,nombre,email,tiene_llave').in('nombre', nombres); filas.push(...(data || [])); }
+      const vistos = new Set<string>(), enviados: string[] = [], sinEmail: string[] = [];
+      for (const v of filas) {
+        if (vistos.has(String(v.id))) continue;
+        vistos.add(String(v.id));
+        if (!v.email) { sinEmail.push(v.nombre); continue; }
+        await enviarCorreo(v.email, `Turno confirmado — ${rango} del ${isoADMY(fecha)}`, correoConfirmado(v.nombre, fecha, rango, !!v.tiene_llave),
+          { tipo: 'turno_confirmado', voluntario_id: v.id, nombre: v.nombre });
+        enviados.push(v.nombre);   // si Resend falla, queda anotado en registro_avisos (Avisos enviados)
+      }
+      return resp(JSON.stringify({ ok: true, enviados, sinEmail }), { headers: { 'Content-Type': 'application/json' } });
+    }
+
     // ── Modo webhook: tabla "actividad" ──
     const { type, table, record } = payload || {};
     if (table !== 'actividad' || type !== 'INSERT' || !record) return resp('ignorado');
 
     const tipo = record.tipo;
-    if (tipo !== 'baja' && tipo !== 'equipo_anadido' && tipo !== 'equipo_quitado') {
-      return resp('ignorado (tipo sin correo)');
-    }
+    // Confirmar o cambiar turnos (cuadrante) ya no avisa: solo la baja tiene correo automático
+    if (tipo !== 'baja') return resp('ignorado (tipo sin correo)');
     const v = await voluntario(record.voluntario_id);
     if (!v?.email) return resp('sin email');
 
@@ -227,20 +271,6 @@ Deno.serve(async (req) => {
         ${tarjetaTurno(dia, rango, '#c0392b', '#fff0ef')}
         <p style="margin:0 0 14px;color:#48484a">Gracias por avisar.</p>`);
       await enviarCorreo(v.email, `Baja registrada — ${rango} del ${fecha}`, html, { tipo: 'baja', voluntario_id: record.voluntario_id, nombre });
-    } else if (tipo === 'equipo_anadido') {
-      const llaveTxt = v.tieneLlave ? aviso('🔑', 'Eres portador de llave — no olvides llevarla.') : '';
-      const html = envoltorio('✅', 'Turno confirmado', `
-        <p style="margin:0">${saludo(record.nombre)} Tu turno ha quedado confirmado:</p>
-        ${tarjetaTurno(dia, rango, '#1a9648', '#e6f7ed')}
-        ${llaveTxt}
-        <p style="margin:0 0 14px;color:#48484a">¡Te esperamos!</p>
-        ${bloqueCuestionario()}`);
-      await enviarCorreo(v.email, `Turno confirmado — ${rango} del ${fecha}`, html, { tipo: 'turno_confirmado', voluntario_id: record.voluntario_id, nombre });
-    } else if (tipo === 'equipo_quitado') {
-      const html = envoltorio('⚠️', 'Cambios en tu turno', `
-        <p style="margin:0">${saludo(record.nombre)} Este turno para el que estabas confirmado ha cambiado y <b>ya no cuentas en el equipo</b>:</p>
-        ${tarjetaTurno(dia, rango, '#e07b00', '#fff3e0')}`);
-      await enviarCorreo(v.email, `Cambios en tu turno — ${rango} del ${fecha}`, html, { tipo: 'turno_quitado', voluntario_id: record.voluntario_id, nombre });
     }
     return resp('ok');
   } catch (e) {
